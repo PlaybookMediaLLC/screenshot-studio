@@ -136,6 +136,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/calendar/mutations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Move, swap, unschedule or clear a calendar placement
+         * @description Conditional calendar mutation. Scheduled changes also require publish:manage. Retries replay the committed result.
+         */
+        post: operations["mutateCalendar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read account analytics
+         * @description One account/date snapshot with explicit metric availability and freshness.
+         */
+        get: operations["getAccountAnalytics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh account analytics
+         * @description Authenticated publisher requests a bounded provider refresh. Collection state and existing observations survive failure; no publication is created.
+         */
+        post: operations["refreshAccountAnalytics"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/analytics/{id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save analytics sharing or posting goal
+         * @description Versioned, audited publisher operation. Public sharing is disabled by default; revoke makes subsequent reads return 404 with no-store.
+         */
+        put: operations["updateAnalyticsSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/social-instances/mastodon": {
         parameters: {
             query?: never;
@@ -1232,6 +1312,335 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CalendarResult: {
+            drafts: {
+                assetIds: string[];
+                body: {
+                    [key: string]: unknown;
+                }[];
+                channelConnectionIds: string[];
+                createdAt: string;
+                createdByUserId: string | null;
+                channelText: {
+                    [key: string]: string;
+                };
+                discussions: {
+                    [key: string]: unknown;
+                };
+                id: string;
+                organizationId: string;
+                plainText: string;
+                /** @enum {string} */
+                status: "draft" | "scheduled" | "archived";
+                title: string;
+                updatedAt: string;
+                updatedByUserId: string | null;
+                version: number;
+                /** @default 1 */
+                calendarVersion: number;
+                approvedVersion: number | null;
+                reviewNote: string | null;
+                /** @enum {string} */
+                reviewStatus: "none" | "pending" | "approved" | "changes_requested";
+                reviewedByUserId: string | null;
+                shareToken: string | null;
+                guestComments: {
+                    createdAt: string;
+                    name: string;
+                    text: string;
+                }[];
+                publishedPosts: number;
+                /**
+                 * @default {
+                 *       "autoPlug": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       },
+                 *       "autoRepost": {
+                 *         "atLikes": 0,
+                 *         "enabled": false
+                 *       }
+                 *     }
+                 */
+                engagement: {
+                    autoPlug: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                    autoRepost: {
+                        atLikes: number;
+                        enabled: boolean;
+                        text?: string;
+                    };
+                };
+                /** @default false */
+                naturalPostingTime: boolean;
+                /** @default null */
+                plannedFor: string | null;
+                /** @default null */
+                primaryPlatform: string | null;
+                /** @default null */
+                socialSetId: string | null;
+                article: {
+                    coverAssetId?: string;
+                    title: string;
+                } | null;
+                attentionPosts: number;
+                /** @enum {string} */
+                kind: "standard" | "reply" | "quote" | "repurpose" | "article";
+                nextPostAt: string | null;
+                pinnedAt: string | null;
+                planTimeZone: string | null;
+                platformVersions: {
+                    /** @constant */
+                    schemaVersion: 1;
+                    versions: {
+                        body?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** @enum {string} */
+                        channel: "x" | "linkedin" | "instagram" | "threads" | "bluesky" | "mastodon";
+                        forkedFromVersion?: number;
+                        /** @enum {string} */
+                        mode: "synced" | "manual";
+                        options?: {
+                            automation?: {
+                                plugAtLikes?: number;
+                                /** @enum {string} */
+                                plugMetric?: "likes" | "reposts";
+                                plugText?: string;
+                                quoteAfterHours?: number;
+                                quoteText?: string;
+                                repostAtLikes?: number;
+                                retweets?: ({
+                                    afterMinutes: number;
+                                } | {
+                                    at: string;
+                                    days: number;
+                                    timeZone: string;
+                                })[];
+                                unretweetAfterMinutes?: number;
+                            };
+                            community?: {
+                                id: string;
+                                name?: string;
+                                shareWithFollowers?: boolean;
+                            };
+                            document?: {
+                                assetId: string;
+                                title?: string;
+                            };
+                            firstComment?: string;
+                            numbering?: {
+                                enabled: boolean;
+                                /** @enum {string} */
+                                position: "start" | "end";
+                                skipFirst?: number;
+                                skipLast?: number;
+                                /** @enum {string} */
+                                style: "hash" | "emoji" | "dot" | "slash" | "leading" | "fraction" | "of";
+                            };
+                            /** @enum {string} */
+                            visibility?: "PUBLIC" | "CONNECTIONS";
+                        };
+                        sourceHash?: string;
+                    }[];
+                };
+                queuedPosts: number;
+                scratchpad: string;
+                sourceDraftId: string | null;
+                tagIds: string[];
+                target: {
+                    author?: string;
+                    /** @enum {string} */
+                    kind?: "reply" | "quote" | "repurpose";
+                    platform?: string;
+                    remoteId?: string;
+                    sourceDraftId?: string;
+                    sourcePostId?: string;
+                    text?: string;
+                    url?: string;
+                } | null;
+            }[];
+            posts: {
+                caption: string;
+                channelConnectionId: string;
+                createdAt: string;
+                id: string;
+                platform: string;
+                scheduledFor: string;
+                /** @enum {string} */
+                status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
+                metrics: {
+                    [key: string]: number;
+                } | null;
+                metricsAt: string | null;
+                url: string | null;
+                replies: number;
+                threadProgress: {
+                    lastReplyId?: string;
+                    posted: number;
+                    total: number;
+                };
+                /** @default [] */
+                automations: {
+                    attempts: number;
+                    dueAt: string;
+                    failureCode: string | null;
+                    key: string;
+                    /** @enum {string} */
+                    kind: "first_comment" | "retweet" | "unretweet" | "plug" | "repost_at_likes" | "quote";
+                    remoteId: string | null;
+                    /** @enum {string} */
+                    status: "pending" | "done" | "failed" | "skipped" | "cancelled" | "expired";
+                    updatedAt: string;
+                }[];
+                /** @default null */
+                naturalOffsetSeconds: number | null;
+                /** @default null */
+                scheduleMode: ("queue" | "explicit") | null;
+                /** @default null */
+                scheduleTimeZone: string | null;
+                /** @default null */
+                slotAt: string | null;
+                /** @default null */
+                socialSetId: string | null;
+            }[];
+            undo: {
+                draftId: string;
+                version: number;
+                calendarVersion: number;
+                postId?: string;
+                at: string | null;
+                timeZone: string;
+            }[];
+        };
+        AnalyticsReport: {
+            accountId: string;
+            name: string;
+            platform: string;
+            profileUrl: string;
+            query: {
+                /** Format: date */
+                from: string;
+                /** Format: date */
+                to: string;
+                /** @default UTC */
+                timeZone: string;
+                /**
+                 * @default daily
+                 * @enum {string}
+                 */
+                grouping: "daily" | "weekly" | "monthly";
+                /**
+                 * @default all
+                 * @enum {string}
+                 */
+                scope: "all" | "replies";
+                /**
+                 * @default latest
+                 * @enum {string}
+                 */
+                sort: "latest" | "impressions" | "likes" | "replies" | "reposts" | "bookmarks" | "engagementRate" | "engagements" | "quotes" | "profileClicks" | "linkClicks";
+                /**
+                 * @default desc
+                 * @enum {string}
+                 */
+                direction: "asc" | "desc";
+                /** @default  */
+                cursor: string;
+                /** @default 25 */
+                limit: number;
+                /** Format: date-time */
+                asOf?: string;
+            };
+            /** @enum {string} */
+            status: "available" | "insufficient" | "unsupported" | "forbidden" | "failed" | "stale";
+            capabilities: {
+                account: boolean;
+                posts: boolean;
+                import: boolean;
+            };
+            checkedAt: string | null;
+            coverageStart: string | null;
+            /** Format: date-time */
+            asOf: string;
+            metrics: {
+                [key: string]: {
+                    /** @enum {string} */
+                    status: "available" | "insufficient" | "unsupported" | "forbidden" | "failed" | "stale";
+                    value: number | null;
+                    previous: number | null;
+                    change: number | null;
+                    points: {
+                        at: string;
+                        value: number | null;
+                        samples: number;
+                    }[];
+                    definition: string;
+                    samples: number;
+                    missing: number;
+                };
+            };
+            posts: {
+                id: string;
+                remoteId: string;
+                excerpt: string;
+                url: string;
+                /** Format: date-time */
+                publishedAt: string;
+                observedAt: string | null;
+                status: string;
+                threadRootId: string | null;
+                threadPosition: number;
+                isReply: boolean;
+                metrics: {
+                    [key: string]: number;
+                };
+            }[];
+            totalPosts: number;
+            nextCursor: string | null;
+            hourly: {
+                day: number;
+                hour: number;
+                samples: number;
+                total: number;
+                average: number | null;
+                postIds: string[];
+            }[];
+            settings: {
+                version: number;
+                goal: {
+                    /** @enum {string} */
+                    cadence: "daily" | "weekly";
+                    excludeWeekends: boolean;
+                    timeZone: string;
+                    effectiveDate: string;
+                } | null;
+                publicToken: string | null;
+            };
+            progress: {
+                streak: number;
+                current: number;
+                required: number;
+                period: string;
+            };
+        };
+        AnalyticsRefresh: {
+            refreshed: boolean;
+        };
+        AnalyticsSettings: {
+            version: number;
+            goal: {
+                /** @enum {string} */
+                cadence: "daily" | "weekly";
+                excludeWeekends: boolean;
+                timeZone: string;
+                effectiveDate: string;
+            } | null;
+            publicToken: string | null;
+        };
         MastodonInstancePreview: {
             /** Format: uri */
             origin: string;
@@ -1753,6 +2162,8 @@ export interface components {
                 updatedAt: string;
                 updatedByUserId: string | null;
                 version: number;
+                /** @default 1 */
+                calendarVersion: number;
                 approvedVersion: number | null;
                 reviewNote: string | null;
                 /** @enum {string} */
@@ -1902,6 +2313,8 @@ export interface components {
                 updatedAt: string;
                 updatedByUserId: string | null;
                 version: number;
+                /** @default 1 */
+                calendarVersion: number;
                 approvedVersion: number | null;
                 reviewNote: string | null;
                 /** @enum {string} */
@@ -2112,6 +2525,7 @@ export interface components {
             };
             plainText?: string;
             title?: string;
+            requestKey?: string;
             /** @enum {string} */
             kind?: "standard" | "reply" | "quote" | "repurpose" | "article";
             /** @enum {string} */
@@ -2143,6 +2557,8 @@ export interface components {
             updatedAt: string;
             updatedByUserId: string | null;
             version: number;
+            /** @default 1 */
+            calendarVersion: number;
             approvedVersion: number | null;
             reviewNote: string | null;
             /** @enum {string} */
@@ -2353,6 +2769,7 @@ export interface components {
             plainText?: string;
             title?: string;
             baseVersion: number;
+            baseCalendarVersion?: number;
             /** @enum {string} */
             status?: "draft" | "archived";
             naturalPostingTime?: boolean;
@@ -2429,6 +2846,8 @@ export interface components {
                 updatedAt: string;
                 updatedByUserId: string | null;
                 version: number;
+                /** @default 1 */
+                calendarVersion: number;
                 approvedVersion: number | null;
                 reviewNote: string | null;
                 /** @enum {string} */
@@ -3403,6 +3822,269 @@ export interface operations {
                 };
             };
             /** @description Approval is not configured or GIPHY is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    mutateCalendar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    key: string;
+                    /** @enum {string} */
+                    action: "move" | "swap" | "unschedule" | "remove_date";
+                    items: {
+                        draftId: string;
+                        version: number;
+                        calendarVersion: number;
+                        postId?: string;
+                        at: string | null;
+                        timeZone: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Committed result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarResult"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Stale placement or publishing has started. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getAccountAnalytics: {
+        parameters: {
+            query: {
+                from: string;
+                to: string;
+                timeZone?: string;
+                grouping?: "daily" | "weekly" | "monthly";
+                scope?: "all" | "replies";
+                sort?: "latest" | "impressions" | "likes" | "replies" | "reposts" | "bookmarks" | "engagementRate" | "engagements" | "quotes" | "profileClicks" | "linkClicks";
+                direction?: "asc" | "desc";
+                cursor?: string;
+                limit?: number;
+                asOf?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Report. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsReport"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    refreshAccountAnalytics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refresh completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsRefresh"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Refresh is in progress or was requested too recently. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateAnalyticsSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    version: number;
+                    /** @enum {string} */
+                    action: "goal" | "enable" | "revoke";
+                    goal?: {
+                        /** @enum {string} */
+                        cadence: "daily" | "weekly";
+                        excludeWeekends: boolean;
+                        timeZone: string;
+                        effectiveDate: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Saved settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyticsSettings"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Settings changed; reload before retrying. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -5921,7 +6603,10 @@ export interface operations {
     };
     deleteContentDraft: {
         parameters: {
-            query?: never;
+            query?: {
+                version?: number;
+                calendarVersion?: number;
+            };
             header?: never;
             path: {
                 id: string;
@@ -6224,6 +6909,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
+                    baseCalendarVersion?: number;
                     plannedFor: string | null;
                     timeZone?: string;
                 };
@@ -6288,7 +6974,9 @@ export interface operations {
     };
     duplicateContentDraft: {
         parameters: {
-            query?: never;
+            query?: {
+                requestKey?: string;
+            };
             header?: never;
             path: {
                 id: string;

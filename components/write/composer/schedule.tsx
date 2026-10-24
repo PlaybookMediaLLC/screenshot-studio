@@ -173,6 +173,7 @@ export function ScheduleDialog({
           : { disambiguation: disambiguation ?? undefined, localTime: local, timeZone: zone }),
         naturalPostingTime: natural,
         version: context.versionRef.current,
+        baseCalendarVersion: context.draft.calendarVersion,
       })
       context.versionRef.current = result.draft.version
       context.onDone(result)
@@ -196,6 +197,7 @@ export function ScheduleDialog({
     try {
       await context.flush()
       const saved = await writeApi.plan(context.draft.id, {
+        baseCalendarVersion: context.draft.calendarVersion,
         plannedFor: clear || !instant ? null : instant.toISOString(),
         timeZone: zone,
       })

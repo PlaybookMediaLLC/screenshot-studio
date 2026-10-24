@@ -859,6 +859,581 @@
         ]
       }
     },
+    "/api/v1/calendar/mutations": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Conditional calendar mutation. Scheduled changes also require publish:manage. Retries replay the committed result.",
+        "operationId": "mutateCalendar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "move",
+                      "swap",
+                      "unschedule",
+                      "remove_date"
+                    ]
+                  },
+                  "items": {
+                    "minItems": 1,
+                    "maxItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "draftId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "calendarVersion": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "postId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "at": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "timeZone": {
+                          "type": "string",
+                          "maxLength": 80
+                        }
+                      },
+                      "required": [
+                        "draftId",
+                        "version",
+                        "calendarVersion",
+                        "at",
+                        "timeZone"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "action",
+                  "items"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Committed result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale placement or publishing has started.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Move, swap, unschedule or clear a calendar placement",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/analytics/{id}": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "One account/date snapshot with explicit metric availability and freshness.",
+        "operationId": "getAccountAnalytics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeZone",
+            "required": false,
+            "schema": {
+              "default": "UTC",
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          {
+            "in": "query",
+            "name": "grouping",
+            "required": false,
+            "schema": {
+              "default": "daily",
+              "type": "string",
+              "enum": [
+                "daily",
+                "weekly",
+                "monthly"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "type": "string",
+              "enum": [
+                "all",
+                "replies"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "default": "latest",
+              "type": "string",
+              "enum": [
+                "latest",
+                "impressions",
+                "likes",
+                "replies",
+                "reposts",
+                "bookmarks",
+                "engagementRate",
+                "engagements",
+                "quotes",
+                "profileClicks",
+                "linkClicks"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "required": false,
+            "schema": {
+              "default": "desc",
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          {
+            "in": "query",
+            "name": "asOf",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "artifact:read"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Read account analytics",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/analytics/{id}/refresh": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Authenticated publisher requests a bounded provider refresh. Collection state and existing observations survive failure; no publication is created.",
+        "operationId": "refreshAccountAnalytics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refresh completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsRefresh"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Refresh is in progress or was requested too recently.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Refresh account analytics",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/analytics/{id}/settings": {
+      "put": {
+        "x-shots-entitlement": {
+          "feature": "content:drafts",
+          "minimumPlan": "pro"
+        },
+        "description": "Versioned, audited publisher operation. Public sharing is disabled by default; revoke makes subsequent reads return 404 with no-store.",
+        "operationId": "updateAnalyticsSettings",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "version": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "goal",
+                      "enable",
+                      "revoke"
+                    ]
+                  },
+                  "goal": {
+                    "type": "object",
+                    "properties": {
+                      "cadence": {
+                        "type": "string",
+                        "enum": [
+                          "daily",
+                          "weekly"
+                        ]
+                      },
+                      "excludeWeekends": {
+                        "type": "boolean"
+                      },
+                      "timeZone": {
+                        "type": "string"
+                      },
+                      "effectiveDate": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cadence",
+                      "excludeWeekends",
+                      "timeZone",
+                      "effectiveDate"
+                    ]
+                  }
+                },
+                "required": [
+                  "version",
+                  "action"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Settings changed; reload before retrying.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Save analytics sharing or posting goal",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
     "/api/v1/social-instances/mastodon": {
       "get": {
         "x-shots-entitlement": {
@@ -6126,6 +6701,26 @@
               "type": "string",
               "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
             }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "in": "query",
+            "name": "calendarVersion",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
           }
         ],
         "responses": {
@@ -6472,6 +7067,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "baseCalendarVersion": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
                   "plannedFor": {
                     "anyOf": [
                       {
@@ -6591,6 +7191,16 @@
             "schema": {
               "type": "string",
               "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "requestKey",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
             }
           }
         ],
@@ -10978,6 +11588,1539 @@
       }
     },
     "schemas": {
+      "CalendarResult": {
+        "type": "object",
+        "properties": {
+          "drafts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "assetIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "body": {
+                  "maxItems": 5000,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "channelConnectionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "createdByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "channelText": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "discussions": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                "id": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "plainText": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "scheduled",
+                    "archived"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "updatedByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "calendarVersion": {
+                  "default": 1,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "approvedVersion": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reviewNote": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reviewStatus": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "approved",
+                    "changes_requested"
+                  ]
+                },
+                "reviewedByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "shareToken": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "guestComments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "createdAt",
+                      "name",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "publishedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "engagement": {
+                  "default": {
+                    "autoPlug": {
+                      "atLikes": 0,
+                      "enabled": false
+                    },
+                    "autoRepost": {
+                      "atLikes": 0,
+                      "enabled": false
+                    }
+                  },
+                  "type": "object",
+                  "properties": {
+                    "autoPlug": {
+                      "type": "object",
+                      "properties": {
+                        "atLikes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "atLikes",
+                        "enabled"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "autoRepost": {
+                      "type": "object",
+                      "properties": {
+                        "atLikes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "atLikes",
+                        "enabled"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "autoPlug",
+                    "autoRepost"
+                  ],
+                  "additionalProperties": false
+                },
+                "naturalPostingTime": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "plannedFor": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "primaryPlatform": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "socialSetId": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "article": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "coverAssetId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attentionPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "reply",
+                    "quote",
+                    "repurpose",
+                    "article"
+                  ]
+                },
+                "nextPostAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "pinnedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "planTimeZone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platformVersions": {
+                  "type": "object",
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "number",
+                      "const": 1
+                    },
+                    "versions": {
+                      "maxItems": 6,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "body": {
+                            "maxItems": 5000,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {}
+                            }
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "x",
+                              "linkedin",
+                              "instagram",
+                              "threads",
+                              "bluesky",
+                              "mastodon"
+                            ]
+                          },
+                          "forkedFromVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "synced",
+                              "manual"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "properties": {
+                              "automation": {
+                                "type": "object",
+                                "properties": {
+                                  "plugAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "plugMetric": {
+                                    "type": "string",
+                                    "enum": [
+                                      "likes",
+                                      "reposts"
+                                    ]
+                                  },
+                                  "plugText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "quoteAfterHours": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 720
+                                  },
+                                  "quoteText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "repostAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "retweets": {
+                                    "maxItems": 5,
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "afterMinutes": {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 43200
+                                            }
+                                          },
+                                          "required": [
+                                            "afterMinutes"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "at": {
+                                              "type": "string",
+                                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                            },
+                                            "days": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 30
+                                            },
+                                            "timeZone": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 64
+                                            }
+                                          },
+                                          "required": [
+                                            "at",
+                                            "days",
+                                            "timeZone"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "unretweetAfterMinutes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10080
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "community": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^\\d{1,30}$"
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "shareWithFollowers": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "document": {
+                                "type": "object",
+                                "properties": {
+                                  "assetId": {
+                                    "type": "string",
+                                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "assetId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "firstComment": {
+                                "type": "string",
+                                "maxLength": 1250
+                              },
+                              "numbering": {
+                                "type": "object",
+                                "properties": {
+                                  "enabled": {
+                                    "type": "boolean"
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "start",
+                                      "end"
+                                    ]
+                                  },
+                                  "skipFirst": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "skipLast": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "style": {
+                                    "type": "string",
+                                    "enum": [
+                                      "hash",
+                                      "emoji",
+                                      "dot",
+                                      "slash",
+                                      "leading",
+                                      "fraction",
+                                      "of"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "enabled",
+                                  "position",
+                                  "style"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "visibility": {
+                                "type": "string",
+                                "enum": [
+                                  "PUBLIC",
+                                  "CONNECTIONS"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "maxLength": 128
+                          }
+                        },
+                        "required": [
+                          "channel",
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "schemaVersion",
+                    "versions"
+                  ],
+                  "additionalProperties": false
+                },
+                "queuedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "scratchpad": {
+                  "type": "string"
+                },
+                "sourceDraftId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tagIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "target": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "author": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "reply",
+                            "quote",
+                            "repurpose"
+                          ]
+                        },
+                        "platform": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "remoteId": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sourceDraftId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "sourcePostId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        "url": {
+                          "type": "string",
+                          "maxLength": 2048
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "assetIds",
+                "body",
+                "channelConnectionIds",
+                "createdAt",
+                "createdByUserId",
+                "channelText",
+                "discussions",
+                "id",
+                "organizationId",
+                "plainText",
+                "status",
+                "title",
+                "updatedAt",
+                "updatedByUserId",
+                "version",
+                "calendarVersion",
+                "approvedVersion",
+                "reviewNote",
+                "reviewStatus",
+                "reviewedByUserId",
+                "shareToken",
+                "guestComments",
+                "publishedPosts",
+                "engagement",
+                "naturalPostingTime",
+                "plannedFor",
+                "primaryPlatform",
+                "socialSetId",
+                "article",
+                "attentionPosts",
+                "kind",
+                "nextPostAt",
+                "pinnedAt",
+                "planTimeZone",
+                "platformVersions",
+                "queuedPosts",
+                "scratchpad",
+                "sourceDraftId",
+                "tagIds",
+                "target"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "posts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "caption": {
+                  "type": "string"
+                },
+                "channelConnectionId": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "platform": {
+                  "type": "string"
+                },
+                "scheduledFor": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "DRAFT",
+                    "SCHEDULED",
+                    "PROCESSING",
+                    "PUBLISHED",
+                    "FAILED",
+                    "CANCELLED",
+                    "UNKNOWN_DELIVERY"
+                  ]
+                },
+                "metrics": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "metricsAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "replies": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "threadProgress": {
+                  "type": "object",
+                  "properties": {
+                    "lastReplyId": {
+                      "type": "string"
+                    },
+                    "posted": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "total": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "posted",
+                    "total"
+                  ],
+                  "additionalProperties": false
+                },
+                "automations": {
+                  "default": [],
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "attempts": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "dueAt": {
+                        "type": "string"
+                      },
+                      "failureCode": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "key": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "first_comment",
+                          "retweet",
+                          "unretweet",
+                          "plug",
+                          "repost_at_likes",
+                          "quote"
+                        ]
+                      },
+                      "remoteId": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "done",
+                          "failed",
+                          "skipped",
+                          "cancelled",
+                          "expired"
+                        ]
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "attempts",
+                      "dueAt",
+                      "failureCode",
+                      "key",
+                      "kind",
+                      "remoteId",
+                      "status",
+                      "updatedAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "naturalOffsetSeconds": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "scheduleMode": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "queue",
+                        "explicit"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "scheduleTimeZone": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "slotAt": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "socialSetId": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "caption",
+                "channelConnectionId",
+                "createdAt",
+                "id",
+                "platform",
+                "scheduledFor",
+                "status",
+                "metrics",
+                "metricsAt",
+                "url",
+                "replies",
+                "threadProgress",
+                "automations",
+                "naturalOffsetSeconds",
+                "scheduleMode",
+                "scheduleTimeZone",
+                "slotAt",
+                "socialSetId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "undo": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "draftId": {
+                  "type": "string",
+                  "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                },
+                "version": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "calendarVersion": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "postId": {
+                  "type": "string",
+                  "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                },
+                "at": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "timeZone": {
+                  "type": "string",
+                  "maxLength": 80
+                }
+              },
+              "required": [
+                "draftId",
+                "version",
+                "calendarVersion",
+                "at",
+                "timeZone"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "drafts",
+          "posts",
+          "undo"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsReport": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "profileUrl": {
+            "type": "string"
+          },
+          "query": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "to": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "timeZone": {
+                "default": "UTC",
+                "type": "string",
+                "maxLength": 80
+              },
+              "grouping": {
+                "default": "daily",
+                "type": "string",
+                "enum": [
+                  "daily",
+                  "weekly",
+                  "monthly"
+                ]
+              },
+              "scope": {
+                "default": "all",
+                "type": "string",
+                "enum": [
+                  "all",
+                  "replies"
+                ]
+              },
+              "sort": {
+                "default": "latest",
+                "type": "string",
+                "enum": [
+                  "latest",
+                  "impressions",
+                  "likes",
+                  "replies",
+                  "reposts",
+                  "bookmarks",
+                  "engagementRate",
+                  "engagements",
+                  "quotes",
+                  "profileClicks",
+                  "linkClicks"
+                ]
+              },
+              "direction": {
+                "default": "desc",
+                "type": "string",
+                "enum": [
+                  "asc",
+                  "desc"
+                ]
+              },
+              "cursor": {
+                "default": "",
+                "type": "string",
+                "maxLength": 64
+              },
+              "limit": {
+                "default": 25,
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "asOf": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "timeZone",
+              "grouping",
+              "scope",
+              "sort",
+              "direction",
+              "cursor",
+              "limit"
+            ],
+            "additionalProperties": false
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "insufficient",
+              "unsupported",
+              "forbidden",
+              "failed",
+              "stale"
+            ]
+          },
+          "capabilities": {
+            "type": "object",
+            "properties": {
+              "account": {
+                "type": "boolean"
+              },
+              "posts": {
+                "type": "boolean"
+              },
+              "import": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "account",
+              "posts",
+              "import"
+            ],
+            "additionalProperties": false
+          },
+          "checkedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coverageStart": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "metrics": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "available",
+                    "insufficient",
+                    "unsupported",
+                    "forbidden",
+                    "failed",
+                    "stale"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "previous": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "change": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "points": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "at": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      },
+                      "samples": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "at",
+                      "value",
+                      "samples"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "definition": {
+                  "type": "string"
+                },
+                "samples": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "missing": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "status",
+                "value",
+                "previous",
+                "change",
+                "points",
+                "definition",
+                "samples",
+                "missing"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "posts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "remoteId": {
+                  "type": "string"
+                },
+                "excerpt": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "publishedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "observedAt": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "type": "string"
+                },
+                "threadRootId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "threadPosition": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "isReply": {
+                  "type": "boolean"
+                },
+                "metrics": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "number"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "remoteId",
+                "excerpt",
+                "url",
+                "publishedAt",
+                "observedAt",
+                "status",
+                "threadRootId",
+                "threadPosition",
+                "isReply",
+                "metrics"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "totalPosts": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hourly": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "day": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hour": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "samples": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "total": {
+                  "type": "number"
+                },
+                "average": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "postIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "day",
+                "hour",
+                "samples",
+                "total",
+                "average",
+                "postIds"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "settings": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "goal": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cadence": {
+                        "type": "string",
+                        "enum": [
+                          "daily",
+                          "weekly"
+                        ]
+                      },
+                      "excludeWeekends": {
+                        "type": "boolean"
+                      },
+                      "timeZone": {
+                        "type": "string"
+                      },
+                      "effectiveDate": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cadence",
+                      "excludeWeekends",
+                      "timeZone",
+                      "effectiveDate"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "publicToken": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "version",
+              "goal",
+              "publicToken"
+            ],
+            "additionalProperties": false
+          },
+          "progress": {
+            "type": "object",
+            "properties": {
+              "streak": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "current": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "required": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "period": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "streak",
+              "current",
+              "required",
+              "period"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "accountId",
+          "name",
+          "platform",
+          "profileUrl",
+          "query",
+          "status",
+          "capabilities",
+          "checkedAt",
+          "coverageStart",
+          "asOf",
+          "metrics",
+          "posts",
+          "totalPosts",
+          "nextCursor",
+          "hourly",
+          "settings",
+          "progress"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsRefresh": {
+        "type": "object",
+        "properties": {
+          "refreshed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "refreshed"
+        ],
+        "additionalProperties": false
+      },
+      "AnalyticsSettings": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "cadence": {
+                    "type": "string",
+                    "enum": [
+                      "daily",
+                      "weekly"
+                    ]
+                  },
+                  "excludeWeekends": {
+                    "type": "boolean"
+                  },
+                  "timeZone": {
+                    "type": "string"
+                  },
+                  "effectiveDate": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "cadence",
+                  "excludeWeekends",
+                  "timeZone",
+                  "effectiveDate"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publicToken": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "version",
+          "goal",
+          "publicToken"
+        ],
+        "additionalProperties": false
+      },
       "MastodonInstancePreview": {
         "type": "object",
         "properties": {
@@ -13397,671 +15540,8 @@
                   "minimum": 1,
                   "maximum": 9007199254740991
                 },
-                "approvedVersion": {
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "reviewNote": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "reviewStatus": {
-                  "type": "string",
-                  "enum": [
-                    "none",
-                    "pending",
-                    "approved",
-                    "changes_requested"
-                  ]
-                },
-                "reviewedByUserId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "shareToken": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "guestComments": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "createdAt": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "createdAt",
-                      "name",
-                      "text"
-                    ],
-                    "additionalProperties": false
-                  }
-                },
-                "publishedPosts": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "engagement": {
-                  "default": {
-                    "autoPlug": {
-                      "atLikes": 0,
-                      "enabled": false
-                    },
-                    "autoRepost": {
-                      "atLikes": 0,
-                      "enabled": false
-                    }
-                  },
-                  "type": "object",
-                  "properties": {
-                    "autoPlug": {
-                      "type": "object",
-                      "properties": {
-                        "atLikes": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "text": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "atLikes",
-                        "enabled"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "autoRepost": {
-                      "type": "object",
-                      "properties": {
-                        "atLikes": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "enabled": {
-                          "type": "boolean"
-                        },
-                        "text": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "atLikes",
-                        "enabled"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "autoPlug",
-                    "autoRepost"
-                  ],
-                  "additionalProperties": false
-                },
-                "naturalPostingTime": {
-                  "default": false,
-                  "type": "boolean"
-                },
-                "plannedFor": {
-                  "default": null,
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "primaryPlatform": {
-                  "default": null,
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "socialSetId": {
-                  "default": null,
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "article": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "coverAssetId": {
-                          "type": "string",
-                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
-                        },
-                        "title": {
-                          "type": "string",
-                          "maxLength": 200
-                        }
-                      },
-                      "required": [
-                        "title"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "attentionPosts": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "kind": {
-                  "type": "string",
-                  "enum": [
-                    "standard",
-                    "reply",
-                    "quote",
-                    "repurpose",
-                    "article"
-                  ]
-                },
-                "nextPostAt": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "pinnedAt": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "planTimeZone": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "platformVersions": {
-                  "type": "object",
-                  "properties": {
-                    "schemaVersion": {
-                      "type": "number",
-                      "const": 1
-                    },
-                    "versions": {
-                      "maxItems": 6,
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "body": {
-                            "maxItems": 5000,
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "propertyNames": {
-                                "type": "string"
-                              },
-                              "additionalProperties": {}
-                            }
-                          },
-                          "channel": {
-                            "type": "string",
-                            "enum": [
-                              "x",
-                              "linkedin",
-                              "instagram",
-                              "threads",
-                              "bluesky",
-                              "mastodon"
-                            ]
-                          },
-                          "forkedFromVersion": {
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 9007199254740991
-                          },
-                          "mode": {
-                            "type": "string",
-                            "enum": [
-                              "synced",
-                              "manual"
-                            ]
-                          },
-                          "options": {
-                            "type": "object",
-                            "properties": {
-                              "automation": {
-                                "type": "object",
-                                "properties": {
-                                  "plugAtLikes": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 1000000
-                                  },
-                                  "plugMetric": {
-                                    "type": "string",
-                                    "enum": [
-                                      "likes",
-                                      "reposts"
-                                    ]
-                                  },
-                                  "plugText": {
-                                    "type": "string",
-                                    "maxLength": 1000
-                                  },
-                                  "quoteAfterHours": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 720
-                                  },
-                                  "quoteText": {
-                                    "type": "string",
-                                    "maxLength": 1000
-                                  },
-                                  "repostAtLikes": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 1000000
-                                  },
-                                  "retweets": {
-                                    "maxItems": 5,
-                                    "type": "array",
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "afterMinutes": {
-                                              "type": "integer",
-                                              "minimum": 1,
-                                              "maximum": 43200
-                                            }
-                                          },
-                                          "required": [
-                                            "afterMinutes"
-                                          ],
-                                          "additionalProperties": false
-                                        },
-                                        {
-                                          "type": "object",
-                                          "properties": {
-                                            "at": {
-                                              "type": "string",
-                                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
-                                            },
-                                            "days": {
-                                              "type": "integer",
-                                              "minimum": 0,
-                                              "maximum": 30
-                                            },
-                                            "timeZone": {
-                                              "type": "string",
-                                              "minLength": 1,
-                                              "maxLength": 64
-                                            }
-                                          },
-                                          "required": [
-                                            "at",
-                                            "days",
-                                            "timeZone"
-                                          ],
-                                          "additionalProperties": false
-                                        }
-                                      ]
-                                    }
-                                  },
-                                  "unretweetAfterMinutes": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 10080
-                                  }
-                                },
-                                "additionalProperties": false
-                              },
-                              "community": {
-                                "type": "object",
-                                "properties": {
-                                  "id": {
-                                    "type": "string",
-                                    "pattern": "^\\d{1,30}$"
-                                  },
-                                  "name": {
-                                    "type": "string",
-                                    "maxLength": 200
-                                  },
-                                  "shareWithFollowers": {
-                                    "type": "boolean"
-                                  }
-                                },
-                                "required": [
-                                  "id"
-                                ],
-                                "additionalProperties": false
-                              },
-                              "document": {
-                                "type": "object",
-                                "properties": {
-                                  "assetId": {
-                                    "type": "string",
-                                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
-                                  },
-                                  "title": {
-                                    "type": "string",
-                                    "maxLength": 200
-                                  }
-                                },
-                                "required": [
-                                  "assetId"
-                                ],
-                                "additionalProperties": false
-                              },
-                              "firstComment": {
-                                "type": "string",
-                                "maxLength": 1250
-                              },
-                              "numbering": {
-                                "type": "object",
-                                "properties": {
-                                  "enabled": {
-                                    "type": "boolean"
-                                  },
-                                  "position": {
-                                    "type": "string",
-                                    "enum": [
-                                      "start",
-                                      "end"
-                                    ]
-                                  },
-                                  "skipFirst": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 24
-                                  },
-                                  "skipLast": {
-                                    "type": "integer",
-                                    "minimum": 0,
-                                    "maximum": 24
-                                  },
-                                  "style": {
-                                    "type": "string",
-                                    "enum": [
-                                      "hash",
-                                      "emoji",
-                                      "dot",
-                                      "slash",
-                                      "leading",
-                                      "fraction",
-                                      "of"
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "enabled",
-                                  "position",
-                                  "style"
-                                ],
-                                "additionalProperties": false
-                              },
-                              "visibility": {
-                                "type": "string",
-                                "enum": [
-                                  "PUBLIC",
-                                  "CONNECTIONS"
-                                ]
-                              }
-                            },
-                            "additionalProperties": false
-                          },
-                          "sourceHash": {
-                            "type": "string",
-                            "maxLength": 128
-                          }
-                        },
-                        "required": [
-                          "channel",
-                          "mode"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": [
-                    "schemaVersion",
-                    "versions"
-                  ],
-                  "additionalProperties": false
-                },
-                "queuedPosts": {
-                  "type": "integer",
-                  "minimum": -9007199254740991,
-                  "maximum": 9007199254740991
-                },
-                "scratchpad": {
-                  "type": "string"
-                },
-                "sourceDraftId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "tagIds": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "target": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "author": {
-                          "type": "string",
-                          "maxLength": 200
-                        },
-                        "kind": {
-                          "type": "string",
-                          "enum": [
-                            "reply",
-                            "quote",
-                            "repurpose"
-                          ]
-                        },
-                        "platform": {
-                          "type": "string",
-                          "maxLength": 40
-                        },
-                        "remoteId": {
-                          "type": "string",
-                          "maxLength": 200
-                        },
-                        "sourceDraftId": {
-                          "type": "string",
-                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
-                        },
-                        "sourcePostId": {
-                          "type": "string",
-                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
-                        },
-                        "text": {
-                          "type": "string",
-                          "maxLength": 1000
-                        },
-                        "url": {
-                          "type": "string",
-                          "maxLength": 2048
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "assetIds",
-                "body",
-                "channelConnectionIds",
-                "createdAt",
-                "createdByUserId",
-                "channelText",
-                "discussions",
-                "id",
-                "organizationId",
-                "plainText",
-                "status",
-                "title",
-                "updatedAt",
-                "updatedByUserId",
-                "version",
-                "approvedVersion",
-                "reviewNote",
-                "reviewStatus",
-                "reviewedByUserId",
-                "shareToken",
-                "guestComments",
-                "publishedPosts",
-                "engagement",
-                "naturalPostingTime",
-                "plannedFor",
-                "primaryPlatform",
-                "socialSetId",
-                "article",
-                "attentionPosts",
-                "kind",
-                "nextPostAt",
-                "pinnedAt",
-                "planTimeZone",
-                "platformVersions",
-                "queuedPosts",
-                "scratchpad",
-                "sourceDraftId",
-                "tagIds",
-                "target"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "pinned": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "assetIds": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "body": {
-                  "maxItems": 5000,
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {}
-                  }
-                },
-                "channelConnectionIds": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "createdAt": {
-                  "type": "string"
-                },
-                "createdByUserId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "channelText": {
-                  "type": "object",
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "additionalProperties": {
-                    "type": "string"
-                  }
-                },
-                "discussions": {
-                  "type": "object",
-                  "propertyNames": {
-                    "type": "string"
-                  },
-                  "additionalProperties": {}
-                },
-                "id": {
-                  "type": "string"
-                },
-                "organizationId": {
-                  "type": "string"
-                },
-                "plainText": {
-                  "type": "string"
-                },
-                "status": {
-                  "type": "string",
-                  "enum": [
-                    "draft",
-                    "scheduled",
-                    "archived"
-                  ]
-                },
-                "title": {
-                  "type": "string"
-                },
-                "updatedAt": {
-                  "type": "string"
-                },
-                "updatedByUserId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "version": {
+                "calendarVersion": {
+                  "default": 1,
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 9007199254740991
@@ -14614,6 +16094,683 @@
                 "updatedAt",
                 "updatedByUserId",
                 "version",
+                "calendarVersion",
+                "approvedVersion",
+                "reviewNote",
+                "reviewStatus",
+                "reviewedByUserId",
+                "shareToken",
+                "guestComments",
+                "publishedPosts",
+                "engagement",
+                "naturalPostingTime",
+                "plannedFor",
+                "primaryPlatform",
+                "socialSetId",
+                "article",
+                "attentionPosts",
+                "kind",
+                "nextPostAt",
+                "pinnedAt",
+                "planTimeZone",
+                "platformVersions",
+                "queuedPosts",
+                "scratchpad",
+                "sourceDraftId",
+                "tagIds",
+                "target"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pinned": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "assetIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "body": {
+                  "maxItems": 5000,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "channelConnectionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "createdByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "channelText": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "discussions": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                "id": {
+                  "type": "string"
+                },
+                "organizationId": {
+                  "type": "string"
+                },
+                "plainText": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "scheduled",
+                    "archived"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "updatedByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "version": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "calendarVersion": {
+                  "default": 1,
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                "approvedVersion": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "reviewNote": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "reviewStatus": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pending",
+                    "approved",
+                    "changes_requested"
+                  ]
+                },
+                "reviewedByUserId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "shareToken": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "guestComments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "createdAt",
+                      "name",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "publishedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "engagement": {
+                  "default": {
+                    "autoPlug": {
+                      "atLikes": 0,
+                      "enabled": false
+                    },
+                    "autoRepost": {
+                      "atLikes": 0,
+                      "enabled": false
+                    }
+                  },
+                  "type": "object",
+                  "properties": {
+                    "autoPlug": {
+                      "type": "object",
+                      "properties": {
+                        "atLikes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "atLikes",
+                        "enabled"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "autoRepost": {
+                      "type": "object",
+                      "properties": {
+                        "atLikes": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "atLikes",
+                        "enabled"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "autoPlug",
+                    "autoRepost"
+                  ],
+                  "additionalProperties": false
+                },
+                "naturalPostingTime": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "plannedFor": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "primaryPlatform": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "socialSetId": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "article": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "coverAssetId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "title": {
+                          "type": "string",
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "attentionPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "reply",
+                    "quote",
+                    "repurpose",
+                    "article"
+                  ]
+                },
+                "nextPostAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "pinnedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "planTimeZone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platformVersions": {
+                  "type": "object",
+                  "properties": {
+                    "schemaVersion": {
+                      "type": "number",
+                      "const": 1
+                    },
+                    "versions": {
+                      "maxItems": 6,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "body": {
+                            "maxItems": 5000,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "propertyNames": {
+                                "type": "string"
+                              },
+                              "additionalProperties": {}
+                            }
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "x",
+                              "linkedin",
+                              "instagram",
+                              "threads",
+                              "bluesky",
+                              "mastodon"
+                            ]
+                          },
+                          "forkedFromVersion": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "synced",
+                              "manual"
+                            ]
+                          },
+                          "options": {
+                            "type": "object",
+                            "properties": {
+                              "automation": {
+                                "type": "object",
+                                "properties": {
+                                  "plugAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "plugMetric": {
+                                    "type": "string",
+                                    "enum": [
+                                      "likes",
+                                      "reposts"
+                                    ]
+                                  },
+                                  "plugText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "quoteAfterHours": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 720
+                                  },
+                                  "quoteText": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  },
+                                  "repostAtLikes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1000000
+                                  },
+                                  "retweets": {
+                                    "maxItems": 5,
+                                    "type": "array",
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "afterMinutes": {
+                                              "type": "integer",
+                                              "minimum": 1,
+                                              "maximum": 43200
+                                            }
+                                          },
+                                          "required": [
+                                            "afterMinutes"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "at": {
+                                              "type": "string",
+                                              "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                                            },
+                                            "days": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "maximum": 30
+                                            },
+                                            "timeZone": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 64
+                                            }
+                                          },
+                                          "required": [
+                                            "at",
+                                            "days",
+                                            "timeZone"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "unretweetAfterMinutes": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 10080
+                                  }
+                                },
+                                "additionalProperties": false
+                              },
+                              "community": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^\\d{1,30}$"
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "shareWithFollowers": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "document": {
+                                "type": "object",
+                                "properties": {
+                                  "assetId": {
+                                    "type": "string",
+                                    "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  }
+                                },
+                                "required": [
+                                  "assetId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "firstComment": {
+                                "type": "string",
+                                "maxLength": 1250
+                              },
+                              "numbering": {
+                                "type": "object",
+                                "properties": {
+                                  "enabled": {
+                                    "type": "boolean"
+                                  },
+                                  "position": {
+                                    "type": "string",
+                                    "enum": [
+                                      "start",
+                                      "end"
+                                    ]
+                                  },
+                                  "skipFirst": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "skipLast": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 24
+                                  },
+                                  "style": {
+                                    "type": "string",
+                                    "enum": [
+                                      "hash",
+                                      "emoji",
+                                      "dot",
+                                      "slash",
+                                      "leading",
+                                      "fraction",
+                                      "of"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "enabled",
+                                  "position",
+                                  "style"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "visibility": {
+                                "type": "string",
+                                "enum": [
+                                  "PUBLIC",
+                                  "CONNECTIONS"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          },
+                          "sourceHash": {
+                            "type": "string",
+                            "maxLength": 128
+                          }
+                        },
+                        "required": [
+                          "channel",
+                          "mode"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "schemaVersion",
+                    "versions"
+                  ],
+                  "additionalProperties": false
+                },
+                "queuedPosts": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "scratchpad": {
+                  "type": "string"
+                },
+                "sourceDraftId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tagIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "target": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "author": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "reply",
+                            "quote",
+                            "repurpose"
+                          ]
+                        },
+                        "platform": {
+                          "type": "string",
+                          "maxLength": 40
+                        },
+                        "remoteId": {
+                          "type": "string",
+                          "maxLength": 200
+                        },
+                        "sourceDraftId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "sourcePostId": {
+                          "type": "string",
+                          "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                        },
+                        "text": {
+                          "type": "string",
+                          "maxLength": 1000
+                        },
+                        "url": {
+                          "type": "string",
+                          "maxLength": 2048
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "assetIds",
+                "body",
+                "channelConnectionIds",
+                "createdAt",
+                "createdByUserId",
+                "channelText",
+                "discussions",
+                "id",
+                "organizationId",
+                "plainText",
+                "status",
+                "title",
+                "updatedAt",
+                "updatedByUserId",
+                "version",
+                "calendarVersion",
                 "approvedVersion",
                 "reviewNote",
                 "reviewStatus",
@@ -15023,6 +17180,10 @@
             "type": "string",
             "maxLength": 200
           },
+          "requestKey": {
+            "type": "string",
+            "pattern": "^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -15143,6 +17304,12 @@
             ]
           },
           "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "calendarVersion": {
+            "default": 1,
             "type": "integer",
             "minimum": 1,
             "maximum": 9007199254740991
@@ -15695,6 +17862,7 @@
           "updatedAt",
           "updatedByUserId",
           "version",
+          "calendarVersion",
           "approvedVersion",
           "reviewNote",
           "reviewStatus",
@@ -16100,6 +18268,11 @@
             "minimum": 1,
             "maximum": 9007199254740991
           },
+          "baseCalendarVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -16472,6 +18645,12 @@
                 ]
               },
               "version": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "calendarVersion": {
+                "default": 1,
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 9007199254740991
@@ -17024,6 +19203,7 @@
               "updatedAt",
               "updatedByUserId",
               "version",
+              "calendarVersion",
               "approvedVersion",
               "reviewNote",
               "reviewStatus",

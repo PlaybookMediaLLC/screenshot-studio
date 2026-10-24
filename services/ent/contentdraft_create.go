@@ -160,6 +160,20 @@ func (_c *ContentDraftCreate) SetGuestComments(v []map[string]string) *ContentDr
 	return _c
 }
 
+// SetCalendarVersion sets the "calendar_version" field.
+func (_c *ContentDraftCreate) SetCalendarVersion(v int) *ContentDraftCreate {
+	_c.mutation.SetCalendarVersion(v)
+	return _c
+}
+
+// SetNillableCalendarVersion sets the "calendar_version" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableCalendarVersion(v *int) *ContentDraftCreate {
+	if v != nil {
+		_c.SetCalendarVersion(*v)
+	}
+	return _c
+}
+
 // SetVersion sets the "version" field.
 func (_c *ContentDraftCreate) SetVersion(v int) *ContentDraftCreate {
 	_c.mutation.SetVersion(v)
@@ -469,6 +483,10 @@ func (_c *ContentDraftCreate) defaults() {
 		v := contentdraft.DefaultGuestComments
 		_c.mutation.SetGuestComments(v)
 	}
+	if _, ok := _c.mutation.CalendarVersion(); !ok {
+		v := contentdraft.DefaultCalendarVersion
+		_c.mutation.SetCalendarVersion(v)
+	}
 	if _, ok := _c.mutation.Version(); !ok {
 		v := contentdraft.DefaultVersion
 		_c.mutation.SetVersion(v)
@@ -551,6 +569,9 @@ func (_c *ContentDraftCreate) check() error {
 	}
 	if _, ok := _c.mutation.GuestComments(); !ok {
 		return &ValidationError{Name: "guest_comments", err: errors.New(`ent: missing required field "ContentDraft.guest_comments"`)}
+	}
+	if _, ok := _c.mutation.CalendarVersion(); !ok {
+		return &ValidationError{Name: "calendar_version", err: errors.New(`ent: missing required field "ContentDraft.calendar_version"`)}
 	}
 	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "ContentDraft.version"`)}
@@ -678,6 +699,10 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.GuestComments(); ok {
 		_spec.SetField(contentdraft.FieldGuestComments, field.TypeJSON, value)
 		_node.GuestComments = value
+	}
+	if value, ok := _c.mutation.CalendarVersion(); ok {
+		_spec.SetField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+		_node.CalendarVersion = value
 	}
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)

@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -1111,9 +1110,8 @@ func (p *Provider) PostAnalyticsOn(ctx context.Context, _, token, postID string,
 			} `json:"values"`
 		} `json:"data"`
 	}
-	if err := facebook.GetJSON(ctx, graph(host)+"/"+postID+"/insights?metric=views,reach,saved,likes,comments,shares&access_token="+accessToken, &res); err != nil {
-		slog.Error("Error fetching Instagram post analytics:", "error", err)
-		return []integrations.AnalyticsData{}, nil
+	if err := facebook.GetJSONChecked(ctx, graph(host)+"/"+postID+"/insights?metric=views,reach,saved,likes,comments,shares&access_token="+accessToken, &res); err != nil {
+		return nil, err
 	}
 
 	result := []integrations.AnalyticsData{}

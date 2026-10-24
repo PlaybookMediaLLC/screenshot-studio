@@ -62,6 +62,109 @@ var (
 			},
 		},
 	}
+	// AnalyticsAccountColumns holds the columns for the "analytics_account" table.
+	AnalyticsAccountColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "version", Type: field.TypeInt, Default: 1},
+		{Name: "availability", Type: field.TypeEnum, Enums: []string{"insufficient", "available", "failed", "forbidden", "unsupported"}, Default: "insufficient"},
+		{Name: "checkedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "nextCheckAt", Type: field.TypeTime},
+		{Name: "leaseUntil", Type: field.TypeTime, Nullable: true},
+		{Name: "publicToken", Type: field.TypeString, Unique: true, Nullable: true},
+		{Name: "goal", Type: field.TypeJSON},
+	}
+	// AnalyticsAccountTable holds the schema information for the "analytics_account" table.
+	AnalyticsAccountTable = &schema.Table{
+		Name:       "analytics_account",
+		Columns:    AnalyticsAccountColumns,
+		PrimaryKey: []*schema.Column{AnalyticsAccountColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "analyticsaccount_organizationId",
+				Unique:  false,
+				Columns: []*schema.Column{AnalyticsAccountColumns[1]},
+			},
+			{
+				Name:    "analyticsaccount_nextCheckAt",
+				Unique:  false,
+				Columns: []*schema.Column{AnalyticsAccountColumns[5]},
+			},
+		},
+	}
+	// AnalyticsPostColumns holds the columns for the "analytics_post" table.
+	AnalyticsPostColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "connectionId", Type: field.TypeString},
+		{Name: "remoteId", Type: field.TypeString},
+		{Name: "scheduledPostId", Type: field.TypeString, Nullable: true},
+		{Name: "canonicalUpdatedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "threadRootId", Type: field.TypeString, Nullable: true},
+		{Name: "threadPosition", Type: field.TypeInt, Default: 0},
+		{Name: "isReply", Type: field.TypeBool, Default: false},
+		{Name: "excerpt", Type: field.TypeString, Default: ""},
+		{Name: "url", Type: field.TypeString, Default: ""},
+		{Name: "publishedAt", Type: field.TypeTime},
+		{Name: "discoveredAt", Type: field.TypeTime},
+		{Name: "checkedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "nextCheckAt", Type: field.TypeTime},
+		{Name: "availability", Type: field.TypeEnum, Enums: []string{"insufficient", "available", "failed", "forbidden", "unsupported", "deleted"}, Default: "insufficient"},
+	}
+	// AnalyticsPostTable holds the schema information for the "analytics_post" table.
+	AnalyticsPostTable = &schema.Table{
+		Name:       "analytics_post",
+		Columns:    AnalyticsPostColumns,
+		PrimaryKey: []*schema.Column{AnalyticsPostColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "analyticspost_connectionId_remoteId",
+				Unique:  true,
+				Columns: []*schema.Column{AnalyticsPostColumns[2], AnalyticsPostColumns[3]},
+			},
+			{
+				Name:    "analyticspost_organizationId_connectionId_publishedAt_id",
+				Unique:  false,
+				Columns: []*schema.Column{AnalyticsPostColumns[1], AnalyticsPostColumns[2], AnalyticsPostColumns[11], AnalyticsPostColumns[0]},
+			},
+			{
+				Name:    "analyticspost_availability_nextCheckAt",
+				Unique:  false,
+				Columns: []*schema.Column{AnalyticsPostColumns[15], AnalyticsPostColumns[14]},
+			},
+		},
+	}
+	// AnalyticsSnapshotColumns holds the columns for the "analytics_snapshot" table.
+	AnalyticsSnapshotColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "connectionId", Type: field.TypeString},
+		{Name: "subjectId", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"account", "post"}},
+		{Name: "observedAt", Type: field.TypeTime},
+		{Name: "collectedAt", Type: field.TypeTime},
+		{Name: "counters", Type: field.TypeJSON},
+		{Name: "payloadHash", Type: field.TypeString},
+		{Name: "ageMinutes", Type: field.TypeInt, Default: 0},
+	}
+	// AnalyticsSnapshotTable holds the schema information for the "analytics_snapshot" table.
+	AnalyticsSnapshotTable = &schema.Table{
+		Name:       "analytics_snapshot",
+		Columns:    AnalyticsSnapshotColumns,
+		PrimaryKey: []*schema.Column{AnalyticsSnapshotColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "analyticssnapshot_organizationId_connectionId_kind_observedAt",
+				Unique:  false,
+				Columns: []*schema.Column{AnalyticsSnapshotColumns[1], AnalyticsSnapshotColumns[2], AnalyticsSnapshotColumns[4], AnalyticsSnapshotColumns[5]},
+			},
+			{
+				Name:    "analyticssnapshot_connectionId_kind_subjectId_observedAt_payloadHash",
+				Unique:  true,
+				Columns: []*schema.Column{AnalyticsSnapshotColumns[2], AnalyticsSnapshotColumns[4], AnalyticsSnapshotColumns[3], AnalyticsSnapshotColumns[5], AnalyticsSnapshotColumns[8]},
+			},
+		},
+	}
 	// ApikeyColumns holds the columns for the "apikey" table.
 	ApikeyColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -392,6 +495,28 @@ var (
 				Name:    "brandprofile_organizationId",
 				Unique:  true,
 				Columns: []*schema.Column{BrandProfileColumns[1]},
+			},
+		},
+	}
+	// CalendarMutationColumns holds the columns for the "calendar_mutation" table.
+	CalendarMutationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "actorId", Type: field.TypeString},
+		{Name: "inputHash", Type: field.TypeString},
+		{Name: "result", Type: field.TypeJSON},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// CalendarMutationTable holds the schema information for the "calendar_mutation" table.
+	CalendarMutationTable = &schema.Table{
+		Name:       "calendar_mutation",
+		Columns:    CalendarMutationColumns,
+		PrimaryKey: []*schema.Column{CalendarMutationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "calendarmutation_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{CalendarMutationColumns[1], CalendarMutationColumns[5]},
 			},
 		},
 	}
@@ -733,6 +858,7 @@ var (
 		{Name: "reviewNote", Type: field.TypeString, Nullable: true},
 		{Name: "shareToken", Type: field.TypeString, Nullable: true},
 		{Name: "guestComments", Type: field.TypeJSON},
+		{Name: "calendarVersion", Type: field.TypeInt, Default: 1},
 		{Name: "version", Type: field.TypeInt, Default: 1},
 		{Name: "socialSetId", Type: field.TypeString, Nullable: true},
 		{Name: "primaryPlatform", Type: field.TypeString, Nullable: true},
@@ -763,12 +889,12 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[35]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[36]},
 			},
 			{
 				Name:    "contentdraft_socialSetId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[17], ContentDraftColumns[35]},
+				Columns: []*schema.Column{ContentDraftColumns[18], ContentDraftColumns[36]},
 			},
 		},
 	}
@@ -3090,6 +3216,9 @@ var (
 	Tables = []*schema.Table{
 		AccountDeletionRequestTable,
 		AgentAuthorizationTable,
+		AnalyticsAccountTable,
+		AnalyticsPostTable,
+		AnalyticsSnapshotTable,
 		ApikeyTable,
 		ApprovalTable,
 		AssetTable,
@@ -3102,6 +3231,7 @@ var (
 		BillingEntitlementEventTable,
 		BrandKitTable,
 		BrandProfileTable,
+		CalendarMutationTable,
 		CampaignTable,
 		CampaignAssetTable,
 		CampaignPlanTable,
@@ -3199,6 +3329,15 @@ func init() {
 	AgentAuthorizationTable.Annotation = &entsql.Annotation{
 		Table: "agent_authorization",
 	}
+	AnalyticsAccountTable.Annotation = &entsql.Annotation{
+		Table: "analytics_account",
+	}
+	AnalyticsPostTable.Annotation = &entsql.Annotation{
+		Table: "analytics_post",
+	}
+	AnalyticsSnapshotTable.Annotation = &entsql.Annotation{
+		Table: "analytics_snapshot",
+	}
 	ApikeyTable.Annotation = &entsql.Annotation{
 		Table: "apikey",
 	}
@@ -3235,6 +3374,9 @@ func init() {
 	}
 	BrandProfileTable.Annotation = &entsql.Annotation{
 		Table: "brand_profile",
+	}
+	CalendarMutationTable.Annotation = &entsql.Annotation{
+		Table: "calendar_mutation",
 	}
 	CampaignTable.Annotation = &entsql.Annotation{
 		Table: "campaign",

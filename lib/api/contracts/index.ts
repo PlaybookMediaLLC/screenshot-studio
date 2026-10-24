@@ -3,6 +3,12 @@ import {
   draftGiphySearchContract,
   draftGiphyAttachContract,
 } from '@/lib/api/contracts/content-draft-platform'
+import {
+  mutateCalendarContract,
+  getAnalyticsContract,
+  refreshAnalyticsContract,
+  updateAnalyticsSettingsContract,
+} from './plan-analyze'
 import { mutateDraftCommentContract } from '@/lib/api/contracts/draft-comments'
 import {
   decideCampaignApprovalContract,
@@ -85,6 +91,10 @@ export const documentedContracts = [
   draftLinkImageContract,
   draftGiphySearchContract,
   draftGiphyAttachContract,
+  mutateCalendarContract,
+  getAnalyticsContract,
+  refreshAnalyticsContract,
+  updateAnalyticsSettingsContract,
   previewMastodonInstanceContract,
   createSocialConnectionAttemptContract,
   getSocialConnectionAvailabilityContract,

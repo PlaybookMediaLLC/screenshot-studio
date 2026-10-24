@@ -149,15 +149,19 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 
     await page.goto(`/write/plan?week=${local.slice(0, 10)}`)
-    const card = page.getByTestId('calendar-post').filter({ hasText: 'Moved on the calendar' })
+    const card = page
+      .getByTestId('calendar-post')
+      .filter({ hasText: 'Moved on the calendar', visible: true })
     await expect(card).toBeVisible()
     // The next day, or the day before when it is the week's last.
     const target = new Date(at)
     target.setDate(at.getDate() + (at.getDay() === 0 ? -1 : 1))
-    await untilPosted(page, '/move', () =>
+    await untilPosted(page, '/calendar/mutations', () =>
       card.dragTo(page.getByTestId(`calendar-day-${target.getDate()}`))
     )
-    await expect(page.getByText(/Moved to/)).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('Calendar updated.', { exact: true })).toBeVisible({
+      timeout: 20_000,
+    })
     const posts = await draftPosts(second)
     expect(posts.map((post) => post.status)).toEqual(['CANCELLED', 'SCHEDULED'])
     expect(new Date(posts[1].scheduledFor).getDate()).toBe(target.getDate())

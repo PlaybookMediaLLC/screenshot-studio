@@ -94,6 +94,16 @@ func (p *Publisher) Publish(ctx context.Context, input socialapi.PublishInput) (
 // publication, refusing a credential that is not the workspace's or has lapsed.
 func (p *Publisher) account(ctx context.Context, organizationID, destinationID, platform, secretReference string,
 	providerSettings map[string]any) (*socialent.Integration, poster, json.RawMessage, error) {
+	return p.resolveAccount(ctx, organizationID, destinationID, platform, secretReference, providerSettings, true)
+}
+
+// analyticsAccount shares credential/tenant checks without applying the narrower publishing rollout gate.
+func (p *Publisher) analyticsAccount(ctx context.Context, organizationID, destinationID, platform, secretReference string) (*socialent.Integration, poster, json.RawMessage, error) {
+	return p.resolveAccount(ctx, organizationID, destinationID, platform, secretReference, nil, false)
+}
+
+func (p *Publisher) resolveAccount(ctx context.Context, organizationID, destinationID, platform, secretReference string,
+	providerSettings map[string]any, publication bool) (*socialent.Integration, poster, json.RawMessage, error) {
 	if p.bindings == nil || p.integrations == nil || p.signer == nil || p.resolve == nil {
 		return nil, nil, nil, socialapi.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
 	}
@@ -116,7 +126,7 @@ func (p *Publisher) account(ctx context.Context, organizationID, destinationID, 
 		return nil, nil, nil, socialapi.NewError(http.StatusConflict, false, "reconnect this account to verify its identity, publishing permissions and limits")
 	}
 	provider := p.resolve(platform)
-	if provider == nil || !directPlatformAllowed(platform) {
+	if provider == nil || (publication && !directPlatformAllowed(platform)) {
 		return nil, nil, nil, socialapi.NewError(http.StatusBadRequest, false, "social provider is unsupported")
 	}
 	if providerSettings == nil {
@@ -228,14 +238,15 @@ func (p *Publisher) publicationAccount(ctx context.Context, input socialapi.Publ
 var metricNames = map[string]string{
 	"impressions": "impressions", "likes": "likes", "retweets": "reposts", "reposts": "reposts",
 	"replies": "replies", "comments": "replies", "quotes": "quotes", "bookmarks": "bookmarks",
-	"shares": "reposts", "reactions": "likes", "views": "impressions",
+	"shares": "reposts", "reactions": "likes", "views": "views",
+	"profile clicks": "profileClicks", "profile_clicks": "profileClicks", "url clicks": "linkClicks", "link clicks": "linkClicks", "url_link_clicks": "linkClicks",
 }
 
 // PostMetrics reads a live post's engagement through its provider; a
 // provider without post analytics has none.
 func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destinationID, platform, secretReference,
 	remotePostID string) (postoptions.Metrics, error) {
-	account, provider, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
+	account, provider, _, err := p.analyticsAccount(ctx, organizationID, destinationID, platform, secretReference)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +266,9 @@ func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destination
 		}
 		var total float64
 		if _, err := fmt.Sscan(fmt.Sprint(item.Data[len(item.Data)-1].Total), &total); err == nil {
-			metrics[name] += total
+			if _, exists := metrics[name]; !exists {
+				metrics[name] = total
+			}
 		}
 	}
 	return metrics, nil
@@ -365,6 +378,7 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 			if err == nil {
 				last = response[0].PostID
 				progress.Posted, progress.LastReplyID = index+1, last
+				progress.Receipts = append(progress.Receipts, postoptions.ThreadReceipt{RemoteID: last, Position: index + 1, PublishedAt: p.currentTime()})
 				continue
 			}
 		}

@@ -492,7 +492,7 @@ export function WriteComposer({
     try {
       await flush()
       setServer(await draftsApi.save(initial.id, { baseVersion: version.current, status }))
-      toast.success(status === 'archived' ? 'Archived.' : 'Restored to drafts.')
+      toast.success(status === 'archived' ? 'Archived.' : 'Restored from archive.')
       router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The draft did not change.')

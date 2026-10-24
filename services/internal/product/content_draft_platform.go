@@ -376,6 +376,17 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 		return nil, err
 	}
 	defer tx.Rollback()
+	moved, err := c.moveDraftPostTx(ctx, tx, actor, postID, at)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return moved, nil
+}
+
+func (c *Configuration) moveDraftPostTx(ctx context.Context, tx *ent.Tx, actor Actor, postID string, at time.Time, zones ...string) (*MovedDraftPost, error) {
 	post, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(postID), scheduledpost.OrganizationID(actor.OrganizationID),
 		scheduledpost.ContentDraftIDNotNil()).WithChannelConnection().Only(ctx)
 	if ent.IsNotFound(err) {
@@ -390,15 +401,23 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	if post.Status != scheduledpost.StatusSCHEDULED {
 		return nil, conflict("Only a queued post can move; this one is " + strings.ToLower(string(post.Status)) + ".")
 	}
-	if _, err := tx.ScheduledPost.UpdateOneID(post.ID).SetStatus(scheduledpost.StatusCANCELLED).Save(ctx); err != nil {
+	count, err := tx.ScheduledPost.Update().Where(scheduledpost.ID(post.ID), scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED)).SetStatus(scheduledpost.StatusCANCELLED).Save(ctx)
+	if err != nil {
 		return nil, err
+	}
+	if count != 1 {
+		return nil, publishing.ErrConflict
+	}
+	zone := post.ScheduleTimeZone
+	if len(zones) > 0 {
+		zone = &zones[0]
 	}
 	create := tx.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(post.OrganizationID).
 		SetNillableContentDraftID(post.ContentDraftID).SetNillableAssetID(post.AssetID).
 		SetChannelConnectionID(post.ChannelConnectionID).SetScheduledFor(at.UTC()).
 		SetStatus(scheduledpost.StatusSCHEDULED).SetCaption(post.Caption).
 		SetNillableSocialSetID(post.SocialSetID).SetScheduleMode(scheduledpost.ScheduleModeExplicit).SetSlotAt(at.UTC()).
-		SetNaturalOffsetSeconds(0).SetNillableScheduleTimeZone(post.ScheduleTimeZone).
+		SetNaturalOffsetSeconds(0).SetNillableScheduleTimeZone(zone).
 		SetIdempotencyKey(fmt.Sprintf("%s:moved:%d", post.IdempotencyKey, at.Unix()))
 	if len(post.AssetIds) > 0 {
 		create.SetAssetIds(post.AssetIds)
@@ -433,9 +452,6 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 		"posts": scheduledPostsData([]ContentDraftPost{movedPost}), "scheduleMode": "explicit"}); err != nil {
 		return nil, err
 	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
 	return &MovedDraftPost{Cancelled: post.ID, Post: contentDraftPost(moved, post.Edges.ChannelConnection.Platform), Scheduled: moved}, nil
 }
 
@@ -451,8 +467,11 @@ func requireVisibleDraftPost(ctx context.Context, client *ent.Client, actor Acto
 // CalendarPost is a draft post on the calendar, with its draft's title.
 type CalendarPost struct {
 	ContentDraftPost
-	DraftID    string `json:"draftId"`
-	DraftTitle string `json:"draftTitle"`
+	DraftID         string   `json:"draftId"`
+	Version         int      `json:"version"`
+	CalendarVersion int      `json:"calendarVersion"`
+	TagIDs          []string `json:"tagIds"`
+	DraftTitle      string   `json:"draftTitle"`
 }
 
 // ListContentDraftPostsBetween lists the workspace's draft posts due in
@@ -484,7 +503,7 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 		scheduledpost.ContentDraftIDNotNil(), scheduledpost.ScheduledForGTE(from), scheduledpost.ScheduledForLT(to),
 		scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING,
 			scheduledpost.StatusPUBLISHED, scheduledpost.StatusFAILED, scheduledpost.StatusUNKNOWN_DELIVERY)).
-		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldScheduledFor)).Limit(500).All(ctx)
+		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldScheduledFor)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -511,8 +530,10 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 		return nil, err
 	}
 	titles := map[string]string{}
+	draftRows := map[string]*ent.ContentDraft{}
 	for _, draft := range drafts {
 		titles[draft.ID] = draft.Title
+		draftRows[draft.ID] = draft
 	}
 	items := make([]CalendarPost, 0, len(posts))
 	for _, post := range posts {
@@ -521,7 +542,7 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 			continue
 		}
 		items = append(items, CalendarPost{ContentDraftPost: contentDraftPost(post, post.Edges.ChannelConnection.Platform),
-			DraftID: *post.ContentDraftID, DraftTitle: title})
+			DraftID: *post.ContentDraftID, DraftTitle: title, Version: draftRows[*post.ContentDraftID].Version, CalendarVersion: draftRows[*post.ContentDraftID].CalendarVersion, TagIDs: draftRows[*post.ContentDraftID].TagIds})
 	}
 	return items, nil
 }
@@ -547,7 +568,7 @@ func (c *Configuration) ListPlannedContentDrafts(ctx context.Context, actor Acto
 	}
 	rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), sets,
 		contentdraft.StatusNEQ(contentdraft.StatusArchived), contentdraft.PlannedForGTE(from), contentdraft.PlannedForLT(to)).
-		Order(ent.Asc(contentdraft.FieldPlannedFor), ent.Asc(contentdraft.FieldID)).Limit(500).All(ctx)
+		Order(ent.Asc(contentdraft.FieldPlannedFor), ent.Asc(contentdraft.FieldID)).All(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -39,7 +39,8 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
     const two = await create('Calendar second', secondAt)
     const day = (at: Date) =>
       page.locator(`[data-calendar-date="${at.toISOString().slice(0, 10)}"]`)
-    const card = (text: string) => page.getByTestId('calendar-post').filter({ hasText: text })
+    const card = (text: string) =>
+      page.getByTestId('calendar-post').filter({ hasText: text, visible: true })
     await page.goto(`/write/plan?view=month&week=${anchor.toISOString().slice(0, 10)}`)
     await expect(day(anchor)).toBeVisible()
     await expect(day(anchor)).toContainText('Calendar first')

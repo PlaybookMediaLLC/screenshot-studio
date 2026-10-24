@@ -41,6 +41,10 @@ import { bodyFor, groupSettings, versionFor } from '@/lib/write/versions'
 /** A post's settings as the backend stores them on a scheduled post. */
 export const publishOptionsSchema = z.object({
   linkPreview: linkPreviewSchema.optional(),
+  taggedUserIds: z
+    .array(z.string().regex(/^\d{1,19}$/))
+    .max(10)
+    .optional(),
   articleCoverAssetId: z.string().optional(),
   articleTitle: z.string().optional(),
   articleHtml: z.string().max(400_000).optional(),
@@ -247,7 +251,27 @@ export function buildPublication(
   if (channel === 'linkedin' && draft.kind === 'quote' && settings[0]?.poll)
     problems.push('A LinkedIn reshare cannot contain a poll.')
 
+  const photoTags = (post: SerializedPost | undefined): string[] => [
+    ...new Set(post?.media.flatMap((media) => media.photoTags.map((tag) => tag.providerId)) ?? []),
+  ]
+  for (const post of serialized.posts) {
+    const tags = photoTags(post)
+    if (!tags.length) continue
+    if (channel !== 'x')
+      problems.push(
+        'Photo tags are native X metadata. Remove the tags in this platform version before publishing.'
+      )
+    if (tags.length > 10 || tags.some((id) => !/^\d{1,19}$/.test(id)))
+      problems.push('Choose up to ten distinct X accounts for photo tags.')
+    if (post.media.some((media) => media.kind !== 'image'))
+      problems.push('Photo tags require static images, without GIFs or video.')
+    if (process.env.NEXT_PUBLIC_PLATFORM_X_PHOTO_TAGS !== 'true')
+      problems.push(
+        'Native X photo tagging is awaiting authorized account verification on this installation.'
+      )
+  }
   const firstOptions: PublishOptions = { ...postOptions(channel, settings[0] ?? {}, true) }
+  if (channel === 'x' && photoTags(first).length) firstOptions.taggedUserIds = photoTags(first)
   if (channel === 'x' && options.community) {
     firstOptions.communityId = options.community.id
     firstOptions.shareWithFollowers = options.community.shareWithFollowers ?? true
@@ -307,6 +331,9 @@ export function buildPublication(
       ? {
           replies: rest.map((post, index) => {
             const replyOptions = compact({
+              ...(channel === 'x' && photoTags(post).length
+                ? { taggedUserIds: photoTags(post) }
+                : {}),
               ...postOptions(channel, settings[index + 1] ?? {}, false),
               ...(cardFor(post.caption, post.images + post.videos)
                 ? { linkPreview: cardFor(post.caption, post.images + post.videos) }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -42,5 +43,22 @@ func TestMediaSizeKeepsHEADForPublicMedia(t *testing.T) {
 	size, err := NewBase("x", nil).MediaSize(context.Background(), srv.URL+"/clip.mp4", "x")
 	if err != nil || size != 2048 {
 		t.Fatalf("size=%d error=%v", size, err)
+	}
+}
+
+func TestBoundedMediaReadRejectsChunkedOversize(t *testing.T) {
+	t.Setenv("DISABLE_SSRF_PROTECTION", "true")
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.(http.Flusher).Flush()
+		_, _ = w.Write([]byte(strings.Repeat("a", 101)))
+	}))
+	defer srv.Close()
+	client := NewBase("linkedin", nil)
+	if _, err := client.ReadOrFetchBounded(context.Background(), srv.URL, 100); err == nil {
+		t.Fatal("oversized stream was buffered as valid")
+	}
+	got, err := client.ReadOrFetchBounded(context.Background(), srv.URL, 101)
+	if err != nil || len(got) != 101 {
+		t.Fatalf("boundary: %d %v", len(got), err)
 	}
 }

@@ -42,7 +42,7 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 	if o.ShareWithFollowers && o.CommunityID == "" {
 		return invalid("Share to timeline requires an X community.")
 	}
-	xOnly := o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.ShareWithFollowers ||
+	xOnly := len(o.TaggedUserIDs) > 0 || o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.ShareWithFollowers ||
 		o.ArticleTitle != "" || o.ArticleCoverAssetID != "" || o.ArticleHTML != ""
 	linkedInOnly := o.Visibility != "" || o.FirstComment != "" || o.DocumentAssetID != "" || o.DocumentTitle != "" || o.PollQuestion != ""
 	switch {

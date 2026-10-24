@@ -4,12 +4,18 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"image/png"
 	"strings"
 	"testing"
 )
 
 func TestVerifyAssetBytes(t *testing.T) {
-	png := []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+		t.Fatal(err)
+	}
+	png := encoded.Bytes()
 	if err := verifyAssetBytes("image/png", bytes.NewReader(png)); err != nil {
 		t.Fatalf("a PNG: %v", err)
 	}
@@ -24,16 +30,29 @@ func TestVerifyAssetBytes(t *testing.T) {
 	}
 }
 
-func pdfWithPages(count int, root bool) string {
+func pdfWithPages(count int, _ bool) string {
 	var builder strings.Builder
 	builder.WriteString("%PDF-1.4\n")
-	if root {
-		fmt.Fprintf(&builder, "1 0 obj << /Type /Pages /Kids [] /Count %d >> endobj\n", count)
+	offsets := []int{0}
+	object := func(id int, body string) {
+		offsets = append(offsets, builder.Len())
+		fmt.Fprintf(&builder, "%d 0 obj\n%s\nendobj\n", id, body)
 	}
-	for index := range count {
-		fmt.Fprintf(&builder, "%d 0 obj << /Type /Page /Parent 1 0 R >> endobj\n", index+2)
+	object(1, "<< /Type /Catalog /Pages 2 0 R >>")
+	kids := ""
+	for i := 0; i < count; i++ {
+		kids += fmt.Sprintf("%d 0 R ", i+3)
 	}
-	builder.WriteString("%%EOF\n")
+	object(2, fmt.Sprintf("<< /Type /Pages /Count %d /Kids [%s] >>", count, kids))
+	for i := 0; i < count; i++ {
+		object(i+3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << >> >>")
+	}
+	xref := builder.Len()
+	fmt.Fprintf(&builder, "xref\n0 %d\n0000000000 65535 f \n", len(offsets))
+	for _, offset := range offsets[1:] {
+		fmt.Fprintf(&builder, "%010d 00000 n \n", offset)
+	}
+	fmt.Fprintf(&builder, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(offsets), xref)
 	return builder.String()
 }
 

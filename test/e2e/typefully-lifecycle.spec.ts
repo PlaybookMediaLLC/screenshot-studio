@@ -77,7 +77,9 @@ test('brand defaults survive reload and dragging a draft onto the weekly board o
     posts = await apiRequest(page, `/api/v1/content-drafts/${nextId}/posts`)
     expect((posts.body as { posts: unknown[] }).posts).toHaveLength(0)
     await page.goto(`/write/plan?view=week&week=${anchor}&scope=workspace`)
-    await expect(page.getByTestId('calendar-planned')).toContainText('Board draft for review')
+    await expect(page.getByTestId('calendar-planned').filter({ visible: true })).toContainText(
+      'Board draft for review'
+    )
     await page.screenshot({ path: '.context/shots/typefully-weekly-board.png', fullPage: true })
   } finally {
     await workspace?.provider.close()

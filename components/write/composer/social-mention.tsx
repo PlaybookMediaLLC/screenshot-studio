@@ -4,6 +4,14 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import type { PlateEditor, PlateElementProps } from '@shots/platejs-editor/platejs/react'
 import { createPlatePlugin, PlateElement, useSelected } from '@shots/platejs-editor/platejs/react'
+import { MentionInputPlugin, MentionPlugin } from '@shots/platejs-editor/@platejs/mention/react'
+import {
+  InlineCombobox,
+  InlineComboboxContent,
+  InlineComboboxEmpty,
+  InlineComboboxInput,
+  InlineComboboxItem,
+} from '@shots/platejs-editor/ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -12,6 +20,8 @@ import { call } from '@/lib/content-drafts/client'
 import { SOCIAL_MENTION } from '@/lib/content-drafts/serialize'
 import type { DraftChannel } from '@/lib/write/document'
 import { cn } from '@/lib/utils'
+import type { z } from 'zod'
+import type { socialMentionSchema } from '@/lib/api/contracts/social-mentions'
 
 /**
  * Atomic social mentions (RFC 025): an account picked from the platform's
@@ -22,13 +32,104 @@ import { cn } from '@/lib/utils'
  */
 
 /** A mention as the lookup returns it. */
-type FoundMention = {
-  handle?: string
-  image?: string
-  kind: 'person' | 'organization'
-  label: string
-  providerId: string
+type FoundMention = z.output<typeof socialMentionSchema>
+
+/** The current version's destination, shared without recreating the editor. */
+export const SocialMentionContext = React.createContext<{
+  channel: DraftChannel
+  setId: string | null
+}>({ channel: 'x', setId: null })
+
+function SocialMentionInput(props: PlateElementProps) {
+  const { channel, setId } = React.useContext(SocialMentionContext)
+  const [query, setQuery] = React.useState(String(props.element.value ?? ''))
+  const [lookup, setLookup] = React.useState<{
+    key: string
+    items: FoundMention[]
+    error?: string
+  } | null>(null)
+  const supported = channel === 'x' || channel === 'linkedin'
+  const term = query.trim().replace(/^@/, '')
+  const key = JSON.stringify([setId, channel, term])
+  React.useEffect(() => {
+    if (!supported || !setId || !term) return
+    // Cancellation prevents a slower earlier query or another platform's response
+    // from becoming selectable after the user changes the input/version.
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void call<{ items: FoundMention[] }>(
+        `/api/v1/social-sets/${encodeURIComponent(setId)}/mentions?${new URLSearchParams({ channel, q: term })}`
+      ).then(
+        ({ items }) => {
+          if (!cancelled) setLookup({ key, items })
+        },
+        (error: unknown) => {
+          if (!cancelled)
+            setLookup({
+              key,
+              items: [],
+              error: error instanceof Error ? error.message : 'Lookup unavailable. Try again.',
+            })
+        }
+      )
+    }, 350)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [channel, key, setId, supported, term])
+  const current = lookup?.key === key ? lookup : null
+  const message = !supported
+    ? 'This platform does not support account lookup. Escape keeps your text.'
+    : !setId
+      ? 'Connect an account to look up mentions.'
+      : !term
+        ? channel === 'x'
+          ? 'Enter an exact X username.'
+          : 'Enter a LinkedIn company page name.'
+        : !current
+          ? 'Looking up account…'
+          : (current.error ?? 'No matching account. Escape keeps your text.')
+  return (
+    <PlateElement {...props} as="span">
+      <InlineCombobox
+        element={props.element}
+        trigger="@"
+        filter={false}
+        value={query}
+        setValue={(value) => {
+          setQuery(value)
+          const path = props.editor.api.findPath(props.element)
+          if (path) props.editor.tf.setNodes({ value }, { at: path })
+        }}
+      >
+        <InlineComboboxInput aria-label="Social account username" placeholder="Username" />
+        <InlineComboboxContent>
+          <InlineComboboxEmpty>
+            <span role="status">{message}</span>
+          </InlineComboboxEmpty>
+          {current?.items.map((mention) => (
+            <InlineComboboxItem
+              key={mention.providerId}
+              value={mention.providerId}
+              onClick={() => insertMention(props.editor, channel, mention)}
+            >
+              {mention.label}
+              {mention.handle ? ` (@${mention.handle})` : ' (Company page)'}
+            </InlineComboboxItem>
+          ))}
+        </InlineComboboxContent>
+      </InlineCombobox>
+      {props.children}
+    </PlateElement>
+  )
 }
+
+/** Provider-backed @ input; the upstream workspace/demo suggestions stay disabled. */
+export const SocialMentionInputPlugins = [
+  MentionPlugin.configure({ options: { triggerPreviousCharPattern: /^$|^[\s"']$/ } }),
+  MentionInputPlugin.withComponent(SocialMentionInput),
+]
 
 type MentionNode = {
   handle?: string
@@ -106,7 +207,11 @@ export function MentionPicker({
   const [query, setQuery] = React.useState('')
   const [kind, setKind] = React.useState<'organization' | 'person'>('organization')
   const lookupVersion = React.useRef(0)
-  const [results, setResults] = React.useState<FoundMention[] | null>(null)
+  const [lookupResult, setResults] = React.useState<{ key: string; items: FoundMention[] } | null>(
+    null
+  )
+  const searchKey = JSON.stringify([setId, channel, kind, query.trim()])
+  const results = lookupResult?.key === searchKey ? lookupResult.items : null
   const [busy, setBusy] = React.useState(false)
   if (!setId || lookups.length === 0) return null
   const search = async (term = query) => {
@@ -117,7 +222,8 @@ export function MentionPicker({
       const found = await call<{ items: FoundMention[] }>(
         `/api/v1/social-sets/${encodeURIComponent(setId)}/mentions?${new URLSearchParams({ channel, q: term.trim(), kind: channel === 'x' ? 'person' : kind })}`
       )
-      if (version === lookupVersion.current) setResults(found.items)
+      if (version === lookupVersion.current)
+        setResults({ key: JSON.stringify([setId, channel, kind, term.trim()]), items: found.items })
     } catch (error) {
       if (version !== lookupVersion.current) return
       setResults(null)

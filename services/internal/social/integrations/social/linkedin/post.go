@@ -1,9 +1,12 @@
 package linkedin
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediadocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
 	"net/http"
 	"strings"
 	"time"
@@ -262,7 +265,20 @@ func (p *Provider) processMedia(ctx context.Context, media []mediaItem, accessTo
 		data := m.data
 		// Videos are never buffered: uploadPicture streams them.
 		if data == nil && !helpers.HasExtension(m.path, "mp4") {
-			if data, err = p.prepareMediaBuffer(ctx, m.path); err != nil {
+			if helpers.HasExtension(m.path, "pdf") {
+				// Native documents retain their bytes. Sending them through the image
+				// decoder rejects every uploaded PDF before document initialization.
+				data, err = p.ReadOrFetchBounded(ctx, m.path, int64(medialimits.Limits.PDFBytes))
+				if err == nil {
+					pages, valid := mediadocument.CountPages(bytes.NewReader(data))
+					if !valid || pages > medialimits.Limits.PDFPages {
+						err = errors.New("Choose a valid PDF document up to 100 MB and 300 pages.")
+					}
+				}
+			} else {
+				data, err = p.prepareMediaBuffer(ctx, m.path)
+			}
+			if err != nil {
 				return nil, nil, 0, err
 			}
 		}

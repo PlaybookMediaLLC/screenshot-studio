@@ -54,7 +54,8 @@ export async function startHttpMockServer(
     response.end(result.rawBody ?? JSON.stringify(result.body ?? {}))
   })
 
-  await new Promise<void>((resolve) => server.listen(port ?? 0, '0.0.0.0', resolve))
+  // Dual stack also serves localhost when DNS returns ::1 before 127.0.0.1.
+  await new Promise<void>((resolve) => server.listen(port ?? 0, resolve))
   const address = server.address() as AddressInfo
   return {
     calls,

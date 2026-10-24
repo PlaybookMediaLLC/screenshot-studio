@@ -341,7 +341,7 @@ func TestWritePublishing(t *testing.T) {
 		for name, info := range assets {
 			id := cuid.New()
 			assetIDs[name] = id
-			w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,'UPLOADED',now(),now())`,
+			w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,'UPLOADED',1,1,now(),now())`,
 				id, w.org, "org/"+w.org+"/"+name, info.mime, info.bytes)
 		}
 		for _, item := range []struct {
@@ -490,8 +490,8 @@ func TestWritePublishing(t *testing.T) {
 
 	t.Run("an image's description is kept on it and limited to X's length", func(t *testing.T) {
 		image, pdf := "img_"+w.id, "pdf_"+w.id
-		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',68,'UPLOADED',now(),now())`, image, w.org, "org/"+w.org+"/alt.png")
-		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'application/pdf',68,'UPLOADED',now(),now())`, pdf, w.org, "org/"+w.org+"/alt.pdf")
+		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',68,'UPLOADED',1,1,now(),now())`, image, w.org, "org/"+w.org+"/alt.png")
+		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,'application/pdf',68,'UPLOADED',1,1,now(),now())`, pdf, w.org, "org/"+w.org+"/alt.pdf")
 		saved, err := repo.SetAssetAltText(ctx, owner, image, "  A chart of weekly signups  ")
 		if err != nil || saved.AltText == nil || *saved.AltText != "A chart of weekly signups" {
 			t.Fatalf("saved=%+v err=%v", saved, err)

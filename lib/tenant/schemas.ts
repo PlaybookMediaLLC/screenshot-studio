@@ -1,3 +1,4 @@
+import { uploadByteLimit, MEDIA_LIMITS } from '@/lib/write/media-limits'
 import { z } from 'zod'
 import { brandKitEditorSchema } from '@/lib/brand/editor-definition'
 import { fontFamilies } from '@/lib/constants/fonts'
@@ -39,20 +40,16 @@ export const assetDownloadQuerySchema = z.object({
 
 export const assetUploadSchema = z
   .object({
-    bytes: z
-      .number()
-      .int()
-      .positive()
-      .max(100 * 1024 * 1024),
+    bytes: z.number().int().positive().max(MEDIA_LIMITS.videoBytes),
     projectId: z.string().cuid().optional(),
+    parentAssetId: assetIdSchema.optional(),
     classification: z.enum(assetClassifications).default('input'),
     contentType: contentTypeSchema,
     fileName: z.string().trim().min(1).max(128),
     sha256: sha256Schema.optional(),
   })
-  // LinkedIn documents take up to 100 MB (RFC 025); everything else 50 MB.
-  .refine((input) => input.contentType === 'application/pdf' || input.bytes <= 50 * 1024 * 1024, {
-    message: 'Assets are up to 50 MB; PDF documents up to 100 MB.',
+  .refine((input) => input.bytes <= uploadByteLimit(input.contentType), {
+    message: 'Images are up to 20 MB; videos 512 MiB; PDFs 100 MB.',
     path: ['bytes'],
   })
 

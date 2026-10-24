@@ -886,6 +886,15 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
           >
             Copy internal link
           </DropdownMenuItem>
+          {draft.publishedPosts > 0 ? <DropdownMenuItem onSelect={() => void (async () => {
+            try {
+              const result = await draftsApi.posts(draft.id)
+              const urls = result.posts.filter((post) => post.status === 'PUBLISHED' && post.url).map((post) => post.url)
+              if (!urls.length) throw new Error('Published links are not available yet.')
+              await navigator.clipboard.writeText(urls.join('\n'))
+              toast.success('Published post links copied.')
+            } catch (error) { toast.error(error instanceof Error ? error.message : 'The links could not be copied.') }
+          })()}>Copy published links</DropdownMenuItem> : null}
           {canEdit ? (
             <DropdownMenuItem onSelect={() => setConfirm('share')}>
               Share & copy public link…

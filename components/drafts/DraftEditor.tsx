@@ -16,7 +16,7 @@ import {
   insertBlock,
   insertInlineElement,
 } from '@shots/platejs-editor/components'
-import { PlaceholderPlugin } from '@shots/platejs-editor/@platejs/media/react'
+import { PlaceholderPlugin, type FileSize } from '@shots/platejs-editor/@platejs/media/react'
 import {
   EditorServicesProvider,
   type EditorServices,
@@ -35,6 +35,7 @@ import { createYjsPlugin, YjsPlugin } from '@shots/platejs-editor/collaboration'
 import {
   BlockPlaceholderKit,
   BlockSelectionKit,
+  MediaKit,
   commentPlugin,
   discussionPlugin,
   type TDiscussion,
@@ -72,12 +73,18 @@ import {
   threadAsRules,
 } from './thread'
 import { normalizePosts, postBreak } from '@/lib/write/versions'
+import { MEDIA_LIMITS } from '@/lib/write/media-limits'
 import type { PlateBody } from '@/lib/write/document'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { pendingDraftConnectionError, takePendingDraft } from '@/components/write/pending-draft'
 import type { z } from 'zod'
 import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
+
+// Keep the kit's upload renderer while adding host-specific limits and drop routing.
+const UploadPlaceholderPlugin = MediaKit.find(
+  (plugin) => plugin.key === PlaceholderPlugin.key
+)! as typeof PlaceholderPlugin
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -220,6 +227,7 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
       <EditorContainer
         className={cn('h-auto min-h-[160px]', open && wide && 'pr-80')}
         data-testid="draft-editor"
+        data-local-dropzone
       >
         {children}
       </EditorContainer>
@@ -487,11 +495,12 @@ function DraftToolbar({
       </ToolbarGroup>
       <ToolbarGroup>
         <FileButton
-          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
           inputRef={imageInput}
           label="Insert media"
           onFile={(file) => {
             // The media plugin takes a FileList, as from a drop or a picker.
+            if (!editor.selection) editor.tf.select(editor.api.end([]))
             const files = new DataTransfer()
             files.items.add(file)
             editor.getTransforms(PlaceholderPlugin).insert.media(files.files)
@@ -625,12 +634,55 @@ export default function DraftEditor({
     const hosted = (extraPlugins ?? []) as (typeof PostBreakPlugin)[]
     return createEditorKit({
       recipe: 'collaborative',
-      // Social handles remain literal; resolved platform mentions use the dedicated picker.
-      excludePluginKeys: ['mention', 'mention_input', 'autoformatShortcuts'],
+      // Only an explicitly supplied host lookup may replace literal social handles.
+      excludePluginKeys: ['mention', 'mention_input', 'autoformatShortcuts'].filter(
+        (key) => !hosted.some((plugin) => plugin.key === key)
+      ),
       additionalPlugins: live ? [PostBreakPlugin, ...hosted, live] : [PostBreakPlugin, ...hosted],
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
       overridePlugins: [
+        ...hosted,
+        // Extend the configured kit: configure() replaces its deferred renderer.
+        UploadPlaceholderPlugin.extend(() => ({
+          options: {
+            maxFileCount: 20,
+            uploadConfig: {
+              // Plate's type lists powers of two, but its runtime accepts exact
+              // byte strings. The upload service enforces the current plan again.
+              image: {
+                mediaType: KEYS.img,
+                maxFileCount: 20,
+                maxFileSize: `${MEDIA_LIMITS.paidImageBytes}B` as FileSize,
+              },
+              video: {
+                mediaType: KEYS.video,
+                maxFileCount: 20,
+                maxFileSize: `${MEDIA_LIMITS.videoBytes}B` as FileSize,
+              },
+              pdf: {
+                mediaType: KEYS.file,
+                maxFileCount: 1,
+                maxFileSize: `${MEDIA_LIMITS.pdfBytes}B` as FileSize,
+              },
+            },
+          },
+          handlers: {
+            onDrop: ({ editor, event, tf }) => {
+              const { files } = event.dataTransfer
+              if (!files.length) return false
+              event.preventDefault()
+              event.stopPropagation()
+              if (readOnly) return true
+              // Use the dropped position and the existing upload/placeholder
+              // pipeline. The global screenshot dropzone must not navigate away.
+              const at = editor.api.findEventRange(event)
+              if (at) editor.tf.select(at)
+              tf.insert.media(files)
+              return true
+            },
+          },
+        })),
         BlockSelectionKit[0].configure({ options: { disableSelectAll: true } }),
         BlockPlaceholderKit[0].configure({
           options: { placeholders: { [KEYS.p]: 'What would you like to share?' } },
@@ -821,7 +873,9 @@ export default function DraftEditor({
               </div>
             )}
             {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
-            {readOnly ? null : (
+            {readOnly || (collaboration && !live) ? null : (
+              // Mount subscriptions after the shared document has loaded. Otherwise
+              // media tools can retain the empty pre-connection value until an edit.
               // The formatting bar floats at the bottom of the page, out of the text's way.
               <div
                 style={{ bottom: Math.max(20, keyboardInset) }}

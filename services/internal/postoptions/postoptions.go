@@ -6,6 +6,7 @@ package postoptions
 import (
 	"fmt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -101,7 +102,8 @@ type Metrics map[string]float64
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.
 type PublishOptions struct {
-	LinkPreview *LinkPreview `json:"linkPreview,omitempty"`
+	LinkPreview   *LinkPreview `json:"linkPreview,omitempty"`
+	TaggedUserIDs []string     `json:"taggedUserIds,omitempty"`
 	// X: who can reply (following, mentionedUsers, subscribers, verified);
 	// empty is everyone. Replies never change who can see the post.
 	ReplySettings string `json:"replySettings,omitempty"`
@@ -131,7 +133,9 @@ type PublishOptions struct {
 }
 
 // Empty reports whether no option is set.
-func (o PublishOptions) Empty() bool { return o == PublishOptions{} }
+func (o PublishOptions) Empty() bool {
+	return len(o.TaggedUserIDs) == 0 && func() bool { o.TaggedUserIDs = nil; return reflect.DeepEqual(o, PublishOptions{}) }()
+}
 
 // LivePostURL is a live post's address on its platform, where one can be
 // built from its id.

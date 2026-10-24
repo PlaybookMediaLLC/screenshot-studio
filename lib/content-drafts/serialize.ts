@@ -35,8 +35,23 @@ export type DegradationKind = z.infer<typeof degradationKindSchema>
 /** A change the composer warns about before scheduling. */
 export type Degradation = { kind: DegradationKind; message: string }
 
+/** A durable attachment, kept with the same normalized post used for publication. */
+export type SerializedMedia = {
+  assetId: string
+  id: string
+  kind: 'image' | 'gif' | 'video'
+  alt: string
+  photoTags: { providerId: string; label: string; handle?: string }[]
+  sourceAssetId?: string
+  mimeType?: string
+  width?: number
+  height?: number
+  processingStatus: 'ready' | 'pending' | 'failed'
+}
+
 /** One post of a thread: its text and its workspace images in order. */
 export type SerializedPost = {
+  media: SerializedMedia[]
   assetIds: string[]
   caption: string
   /**
@@ -201,6 +216,8 @@ const SIMPLE_BLOCKS = new Set(['p', 'blockquote', 'callout', 'toggle', 'lic', 'l
 const CONTAINERS = new Set(['column_group', 'column', 'ul', 'ol'])
 
 type Context = {
+  invalidMediaMetadata: boolean
+  media: SerializedMedia[]
   assetIds: string[]
   /** The channel the caption is for: mentions are written its way. */
   channel: DraftChannel
@@ -250,7 +267,17 @@ function renderedBlock(context: Context): boolean {
   context.blocks += 1
   if (assetId === undefined || assetId === null) return false
   context.images += 1
-  if (assetId) context.assetIds.push(assetId)
+  if (assetId) {
+    context.assetIds.push(assetId)
+    context.media.push({
+      assetId,
+      id: assetId,
+      kind: 'image',
+      alt: '',
+      photoTags: [],
+      processingStatus: 'ready',
+    })
+  }
   return true
 }
 
@@ -270,13 +297,57 @@ function footnoteNumber(context: Context, identifier: string): number {
 function collectVideo(node: PlateNode, context: Context): void {
   context.images += 1
   context.videos += 1
-  context.assetIds.push(String(node.assetId))
+  collectAttachment(node, context, 'video')
 }
 
 function collectImage(node: PlateNode, context: Context): void {
   context.images += 1
-  if (typeof node.assetId === 'string') context.assetIds.push(node.assetId)
+  if (typeof node.assetId === 'string')
+    collectAttachment(node, context, node.mimeType === 'image/gif' ? 'gif' : 'image')
   else context.unstored += 1
+}
+
+function collectAttachment(node: PlateNode, context: Context, kind: SerializedMedia['kind']): void {
+  const assetId = String(node.assetId)
+  const tags = z
+    .array(
+      z.object({
+        providerId: z.string().regex(/^[0-9]{1,19}$/),
+        label: z.string().min(1),
+        handle: z.string().optional(),
+      })
+    )
+    .max(10)
+    .safeParse(node.photoTags ?? [])
+  if (!tags.success) context.invalidMediaMetadata = true
+  context.assetIds.push(assetId)
+  context.media.push({
+    assetId,
+    id: typeof node.id === 'string' ? node.id : assetId,
+    kind,
+    alt: typeof node.alt === 'string' ? node.alt : '',
+    photoTags: tags.success ? tags.data : [],
+    sourceAssetId: typeof node.sourceAssetId === 'string' ? node.sourceAssetId : undefined,
+    mimeType: typeof node.mimeType === 'string' ? node.mimeType : undefined,
+    width:
+      typeof node.width === 'number'
+        ? node.width
+        : typeof node.initialWidth === 'number'
+          ? node.initialWidth
+          : undefined,
+    height:
+      typeof node.height === 'number'
+        ? node.height
+        : typeof node.initialHeight === 'number'
+          ? node.initialHeight
+          : undefined,
+    processingStatus:
+      node.processingStatus === 'failed'
+        ? 'failed'
+        : node.processingStatus === 'pending'
+          ? 'pending'
+          : 'ready',
+  })
 }
 
 /** The text of inline content: text leaves, links, mentions, tags, math. */
@@ -371,6 +442,10 @@ function listMarker(node: PlateNode, counters: Map<number, number>): string | nu
 
 function blockText(node: PlateNode, context: Context): string {
   const type = node.type ?? 'p'
+  if (type === 'placeholder') {
+    context.unstored += 1
+    return ''
+  }
   if (type === 'img') {
     collectImage(node, context)
     return ''
@@ -487,7 +562,9 @@ export function serializeDraft(
 ): SerializedCaption {
   const nodes = (Array.isArray(value) ? value : []) as PlateNode[]
   const context: Context = {
+    invalidMediaMetadata: false,
     assetIds: [],
+    media: [],
     channel,
     blockImages,
     blocks: 0,
@@ -503,6 +580,7 @@ export function serializeDraft(
     const caption = tidy(serializeBlocks(group, context))
     return {
       assetIds: context.assetIds.slice(assets),
+      media: context.media.slice(assets),
       caption,
       group: index,
       images: context.images - images,
@@ -526,6 +604,7 @@ export function serializeDraft(
         .map(tidy)
         .map((caption, index) => ({
           assetIds: index === 0 ? images : [],
+          media: index === 0 ? context.media : [],
           caption,
           group: index,
           images: index === 0 ? count : 0,
@@ -545,6 +624,7 @@ export function serializeDraft(
       : [
           {
             assetIds: filled.flatMap((post) => post.assetIds),
+            media: filled.flatMap((post) => post.media),
             caption: filled.map((post) => post.caption).join('\n\n'),
             group: filled[0].group,
             images: filled.reduce((total, post) => total + post.images, 0),
@@ -567,10 +647,18 @@ export function serializeDraft(
   const limit = options.limit ?? DRAFT_CHANNEL_LIMITS[channel]
   const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
   const errors: string[] = []
-  if (posts.length === 0 || posts.every((post) => !post.caption)) {
+  if (context.invalidMediaMetadata)
+    errors.push(
+      'An attachment has invalid photo-tag metadata. Remove or replace its tags before scheduling.'
+    )
+  if (posts.length === 0 || posts.every((post) => !post.caption && post.images === 0)) {
     errors.push('Write something to post.')
   }
   posts.forEach((post, index) => {
+    if (new Set(post.assetIds).size !== post.assetIds.length)
+      errors.push(
+        `Post ${index + 1} repeats the same stored attachment. Move the copy to another post or apply a distinct edit.`
+      )
     if (channel === 'bluesky' && new TextEncoder().encode(post.caption).length > 3000) {
       errors.push(`Post ${index + 1} exceeds Bluesky's 3,000-byte text limit.`)
     }
@@ -592,15 +680,22 @@ export function serializeDraft(
           : 'Choose up to four images or one MP4 video for each Bluesky post.'
       )
     } else {
-      degrade(
-        context,
-        'extra-images',
-        `Only the first ${imageLimit} images ${posts.length > 1 ? 'of each post ' : ''}are attached.`
-      )
+      errors.push(`Choose up to ${imageLimit} attachments per ${CHANNEL_NAMES[channel]} post.`)
     }
   }
   if (context.unstored > 0) {
     errors.push('Upload every image to the workspace before scheduling.')
+  }
+  if (context.media.some((media) => media.processingStatus !== 'ready')) {
+    errors.push('Wait for every attachment to finish processing, or replace failed media.')
+  }
+  if (
+    channel === 'x' &&
+    posts.some((post) => post.media.some((media) => media.kind === 'gif') && post.images > 1)
+  ) {
+    errors.push(
+      'The X API requires a GIF to be the only attachment. Mixed media is not supported by this connection.'
+    )
   }
   // Every channel takes a video alone: one, with no images beside it.
   posts.forEach((post, index) => {

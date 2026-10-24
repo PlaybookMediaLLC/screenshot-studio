@@ -300,8 +300,12 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	}
 	objects := &recordingAssetObjects{}
 	repo.WithObjectStore(objects).WithAssetDownloads(strings.Repeat("a", 32), "https://shots.example.test")
+	var uploaded bytes.Buffer
+	if err := png.Encode(&uploaded, image.NewRGBA(image.Rect(0, 0, 1200, 900))); err != nil {
+		t.Fatal(err)
+	}
 	signed, err := repo.SignAssetUpload(ctx, actor, AssetUploadInput{
-		Bytes: 100, Classification: "input", ContentType: "image/png", FileName: "canary.png",
+		Bytes: uploaded.Len(), Classification: "input", ContentType: "image/png", FileName: "canary.png",
 	})
 	if err != nil || signed.Asset.Status != "PENDING" || signed.UploadURL == "" || !strings.HasPrefix(objects.key, "org/"+orgID+"/input/") {
 		t.Fatalf("signed asset=%+v key=%q err=%v", signed, objects.key, err)
@@ -310,10 +314,6 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatalf("missing upload completed: %v", err)
 	}
 	objects.exists = true
-	var uploaded bytes.Buffer
-	if err := png.Encode(&uploaded, image.NewRGBA(image.Rect(0, 0, 1200, 900))); err != nil {
-		t.Fatal(err)
-	}
 	objects.written = uploaded.Bytes()
 	completed, err := repo.CompleteAssetUpload(ctx, actor, signed.Asset.ID, nil)
 	if err != nil || completed.Status != "UPLOADED" {

@@ -405,7 +405,7 @@ func TestPlanAnalyzeDatabase(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := repo.client.ScheduledPost.UpdateOneID(queued.Posts[0].ID).SetSlotAt(at).SetNaturalOffsetSeconds(45).SetScheduledFor(at.Add(45 * time.Second)).Exec(ctx); err != nil {
+		if _, err := w.db.SQL.ExecContext(ctx, `UPDATE scheduled_post SET "slotAt"=$2,"naturalOffsetSeconds"=45,"scheduledFor"=$3 WHERE id=$1`, queued.Posts[0].ID, at, at.Add(45*time.Second)); err != nil {
 			t.Fatal(err)
 		}
 		next := at.Add(2 * time.Hour)

@@ -110,9 +110,26 @@ export async function createDraftWorkspace(
   identity: E2EIdentity,
   page: Page,
   platforms: readonly string[] = ['x', 'linkedin'],
-  plan: 'free' | 'pro' = 'pro'
+  planOrOptions: 'free' | 'pro' | { verifiedStandardVideo?: boolean } = 'pro'
 ): Promise<DraftWorkspace> {
+  const plan = typeof planOrOptions === 'string' ? planOrOptions : 'pro'
+  const options = typeof planOrOptions === 'object' ? planOrOptions : {}
   let organizationId = ''
+  const verifiedX = options.verifiedStandardVideo
+    ? {
+        ...xVerification,
+        capabilities: {
+          ...xVerification.capabilities,
+          x: {
+            ...xVerification.capabilities.x,
+            subscriptionType: 'None',
+            articles: false,
+            videoMaxBytes: 8_000_000_000,
+            videoMaxDurationSeconds: 1200,
+          },
+        },
+      }
+    : xVerification
   const provider = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/me') {
       return { body: { organization: { id: `go-${organizationId}` } } }
@@ -131,6 +148,7 @@ export async function createDraftWorkspace(
           active: true,
           verifiedAt: new Date().toISOString(),
           ...nativeVerification[nativePlatform],
+          ...(nativePlatform === 'x' ? { verification: verifiedX } : {}),
         },
       }
     }
@@ -169,7 +187,8 @@ export async function createDraftWorkspace(
       )
       const native = nativeVerification[platform]
       if (native) {
-        const verification = native.verification as typeof xVerification
+        const verification =
+          platform === 'x' ? verifiedX : (native.verification as typeof xVerification)
         await database.query(
           `UPDATE "Integration" SET "internalId"=$2, "verifiedAccountKey"=$3,
           "verifiedAccountKind"=$4, "verifiedScopes"=$5, "verifiedCapabilities"=$6, "identityVerifiedAt"=now()

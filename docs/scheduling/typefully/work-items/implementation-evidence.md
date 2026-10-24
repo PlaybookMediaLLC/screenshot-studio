@@ -222,3 +222,12 @@ All 42 entries have been audited and have implementation/evidence rows above. Th
 The source checklist and this report cover the original implementation and subsequent local completions on branch `work`, published to `codex/typefully-sections-2-4-5`. No deployment or live provider activation is implied.
 
 Implementation commits: [`19e02cc6`](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/19e02cc65a3fa272cf15297ff258b877b6761fe5) contains the original editor/calendar/native-option implementation; [`3b9e2198`](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/3b9e21989b4e1fd65aa6d23b987a240890a73bef) contains the continuation, additive migrations, free-tier amendment, source checkbox updates and final verification report. The review branch is `codex/typefully-sections-2-4-5`. No merge or deployment was performed.
+
+
+## Integration with develop (2026-10-24)
+
+The merge into `develop` also incorporates the Plan/Analyze workspace (#305) and media/preview implementation (#306). Their screens, concurrency controls, media validation and native photo-tag metadata are preserved alongside this work. Calendar swaps still require the advanced scheduling entitlement; movement and undo retain the original natural offset. Campaign commitments remain visible and open their campaign. Measured posting-time suggestions remain available at `/write/analyze/posting-times`, linked from Analyze. The preview starts at the media workflow's 420px width and remains resizable with pointer or keyboard.
+
+Merge verification: TypeScript, formatting, lint, all 1,111 JavaScript tests (one additional test skipped), all 130 tested Go packages, all 18 RFC checks, generated Ent/OpenAPI clients, SDK compilation and OpenAPI compatibility against `develop` passed. Nine fixture browser workflows passed across calendar movement/recovery/publish-now, free scheduling, planning and focus mode, native option snapshots, durable mentions, finisher reuse, LinkedIn reposts, poll copying, and the six existing media preview snapshots. A calendar navigation run interrupted by local resource pressure passed on rerun. No live provider request was used as verification.
+
+Source checkboxes from the separately merged media work are retained. The 42 entries assigned here remain **25 verified / 17 provider-dependent open**; merging does not change those verification gates.

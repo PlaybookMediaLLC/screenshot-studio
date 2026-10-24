@@ -240,7 +240,7 @@ export const PostBreakPlugin = createPlatePlugin({
     },
     normalizeNode(entry, options) {
       const [node, path] = entry
-      if (node.type === 'mention_input') {
+      if (node.type === 'mention_input' && !editor.plugins.mention_input) {
         editor.tf.withoutNormalizing(() => {
           editor.tf.removeNodes({ at: path })
           editor.tf.insertNodes(normalizeMentions(node) as { text: string }, { at: path })

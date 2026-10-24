@@ -134,6 +134,8 @@ The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-
 
 ## 3. Media
 
+2026-10-24 verification: **2/12 complete**. See the [implementation and verification audit](media-preview-verification.md) for evidence and unresolved provider/implementation requirements.
+
 - [ ] **TF-001 Images, quote links, and @mention suggestions** (2021-02-02, [entry](https://typefully.com/changelog/typefully-20211-images-144))
   - Drag and drop an image into the editor to upload it.
   - Copy and paste images between threads.
@@ -152,7 +154,7 @@ The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-
 - [ ] **TF-019 GIF search with GIPHY** (2022-04-06, [entry](https://typefully.com/changelog/giphy-integration-50))
   - Add a GIF button to the post toolbar.
   - Search GIPHY and attach a GIF.
-- [ ] **TF-023 Image frames (beta)** (2022-05-26, [entry](https://typefully.com/changelog/image-editing-beta-54))
+- [x] **TF-023 Image frames (beta)** (2022-05-26, [entry](https://typefully.com/changelog/image-editing-beta-54))
   - Let the user add a colored frame to images, to give media a personal brand style.
   - Release as a beta.
   - Note: Typefully also ships this as a standalone phone app (tweet.pics).
@@ -178,7 +180,7 @@ The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-
   - Publish the PDF as a swipeable carousel.
   - Support schedule and publish.
   - Typefully plan: Creator plan or higher.
-- [ ] **TF-092 Reorder media in drafts** (2026-02-13, [entry](https://typefully.com/changelog/reorder-media-in-drafts-132))
+- [x] **TF-092 Reorder media in drafts** (2026-02-13, [entry](https://typefully.com/changelog/reorder-media-in-drafts-132))
   - Drag and drop media to change the order inside a post.
   - Drag media from one post to another post in a thread.
   - Do not require a delete and a new upload.
@@ -341,7 +343,9 @@ The [implementation evidence for Sections 2, 4 and 5](work-items/implementation-
 
 ## 6. Realistic previews
 
-- [ ] **TF-057 Realistic preview for LinkedIn** (2024-04-24, [entry](https://typefully.com/changelog/realistic-post-preview-for-linkedin-94))
+2026-10-24 verification: **1/5 complete**. See the [implementation and verification audit](media-preview-verification.md); native cutoff and current-app parity claims remain unresolved.
+
+- [x] **TF-057 Realistic preview for LinkedIn** (2024-04-24, [entry](https://typefully.com/changelog/realistic-post-preview-for-linkedin-94))
   - Add a "Preview" button next to the LinkedIn toggle in the Publish and Schedule modals.
   - Show the post collapsed by default, with a "See more" button.
   - Add a "Mobile" toggle to show the phone layout.

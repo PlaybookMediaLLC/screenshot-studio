@@ -100,12 +100,14 @@ export function ScheduleDialog({
   initialDay,
   initialTime,
   onClose,
+  onPreview,
 }: {
   context: ScheduleContext
   initialQueue?: boolean
   initialDay?: string
   initialTime?: string
   onClose: () => void
+  onPreview?: () => void
 }) {
   const { data } = useWrite()
   const scope = useSocialSetScope()
@@ -506,6 +508,7 @@ export function ScheduleDialog({
           Open a new draft after scheduling
         </label>
         <DialogFooter className="flex-wrap gap-2">
+          {onPreview ? <Button onClick={onPreview} type="button" variant="outline">Preview</Button> : null}
           {context.draft.plannedFor ? (
             <Button
               className="mr-auto"

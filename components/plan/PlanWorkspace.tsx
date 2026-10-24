@@ -507,7 +507,7 @@ export function PlanWorkspace({
     setCompose({ day: local.slice(0, 10), time: local.slice(11), setId, zone: scheduleZone })
   }
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col" inert={!hydrated} aria-busy={!hydrated}>
       <WorkspaceNav active="plan" />
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <aside
@@ -784,6 +784,7 @@ export function PlanWorkspace({
             <select
               className={field}
               aria-label="Calendar view"
+              disabled={!hydrated}
               value={prefs.view}
               onChange={(e) => setPref({ view: e.target.value as PlanPreferences['view'] })}
             >

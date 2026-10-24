@@ -232,19 +232,24 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       expect(planned.status, JSON.stringify(planned.body)).toBe(200)
       await page.goto(`/write/plan?day=${day}`)
       await page.getByLabel('Calendar view').selectOption('week')
+      await expect(page.getByLabel('week calendar', { exact: true })).toBeVisible()
       const other = page
         .getByTestId('calendar-planned')
         .filter({ hasText: 'Overlapping weekly account post', visible: true })
       await expect(card).toBeVisible()
       await expect(other).toBeVisible()
-      const firstBox = await card.boundingBox()
-      const secondBox = await other.boundingBox()
-      expect(firstBox).not.toBeNull()
-      expect(secondBox).not.toBeNull()
-      expect(
-        firstBox!.x + firstBox!.width <= secondBox!.x ||
-          secondBox!.x + secondBox!.width <= firstBox!.x
-      ).toBe(true)
+      await expect
+        .poll(async () => {
+          const firstBox = await card.boundingBox()
+          const secondBox = await other.boundingBox()
+          return (
+            !!firstBox &&
+            !!secondBox &&
+            (firstBox.x + firstBox.width <= secondBox.x ||
+              secondBox.x + secondBox.width <= firstBox.x)
+          )
+        })
+        .toBe(true)
       for (const [target, text] of [
         [card, 'A planned post from the authenticated calendar'],
         [other, 'Overlapping weekly account post'],

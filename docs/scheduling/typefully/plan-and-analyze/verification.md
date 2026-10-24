@@ -133,6 +133,8 @@ Archive restoration now restores visibility while retaining the scheduled state 
 
 Canonical reconciliation now requires a matching, completed publication receipt before applying its 200-row limit. The backlog regression reproduced starvation with 200 older receiptless publications and one newer confirmed publication (`reconciliation-before.log`). D with `-race` passed 54 tests with no failures or skips after the fix (`reconciliation-after.jsonl`). The new case also rejects mismatched and unfinished receipts, checks repeated collection, and confirms a previously skipped publication becomes eligible when a dated receipt arrives.
 
+The independent CI acceptance job passed with a Plan retry, exposing an initial-load race: the native view selector could accept a change before saved preferences loaded, then revert to Month. Plan is now inert until preferences initialize, and the view selector remains disabled until that point. The overlap assertion also waits for the Week calendar before measuring it. Three full authenticated Plan workflows then passed with `--repeat-each=3 --retries=0`, zero failures or skips (`week-layout-repeat.json`); typechecking and focused ESLint passed (`hydration-typecheck.log`).
+
 ## External checks before production enablement
 
 - Use authorized provider accounts, actual granted scopes, supported API tiers and quota. X follower reads, timeline import and private click metrics require the corresponding provider access; unavailable private counters remain absent. LinkedIn personal currently lacks the installed analytics interface; do not infer support from publishing. Page/Instagram/Threads permissions are provider-specific.

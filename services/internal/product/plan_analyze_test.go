@@ -221,6 +221,34 @@ func TestPlanAnalyzeDatabase(t *testing.T) {
 			t.Fatalf("success=%d conflicts=%d", success, conflicts)
 		}
 	})
+	t.Run("P36 legacy plan requests initialize once and cannot overwrite existing plans", func(t *testing.T) {
+		d := draft("legacy initial plan")
+		legacy := ContentDraftPlanInput{PlannedFor: &at, TimeZone: "UTC"}
+		planned, e := repo.PlanContentDraft(ctx, owner, d.ID, legacy)
+		if e != nil || planned.CalendarVersion != 2 {
+			t.Fatalf("legacy initial placement=%+v %v", planned, e)
+		}
+		if _, e := repo.PlanContentDraft(ctx, owner, d.ID, ContentDraftPlanInput{}); !errors.Is(e, publishing.ErrConflict) {
+			t.Fatalf("unversioned clear overwrote the plan: %v", e)
+		}
+		// A migrated pre-existing plan starts at revision 1, but is not empty.
+		if e := repo.client.ContentDraft.UpdateOneID(d.ID).SetCalendarVersion(1).Exec(ctx); e != nil {
+			t.Fatal(e)
+		}
+		next := at.Add(time.Hour)
+		legacy.PlannedFor = &next
+		if _, e := repo.PlanContentDraft(ctx, owner, d.ID, legacy); !errors.Is(e, publishing.ErrConflict) {
+			t.Fatalf("legacy request overwrote a migrated plan: %v", e)
+		}
+		stored, e := repo.client.ContentDraft.Get(ctx, d.ID)
+		if e != nil || stored.PlannedFor == nil || !stored.PlannedFor.Equal(at) {
+			t.Fatalf("original placement was not preserved: %+v %v", stored, e)
+		}
+		legacy.BaseCalendarVersion = 1
+		if _, e := repo.PlanContentDraft(ctx, owner, d.ID, legacy); e != nil {
+			t.Fatalf("explicit current revision rejected: %v", e)
+		}
+	})
 	t.Run("P35 editor can plan reader cannot and editor cannot commit publication", func(t *testing.T) {
 		d := draft("permissions")
 		if _, e := repo.PlanContentDraft(ctx, w.actor("reader"), d.ID, ContentDraftPlanInput{BaseCalendarVersion: d.CalendarVersion, PlannedFor: &at, TimeZone: "UTC"}); !errors.Is(e, publishing.ErrForbidden) {

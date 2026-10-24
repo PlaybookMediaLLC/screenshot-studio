@@ -6672,7 +6672,7 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    baseCalendarVersion: number;
+                    baseCalendarVersion?: number;
                     plannedFor: string | null;
                     timeZone?: string;
                 };

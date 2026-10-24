@@ -6781,7 +6781,6 @@
                   }
                 },
                 "required": [
-                  "baseCalendarVersion",
                   "plannedFor"
                 ],
                 "additionalProperties": false

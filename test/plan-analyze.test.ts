@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { analyticsReportSchema, analyticsQuerySchema } from '../lib/api/contracts/plan-analyze'
+import { draftPlanInputSchema } from '../lib/api/contracts/write'
 import {
   displayDaySlots,
   calendarDays,
@@ -86,6 +87,16 @@ const items: PlanItem[] = [
     tagIds: ['tag-li'],
   },
 ]
+
+test('P36 legacy plan request shape stays compatible without inventing a current revision', () => {
+  const legacy = { plannedFor: '2027-01-02T12:00:00Z', timeZone: 'UTC' }
+  assert.equal(draftPlanInputSchema.parse(legacy).baseCalendarVersion, undefined)
+  assert.equal(
+    draftPlanInputSchema.parse({ ...legacy, baseCalendarVersion: 4 }).baseCalendarVersion,
+    4
+  )
+  assert.equal(draftPlanInputSchema.safeParse({ ...legacy, baseCalendarVersion: 0 }).success, false)
+})
 
 test('P02/P03 identical names retain stable provider and set identity in all-account results', () => {
   const result = visibleItems(items, planPreferencesSchema.parse({}))

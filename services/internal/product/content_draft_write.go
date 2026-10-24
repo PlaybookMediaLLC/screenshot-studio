@@ -167,6 +167,12 @@ func (c *Configuration) PlanContentDraft(ctx context.Context, actor Actor, id st
 	if err := ensureDraftCanPlan(ctx, tx.Client(), id); err != nil {
 		return nil, err
 	}
+	// Legacy clients may initialize an untouched calendar placement. Never
+	// infer the current revision for an existing plan: that would let a stale
+	// client overwrite a teammate's date, including plans predating this field.
+	if input.BaseCalendarVersion == 0 && draft.CalendarVersion == 1 && draft.PlannedFor == nil {
+		input.BaseCalendarVersion = 1
+	}
 	if input.BaseCalendarVersion < 1 || input.BaseCalendarVersion != draft.CalendarVersion {
 		return nil, conflict("The calendar changed. Reload before placing this draft.")
 	}

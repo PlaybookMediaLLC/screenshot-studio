@@ -99,6 +99,23 @@ Initial browser verification found and repaired Date-wire parsing, account/metri
 
 Screenshots and generated image: `.local/plan-analyze/plan-desktop.png`, `plan-mobile.png`, `analyze-desktop.png`, `analyze-mobile.png`, `chart-image.png`. Browser traces are generated under ignored `test-results` on failures. Evidence logs remain local/ignored because they contain fixture identities and operational details. The matrix records durable summaries and exact executable cases.
 
+## Develop integration verification
+
+Work PR [#305](https://github.com/PlaybookMediaLLC/screenshot-studio/pull/305) targets `develop`. The implementation was rebased onto the RFC renumbering and branch policy, then updated with the latest capture-design documentation. Ent and OpenAPI regeneration produced no drift. After this integration, `COLLAB_TEST_REDIS_URL=redis://127.0.0.1:63799 npm run quality:check` passed: 1,080 JavaScript tests with no skips/failures, TypeScript, lint, formatting and 18/18 RFC checks. The six changed backend domain/HTTP/publishing/Temporal packages passed 545 tests; `go vet ./...` passed.
+
+The first PR CI run found an incompatible newly required `baseCalendarVersion` on the existing Plan endpoint. Its request shape now keeps that field optional, while the Go service permits omission only for an untouched, unplanned draft at revision 1. Existing and migrated plans cannot be overwritten or cleared without an explicit revision. This preserves the initial legacy request and the concurrency guard. The fix passed 41 domain tests and 38 unit/OpenAPI tests, with no failures or skips:
+
+```bash
+npx tsx --test test/plan-analyze.test.ts test/openapi-contracts.test.ts
+# In services, using the D database environment:
+go test -count=1 -json ./internal/product -run 'TestPlanAnalyzeDatabase|TestAnalyticsGoalPeriods|TestAnalyticsRetryClassification|TestWritePublishing'
+# From the root, using the fetched develop base:
+git show origin/develop:services/internal/shotsapi/openapi.json > .local/plan-analyze/base-openapi.json
+go run github.com/oasdiff/oasdiff@v1.33.0 breaking .local/plan-analyze/base-openapi.json services/internal/shotsapi/openapi.json --fail-on ERR --format githubactions --err-ignore services/internal/shotsapi/breaking-changes-allowed.txt
+```
+
+The exact CI compatibility check above passed without adding an exception. Local evidence is in `quality-develop.log`, `go-develop.jsonl`, `vet-develop.log`, `domain-compat.jsonl`, `compat-unit.log` and `openapi-compat.log`. The PR records subsequent GitHub build/check results; the earlier counts above remain the original implementation audit.
+
 ## External checks before production enablement
 
 - Use authorized provider accounts, actual granted scopes, supported API tiers and quota. X follower reads, timeline import and private click metrics require the corresponding provider access; unavailable private counters remain absent. LinkedIn personal currently lacks the installed analytics interface; do not infer support from publishing. Page/Instagram/Threads permissions are provider-specific.

@@ -42,7 +42,7 @@
             "context": "Branch policy"
           },
           {
-            "context": "validate"
+            "context": "CI validation"
           }
         ]
       }

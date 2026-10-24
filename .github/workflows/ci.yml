@@ -84,6 +84,7 @@ jobs:
         run: docker build --tag screenshot-studio-backend:${{ github.sha }} services
 
   validate:
+    name: CI validation
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20

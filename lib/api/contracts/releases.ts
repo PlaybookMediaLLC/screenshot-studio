@@ -41,7 +41,11 @@ export const idempotencyKeySchema = z.string().trim().max(128)
 
 /** `GET /api/v1/releases` (also served at `/api/tenant/releases`). */
 export const listReleasesContract = defineContract({
-  access: { apiKeyScope: 'artifact:read', permission: 'artifact:read' },
+  access: {
+    apiKeyScope: 'artifact:read',
+    feature: 'workspace:paid',
+    permission: 'artifact:read',
+  },
   docs: workspaceDocs({
     description: 'Lists releases in the API key workspace. Requires the `artifact:read` scope.',
     operationId: 'listReleases',

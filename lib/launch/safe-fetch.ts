@@ -52,15 +52,23 @@ export function isPublicAddress(address: string): boolean {
     return true
   }
   if (kind === 6) {
-    const value = address.toLowerCase()
-    const mapped = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
-    if (mapped) return isPublicAddress(mapped[1]!)
-    if (value === '::' || value === '::1') return false
-    if (/^(fc|fd)/.test(value)) return false // unique local
-    if (/^fe[89ab]/.test(value)) return false // link-local
-    if (value.startsWith('ff')) return false // multicast
-    if (value.startsWith('2001:db8')) return false // documentation
-    if (value.startsWith('64:ff9b:')) return false // NAT64 can reach IPv4 private space
+    // Canonicalize expanded and IPv4-mapped forms before checking ranges.
+    const value = new URL(`http://[${address}]/`).hostname.slice(1, -1).toLowerCase()
+    const mapped = value.match(/^::ffff:([0-9a-f]+):([0-9a-f]+)$/)
+    if (mapped) {
+      const upper = Number.parseInt(mapped[1], 16)
+      const lower = Number.parseInt(mapped[2], 16)
+      return isPublicAddress(`${upper >> 8}.${upper & 255}.${lower >> 8}.${lower & 255}`)
+    }
+    // Only global unicast, excluding transition tunnels and documentation.
+    if (!/^[23][0-9a-f]{0,3}:/.test(value)) return false
+    if (
+      value.startsWith('2002:') ||
+      value.startsWith('2001::') ||
+      value.startsWith('2001:0:') ||
+      value.startsWith('2001:db8:')
+    )
+      return false
     return true
   }
   return false

@@ -15,11 +15,11 @@ the existing dispatch cron rather than in the request that schedules it.
 Marketing automation tools such as Loops or Customer.io are not used.
 
 Announcement delivery reuses the scheduled-post publisher pattern from
-RFC 020 rather than introducing a second delivery model.
+RFC 030 rather than introducing a second delivery model.
 
 ## Context
 
-The schema from RFC 006 already modelled `CustomerCommunication` and
+The schema from RFC 011 already modelled `CustomerCommunication` and
 `CommunicationAttempt`, but nothing read or wrote them. The product could
 draft an announcement and never send it.
 
@@ -146,7 +146,7 @@ allowlist if the product needs it.
 
 **A monorepo workspace package.** Extracting `lib/email` into a workspace
 package was considered and deferred. See
-[RFC 033](rfcs/033-workspace-migration.md) for the analysis.
+[RFC 051](rfcs/051-workspace-migration.md) for the analysis.
 
 ## Verification
 

@@ -18,7 +18,7 @@ type OnboardingService interface {
 	CancelWorkspace(context.Context, string) error
 }
 
-// The onboarding agent's routes (docs/rfcs/032-background-onboarding-agent.md).
+// The onboarding agent's routes (docs/rfcs/034-background-onboarding-agent.md).
 func (s *Server) registerOnboarding(mux *http.ServeMux) {
 	mux.Handle("GET /v1/ideal-customer-profile", s.authenticateProduct(http.HandlerFunc(s.getIdealCustomerProfile)))
 	mux.Handle("POST /v1/ideal-customer-profile", s.authenticateProduct(http.HandlerFunc(s.upsertIdealCustomerProfile)))

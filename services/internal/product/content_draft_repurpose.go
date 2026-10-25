@@ -10,6 +10,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
@@ -29,21 +30,31 @@ func seedRepurposedDraft(ctx context.Context, tx *ent.Tx, actor Actor, input *Co
 	} else if string(source.Kind) != "reply" {
 		query.Where(scheduledpost.ReplyToIsNil())
 	}
-	post, err := query.Order(scheduledpost.ByPublishedAt(entsql.OrderDesc(), entsql.OrderNullsLast()), ent.Desc(scheduledpost.FieldCreatedAt)).First(ctx)
+	post, err := query.WithChannelConnection().Order(scheduledpost.ByPublishedAt(entsql.OrderDesc(), entsql.OrderNullsLast()), ent.Desc(scheduledpost.FieldCreatedAt)).First(ctx)
 	if ent.IsNotFound(err) {
+		if target.SourcePostID == "" {
+			return conflict("Publish the source before repurposing its confirmed content.")
+		}
 		return publishing.ErrNotFound
 	}
 	if err != nil {
 		return err
 	}
+	if input.SocialSetID == "" && source.SocialSetID != nil {
+		input.SocialSetID = *source.SocialSetID
+	}
 	target.SourcePostID = post.ID
+	target.Platform = draftPlatformChannels[post.Edges.ChannelConnection.Platform]
+	target.RemoteID = *post.RemotePostID
 	// Explicit caller-authored content is not replaced, but its source is checked.
 	if len(input.Body) > 0 || strings.TrimSpace(input.PlainText) != "" || len(input.AssetIDs) > 0 {
 		return nil
 	}
 	type part struct {
-		text   string
-		assets []string
+		text    string
+		assets  []string
+		poll    *postoptions.Poll
+		options *postoptions.PublishOptions
 	}
 	parts := []part{}
 	appendPost := func(row *ent.ScheduledPost) {
@@ -51,9 +62,9 @@ func seedRepurposedDraft(ctx context.Context, tx *ent.Tx, actor Actor, input *Co
 		if len(ids) == 0 && row.AssetID != nil {
 			ids = []string{*row.AssetID}
 		}
-		parts = append(parts, part{row.Caption, ids})
+		parts = append(parts, part{row.Caption, ids, &row.Poll, &row.PublishOptions})
 		for _, reply := range row.Replies[:min(len(row.Replies), max(0, row.ThreadProgress.Posted))] {
-			parts = append(parts, part{reply.Caption, reply.AssetIDs})
+			parts = append(parts, part{reply.Caption, reply.AssetIDs, reply.Poll, reply.Options})
 		}
 	}
 	appendPost(post)
@@ -121,18 +132,51 @@ func seedRepurposedDraft(ctx context.Context, tx *ent.Tx, actor Actor, input *Co
 	}
 	body := []any{}
 	texts := []string{}
-	for index, p := range parts {
-		if index > 0 {
-			body = append(body, map[string]any{"type": "post_break", "children": []any{map[string]any{"text": ""}}})
+	for _, p := range parts {
+		settings := map[string]any{"type": "post_break", "children": []any{map[string]any{"text": ""}}}
+		if p.poll != nil && len(p.poll.Options) > 0 {
+			value := map[string]any{"options": p.poll.Options, "durationMinutes": p.poll.DurationMinutes, "multiple": p.poll.Multiple}
+			if p.options != nil && p.options.PollQuestion != "" {
+				value["question"] = p.options.PollQuestion
+			}
+			settings["poll"] = value
 		}
+		if p.options != nil {
+			if p.options.ReplySettings != "" {
+				settings["replySettings"] = p.options.ReplySettings
+			}
+			if p.options.QuoteFirstPost {
+				settings["quoteFirstPost"] = true
+			}
+			if p.options.MadeWithAI || p.options.PaidPartnership {
+				settings["disclosures"] = map[string]bool{"madeWithAi": p.options.MadeWithAI, "paidPartnership": p.options.PaidPartnership}
+			}
+		}
+		body = append(body, settings)
 		body = append(body, map[string]any{"type": "p", "children": []any{map[string]any{"text": p.text}}})
 		texts = append(texts, p.text)
 		for _, id := range p.assets {
 			body = append(body, map[string]any{"type": kinds[id], "assetId": id, "url": "/api/v1/assets/" + id + "/content", "children": []any{map[string]any{"text": ""}}})
 		}
 	}
-	if documentID != "" && input.PlatformVersions == nil {
-		input.PlatformVersions = &draftdoc.PlatformVersions{SchemaVersion: draftdoc.SchemaVersion, Versions: []draftdoc.PlatformVersion{{Channel: "linkedin", Mode: draftdoc.ModeSynced, Options: &draftdoc.VersionOptions{Document: &draftdoc.Document{AssetID: documentID, Title: post.PublishOptions.DocumentTitle}}}}}
+	if input.PrimaryPlatform == "" {
+		input.PrimaryPlatform = target.Platform
+	}
+	if input.ChannelConnectionIDs == nil && source.SocialSetID != nil && (input.SocialSetID == "" || input.SocialSetID == *source.SocialSetID) {
+		input.ChannelConnectionIDs = []string{post.ChannelConnectionID}
+	}
+	if input.PlatformVersions == nil {
+		options := &draftdoc.VersionOptions{Visibility: post.PublishOptions.Visibility, FirstComment: post.PublishOptions.FirstComment}
+		if documentID != "" {
+			options.Document = &draftdoc.Document{AssetID: documentID, Title: post.PublishOptions.DocumentTitle}
+		}
+		if post.PublishOptions.CommunityID != "" {
+			options.Community = &draftdoc.Community{ID: post.PublishOptions.CommunityID}
+		}
+		if post.PublishOptions.LinkPreview != nil {
+			options.LinkPreviews = []postoptions.LinkPreview{*post.PublishOptions.LinkPreview}
+		}
+		input.PlatformVersions = &draftdoc.PlatformVersions{SchemaVersion: draftdoc.SchemaVersion, Versions: []draftdoc.PlatformVersion{{Channel: input.PrimaryPlatform, Mode: draftdoc.ModeSynced, Options: options}}}
 	}
 	input.Body, input.PlainText, input.AssetIDs = body, strings.Join(texts, "\n\n"), ids
 	if strings.TrimSpace(input.Title) == "" {

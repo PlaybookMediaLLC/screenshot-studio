@@ -17,12 +17,12 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Agent runs (docs/rfcs/016-ai-sdk-marketing-tools.md) extend launch_run: a
+// Agent runs (docs/rfcs/027-ai-sdk-marketing-tools.md) extend launch_run: a
 // run of an agent kind may start without a campaign, honors the workspace's
 // AI kill switch, and records a step-by-step trace.
 
 // agentRunKinds may start without a campaign and end CANCELLED or
-// BUDGET_EXHAUSTED. "conversation" is one turn of an RFC 017 conversation.
+// BUDGET_EXHAUSTED. "conversation" is one turn of an RFC 028 conversation.
 var agentRunKinds = []string{"agent", "conversation"}
 
 var (
@@ -38,6 +38,13 @@ const launchStepSummaryMax = 16 << 10
 // AIAgentEnabled reports the workspace's AI kill switch. A workspace without
 // a settings row has the default: on.
 func (c *Configuration) AIAgentEnabled(ctx context.Context, organizationID string) (bool, error) {
+	if err := c.requireWorkspaceFeature(ctx, organizationID, "workspace:paid"); err != nil {
+		var gate *FeatureNotEntitledError
+		if errors.As(err, &gate) {
+			return false, nil
+		}
+		return false, err
+	}
 	settings, err := c.client.WorkspaceSettings.Query().Where(workspacesettings.ID(organizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return true, nil

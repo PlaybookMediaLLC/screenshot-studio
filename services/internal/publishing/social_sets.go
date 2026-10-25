@@ -19,7 +19,7 @@ import (
 )
 
 // ErrSocialSetSlotTaken refuses a second active account of one platform in a
-// social set (RFC 043).
+// social set (RFC 024).
 var ErrSocialSetSlotTaken = errors.New("this social set already has an account on that platform; remove it first")
 
 // ErrAccountInAnotherSet refuses connecting an account that is already
@@ -97,7 +97,7 @@ func enableDefaultPlatform(ctx context.Context, tx *ent.Tx, setID *string, platf
 	return err
 }
 
-// emitDraftPublished writes a draft.published webhook event (RFC 043) in the
+// emitDraftPublished writes a draft.published webhook event (RFC 024) in the
 // transaction that marks a draft's post live: the draft's identity and the
 // live post, never its text.
 func emitDraftPublished(ctx context.Context, tx *ent.Tx, post *ent.ScheduledPost, providerPostID string) error {

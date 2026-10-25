@@ -5,7 +5,7 @@ description: Analyze Screenshot Studio release communication outcomes. Use when 
 
 # Analyze Release Performance
 
-Read RFC 002, RFC 005, and RFC 007. Measure outcomes only after publication
+Read RFC 010, RFC 015, and RFC 035. Measure outcomes only after publication
 receipts and metric sources are reliable.
 
 ## Measurement contract

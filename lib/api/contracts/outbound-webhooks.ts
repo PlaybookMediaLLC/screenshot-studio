@@ -5,7 +5,7 @@ import { contentDraftIdSchema } from '@/lib/api/contracts/content-drafts'
 import { isoInstantSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
- * Outbound webhooks (RFC 043): subscriptions, secrets shown once, and the
+ * Outbound webhooks (RFC 024): subscriptions, secrets shown once, and the
  * delivery history. Each schema mirrors the backend SDK's type.
  */
 

@@ -34,7 +34,7 @@ export function weeklySlotCount(slots: Slot[]): number {
 }
 
 /**
- * A set's schedule (RFC 043): its time zone, the weekly grid of posting times
+ * A set's schedule (RFC 024): its time zone, the weekly grid of posting times
  * the queue fills, and natural posting times. The grid is a template: changing
  * it never moves a post that is already scheduled.
  */

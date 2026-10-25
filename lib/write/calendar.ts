@@ -1,5 +1,18 @@
 import { resolveLocalTime } from './zoned-time'
 
+/** Dragging an authored draft opens scheduling review; it never creates a job. */
+export const CALENDAR_DRAFT_DRAG = 'application/x-shots-calendar-draft'
+
+/** A move never guesses which occurrence of an ambiguous local time was intended. */
+export function calendarMoveTime(day: string, clock: string, zone: string): Date {
+  const time = resolveLocalTime(`${day}T${clock}`, zone)
+  if (time.kind !== 'exact')
+    throw new Error(
+      'This time is skipped or repeated by daylight saving. Choose a time in the schedule dialog.'
+    )
+  return time.at
+}
+
 /** Free future slots on a calendar day; repeated or skipped wall times need manual review. */
 export function availableDaySlots(
   day: string,

@@ -8,7 +8,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
-// SettingsPlatformStore is the settings platform (RFC 043): a person's
+// SettingsPlatformStore is the settings platform (RFC 024): a person's
 // preferences, experiments and account deletion; social sets with their
 // accounts, sharing, Writing Assistant and public profile.
 type SettingsPlatformStore interface {

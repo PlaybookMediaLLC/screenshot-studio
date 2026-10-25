@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"math"
 	"net/http"
 	"net/url"
@@ -16,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ids"
@@ -305,10 +305,11 @@ func rkey(uri string) string {
 // CheckPostStatus and FinalizePost - keep it small JSON: the video job id and
 // the post content, never a blob ref.
 type PendingData struct {
-	QuoteURL string         `json:"quoteUrl,omitempty"`
-	JobID    string         `json:"jobId"` // empty for image-only posts (no asynchronous processing)
-	Message  string         `json:"message"`
-	Media    []PendingMedia `json:"media"`
+	LinkPreview *postoptions.LinkPreview `json:"linkPreview,omitempty"`
+	QuoteURI    string                   `json:"quoteUri,omitempty"`
+	JobID       string                   `json:"jobId"` // empty for image-only posts (no asynchronous processing)
+	Message     string                   `json:"message"`
+	Media       []PendingMedia           `json:"media"`
 	// Arm -> confirm -> publish handshake (same as the Facebook story flow):
 	// FinalizePost arms without mutating, CheckPostStatus witnesses, and only
 	// a witnessed attempt runs the create - so a create that dies with an
@@ -352,6 +353,14 @@ func (p *Provider) PostPending(ctx context.Context, _, _ string, posts []integra
 		return nil, err
 	}
 	firstPost := posts[0]
+	card, err := linkPreview(firstPost.Settings)
+	if err != nil {
+		return nil, err
+	}
+	quote, err := quoteURI(firstPost.Settings)
+	if err != nil {
+		return nil, err
+	}
 
 	// Only the video has an asynchronous processing step: start its upload
 	// job now, the wait moves to CheckPostStatus. Images are uploaded by
@@ -375,16 +384,7 @@ func (p *Provider) PostPending(ctx context.Context, _, _ string, posts []integra
 		break
 	}
 
-	var settings struct {
-		QuoteURL string `json:"quote_url"`
-	}
-	if err := json.Unmarshal(firstPost.Settings, &settings); err != nil && len(firstPost.Settings) > 0 {
-		return nil, contentFailure("Invalid Bluesky settings")
-	}
-	if settings.QuoteURL != "" && !postoptions.BlueskyQuoteURL.MatchString(settings.QuoteURL) {
-		return nil, contentFailure("Use a native Bluesky post URL")
-	}
-	pending := PendingData{QuoteURL: settings.QuoteURL, JobID: jobID, Message: firstPost.Message, Media: []PendingMedia{}}
+	pending := PendingData{LinkPreview: card, QuoteURI: quote, JobID: jobID, Message: firstPost.Message, Media: []PendingMedia{}}
 	for _, m := range firstPost.Media {
 		pending.Media = append(pending.Media, PendingMedia{Path: m.Path, Alt: m.Alt, Type: m.Type})
 	}
@@ -511,12 +511,13 @@ func (p *Provider) FinalizePost(ctx context.Context, _ string, raw json.RawMessa
 				return nil, err
 			}
 		}
-		if pending.QuoteURL != "" {
-			var err error
-			embed, err = a.quoteEmbed(ctx, pending.QuoteURL, embed)
-			if err != nil {
-				return nil, err
-			}
+		embed, err = p.linkEmbed(ctx, a, pending.LinkPreview, embed)
+		if err != nil {
+			return nil, err
+		}
+		embed, err = a.quoteEmbed(ctx, pending.QuoteURI, embed)
+		if err != nil {
+			return nil, err
 		}
 		facets = a.detectFacets(ctx, pending.Message)
 		return nil, nil
@@ -648,19 +649,21 @@ func (p *Provider) Comment(ctx context.Context, id, postID, lastCommentID, _ str
 	if err != nil {
 		return nil, err
 	}
-	var settings struct {
-		QuoteURL string `json:"quote_url"`
+	card, err := linkPreview(commentPost.Settings)
+	if err != nil {
+		return nil, err
 	}
-	if len(commentPost.Settings) > 0 {
-		if err := json.Unmarshal(commentPost.Settings, &settings); err != nil {
-			return nil, contentFailure("Invalid Bluesky reply settings")
-		}
+	embed, err = p.linkEmbed(ctx, a, card, embed)
+	if err != nil {
+		return nil, err
 	}
-	if settings.QuoteURL != "" {
-		embed, err = a.quoteEmbed(ctx, settings.QuoteURL, embed)
-		if err != nil {
-			return nil, err
-		}
+	quote, err := quoteURI(commentPost.Settings)
+	if err != nil {
+		return nil, err
+	}
+	embed, err = a.quoteEmbed(ctx, quote, embed)
+	if err != nil {
+		return nil, err
 	}
 	facets := a.detectFacets(ctx, commentPost.Message)
 

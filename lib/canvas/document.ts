@@ -7,7 +7,7 @@ import { layerGroupSchema } from './layers'
 import { canvasStoreGroupSchema } from './store-groups'
 
 /**
- * A canvas workspace (RFC 041): finite artboards placed on an unbounded plane.
+ * A canvas workspace (RFC 032): finite artboards placed on an unbounded plane.
  *
  * Workspace coordinates and design coordinates never mix. An artboard's `x`
  * and `y` place its top-left corner on the plane, in workspace units where one

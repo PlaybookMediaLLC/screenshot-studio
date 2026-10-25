@@ -11,7 +11,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// User preferences (RFC 043) belong to the person, not the workspace: the same
+// User preferences (RFC 024) belong to the person, not the workspace: the same
 // row answers in every workspace they belong to, and only they can change it.
 
 // tipPattern is a help tip's ID: lowercase words joined by hyphens.

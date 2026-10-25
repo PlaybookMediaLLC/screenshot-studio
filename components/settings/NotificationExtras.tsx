@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { SettingsRequestError, settingsErrorMessage } from '@/lib/settings/client'
 
 /**
- * The email master switch (RFC 043). It is a personal preference, so it holds
+ * The email master switch (RFC 024). It is a personal preference, so it holds
  * in every workspace; off, no activity email reaches you, while sign-in,
  * invitation and security messages still do.
  */

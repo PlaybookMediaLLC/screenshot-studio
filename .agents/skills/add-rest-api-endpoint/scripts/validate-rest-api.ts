@@ -37,7 +37,7 @@ assert.deepEqual(
   'Every public v1 contract and OpenAPI path must have a one-to-one match.'
 )
 
-// RFC 034 and contractDocsSchema explicitly exclude internal contracts from
+// RFC 014 and contractDocsSchema explicitly exclude internal contracts from
 // public OpenAPI. They still have to use the same route/contract boundary.
 for (const file of handlers) {
   assert.match(

@@ -32,7 +32,7 @@ const STATUS_LABELS: Record<Status, { label: string; tone: 'gray' | 'green' | 'y
   }
 
 /**
- * Agents and integrations (RFC 043): every entry the Typefully settings name,
+ * Agents and integrations (RFC 024): every entry the Typefully settings name,
  * with its real state here. An entry with nothing behind it says so and offers
  * no Connect button.
  */

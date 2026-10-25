@@ -46,6 +46,8 @@ const (
 	FieldShareToken = "shareToken"
 	// FieldGuestComments holds the string denoting the guest_comments field in the database.
 	FieldGuestComments = "guestComments"
+	// FieldCalendarVersion holds the string denoting the calendar_version field in the database.
+	FieldCalendarVersion = "calendarVersion"
 	// FieldVersion holds the string denoting the version field in the database.
 	FieldVersion = "version"
 	// FieldSocialSetID holds the string denoting the social_set_id field in the database.
@@ -78,6 +80,8 @@ const (
 	FieldPlanTimeZone = "planTimeZone"
 	// FieldSourceDraftID holds the string denoting the source_draft_id field in the database.
 	FieldSourceDraftID = "sourceDraftId"
+	// FieldCollabGeneration holds the string denoting the collab_generation field in the database.
+	FieldCollabGeneration = "collabGeneration"
 	// FieldCollabState holds the string denoting the collab_state field in the database.
 	FieldCollabState = "collabState"
 	// FieldCreatedByUserID holds the string denoting the created_by_user_id field in the database.
@@ -110,6 +114,7 @@ var Columns = []string{
 	FieldReviewNote,
 	FieldShareToken,
 	FieldGuestComments,
+	FieldCalendarVersion,
 	FieldVersion,
 	FieldSocialSetID,
 	FieldPrimaryPlatform,
@@ -126,6 +131,7 @@ var Columns = []string{
 	FieldPinnedAt,
 	FieldPlanTimeZone,
 	FieldSourceDraftID,
+	FieldCollabGeneration,
 	FieldCollabState,
 	FieldCreatedByUserID,
 	FieldUpdatedByUserID,
@@ -150,6 +156,8 @@ var (
 	DefaultChannelText map[string]string
 	// DefaultGuestComments holds the default value on creation for the "guest_comments" field.
 	DefaultGuestComments []map[string]string
+	// DefaultCalendarVersion holds the default value on creation for the "calendar_version" field.
+	DefaultCalendarVersion int
 	// DefaultVersion holds the default value on creation for the "version" field.
 	DefaultVersion int
 	// DefaultNaturalPostingTime holds the default value on creation for the "natural_posting_time" field.
@@ -164,6 +172,10 @@ var (
 	DefaultSuppressSlackOnPublish bool
 	// DefaultTagIds holds the default value on creation for the "tag_ids" field.
 	DefaultTagIds []string
+	// DefaultCollabGeneration holds the default value on creation for the "collab_generation" field.
+	DefaultCollabGeneration int
+	// CollabGenerationValidator is a validator for the "collab_generation" field. It is called by the builders before save.
+	CollabGenerationValidator func(int) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -309,6 +321,11 @@ func ByShareToken(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldShareToken, opts...).ToFunc()
 }
 
+// ByCalendarVersion orders the results by the calendar_version field.
+func ByCalendarVersion(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCalendarVersion, opts...).ToFunc()
+}
+
 // ByVersion orders the results by the version field.
 func ByVersion(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVersion, opts...).ToFunc()
@@ -362,6 +379,11 @@ func ByPlanTimeZone(opts ...sql.OrderTermOption) OrderOption {
 // BySourceDraftID orders the results by the source_draft_id field.
 func BySourceDraftID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSourceDraftID, opts...).ToFunc()
+}
+
+// ByCollabGeneration orders the results by the collab_generation field.
+func ByCollabGeneration(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCollabGeneration, opts...).ToFunc()
 }
 
 // ByCreatedByUserID orders the results by the created_by_user_id field.

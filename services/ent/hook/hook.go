@@ -33,6 +33,42 @@ func (f AgentAuthorizationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AgentAuthorizationMutation", m)
 }
 
+// The AnalyticsAccountFunc type is an adapter to allow the use of ordinary
+// function as AnalyticsAccount mutator.
+type AnalyticsAccountFunc func(context.Context, *ent.AnalyticsAccountMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AnalyticsAccountFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AnalyticsAccountMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AnalyticsAccountMutation", m)
+}
+
+// The AnalyticsPostFunc type is an adapter to allow the use of ordinary
+// function as AnalyticsPost mutator.
+type AnalyticsPostFunc func(context.Context, *ent.AnalyticsPostMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AnalyticsPostFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AnalyticsPostMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AnalyticsPostMutation", m)
+}
+
+// The AnalyticsSnapshotFunc type is an adapter to allow the use of ordinary
+// function as AnalyticsSnapshot mutator.
+type AnalyticsSnapshotFunc func(context.Context, *ent.AnalyticsSnapshotMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AnalyticsSnapshotFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AnalyticsSnapshotMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AnalyticsSnapshotMutation", m)
+}
+
 // The ApikeyFunc type is an adapter to allow the use of ordinary
 // function as Apikey mutator.
 type ApikeyFunc func(context.Context, *ent.ApikeyMutation) (ent.Value, error)
@@ -175,6 +211,18 @@ func (f BrandProfileFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BrandProfileMutation", m)
+}
+
+// The CalendarMutationFunc type is an adapter to allow the use of ordinary
+// function as CalendarMutation mutator.
+type CalendarMutationFunc func(context.Context, *ent.CalendarMutationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CalendarMutationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CalendarMutationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CalendarMutationMutation", m)
 }
 
 // The CampaignFunc type is an adapter to allow the use of ordinary
@@ -597,6 +645,54 @@ func (f PageKnowledgeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PageKnowledgeMutation", m)
 }
 
+// The PlatformAutoDMCampaignFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMCampaign mutator.
+type PlatformAutoDMCampaignFunc func(context.Context, *ent.PlatformAutoDMCampaignMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMCampaignFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMCampaignMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMCampaignMutation", m)
+}
+
+// The PlatformAutoDMDeliveryFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMDelivery mutator.
+type PlatformAutoDMDeliveryFunc func(context.Context, *ent.PlatformAutoDMDeliveryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMDeliveryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMDeliveryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMDeliveryMutation", m)
+}
+
+// The PlatformAutoDMOptOutFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMOptOut mutator.
+type PlatformAutoDMOptOutFunc func(context.Context, *ent.PlatformAutoDMOptOutMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMOptOutFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMOptOutMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMOptOutMutation", m)
+}
+
+// The PlatformAutoDMRecipientFunc type is an adapter to allow the use of ordinary
+// function as PlatformAutoDMRecipient mutator.
+type PlatformAutoDMRecipientFunc func(context.Context, *ent.PlatformAutoDMRecipientMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformAutoDMRecipientFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformAutoDMRecipientMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformAutoDMRecipientMutation", m)
+}
+
 // The PlatformCreativeSetFunc type is an adapter to allow the use of ordinary
 // function as PlatformCreativeSet mutator.
 type PlatformCreativeSetFunc func(context.Context, *ent.PlatformCreativeSetMutation) (ent.Value, error)
@@ -739,6 +835,18 @@ func (f PlatformSlackPersonalConnectionFunc) Mutate(ctx context.Context, m ent.M
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSlackPersonalConnectionMutation", m)
+}
+
+// The PlatformSocialMentionFunc type is an adapter to allow the use of ordinary
+// function as PlatformSocialMention mutator.
+type PlatformSocialMentionFunc func(context.Context, *ent.PlatformSocialMentionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformSocialMentionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformSocialMentionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSocialMentionMutation", m)
 }
 
 // The PlatformSocialObservationFunc type is an adapter to allow the use of ordinary

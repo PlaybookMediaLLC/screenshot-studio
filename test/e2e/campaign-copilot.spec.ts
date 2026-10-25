@@ -3,7 +3,7 @@ import { configureE2EFlow, expect, test } from './framework/flow'
 import { trpcMutation } from './framework/trpc'
 
 /**
- * Conversational campaign creation (RFC 017) end to end: one sentence on the
+ * Conversational campaign creation (RFC 028) end to end: one sentence on the
  * campaigns page starts a durable turn whose steps show in the panel, the
  * agent creates a campaign and drafts it through the launch pipeline, and the
  * panel links to it. After a reload, the campaign's "Ask Shots" reopens the

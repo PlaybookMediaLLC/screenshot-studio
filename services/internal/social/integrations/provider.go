@@ -155,6 +155,7 @@ type ExtensionCookie struct {
 }
 
 type MentionResult struct {
+	NativeID   string `json:"nativeId,omitempty"`
 	ID         string `json:"id"`
 	Label      string `json:"label"`
 	Image      string `json:"image"`

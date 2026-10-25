@@ -103,7 +103,7 @@ async function draftPosts(draftId: string): Promise<PostRow[]> {
   }
 }
 
-// RFC 037: a hand-written draft, saved, reloaded, checked per channel, and
+// RFC 013: a hand-written draft, saved, reloaded, checked per channel, and
 // scheduled to two channels through the existing scheduler. Posts are queued
 // for later, so the social API mock only answers the destination checks.
 test('a draft is written, saved, scheduled to two channels once, and one post is cancelled', async ({
@@ -354,7 +354,7 @@ test('a table, a math block and a footnote persist, and the blocks post as image
   }
 })
 
-// RFC 037 threads: ⌘↵ starts the next post. X gets the first post and the
+// RFC 013 threads: ⌘↵ starts the next post. X gets the first post and the
 // rest as replies; LinkedIn gets the thread joined into one post.
 test('a thread schedules to X as a post and its replies', async ({ identity, page }) => {
   let workspace: DraftWorkspace | null = null

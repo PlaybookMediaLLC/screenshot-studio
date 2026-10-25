@@ -56,7 +56,7 @@ func (p *Provider) statistics(ctx context.Context, accessToken, url string) ([]s
 	var out struct {
 		Elements []statElement `json:"elements"`
 	}
-	if err := linkedin.FetchJSON(ctx, http.MethodGet, url, linkedin.Headers(accessToken, ""), nil, &out); err != nil {
+	if err := linkedin.FetchJSONChecked(ctx, http.MethodGet, url, linkedin.Headers(accessToken, ""), nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Elements, nil
@@ -142,14 +142,6 @@ func (p *Provider) Analytics(ctx context.Context, id, accessToken string, days i
 	return analytics.result(0, true), nil
 }
 
-// orZero is `value || 0`.
-func orZero(n json.Number) json.Number {
-	if f, err := n.Float64(); err != nil || f == 0 {
-		return "0"
-	}
-	return n
-}
-
 func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken, postID string, _ int64) ([]integrations.AnalyticsData, error) {
 	// Lifetime share statistics for the specific post. LinkedIn does not
 	// support time-bound statistics for specific share queries, so no
@@ -170,7 +162,7 @@ func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken
 			TotalFirstLevelComments json.Number `json:"totalFirstLevelComments"`
 		} `json:"commentsSummary"`
 	}
-	if linkedin.FetchJSON(ctx, http.MethodGet, linkedin.APIURL+"/v2/socialActions/"+linkedin.EncodeURIComponent(postID),
+	if linkedin.FetchJSONChecked(ctx, http.MethodGet, linkedin.APIURL+"/v2/socialActions/"+linkedin.EncodeURIComponent(postID),
 		linkedin.Headers(accessToken, ""), nil, &socialActions) != nil {
 		socialActions = nil
 	}

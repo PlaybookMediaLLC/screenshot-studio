@@ -11,7 +11,7 @@ export const metadata: Metadata = { robots: { follow: false, index: false }, tit
 const SLUG = /^[0-9a-f]{24}$/
 
 /**
- * A social set's public profile (RFC 043). Rendered on every request and never
+ * A social set's public profile (RFC 024). Rendered on every request and never
  * cached, so turning the profile off takes it down on the next visit; the
  * backend returns nothing for a set whose profile is off. It shows the set's
  * name, colour and its accounts' public identity, and nothing else.

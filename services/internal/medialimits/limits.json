@@ -1,0 +1,37 @@
+{
+  "freeImageBytes": 5000000,
+  "paidImageBytes": 20000000,
+  "videoBytes": 536870912,
+  "pdfBytes": 100000000,
+  "otherBytes": 52428800,
+  "imagePixels": 64000000,
+  "pdfPages": 300,
+  "imageProfiles": {
+    "x": {
+      "maxBytes": 5000000,
+      "maxEdge": 4096,
+      "formats": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ]
+    },
+    "bluesky": {
+      "maxBytes": 2000000,
+      "maxEdge": 4096,
+      "formats": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ]
+    },
+    "linkedin": {
+      "maxBytes": 20000000,
+      "maxEdge": 6000,
+      "formats": [
+        "image/jpeg",
+        "image/png"
+      ]
+    }
+  }
+}

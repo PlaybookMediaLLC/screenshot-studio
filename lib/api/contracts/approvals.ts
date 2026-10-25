@@ -11,7 +11,7 @@ import type { listPendingApprovals } from '@/lib/tenant/campaigns'
 import { campaignApprovalSchema } from '@/lib/tenant/schemas'
 
 /**
- * Approval contracts (RFC 019). Reading the review queue and asking for
+ * Approval contracts (RFC 012). Reading the review queue and asking for
  * review are open to API keys; approving, rejecting, and requesting changes
  * are a person's decisions and refuse API keys.
  */

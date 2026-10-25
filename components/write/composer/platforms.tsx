@@ -36,7 +36,7 @@ import { CONNECT_PROVIDERS } from '@/components/settings/social-sets/api'
 export type ComposerAccount = WriteSet['accounts'][number]
 
 /**
- * The platforms of a draft (RFC 042). The tab being edited, whether a
+ * The platforms of a draft (RFC 025). The tab being edited, whether a
  * platform publishes, whether its account is healthy, and whether its
  * version follows the primary are four separate things: changing the tab
  * changes nothing that is saved.

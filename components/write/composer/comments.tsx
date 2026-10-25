@@ -33,7 +33,7 @@ function commentText(value: unknown): string {
 }
 
 /**
- * The comments panel (RFC 042): every thread on the draft, open and
+ * The comments panel (RFC 025): every thread on the draft, open and
  * resolved, with the ones whose text was removed shown as orphaned rather
  * than moved onto other text; guest comments from the public link; and how
  * to comment. Comments themselves are written beside the text they anchor.

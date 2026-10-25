@@ -6,7 +6,7 @@ import { apiKeyScopes } from '@/lib/auth/api-key-scopes'
 import { backendSDK } from '@/lib/backend/sdk'
 
 /**
- * Agent consent (RFC 038). An MCP client's OAuth authorization request lands
+ * Agent consent (RFC 026). An MCP client's OAuth authorization request lands
  * on /oauth/authorize; a signed-in owner or admin approves it, and the Go
  * backend issues the single-use code the client trades for a scoped key.
  */

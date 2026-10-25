@@ -13,7 +13,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// The collaboration server's routes (RFC 037). It authenticates with its own
+// The collaboration server's routes (RFC 013). It authenticates with its own
 // credential, COLLAB_SERVICE_TOKEN, which opens nothing but these routes, and
 // every call also carries the user's draft-scoped token, so the credential
 // alone cannot read or write any draft.

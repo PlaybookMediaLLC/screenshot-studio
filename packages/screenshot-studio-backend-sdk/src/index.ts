@@ -619,6 +619,7 @@ export type BackendAssetListItem = {
 export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
 
 export type BackendAssetUploadInput = {
+  parentAssetId?: string
   projectId?: string
   bytes: number
   classification?: 'capture' | 'derived' | 'export' | 'input'
@@ -863,8 +864,9 @@ export type BackendCreateDesignInput = {
 /** Where a content draft is in its life. */
 export type BackendContentDraftStatus = 'draft' | 'scheduled' | 'archived'
 
-/** A post written by hand in the document editor (RFC 037). */
+/** A post written by hand in the document editor (RFC 013). */
 export type BackendContentDraft = {
+  collabGeneration?: number
   assetIds: string[]
   /** Plate JSON: the editor's value, a list of block nodes. */
   body: unknown[]
@@ -883,6 +885,7 @@ export type BackendContentDraft = {
   updatedAt: string
   updatedByUserId: string | null
   /** Every update is based on this; a stale one is refused with 409 and `currentVersion`. */
+  calendarVersion: number
   version: number
   /** Review before scheduling; approval holds for `approvedVersion` only. */
   approvedVersion: number | null
@@ -895,7 +898,7 @@ export type BackendContentDraft = {
   guestComments: { createdAt: string; name: string; text: string }[]
   /** The draft's live posts (lists only). */
   publishedPosts: number
-  /** Write (RFC 042): an article's title and cover, for an article draft. */
+  /** Write (RFC 025): an article's title and cover, for an article draft. */
   article: BackendDraftArticle | null
   /** Posts that failed or whose outcome is unknown (lists only). */
   attentionPosts: number
@@ -913,7 +916,7 @@ export type BackendContentDraft = {
   /** Tags of the draft's set, by id (an experiment). */
   tagIds: string[]
   target: BackendDraftTarget | null
-  /** The draft's social set and what it copied from the set when created (RFC 043). */
+  /** The draft's social set and what it copied from the set when created (RFC 024). */
   engagement: Engagement
   naturalPostingTime: boolean
   suppressSlackOnPublish?: boolean
@@ -925,7 +928,7 @@ export type BackendContentDraft = {
   socialSetId: string | null
 }
 
-/** What kind of post a draft is (RFC 042). */
+/** What kind of post a draft is (RFC 025). */
 export type BackendDraftKind = 'standard' | 'reply' | 'quote' | 'repurpose' | 'article'
 
 /** The post a reply answers, a quote embeds, or a repurposed draft came from. */
@@ -1016,7 +1019,16 @@ export type BackendContentDraftSettings = {
 }
 
 /** A draft post on the calendar or in the queue, with its draft's title. */
-export type BackendCalendarPost = BackendContentDraftPost & { draftId: string; draftTitle: string; tagIds?: string[] }
+export type BackendCalendarPost = BackendContentDraftPost & {
+  campaignId?: string | null
+  campaignTitle?: string
+  draftId: string
+  draftTitle: string
+  socialSetId: string | null
+  version: number
+  calendarVersion: number
+  tagIds: string[]
+}
 
 /** A suggested posting time and why. */
 export type BackendBestTime = { at: string; reason: string; score?: number; samplePosts: number }
@@ -1050,7 +1062,7 @@ export type BackendSharedContentDraft = {
 
 /**
  * A live post's follow-ups (X): repost and reply at a like count, quote
- * after hours; reposts at set times and their removal (RFC 042).
+ * after hours; reposts at set times and their removal (RFC 025).
  */
 export type BackendAutoActions = {
   plugAtLikes?: number
@@ -1074,7 +1086,7 @@ export type BackendRetweetRule = {
   timeZone?: string
 }
 
-/** An account a post can tag: an X user or a LinkedIn organization (RFC 042). */
+/** An account a post can tag: an X user or a LinkedIn organization (RFC 025). */
 export type BackendSocialMention = {
   handle?: string
   image?: string
@@ -1084,7 +1096,7 @@ export type BackendSocialMention = {
   providerId: string
 }
 
-/** A live post's follow-up and its receipt (RFC 042). */
+/** A live post's follow-up and its receipt (RFC 025). */
 export type BackendPostAutomation = {
   attempts: number
   dueAt: string
@@ -1097,7 +1109,11 @@ export type BackendPostAutomation = {
 }
 
 /** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
-export type BackendPoll = { durationMinutes: number; options: string[]; multiple?: boolean }
+export type BackendPoll = {
+  multiple?: boolean
+  durationMinutes: number
+  options: string[]
+}
 
 /** The fields a draft is created or updated with. */
 export type BackendContentDraftFields = {
@@ -1116,6 +1132,7 @@ export type BackendContentDraftFields = {
 /** A new draft: without channels it starts with its set's default platforms. */
 export type BackendContentDraftCreate = BackendContentDraftFields & {
   importKey?: string
+  requestKey?: string
   kind?: BackendDraftKind
   scratchpad?: string
   socialSetId?: string
@@ -1124,7 +1141,9 @@ export type BackendContentDraftCreate = BackendContentDraftFields & {
 }
 
 export type BackendContentDraftUpdate = BackendContentDraftFields & {
+  collabGeneration?: number
   baseVersion: number
+  baseCalendarVersion?: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
   naturalPostingTime?: boolean
   /** RFC 3339, or an empty string to clear (an experiment). */
@@ -1148,9 +1167,9 @@ export type BackendContentDraftPost = {
   /** A thread: its reply count and how many went out. */
   replies: number
   threadProgress: { lastReplyId?: string; posted: number; total: number; quotes?: {postId: string; state: string}[] }
-  /** Its follow-ups once live, each with its receipt (RFC 042). */
+  /** Its follow-ups once live, each with its receipt (RFC 025). */
   automations?: BackendPostAutomation[]
-  /** How the instant was chosen (RFC 043). */
+  /** How the instant was chosen (RFC 024). */
   naturalOffsetSeconds: number | null
   scheduleMode: 'queue' | 'explicit' | null
   scheduleTimeZone: string | null
@@ -1165,20 +1184,34 @@ export type BackendContentDraftScheduleTarget = {
   caption: string
   channelConnectionId: string
   /** A thread's later posts, posted as replies to the first, each with its settings. */
-  replies?: { assetIds: string[]; caption: string; options?: BackendPublishOptions }[]
+  replies?: {
+    assetIds: string[]
+    caption: string
+    options?: BackendPublishOptions
+    poll?: { durationMinutes: number; options: string[]; multiple?: boolean }
+  }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
-  /** The first post's settings beyond its text (RFC 042). */
+  /** The first post's settings beyond its text (RFC 025). */
   options?: BackendPublishOptions
   /** The live X post a reply draft answers. */
   replyTo?: string
 }
 
-/** A post's settings beyond its text, as a scheduled post keeps them (RFC 042). */
+/** A post's settings beyond its text, as a scheduled post keeps them (RFC 025). */
 export type BackendPublishOptions = {
   photoTagIds?: string[]
+  taggedUserIds?: string[]
   articleCoverAssetId?: string
   articleTitle?: string
+  linkPreview?: {
+    url: string
+    title?: string
+    description?: string
+    image?: string
+    removed?: boolean
+  }
+  articleHtml?: string
   communityId?: string
   documentAssetId?: string
   documentTitle?: string
@@ -1193,7 +1226,7 @@ export type BackendPublishOptions = {
   visibility?: 'PUBLIC' | 'CONNECTIONS'
 }
 
-/** When a schedule goes out (RFC 042); the backend resolves local times. */
+/** When a schedule goes out (RFC 025); the backend resolves local times. */
 export type BackendScheduleTiming = {
   disambiguation?: 'earlier' | 'later'
   localTime?: string
@@ -1685,7 +1718,7 @@ export type BackendLaunchRun = {
 export type BackendLaunchRunStatus =
   'BUDGET_EXHAUSTED' | 'CANCELLED' | 'FAILED' | 'RUNNING' | 'SUCCEEDED'
 
-/** An agent or conversation run (RFC 016). It may have no campaign. */
+/** An agent or conversation run (RFC 027). It may have no campaign. */
 export type BackendAgentRun = Omit<BackendLaunchRun, 'campaignId' | 'kind' | 'status'> & {
   campaignId: string | null
   costCents: number
@@ -1741,7 +1774,7 @@ export type BackendLaunchRunStep = {
   toolName: string | null
 }
 
-/** A workspace-visible conversation (RFC 017), without its messages. */
+/** A workspace-visible conversation (RFC 028), without its messages. */
 export type BackendConversation = {
   campaignId: string | null
   createdAt: string
@@ -2102,7 +2135,7 @@ export class ScreenshotStudioBackendSDK {
     return mastodonInstanceSchema.parse(await this.request(`v1/social-instances/mastodon?${query}`))
   }
 
-  /** Begins a provider connection; with a set, the account joins that set (RFC 043). */
+  /** Begins a provider connection; with a set, the account joins that set (RFC 024). */
   async beginSocialOAuth(
     provider: OAuthProvider,
     socialSetId?: string,
@@ -2466,7 +2499,7 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
-  /** Describe an image; the description is posted with it (RFC 042). Empty clears it. */
+  /** Describe an image; the description is posted with it (RFC 025). Empty clears it. */
   async setAssetAltText(id: string, altText: string) {
     return this.request<{ altText: string | null; id: string }>(
       `v1/assets/${encodeURIComponent(id)}/alt-text`,
@@ -2550,7 +2583,7 @@ export class ScreenshotStudioBackendSDK {
   /**
    * Records the member's consent and returns a single-use code; the agent
    * exchanges it at the MCP server's /oauth/token for a workspace API key with
-   * exactly these scopes (RFC 038).
+   * exactly these scopes (RFC 026).
    */
   async approveAgentAuthorization(input: BackendAgentAuthorizationRequest) {
     return this.request<{ code: string; redirectUri: string }>('v1/agent-authorizations', {
@@ -2694,7 +2727,7 @@ export class ScreenshotStudioBackendSDK {
   /** Schedules at `scheduledFor`, or with `queue` at the set's next free slot, which the backend reserves. */
   async scheduleContentDraft(
     id: string,
-    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number }
+    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number; baseCalendarVersion?: number }
   ) {
     return this.request<{
       created: boolean
@@ -2769,10 +2802,22 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ items: BackendContentDraft[] }>(`v1/content-draft-plans?${params}`)
   }
 
-  /** What the set's account for a channel can mention (RFC 042). */
-  async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
+  /** What the set's account for a channel can mention (RFC 025). */
+  async lookupSocialSetMentions(
+    id: string,
+    channel: 'x' | 'linkedin',
+    query: string,
+    kind?: 'person' | 'organization'
+  ) {
     return this.request<{ items: BackendSocialMention[] }>(
-      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`
+      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query, ...(kind ? { kind } : {}) })}`
+    )
+  }
+
+  /** Search communities through the social set's verified X account. */
+  async searchSocialSetCommunities(id: string, query: string) {
+    return this.request<{ items: { id: string; name: string }[] }>(
+      `v1/social-sets/${encodeURIComponent(id)}/communities?${new URLSearchParams({ q: query })}`
     )
   }
 
@@ -2855,15 +2900,33 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Plan a draft on the calendar, or clear its plan with null. Nothing publishes from a plan. */
-  async planContentDraft(id: string, input: { plannedFor: Date | null; timeZone?: string }) {
+  async mutateCalendar(input: unknown) {
+    return this.request<unknown>('v1/calendar/mutations', { body: input, method: 'POST' })
+  }
+  async getAnalytics(id: string, query: Record<string, string | number | undefined>) {
+    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}?${params}`)
+  }
+  async refreshAnalytics(id: string) {
+    return this.request<{ refreshed: boolean }>(`v1/analytics/${encodeURIComponent(id)}/refresh`, { method: 'POST', body: {} })
+  }
+  async updateAnalyticsSettings(id: string, input: unknown) {
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}/settings`, { method: 'PUT', body: input })
+  }
+  async getPublicAnalytics(token: string, query: Record<string, string | number | undefined>) {
+    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    return this.request<unknown>(`v1/internal/analytics/${encodeURIComponent(token)}?${params}`)
+  }
+
+  async planContentDraft(id: string, input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/plan`, {
       body: input,
       method: 'POST',
     })
   }
 
-  async duplicateContentDraft(id: string) {
-    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate`, {
+  async duplicateContentDraft(id: string, requestKey?: string) {
+    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`, {
       body: {},
       method: 'POST',
     })
@@ -2891,7 +2954,7 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Atomically exchange two queued post times; never publishes immediately. */
-  async swapContentDraftPosts(first: string, second: string) {
+  async swapContentDraftPostTimes(first: string, second: string) {
     return this.request<{ posts: Array<{ post: BackendContentDraftPost }> }>(
       'v1/content-draft-posts/swap',
       { body: { first, second }, method: 'POST' }
@@ -2902,6 +2965,22 @@ export class ScreenshotStudioBackendSDK {
     return this.request<{ post: BackendContentDraftPost }>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/move`,
       { body: { scheduledFor }, method: 'POST' }
+    )
+  }
+
+  /** Atomically swap two queued posts on the same account. */
+  async swapContentDraftPosts(id: string, withId: string) {
+    return this.request<{ posts: BackendContentDraftPost[] }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/swap`,
+      { body: { withId }, method: 'POST' }
+    )
+  }
+
+  /** Publish the immutable queued snapshot once, immediately. */
+  async publishQueuedContentDraftPost(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/publish-now`,
+      { body: {}, method: 'POST' }
     )
   }
 
@@ -3035,7 +3114,7 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  /** The signed-in person's preferences (RFC 043). */
+  /** The signed-in person's preferences (RFC 024). */
   async getUserPreferences() {
     return this.request<UserPreferences>('v1/me/preferences')
   }
@@ -3247,8 +3326,9 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async deleteContentDraft(id: string) {
-    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}`, {
+  async deleteContentDraft(id: string, expected?: { version?: number; calendarVersion?: number }) {
+    const params = new URLSearchParams(Object.entries(expected ?? {}).filter(([,v]) => v !== undefined).map(([k,v]) => [k,String(v)]))
+    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}?${params}`, {
       method: 'DELETE',
     })
   }

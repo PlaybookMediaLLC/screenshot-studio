@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * A draft's comment threads, as stored with it (RFC 037). The editor keeps
+ * A draft's comment threads, as stored with it (RFC 013). The editor keeps
  * them as plugin options with Date fields; the API carries JSON. Threads from
  * two editors are merged by id, so a live session never drops a peer's thread.
  */

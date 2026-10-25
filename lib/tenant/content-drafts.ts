@@ -28,7 +28,7 @@ import {
 import { ScheduledPostError } from '@/lib/tenant/scheduled-posts'
 
 /**
- * Content drafts for a workspace (RFC 037). The backend scopes every query to
+ * Content drafts for a workspace (RFC 013). The backend scopes every query to
  * the workspace, checks roles, the plan, and that attached assets and channels
  * are the workspace's, and refuses an update based on an older version with a
  * 409.
@@ -89,8 +89,12 @@ export async function updateContentDraft(
 }
 
 /** Delete a draft; false when it is not in this workspace. */
-export async function deleteContentDraft(context: TenantContext, id: string) {
-  return (await orNull(backendSDK(context).deleteContentDraft(id))) !== null
+export async function deleteContentDraft(
+  context: TenantContext,
+  id: string,
+  expected?: { version?: number; calendarVersion?: number }
+) {
+  return (await orNull(backendSDK(context).deleteContentDraft(id, expected))) !== null
 }
 
 /** A draft's post with its times as Dates. */
@@ -139,6 +143,7 @@ export async function prepareContentDraftSchedule(
     naturalPostingTime?: boolean
     scheduledFor?: Date
     timeZone?: string
+    baseCalendarVersion?: number
     version: number
   }
 ) {
@@ -172,8 +177,9 @@ export async function prepareContentDraftSchedule(
         standing: {
           maxWeightedCharacters: accounts.get(channelConnectionId)?.xCaptionLimit,
           articles: accounts.get(channelConnectionId)?.xArticles,
+          xQuotes: accounts.get(channelConnectionId)?.xQuotes,
           pollLimits: accounts.get(channelConnectionId)?.pollLimits,
-          nativeQuotes: accounts.get(channelConnectionId)?.nativeQuotes,
+          mastodonQuotes: accounts.get(channelConnectionId)?.mastodonQuotes,
         },
       },
       input.blockImages
@@ -198,6 +204,7 @@ export async function prepareContentDraftSchedule(
     scheduledFor: input.scheduledFor,
     targets,
     timeZone: input.timeZone,
+    baseCalendarVersion: input.baseCalendarVersion,
     version: input.version,
   }
 }
@@ -282,12 +289,28 @@ export async function listContentDraftPostsBetween(
     ...readPost(post),
     draftId: post.draftId,
     draftTitle: post.draftTitle,
+    socialSetId: post.socialSetId,
+    version: post.version,
+    calendarVersion: post.calendarVersion,
+    tagIds: post.tagIds,
   }))
 }
 
 /** Move one queued post; null when it is not in this workspace. */
 export async function moveContentDraftPost(context: TenantContext, id: string, scheduledFor: Date) {
   const result = await orNull(backendSDK(context).moveContentDraftPost(id, scheduledFor))
+  return result ? readPost(result.post) : null
+}
+
+/** Swap two immutable queued commitments; the backend enforces visibility and account compatibility. */
+export async function swapContentDraftPosts(context: TenantContext, id: string, withId: string) {
+  const result = await orNull(backendSDK(context).swapContentDraftPosts(id, withId))
+  return result ? result.posts.map(readPost) : null
+}
+
+/** Publish one queued snapshot now; null when it is outside this workspace. */
+export async function publishQueuedContentDraftPost(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).publishQueuedContentDraftPost(id))
   return result ? readPost(result.post) : null
 }
 

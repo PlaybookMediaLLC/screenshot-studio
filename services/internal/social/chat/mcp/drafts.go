@@ -2,8 +2,9 @@ package mcp
 
 import (
 	"context"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
 // Draft tools use the same domain authority as REST. Planning is deliberately

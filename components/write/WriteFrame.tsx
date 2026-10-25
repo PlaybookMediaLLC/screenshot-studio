@@ -138,19 +138,65 @@ function FrameLayout({
   const [drawer, setDrawer] = React.useState(false)
   const [palette, setPalette] = React.useState(false)
   const [reference, setReference] = React.useState(false)
+  const [creating, setCreating] = React.useState(false)
+  const [keyboardInset, setKeyboardInset] = React.useState(0)
+  React.useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const resize = () =>
+      setKeyboardInset(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop))
+    resize()
+    viewport.addEventListener('resize', resize)
+    viewport.addEventListener('scroll', resize)
+    return () => {
+      viewport.removeEventListener('resize', resize)
+      viewport.removeEventListener('scroll', resize)
+    }
+  }, [])
+  const newDraft = async () => {
+    if (!canEdit || creating) return
+    setCreating(true)
+    try {
+      await createWritingDraft(
+        {
+          socialSetId: data.activeSet?.id,
+          tagIds: data.experiments.tags && data.query.tag ? [data.query.tag] : undefined,
+        },
+        (id) => router.push(draftHref(id, data.activeSet?.id)),
+        beforeLeaveRef.current ?? undefined
+      )
+    } finally {
+      setCreating(false)
+    }
+  }
   const launcher = React.useRef<HTMLElement | null>(null)
-  const open = (setter: (value: boolean) => void) => {
+  const launcherRange = React.useRef<Range | null>(null)
+  const launcherScroll = React.useRef<{ element: HTMLElement; top: number; left: number } | null>(
+    null
+  )
+  const rememberLauncher = React.useCallback(() => {
     launcher.current = document.activeElement as HTMLElement | null
+    const selection = window.getSelection()
+    const range = selection?.rangeCount ? selection.getRangeAt(0) : null
+    launcherRange.current =
+      range && launcher.current?.contains(range.commonAncestorContainer) ? range.cloneRange() : null
+    const element = launcher.current?.closest('main')
+    launcherScroll.current = element
+      ? { element, top: element.scrollTop, left: element.scrollLeft }
+      : null
+  }, [])
+  const open = (setter: (value: boolean) => void) => {
+    rememberLauncher()
     setter(true)
   }
   React.useEffect(() => {
     const show = () => {
-      launcher.current = document.activeElement as HTMLElement | null
+      rememberLauncher()
       setPalette(true)
     }
     window.addEventListener('shots:search-write', show)
     return () => window.removeEventListener('shots:search-write', show)
-  }, [])
+  }, [rememberLauncher])
   const step = (delta: number) => {
     const ids = data.library.map((draft) => draft.id)
     const index = activeId ? ids.indexOf(activeId) : -1
@@ -202,14 +248,7 @@ function FrameLayout({
       label: 'New draft',
       mod: true,
       inEditor: true,
-      run: () => {
-        if (!canEdit) return
-        void createWritingDraft(
-          { socialSetId: data.activeSet?.id },
-          (id) => router.push(draftHref(id, data.activeSet?.id)),
-          beforeLeaveRef.current ?? undefined
-        )
-      },
+      run: () => void newDraft(),
     },
     {
       alt: true,
@@ -245,8 +284,20 @@ function FrameLayout({
     },
   ])
   const restoreFocus = () => {
-    // Focus goes back to whatever opened the dialog.
-    setTimeout(() => launcher.current?.focus(), 0)
+    // Focusing a contenteditable alone moves its native caret to the start.
+    // Restore its range as well, while leaving the surrounding scroll in place.
+    setTimeout(() => {
+      if (!launcher.current?.isConnected) return
+      launcher.current.focus({ preventScroll: true })
+      const range = launcherRange.current
+      if (range?.startContainer.isConnected && range.endContainer.isConnected) {
+        const selection = window.getSelection()
+        selection?.removeAllRanges()
+        selection?.addRange(range)
+      }
+      const scroll = launcherScroll.current
+      if (scroll?.element.isConnected) scroll.element.scrollTo(scroll.left, scroll.top)
+    }, 0)
   }
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -276,6 +327,23 @@ function FrameLayout({
           {children}
         </main>
       </div>
+      {canEdit ? (
+        <Button
+          aria-label="New draft"
+          className="fixed right-4 z-20 size-11 rounded-full shadow-lg md:hidden"
+          data-testid="mobile-new-draft"
+          disabled={creating}
+          onClick={() => void newDraft()}
+          style={{
+            bottom: `calc(${keyboardInset + (activeId ? 84 : 20)}px + env(safe-area-inset-bottom))`,
+          }}
+          type="button"
+        >
+          <span aria-hidden className="text-2xl leading-none">
+            +
+          </span>
+        </Button>
+      ) : null}
       <Sheet onOpenChange={setDrawer} open={drawer}>
         <SheetContent className="w-full pt-10 sm:max-w-sm" side="left">
           <SheetHeader className="sr-only">

@@ -1,5 +1,5 @@
 // Package brand holds the workspace brand rules the backend enforces on copy:
-// prohibited terms and how they match (docs/rfcs/011-brand-profile.md).
+// prohibited terms and how they match (docs/rfcs/019-brand-profile.md).
 package brand
 
 import (

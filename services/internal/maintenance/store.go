@@ -41,7 +41,7 @@ type Store struct {
 	Events      ProductEvents
 	// Onboarding stops a workspace's onboarding run before its data is purged.
 	Onboarding OnboardingCanceller
-	// Webhooks delivers outbound customer webhooks (RFC 043).
+	// Webhooks delivers outbound customer webhooks (RFC 024).
 	Webhooks *webhooks.Dispatcher
 }
 

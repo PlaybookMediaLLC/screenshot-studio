@@ -2,7 +2,7 @@ import type { ModelMessage } from 'ai'
 import type { BackendConversationMessage } from 'screenshot-studio-backend-sdk'
 
 /**
- * The conversational agent's context (docs/rfcs/017-conversational-campaign-creation.md):
+ * The conversational agent's context (docs/rfcs/028-conversational-campaign-creation.md):
  * the system prompt with the product, brand, and campaign always in it, the
  * recent turns in full, and older turns trimmed to one line each. Product
  * context lives in the system prompt, so trimming history can never drop it.

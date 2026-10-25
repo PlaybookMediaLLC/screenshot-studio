@@ -16,7 +16,7 @@ export type NotificationPreferences = {
   slackEnabled?: boolean
   events: Record<string, NotificationChannels>
   generation: number
-  /** Kinds turned off for one social set: set ID, then kind, false for off (RFC 043). */
+  /** Kinds turned off for one social set: set ID, then kind, false for off (RFC 024). */
   socialSets?: Record<string, Record<string, boolean>>
   /** Explicit set/event/channel choices; absent channels inherit event defaults. */
   socialSetChannels?: Record<string, Record<string, Partial<NotificationChannels>>>

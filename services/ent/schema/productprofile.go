@@ -13,7 +13,7 @@ import (
 )
 
 // ProductProfile is a workspace's product memory: one per workspace, each
-// field with its provenance (docs/rfcs/012-product-intelligence.md).
+// field with its provenance (docs/rfcs/017-product-intelligence.md).
 type ProductProfile struct{ ent.Schema }
 
 func (ProductProfile) Annotations() []schema.Annotation {

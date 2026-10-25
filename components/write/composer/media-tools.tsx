@@ -1,381 +1,320 @@
 'use client'
-
 import * as React from 'react'
-import { toast } from 'sonner'
-import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
-import type { EditorUploadFile } from '@shots/platejs-editor/lib'
+import { useEditorRef, useEditorSelector } from '@shots/platejs-editor/platejs/react'
+import type { TElement } from '@shots/platejs-editor/platejs'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { postRanges } from '@/components/drafts/thread'
-import { call } from '@/lib/content-drafts/client'
+import {
+  attachmentEntry,
+  copyAttachment,
+  moveAttachment,
+  moveAttachmentRelative,
+} from '@/lib/write/media-operations'
 import { assetContentUrl } from '@/lib/editor/services'
+import { DescribeImages } from './describe-images'
+import { MediaFrame } from './media-frame'
+import { LinkImage } from './link-image'
+import { GiphyPicker } from './giphy-picker'
+import { PhotoTags } from './photo-tags'
 
-/** Media stays in Plate and the existing asset library; reordering never uploads. */
+function attachmentsIn(node: TElement): TElement[] {
+  if ((node.type === 'img' || node.type === 'video') && typeof node.assetId === 'string')
+    return [node]
+  return node.children.flatMap((child) => ('type' in child ? attachmentsIn(child as TElement) : []))
+}
+
+/** Media controls operate on the editor's nodes, with native undo and autosave. */
 export function MediaTools({
-  editor,
-  uploadFile,
-  draftId,
-  returnedAsset,
-  onClose,
+  channel,
+  setId,
+  onDescriptionSaved,
 }: {
-  editor: PlateEditor
-  uploadFile: EditorUploadFile
-  draftId: string
-  returnedAsset?: string
-  onClose: () => void
+  channel: string
+  setId: string | null
+  onDescriptionSaved: (assetId: string, alt: string) => void
 }) {
-  const [revision, refresh] = React.useReducer((value: number) => value + 1, 0)
-  const drag = React.useRef<{ index: number; snapshot: string } | null>(null)
-  const [post, setPost] = React.useState(0)
-  const [url, setURL] = React.useState('')
-  const [candidate, setCandidate] = React.useState<{ image: string; title: string | null } | null>(
-    null
+  const editor = useEditorRef()
+  const body = useEditorSelector((current) => current.children, [])
+  const [open, setOpen] = React.useState(false)
+  const [link, setLink] = React.useState(false)
+  const [gif, setGif] = React.useState(false)
+  const [alt, setAlt] = React.useState<string | null>(null)
+  const [frame, setFrame] = React.useState<string | null>(null)
+  const [tags, setTags] = React.useState<string | null>(null)
+  const ranges = postRanges(body)
+  // Derive from the subscribed value, not the stable editor ref: React Compiler
+  // can otherwise memoize an initially empty iterator even after an upload.
+  const media = body.flatMap((node, index) =>
+    attachmentsIn(node).map((attachment) => ({ node: attachment, index }))
   )
-  const [query, setQuery] = React.useState('')
-  const [gifs, setGIFs] = React.useState<Array<{ id: string; title: string; url: string }>>([])
-  const [busy, setBusy] = React.useState(false)
-  const [attached, setAttached] = React.useState(false)
-  const ranges = postRanges(editor.children)
-  const media = editor.children.flatMap((node, index) =>
-    typeof node.assetId === 'string' && ['img', 'video', 'file'].includes(String(node.type))
-      ? [
-          {
-            index,
-            assetId: node.assetId,
-            type: String(node.type),
-            url: String(node.url ?? ''),
-            post: ranges.findIndex(([start, end]) => index >= start && index < end),
-          },
-        ]
-      : []
-  )
-  const run = async (action: () => Promise<void>) => {
-    setBusy(true)
-    try {
-      await action()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'The media could not be loaded.')
-    } finally {
-      setBusy(false)
-    }
-  }
-  const insert = (assetId: string, source: string) => {
-    const range = postRanges(editor.children)[post]
-    if (!range) throw new Error('That post changed. Choose a destination again.')
-    editor.tf.insertNodes(
-      { type: 'img', assetId, url: source, children: [{ text: '' }] },
-      { at: [range[1]] }
-    )
-    refresh()
-  }
-  const upload = async (blob: Blob, name: string) => {
-    if (!blob.type.startsWith('image/') || blob.size > 20 * 1024 * 1024)
-      throw new Error('Choose an image smaller than 20 MB.')
-    const saved = await uploadFile(new File([blob], name, { type: blob.type }))
-    if (!saved.assetId) throw new Error('The image was not saved to the workspace.')
-    insert(saved.assetId, saved.url)
-    toast.success('Image attached. Review the channel’s media limits before scheduling.')
-  }
-  const move = (from: number, to: number) => {
-    editor.tf.moveNodes({ at: [from], to: [to] })
-    refresh()
-  }
-  const giphyKey = process.env.NEXT_PUBLIC_PLATFORM_GIPHY_API_KEY
   return (
-    <Dialog open onOpenChange={(open) => !open && !busy && onClose()}>
-      <DialogContent
-        className="max-h-[90dvh] overflow-y-auto"
-        data-testid="draft-media-tools"
-        data-local-dropzone=""
-        data-revision={revision}
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setOpen(true)}
       >
-        <DialogHeader>
-          <DialogTitle>Draft media</DialogTitle>
-        </DialogHeader>
-        <label className="grid gap-1 text-sm">
-          Destination post
-          <select
-            aria-label="Media destination post"
-            value={post}
-            onChange={(event) => setPost(Number(event.target.value))}
-          >
-            {ranges.map((_, index) => (
-              <option key={index} value={index}>
-                Post {index + 1}
-              </option>
-            ))}
-          </select>
-        </label>
-        {returnedAsset && !attached && (
-          <div className="grid gap-2">
-            <p>Review the framed export before attaching it.</p>
-            <img
-              alt="Framed export"
-              src={`${assetContentUrl(returnedAsset)}?variant=thumbnail`}
-              className="max-h-40 object-contain"
-            />
-            <Button
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  await call(`/api/v1/assets/${encodeURIComponent(returnedAsset)}/download-url`)
-                  insert(returnedAsset, assetContentUrl(returnedAsset))
-                  setAttached(true)
-                })
-              }
-            >
-              {busy ? 'Attaching…' : 'Attach framed export'}
-            </Button>
-          </div>
-        )}
-        <ul className="grid gap-3">
-          {media.map((item, at) => (
-            <li
-              key={`${item.assetId}-${item.index}`}
-              data-testid="draft-media-item"
-              draggable={!busy}
-              onDragStart={(event) => {
-                // Plate's window-level react-dnd backend cancels unknown drag
-                // types. This dialog owns this gesture independently of blocks.
-                event.stopPropagation()
-                drag.current = { index: item.index, snapshot: JSON.stringify(editor.children) }
-                event.dataTransfer.setData('application/x-shots-draft-media', String(item.index))
-                event.dataTransfer.effectAllowed = 'move'
-              }}
-              onDragEnd={(event) => {
-                event.stopPropagation()
-                drag.current = null
-              }}
-              onDragOver={(event) => {
-                if (!busy && event.dataTransfer.types.includes('application/x-shots-draft-media')) {
-                  event.stopPropagation()
+        Manage media
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => setLink(true)}
+      >
+        Image from link
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => setGif(true)}>
+        GIF
+      </Button>
+      {gif ? <GiphyPicker editor={editor} onClose={() => setGif(false)} /> : null}
+      {link ? <LinkImage editor={editor} onClose={() => setLink(false)} /> : null}
+      {alt ? (
+        <DescribeImages
+          editor={editor}
+          imageId={alt}
+          onClose={() => setAlt(null)}
+          onSaved={onDescriptionSaved}
+        />
+      ) : null}
+      {frame ? <MediaFrame editor={editor} id={frame} onClose={() => setFrame(null)} /> : null}
+      {tags ? (
+        <PhotoTags editor={editor} id={tags} setId={setId} onClose={() => setTags(null)} />
+      ) : null}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto" data-testid="media-manager">
+          <DialogHeader>
+            <DialogTitle>Manage media</DialogTitle>
+            <DialogDescription>
+              Drag attachments to reorder them or move them to a post. Arrow and move controls work
+              with the keyboard. Undo is available in the editor.
+            </DialogDescription>
+          </DialogHeader>
+          {ranges.map(([start, end], post) => {
+            const attachments = media.filter((item) => item.index >= start && item.index < end)
+            return (
+              <section
+                key={String(body[start]?.id ?? post)}
+                className="rounded border p-2"
+                aria-label={`Post ${post + 1} media`}
+                onDragOver={(event) => {
                   event.preventDefault()
-                  event.dataTransfer.dropEffect = 'move'
-                }
-              }}
-              onDrop={(event) => {
-                if (busy || !event.dataTransfer.types.includes('application/x-shots-draft-media'))
-                  return
-                event.stopPropagation()
-                event.preventDefault()
-                const from = drag.current
-                drag.current = null
-                if (!from || from.index === item.index) return
-                if (from.snapshot !== JSON.stringify(editor.children)) {
-                  toast.error('The document changed during the drag. Try again.')
-                  return
-                }
-                move(from.index, item.index)
-              }}
-              className="flex flex-wrap items-center gap-2 rounded border p-2"
-            >
-              <button
-                type="button"
-                aria-label={`Drag media ${at + 1}`}
-                title="Drag to reorder; use Move earlier or Move later with a keyboard"
-                draggable={!busy}
-                disabled={busy}
-                className="cursor-grab rounded p-2 text-muted-foreground active:cursor-grabbing"
-              >
-                ⠿
-              </button>
-              {item.type === 'img' && (
-                <img
-                  src={`${assetContentUrl(item.assetId)}?variant=thumbnail`}
-                  alt={`Media ${at + 1}`}
-                  draggable={false}
-                  className="size-16 object-contain"
-                />
-              )}
-              <span>
-                Post {item.post + 1}, media {at + 1}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={at === 0 || busy}
-                onClick={() => move(item.index, media[at - 1].index)}
-              >
-                Move earlier
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={at === media.length - 1 || busy}
-                onClick={() => move(item.index, media[at + 1].index)}
-              >
-                Move later
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={item.post === post || busy}
-                onClick={() => {
-                  const end = postRanges(editor.children)[post]?.[1]
-                  if (end !== undefined) move(item.index, item.index < end ? end - 1 : end)
+                  event.stopPropagation()
+                }}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  moveAttachment(
+                    editor,
+                    event.dataTransfer.getData('application/x-shots-attachment'),
+                    end
+                  )
                 }}
               >
-                Move to post {post + 1}
-              </Button>
-              {item.type === 'img' && (
-                <a
-                  className="text-sm underline"
-                  href={`/?asset=${encodeURIComponent(item.assetId)}&fromDraft=${encodeURIComponent(draftId)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Frame in Shots editor
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-        <form
-          className="grid gap-2 border-t pt-3"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void run(async () => {
-              const card = await call<{ image: string | null; title: string | null }>(
-                `/api/v1/content-drafts/link-card?${new URLSearchParams({ url })}`
-              )
-              if (!card.image) throw new Error('This page does not provide a preview image.')
-              setCandidate({ image: card.image, title: card.title })
-            })
-          }}
-        >
-          <label className="grid gap-1">
-            Image from a link
-            <input
-              aria-label="Page URL for image"
-              type="url"
-              required
-              value={url}
-              onChange={(event) => {
-                setURL(event.target.value)
-                setCandidate(null)
-              }}
-              className="rounded border bg-background p-2"
-            />
-          </label>
-          <Button disabled={busy} type="submit" variant="outline">
-            Find page image
-          </Button>
-        </form>
-        {candidate && (
-          <div className="grid gap-2">
-            <p>{candidate.title ?? 'Page image'}</p>
-            <img
-              className="max-h-40 object-contain"
-              alt="Page preview"
-              src={`/api/link-preview/image?${new URLSearchParams({ url: candidate.image })}`}
-            />
-            <Button
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  const response = await fetch(
-                    `/api/link-preview/image?${new URLSearchParams({ url: candidate.image })}`
-                  )
-                  if (!response.ok) throw new Error('The page image could not be downloaded.')
-                  await upload(await response.blob(), 'link-image.jpg')
-                  setCandidate(null)
-                })
-              }
-            >
-              Attach 1200 × 630 image
-            </Button>
-          </div>
-        )}
-        <form
-          className="grid gap-2 border-t pt-3"
-          onSubmit={(event) => {
-            event.preventDefault()
-            void run(async () => {
-              const response = await fetch(
-                `https://api.giphy.com/v1/gifs/search?${new URLSearchParams({ api_key: giphyKey ?? '', q: query, limit: '12', rating: 'g' })}`,
-                { signal: AbortSignal.timeout(10000) }
-              )
-              if (!response.ok) throw new Error('GIF search is unavailable. Try again later.')
-              const result = await response.json()
-              setGIFs(
-                (result.data ?? []).flatMap(
-                  (item: {
-                    id: string
-                    title: string
-                    images?: { fixed_height?: { url?: string } }
-                  }) => {
-                    const source = item.images?.fixed_height?.url
-                    if (!source) return []
-                    try {
-                      const url = new URL(source)
-                      return url.protocol === 'https:' &&
-                        !url.username &&
-                        !url.password &&
-                        url.hostname.endsWith('.giphy.com')
-                        ? [{ id: item.id, title: item.title, url: source }]
-                        : []
-                    } catch {
-                      return []
+                <h3 className="mb-2 text-sm">Post {post + 1}</h3>
+                {attachments.length === 0 ? (
+                  <p className="text-xs text-neutral-400">Drop an attachment here.</p>
+                ) : null}
+                {attachments.map(({ node }, position) => (
+                  <AttachmentRow
+                    key={String(node.id)}
+                    node={node}
+                    post={post}
+                    postCount={ranges.length}
+                    onMove={(target, copy) => {
+                      const targetEnd = postRanges(editor.children)[target]?.[1]
+                      if (targetEnd !== undefined)
+                        (copy ? copyAttachment : moveAttachment)(editor, String(node.id), targetEnd)
+                    }}
+                    onUp={
+                      position > 0
+                        ? () =>
+                            moveAttachmentRelative(
+                              editor,
+                              String(node.id),
+                              String(attachments[position - 1].node.id)
+                            )
+                        : undefined
                     }
-                  }
-                )
-              )
-            })
-          }}
-        >
-          <label className="grid gap-1">
-            GIF search
-            <input
-              aria-label="Search GIFs"
-              maxLength={50}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              disabled={!giphyKey || busy}
-              className="rounded border bg-background p-2"
-            />
-          </label>
-          <Button type="submit" disabled={!giphyKey || !query.trim() || busy} variant="outline">
-            Search GIPHY
-          </Button>
-          {!giphyKey && (
-            <p className="text-xs text-muted-foreground">
-              GIF search is not configured. You can upload a GIF using Insert media.
-            </p>
-          )}
-        </form>
-        <div className="grid grid-cols-3 gap-2">
-          {gifs.map((gif) => (
-            <button
-              type="button"
-              key={gif.id}
-              disabled={busy}
-              aria-label={`Attach ${gif.title}`}
-              onClick={() =>
-                void run(async () => {
-                  const response = await fetch(gif.url, { signal: AbortSignal.timeout(15000) })
-                  if (!response.ok) throw new Error('The GIF could not be downloaded.')
-                  await upload(await response.blob(), `giphy-${gif.id}.gif`)
-                })
-              }
-            >
-              <img src={gif.url} alt={gif.title} loading="lazy" />
-            </button>
-          ))}
-        </div>
-        {giphyKey && (
-          <a
-            href="https://giphy.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs underline"
-          >
-            Powered by GIPHY
-          </a>
-        )}
-        <Button onClick={onClose} variant="outline">
-          Done
+                    onDown={
+                      position < attachments.length - 1
+                        ? () =>
+                            moveAttachmentRelative(
+                              editor,
+                              String(node.id),
+                              String(attachments[position + 1].node.id),
+                              true
+                            )
+                        : undefined
+                    }
+                    onDrop={(id) => moveAttachmentRelative(editor, id, String(node.id))}
+                    onAlt={() => setAlt(String(node.id))}
+                    onFrame={() => setFrame(String(node.id))}
+                    onTags={channel === 'x' ? () => setTags(String(node.id)) : undefined}
+                    onClearTags={
+                      channel !== 'x' && Array.isArray(node.photoTags) && node.photoTags.length
+                        ? () => {
+                            const entry = attachmentEntry(editor, String(node.id))
+                            if (entry) editor.tf.setNodes({ photoTags: [] }, { at: entry[1] })
+                          }
+                        : undefined
+                    }
+                  />
+                ))}
+              </section>
+            )
+          })}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function AttachmentRow({
+  node,
+  post,
+  postCount,
+  onMove,
+  onUp,
+  onDown,
+  onDrop,
+  onAlt,
+  onFrame,
+  onTags,
+  onClearTags,
+}: {
+  node: TElement
+  post: number
+  postCount: number
+  onMove: (post: number, copy: boolean) => void
+  onUp?: () => void
+  onDown?: () => void
+  onDrop: (id: string) => void
+  onAlt: () => void
+  onFrame: () => void
+  onTags?: () => void
+  onClearTags?: () => void
+}) {
+  const [destination, setDestination] = React.useState(post)
+  const video = node.type === 'video'
+  return (
+    <div
+      className="my-2 flex flex-wrap items-center gap-2 rounded bg-white/5 p-2"
+      draggable
+      onDragStart={(event) => {
+        // Keep Plate's window-level HTML5 backend from cancelling this native drag.
+        event.stopPropagation()
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('application/x-shots-attachment', String(node.id))
+      }}
+      onDragOver={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+      }}
+      onDrop={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onDrop(event.dataTransfer.getData('application/x-shots-attachment'))
+      }}
+      data-attachment-id={String(node.id)}
+    >
+      <span
+        aria-label="Drag attachment"
+        title="Drag to reorder"
+        className="cursor-grab p-2"
+        role="img"
+      >
+        ⠿
+      </span>
+      {video ? (
+        <span>Video</span>
+      ) : (
+        <img
+          draggable={false}
+          src={assetContentUrl(String(node.assetId))}
+          alt={String(node.alt ?? '')}
+          className="size-16 object-contain"
+        />
+      )}
+      {onClearTags ? (
+        <Button size="sm" variant="outline" onClick={onClearTags}>
+          Remove X photo tags
         </Button>
-      </DialogContent>
-    </Dialog>
+      ) : null}
+      {!video ? (
+        <>
+          <Button size="sm" variant="outline" onClick={onAlt}>
+            {node.alt ? 'ALT' : '+ALT'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onFrame}
+            disabled={node.mimeType === 'image/gif'}
+          >
+            Frame
+          </Button>
+          {onTags ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onTags}
+              disabled={node.mimeType === 'image/gif'}
+            >
+              Tag people
+            </Button>
+          ) : null}
+        </>
+      ) : null}
+      <Button
+        aria-label="Move attachment earlier"
+        size="sm"
+        variant="ghost"
+        disabled={!onUp}
+        onClick={onUp}
+      >
+        ↑
+      </Button>
+      <Button
+        aria-label="Move attachment later"
+        size="sm"
+        variant="ghost"
+        disabled={!onDown}
+        onClick={onDown}
+      >
+        ↓
+      </Button>
+      <select
+        aria-label="Destination post"
+        className="rounded border bg-background text-sm"
+        value={destination}
+        onChange={(event) => setDestination(Number(event.target.value))}
+      >
+        {Array.from({ length: postCount }, (_, index) => (
+          <option value={index} key={index}>
+            Post {index + 1}
+          </option>
+        ))}
+      </select>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={destination === post}
+        onClick={() => onMove(destination, false)}
+      >
+        Move
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => onMove(destination, true)}>
+        Copy
+      </Button>
+    </div>
   )
 }

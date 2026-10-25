@@ -208,7 +208,7 @@
 
 ### Features
 
-* **write:** the Write workspace (RFC 042) on the settings platform's social sets ([#234](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/234)) ([1536b13](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1536b13645b4e71c4031d6ec8cb1f74281e0db02))
+* **write:** the Write workspace (RFC 025) on the settings platform's social sets ([#234](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/234)) ([1536b13](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1536b13645b4e71c4031d6ec8cb1f74281e0db02))
 
 ## [2.28.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.27.1...v2.28.0) (2026-10-20)
 
@@ -229,7 +229,7 @@
 
 ### Features
 
-* **settings:** social sets, preferences and webhooks in the backend (RFC 043, 1/2) ([#228](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/228)) ([f1c5252](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f1c5252c3c8f228024f6d91e96bf967101578db4))
+* **settings:** social sets, preferences and webhooks in the backend (RFC 024, 1/2) ([#228](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/228)) ([f1c5252](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/f1c5252c3c8f228024f6d91e96bf967101578db4))
 
 ## [2.26.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.25.0...v2.26.0) (2026-10-20)
 
@@ -1015,7 +1015,7 @@
 * implement same-origin proxy for R2 assets to resolve CORS issues during video export ([e0a247f](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/e0a247f8193c800b339da647a6b09dbd42f3492a))
 * increase upload limit from 10MB to 100MB ([b6112e2](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/b6112e2de3f792417313258b48ef3feed70b538e))
 * make export fully in-browser and enhance canvas editor branding ([aff0ea7](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/aff0ea71d84dac17780bb8763ca29c0db7ff1e7c))
-* marketing platform foundations (RFC 011, 013, 014, 019, 020) ([#5](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/5)) ([44d47aa](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/44d47aa2e7fb3ba2bd02d0f72b5ed3bc62943abd))
+* marketing platform foundations (RFC 019, 018, 021, 012, 030) ([#5](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/5)) ([44d47aa](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/44d47aa2e7fb3ba2bd02d0f72b5ed3bc62943abd))
 * move frame along with the main image ([0567536](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/05675361b6c77eedc1f184d39e06cf6a94ce4213))
 * NEW user-facing feature or functionality ([961dfec](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/961dfecc919fd70e67a8c9a0a638f2206f61ba43))
 * NEW user-facing features only ([05d835b](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/05d835b2f4d5a083ccc31cb0c5b1e2ae8aba4941))

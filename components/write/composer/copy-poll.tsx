@@ -32,7 +32,7 @@ export function CopyPollDialog({
   const [original] = useState(source)
   const [candidate, setCandidate] = useState(() => structuredClone(poll))
   const supported = destinations.filter(
-    (item) => item.channel !== original && pollRules(item.channel, item.limits)
+    (item) => item.channel !== original && pollRules(item.channel, { pollLimits: item.limits })
   )
   const [target, setTarget] = useState<DraftChannel | ''>('')
   const [prepared, setPrepared] = useState(false)
@@ -67,7 +67,7 @@ export function CopyPollDialog({
           <>
             <PollEditor
               channel={target}
-              limits={limits}
+              standing={{pollLimits: limits}}
               poll={candidate}
               onChange={(next) => next && setCandidate(next)}
             />
@@ -89,7 +89,7 @@ export function CopyPollDialog({
             )}
             {!prepared ? (
               <Button
-                disabled={pollProblems(target, candidate, 0, limits).length > 0}
+                disabled={pollProblems(target, candidate, 0, {pollLimits: limits}).length > 0}
                 onClick={() => {
                   onPrepare(target)
                   setPrepared(true)
@@ -99,7 +99,7 @@ export function CopyPollDialog({
               </Button>
             ) : (
               <Button
-                disabled={pollProblems(target, candidate, 0, limits).length > 0}
+                disabled={pollProblems(target, candidate, 0, {pollLimits: limits}).length > 0}
                 onClick={() => {
                   if (onCopy(target, candidate)) onClose()
                 }}

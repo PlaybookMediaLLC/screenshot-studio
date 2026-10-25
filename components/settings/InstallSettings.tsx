@@ -13,7 +13,7 @@ const installPromptSchema = z.object({
 })
 
 /**
- * Install (RFC 043): the ways Shots really can be installed. Shots is a web
+ * Install (RFC 024): the ways Shots really can be installed. Shots is a web
  * app with a manifest, so Chromium browsers and Safari can give it its own
  * window and icon. There is no native desktop or mobile app, and this page
  * does not offer one.

@@ -12,6 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
@@ -213,6 +214,202 @@ func TestContentDraftPlatform(t *testing.T) {
 		count, err := db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draft.ID), scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED)).Count(ctx)
 		if err != nil || wins != 1 || count != 1 {
 			t.Fatalf("wins=%d queued=%d err=%v", wins, count, err)
+		}
+	})
+
+	t.Run("TF-031 concurrent moves replace a commitment once", func(t *testing.T) {
+		result, err := schedule(newDraft("Concurrent move"), at.Add(72*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		start := make(chan struct{})
+		outcomes := make(chan error, 2)
+		var group sync.WaitGroup
+		for i := 0; i < 2; i++ {
+			group.Add(1)
+			go func(index int) {
+				defer group.Done()
+				<-start
+				_, err := repo.MoveContentDraftPost(ctx, owner, result.Posts[0].ID, at.Add(time.Duration(80+index)*time.Hour))
+				outcomes <- err
+			}(i)
+		}
+		close(start)
+		group.Wait()
+		close(outcomes)
+		won := 0
+		for err := range outcomes {
+			if err == nil {
+				won++
+			} else if !errors.Is(err, publishing.ErrConflict) {
+				t.Fatal(err)
+			}
+		}
+		if won != 1 {
+			t.Fatalf("%d moves committed; want exactly one", won)
+		}
+	})
+
+	t.Run("TF-031 swaps are atomic and preserve jitter and immutable content", func(t *testing.T) {
+		one, err := schedule(newDraft("Swap first"), at.Add(100*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		two, err := schedule(newDraft("Swap second"), at.Add(110*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		exec(`UPDATE scheduled_post SET "naturalOffsetSeconds"=120 WHERE id=$1`, one.Posts[0].ID)
+		swapped, err := repo.SwapContentDraftPosts(ctx, owner, one.Posts[0].ID, two.Posts[0].ID)
+		if err != nil || len(swapped) != 2 {
+			t.Fatalf("swap: %v %v", swapped, err)
+		}
+		for _, moved := range swapped {
+			if moved.Post.Caption == "Swap first" && (!moved.Post.SlotAt.Equal(two.Posts[0].ScheduledFor) || !moved.Post.ScheduledFor.Equal(two.Posts[0].ScheduledFor.Add(2*time.Minute))) {
+				t.Fatalf("lost natural time: %+v", moved.Post)
+			}
+			old, err := db.Client.ScheduledPost.Get(ctx, moved.Cancelled)
+			if err != nil || old.Status != scheduledpost.StatusCANCELLED {
+				t.Fatalf("old commitment: %v %v", old, err)
+			}
+		}
+		if _, err := repo.SwapContentDraftPosts(ctx, owner, one.Posts[0].ID, two.Posts[0].ID); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("stale swap: %v", err)
+		}
+		// A worker's claim refuses the entire swap, including the untouched post.
+		exec(`UPDATE scheduled_post SET status='PROCESSING' WHERE id=$1`, swapped[1].Post.ID)
+		if _, err := repo.SwapContentDraftPosts(ctx, owner, swapped[0].Post.ID, swapped[1].Post.ID); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("claimed swap: %v", err)
+		}
+		untouched, _ := db.Client.ScheduledPost.Get(ctx, swapped[0].Post.ID)
+		if untouched.Status != scheduledpost.StatusSCHEDULED {
+			t.Fatal("failed swap changed the other post")
+		}
+	})
+
+	t.Run("TF-034 repurpose copies published evidence, not later edits or publication jobs", func(t *testing.T) {
+		source := newDraft("Published evidence")
+		result, err := schedule(source, at.Add(120*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		exec(`UPDATE scheduled_post SET status='PUBLISHED', "remotePostId"='123456789' WHERE id=$1`, result.Posts[0].ID)
+		exec(`UPDATE scheduled_post SET poll='{"durationMinutes":60,"options":["A","B"]}', "publishOptions"='{"madeWithAi":true}' WHERE id=$1`, result.Posts[0].ID)
+		exec(`UPDATE content_draft SET "plainText"='Later edited text' WHERE id=$1`, source.ID)
+		copy, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "repurpose", Target: &draftdoc.Target{SourceDraftID: source.ID}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if copy.ID == source.ID || copy.PlainText != "Published evidence" || copy.Target.SourcePostID != result.Posts[0].ID || copy.Target.RemoteID != "123456789" || copy.Status != "draft" {
+			t.Fatalf("wrong repurpose: %+v", copy)
+		}
+		first := copy.Body[0].(map[string]any)
+		if first["poll"] == nil || first["disclosures"] == nil {
+			t.Fatalf("published poll or disclosure lost: %+v", first)
+		}
+		posts, err := repo.ListContentDraftPosts(ctx, owner, copy.ID)
+		if err != nil || len(posts) != 0 {
+			t.Fatalf("repurpose scheduled a job: %+v %v", posts, err)
+		}
+		if _, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Kind: "repurpose", Target: &draftdoc.Target{SourceDraftID: newDraft("Unpublished").ID}}); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("unpublished source: %v", err)
+		}
+	})
+
+	t.Run("publish now consumes the queued snapshot once and replays after a lost response", func(t *testing.T) {
+		draft := newDraft("The queued snapshot")
+		queued, err := schedule(draft, at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		usage := func() int64 {
+			var total int64
+			for _, value := range meter.used {
+				total += value
+			}
+			return total
+		}
+		before := usage()
+		var results [2]*MovedDraftPost
+		var failures [2]error
+		var wait sync.WaitGroup
+		for i := range results {
+			wait.Add(1)
+			go func(i int) {
+				defer wait.Done()
+				results[i], failures[i] = repo.PublishQueuedContentDraftPost(ctx, owner, queued.Posts[0].ID)
+			}(i)
+		}
+		wait.Wait()
+		for _, err := range failures {
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		if results[0].Post.ID != results[1].Post.ID || results[0].Post.Caption != draft.Title || results[0].Post.ScheduledFor.After(time.Now()) || usage() != before {
+			t.Fatalf("duplicate, changed snapshot, timer or quota: %+v %+v", results[0], results[1])
+		}
+		old, _ := db.Client.ScheduledPost.Get(ctx, queued.Posts[0].ID)
+		if old.Status != scheduledpost.StatusCANCELLED {
+			t.Fatal("old timer still executable")
+		}
+		if _, err := db.Client.ScheduledPost.UpdateOneID(results[0].Post.ID).SetStatus(scheduledpost.StatusPROCESSING).Save(ctx); err != nil {
+			t.Fatal(err)
+		}
+		replay, err := repo.PublishQueuedContentDraftPost(ctx, owner, old.ID)
+		if err != nil || replay.Post.ID != results[0].Post.ID || replay.Post.Status != "PROCESSING" {
+			t.Fatalf("replay=%+v err=%v", replay, err)
+		}
+	})
+
+	t.Run("publish now refuses a worker claim and revoked approval", func(t *testing.T) {
+		queued, err := schedule(newDraft("Already publishing"), at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Client.ScheduledPost.UpdateOneID(queued.Posts[0].ID).SetStatus(scheduledpost.StatusPROCESSING).Save(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.PublishQueuedContentDraftPost(ctx, owner, queued.Posts[0].ID); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("worker claim: %v", err)
+		}
+		required := true
+		if _, err := repo.UpdateContentDraftSettings(ctx, owner, ContentDraftSettingsUpdate{RequireApproval: &required}); err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			off := false
+			_, _ = repo.UpdateContentDraftSettings(ctx, owner, ContentDraftSettingsUpdate{RequireApproval: &off})
+		}()
+		draft := newDraft("Approved for scheduling")
+		if _, err := repo.ReviewContentDraft(ctx, owner, draft.ID, ContentDraftReviewInput{Action: "approve"}); err != nil {
+			t.Fatal(err)
+		}
+		queued, err = schedule(draft, at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// An approval remains valid across scheduling's non-content version bump.
+		if _, err := repo.PublishQueuedContentDraftPost(ctx, owner, queued.Posts[0].ID); err != nil {
+			t.Fatal(err)
+		}
+		draft = newDraft("Review revoked after scheduling")
+		if _, err := repo.ReviewContentDraft(ctx, owner, draft.ID, ContentDraftReviewInput{Action: "approve"}); err != nil {
+			t.Fatal(err)
+		}
+		queued, err = schedule(draft, at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.ReviewContentDraft(ctx, owner, draft.ID, ContentDraftReviewInput{Action: "changes"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.PublishQueuedContentDraftPost(ctx, owner, queued.Posts[0].ID); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("revoked approval: %v", err)
+		}
+		old, _ := db.Client.ScheduledPost.Get(ctx, queued.Posts[0].ID)
+		if old.Status != scheduledpost.StatusSCHEDULED {
+			t.Fatal("failed command consumed original timer")
 		}
 	})
 

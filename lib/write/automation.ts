@@ -3,7 +3,7 @@ import type { Automation, RetweetRule } from '@/lib/write/document'
 import { resolveLocalTime, wallTime } from '@/lib/write/zoned-time'
 
 /**
- * Follow-ups as people read them (RFC 042): when each automatic repost
+ * Follow-ups as people read them (RFC 025): when each automatic repost
  * lands for a given publish time, and what happens after a post is live.
  * Go plans the same times from the same rules when the post goes out.
  */
@@ -16,7 +16,7 @@ export const PLUG_WINDOW_HOURS = 48
  * direct-message access, and X sends DMs only on paid API plans.
  */
 export const AUTO_DM_UNAVAILABLE =
-  'Auto-DM is not available: this workspace connects to X without direct-message access, and X sends direct messages only on paid API plans. Nothing is sent.'
+  'Auto-DM delivery is off until authorized X messaging and event access, consent records, and opt-out processing are configured. Prepared settings do not send messages.'
 
 /** Reposts a new set starts with: six hours after publishing, removed 12 hours later. */
 export const DEFAULT_AUTOMATION: Automation = {
@@ -25,7 +25,7 @@ export const DEFAULT_AUTOMATION: Automation = {
 }
 
 /**
- * A draft's engagement (RFC 043), which it copied from its set's defaults, as
+ * A draft's engagement (RFC 024), which it copied from its set's defaults, as
  * follow-ups: repost and plug once the post reaches a like count. A draft's
  * X version follows it until the writer sets follow-ups of its own.
  */

@@ -4,21 +4,22 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"fmt"
+	"image"
 	"io"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediadocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediaimage"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
 )
 
-// Upload checks (RFC 042): an upload's bytes must be what it says it is,
+// Upload checks (RFC 025): an upload's bytes must be what it says it is,
 // checked from storage when it completes, so a renamed file cannot pass as
 // an image or a PDF. A PDF is also held to LinkedIn's document limits.
-
-const (
-	pdfByteLimit = 100 << 20
-	pdfPageLimit = 300
-)
 
 // objectOpener streams a stored object, to check an upload's bytes.
 type objectOpener interface {
@@ -40,8 +41,11 @@ func verifyAssetBytes(mediaType string, object io.Reader) error {
 		if !bytes.HasPrefix(head, []byte("%PDF-")) {
 			return invalid("This file is not a PDF.")
 		}
-		pages, known := countPDFPages(io.LimitReader(reader, pdfByteLimit+1))
-		if known && pages > pdfPageLimit {
+		pages, known := countPDFPages(reader)
+		if !known {
+			return invalid("This PDF is malformed, encrypted, or has an unreadable page tree.")
+		}
+		if pages > medialimits.Limits.PDFPages {
 			return invalid("LinkedIn takes documents of up to 300 pages; this one has " + strconv.Itoa(pages) + ".")
 		}
 		return nil
@@ -54,57 +58,50 @@ func verifyAssetBytes(mediaType string, object io.Reader) error {
 	if !strings.HasPrefix(got, want) {
 		return invalid("This file's contents are not a " + mediaType + " file.")
 	}
+	if strings.HasPrefix(mediaType, "image/") {
+		data, err := io.ReadAll(io.LimitReader(reader, int64(medialimits.Limits.PaidImageBytes)+1))
+		if err != nil {
+			return err
+		}
+		if len(data) > medialimits.Limits.PaidImageBytes {
+			return invalid("The image exceeds 20 MB.")
+		}
+		if _, err := decodeAssetDimensions(bytes.NewReader(data)); err != nil {
+			return err
+		}
+		if mediaType == "image/gif" {
+			if err := mediaimage.ValidateGIF(data, mediaimage.GIFLimits{MaxWidth: 65535, MaxHeight: 65535, MaxFrames: 1000, MaxCanvasPixels: 300000000}); err != nil {
+				return invalid(err.Error())
+			}
+			return nil
+		}
+		if _, _, err := image.Decode(bytes.NewReader(data)); err != nil {
+			return invalid("The image is incomplete or cannot be decoded.")
+		}
+	}
 	return nil
 }
 
-var (
-	pdfPageObject = regexp.MustCompile(`/Type\s*/Page[^s]`)
-	pdfPageCount  = regexp.MustCompile(`/Type\s*/Pages[^>]*?/Count\s+(\d+)|/Count\s+(\d+)[^>]*?/Type\s*/Pages`)
-)
+// countPDFPages shares the same parser with the native document publisher.
+func countPDFPages(object io.Reader) (int, bool) { return mediadocument.CountPages(object) }
 
-// countPDFPages counts a PDF's pages from its page tree when the tree is
-// stored plainly: the root's /Count, or else the page objects themselves.
-//
-// ponytail: a PDF whose page tree sits in compressed object streams reads as
-// unknown, and LinkedIn's own processing then enforces its 300 pages (the
-// post fails visibly). Parse object streams if that proves common.
-func countPDFPages(object io.Reader) (int, bool) {
-	scanner := bufio.NewScanner(object)
-	scanner.Buffer(make([]byte, 64<<10), 1<<20)
-	scanner.Split(splitWithOverlap)
-	objects, rootCount := 0, 0
-	for scanner.Scan() {
-		chunk := scanner.Bytes()
-		objects += len(pdfPageObject.FindAll(chunk, -1))
-		for _, match := range pdfPageCount.FindAllSubmatch(chunk, -1) {
-			for _, group := range match[1:] {
-				if count, err := strconv.Atoi(string(group)); err == nil && count > rootCount {
-					rootCount = count
-				}
-			}
-		}
+// verifyUploadedContent consumes at most the reserved size plus one byte. Neither
+// a dishonest Content-Length nor a caller-supplied checksum establishes readiness.
+func verifyUploadedContent(source io.Reader, mediaType string, size int, digest *string) error {
+	hash := sha256.New()
+	limited := &io.LimitedReader{R: source, N: int64(size) + 1}
+	reader := bufio.NewReader(io.TeeReader(limited, hash))
+	if err := verifyAssetBytes(mediaType, reader); err != nil {
+		return err
 	}
-	switch {
-	case rootCount > 0:
-		return rootCount, true
-	case objects > 0:
-		return objects, true
+	if _, err := io.Copy(io.Discard, reader); err != nil {
+		return err
 	}
-	return 0, false
-}
-
-// splitWithOverlap hands the scanner chunks of up to 64 KB that end at a
-// line break or after a full buffer, so a marker split across reads is seen
-// whole in at least one chunk.
-func splitWithOverlap(data []byte, atEOF bool) (int, []byte, error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
+	if int64(size)+1-limited.N != int64(size) {
+		return invalid("The stored file size differs from the reserved upload. Upload the complete file again.")
 	}
-	if index := bytes.LastIndexByte(data, '\n'); index >= 0 && (index > 32<<10 || atEOF) {
-		return index + 1, data[:index+1], nil
+	if digest != nil && !strings.EqualFold(fmt.Sprintf("%x", hash.Sum(nil)), *digest) {
+		return invalid("The uploaded file checksum does not match. Upload the file again.")
 	}
-	if len(data) >= 64<<10 || atEOF {
-		return len(data), data, nil
-	}
-	return 0, nil, nil
+	return nil
 }

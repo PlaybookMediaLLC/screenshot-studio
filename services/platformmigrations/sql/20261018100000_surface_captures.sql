@@ -1,5 +1,5 @@
 -- Product surfaces gain a stable slug and capture freshness, and captures
--- become rows (docs/rfcs/013-product-asset-map.md).
+-- become rows (docs/rfcs/018-product-asset-map.md).
 ALTER TABLE "product_surface" ADD COLUMN "slug" TEXT;
 ALTER TABLE "product_surface" ADD COLUMN "lastCapturedAt" TIMESTAMP(3);
 ALTER TABLE "product_surface" ADD COLUMN "lastCaptureFailureCode" TEXT;

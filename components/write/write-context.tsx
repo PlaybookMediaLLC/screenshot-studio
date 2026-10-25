@@ -11,7 +11,7 @@ import { platformHref } from '@/lib/platform/navigation'
 import { SOCIAL_SET_COOKIE } from '@/lib/settings/appearance'
 
 /**
- * Write's shared client state (RFC 042): the library the page loaded, and
+ * Write's shared client state (RFC 025): the library the page loaded, and
  * helpers to change the URL state it is filtered by. Panels and dialogs are
  * UI state only; nothing here is saved with a draft.
  */
@@ -42,6 +42,8 @@ type WriteContextValue = {
   showSaved: (draft: { excerpt: string; id: string; title: string; updatedAt: string }) => void
   hideDraft: (id: string) => void
   beforeLeaveRef: React.MutableRefObject<(() => Promise<void>) | null>
+  /** Opens the mounted composer's preview without navigation or an editor remount. */
+  openPreviewRef: React.MutableRefObject<(() => void) | null>
   saved: Record<string, { excerpt: string; title: string; updatedAt: string }>
 }
 
@@ -76,6 +78,7 @@ export function WriteProvider({
   const pathname = usePathname()
   const params = useSearchParams()
   const beforeLeaveRef = React.useRef<(() => Promise<void>) | null>(null)
+  const openPreviewRef = React.useRef<(() => void) | null>(null)
   React.useEffect(() => registerNavigationGuard(() => beforeLeaveRef.current?.()), [])
   React.useEffect(() => {
     const guard = (event: MouseEvent) => {
@@ -189,6 +192,7 @@ export function WriteProvider({
   const value = React.useMemo(
     () => ({
       beforeLeaveRef,
+      openPreviewRef,
       hideDraft,
       activeId,
       canEdit,

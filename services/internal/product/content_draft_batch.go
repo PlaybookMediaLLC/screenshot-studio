@@ -5,8 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 )
 
 // DraftBatchTimesInput previews up to 50 instants without reserving or publishing.

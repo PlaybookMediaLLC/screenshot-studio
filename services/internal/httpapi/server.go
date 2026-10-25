@@ -61,6 +61,7 @@ type WorkflowScheduler interface {
 }
 
 type ConfigurationStore interface {
+	PlanAnalyzeStore
 	ProjectStore
 	CreativeSetStore
 	ContentDraftStore
@@ -308,6 +309,7 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 		s.registerWebhooks(mux)
 		s.registerLibrary(mux)
 		s.registerSharing(mux)
+		s.registerPlanAnalyze(mux)
 		s.registerNotifications(mux)
 		s.registerOnboarding(mux)
 	}
@@ -346,7 +348,7 @@ func (s *Server) authenticateConnections(next http.Handler) http.Handler {
 
 // authenticatePublishing admits a publisher's session, or an API key the
 // backend itself finds was issued with scope: agents may read and change the
-// schedule, while only a person approves what is on it (RFC 038).
+// schedule, while only a person approves what is on it (RFC 026).
 func (s *Server) authenticatePublishing(scope string, next http.HandlerFunc) http.Handler {
 	return s.authenticateWithOptions(next, true, false, func(ctx context.Context, actor product.Actor) error {
 		switch {
@@ -575,7 +577,7 @@ type scheduledPostRequest struct {
 	ChannelConnectionID string    `json:"channelConnectionId"`
 	IdempotencyKey      string    `json:"idempotencyKey"`
 	ScheduledFor        time.Time `json:"scheduledFor"`
-	// Exactly one source: a campaign variant or a content draft (RFC 037).
+	// Exactly one source: a campaign variant or a content draft (RFC 013).
 	ContentDraftID string `json:"contentDraftId"`
 	VariantID      string `json:"variantId"`
 }

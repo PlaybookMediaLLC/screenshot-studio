@@ -17,7 +17,7 @@ import { createRelease, ReleaseError } from '@/lib/tenant/releases'
 import type { StepFix } from './steps'
 
 /**
- * The conversational agent's tools (RFC 017): the RFC 016 marketing tools,
+ * The conversational agent's tools (RFC 028): the RFC 027 marketing tools,
  * plus creating the campaign for a shipped feature, drafting it through the
  * launch pipeline (spec, plan, produce), and asking one clarifying question.
  * Every tool goes through `defineTool`, so a role without `release:create`

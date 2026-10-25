@@ -3,28 +3,34 @@ package product
 import (
 	"context"
 	"errors"
+	"math"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/lucsky/cuid"
-	"math"
-	"sync"
-	"testing"
-	"time"
 )
 
-type analyticsFixture struct {
+type observationMetricsFixture struct {
+	org     string
 	calls   int
 	failure error
 }
 
-func (f *analyticsFixture) PostMetrics(context.Context, string, string, string, string, string) (postoptions.Metrics, error) {
-	f.calls++
+func (f *observationMetricsFixture) PostMetrics(_ context.Context, org string, _ string, _ string, _ string, _ string) (postoptions.Metrics, error) {
+	if f.org == "" || f.org == org {
+		f.calls++
+	}
 	return postoptions.Metrics{"likes": 7}, f.failure
 }
-func (f *analyticsFixture) AccountMetrics(context.Context, string, string, string, string) ([]schema.SocialMetricSeries, error) {
-	f.calls++
+func (f *observationMetricsFixture) AccountMetrics(_ context.Context, org string, _ string, _ string, _ string) ([]schema.SocialMetricSeries, error) {
+	if f.org == "" || f.org == org {
+		f.calls++
+	}
 	return nil, postoptions.ErrMetricsUnavailable
 }
 
@@ -47,11 +53,19 @@ func TestSocialAnalyticsObservations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	provider := &analyticsFixture{}
+	provider := &observationMetricsFixture{org: w.org}
 	w.repo.WithPostMetrics(provider)
 	n, err := w.repo.CollectSocialAnalytics(w.ctx)
 	if err != nil || n < 2 {
 		t.Fatalf("collected %d: %v", n, err)
+	}
+	for batch := 0; batch < 30 && provider.calls < 2; batch++ {
+		if _, err := w.repo.CollectSocialAnalytics(w.ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if provider.calls != 2 {
+		t.Fatalf("workspace observations=%d", provider.calls)
 	}
 	calls := provider.calls
 	if _, err := w.repo.CollectSocialAnalytics(w.ctx); err != nil {

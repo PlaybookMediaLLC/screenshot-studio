@@ -165,7 +165,7 @@ export function FoundersPage() {
           },
           {
             q: 'What does it cost?',
-            a: `Pro is ${PLAN_PRICES.pro.price} a month and covers the editor, release intake, and the API, with ${formatQuota('pro', 'ai:credits:monthly')} AI credits. There is no free plan. Launch intelligence is in early access for design partners on any plan.`,
+            a: `Pro is ${PLAN_PRICES.pro.price} a month and covers the editor, release intake, and the API, with ${formatQuota('pro', 'ai:credits:monthly')} AI credits. Free basic scheduling includes one seat, one connected account and 10 text/link posts a month; media, AI and advanced queues require a paid plan. Launch intelligence is in early access for design partners on any plan.`,
           },
         ]}
       />

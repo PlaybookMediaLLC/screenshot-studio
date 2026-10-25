@@ -1,5 +1,5 @@
 // Package webhooks delivers a workspace's events to the HTTPS endpoints it
-// subscribes (RFC 043, closing the outbound half of RFC 005). Events are
+// subscribes (RFC 024, closing the outbound half of RFC 015). Events are
 // written to the transactional outbox with the change they describe; the
 // dispatcher fans each out to matching subscriptions and delivers it, signed,
 // at least once.

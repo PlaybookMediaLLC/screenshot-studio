@@ -71,20 +71,21 @@ type Configuration struct {
 	// automationCanvases lays out canvases from releases.
 	automationCanvases AutomationCanvasBuilder
 	capture            Capturer
-	// collabKey signs content draft collaboration tokens (RFC 037).
+	// collabKey signs content draft collaboration tokens (RFC 013).
 	collabKey []byte
-	// agentClients finds the OAuth clients agents connect through (RFC 038).
+	// agentClients finds the OAuth clients agents connect through (RFC 026).
 	agentClients AgentClients
 	// imageHost admits the hosts screenshots may be downloaded from; GitHub's by default.
 	imageHost func(string) bool
 	// web replaces the HTTP client for image downloads and readiness probes in tests.
 	web *http.Client
-	// postMetrics reads a live post's engagement from its platform (RFC 037).
+	// postMetrics reads a live post's engagement from its platform (RFC 013).
 	postMetrics PostMetricsReader
-	// accounts reads an account's standing on its platform, such as X Premium (RFC 042).
+	analytics   AnalyticsReader
+	// accounts reads an account's standing on its platform, such as X Premium (RFC 025).
 	accounts AccountStandingReader
 	// webhookKey seals outbound webhook secrets; webhookResolver checks their
-	// destinations (RFC 043).
+	// destinations (RFC 024).
 	webhookKey      []byte
 	webhookResolver webhooks.Resolver
 }

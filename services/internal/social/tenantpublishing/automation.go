@@ -2,15 +2,17 @@ package tenantpublishing
 
 import (
 	"context"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+	"encoding/json"
 	"strings"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
 
-// The follow-ups a provider can do (RFC 042); each is optional.
+// The follow-ups a provider can do (RFC 025); each is optional.
 type (
 	reposter interface {
 		RetweetPost(ctx context.Context, integration *socialent.Integration, postID string) error
@@ -92,10 +94,7 @@ func (p *Publisher) Automate(ctx context.Context, input socialapi.AutomationInpu
 		id, err := replies.ReplyTo(ctx, account, post, input.Text)
 		return socialapi.AutomationResult{Done: err == nil, RemoteID: id}, err
 	case "quote":
-		if input.Platform != "x" {
-			return socialapi.AutomationResult{}, socialapi.ErrUnsupported
-		}
-		settings, err = postSettings("x", nil, &postoptions.PublishOptions{QuoteRemoteID: post}, "")
+		settings, err = nativeQuoteSettings(input.Platform, settings, post)
 		if err != nil {
 			return socialapi.AutomationResult{}, err
 		}
@@ -105,9 +104,30 @@ func (p *Publisher) Automate(ctx context.Context, input socialapi.AutomationInpu
 		if err != nil {
 			return socialapi.AutomationResult{}, err
 		}
+		if firstPostID(posted) == "" {
+			return socialapi.AutomationResult{}, temporalx.UnknownDelivery(input.Platform, "The provider returned no quote receipt. Reconcile before resending.")
+		}
 		return socialapi.AutomationResult{Done: true, RemoteID: firstPostID(posted)}, nil
 	}
 	return socialapi.AutomationResult{}, socialapi.ErrUnsupported
+}
+
+// Native quotes must carry the provider's reference, never a URL appended to
+// ordinary text. Unsupported providers fail before making any mutation.
+func nativeQuoteSettings(platform string, raw json.RawMessage, post string) (json.RawMessage, error) {
+	switch platform {
+	case "x", "linkedin", "linkedin-page", "bluesky", "mastodon", "mastodon-custom":
+	default:
+		return nil, socialapi.ErrUnsupported
+	}
+	if strings.TrimSpace(post) == "" {
+		return nil, socialapi.ErrUnsupported
+	}
+	var base map[string]any
+	if err := json.Unmarshal(raw, &base); err != nil {
+		return nil, err
+	}
+	return postSettings(platform, base, &postoptions.PublishOptions{QuoteRemoteID: post}, "")
 }
 
 func firstPostID(posted []integrations.PostResponse) string {

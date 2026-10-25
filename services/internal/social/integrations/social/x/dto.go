@@ -13,7 +13,7 @@ import (
 // paid_partnership stay `any` because the provider accepts "true" strings
 // (assetBoolean) while validation requires booleans.
 type XDto struct {
-	PhotoTagIDs     []string  `json:"tagged_user_ids,omitempty"`
+	TaggedUserIDs   []string  `json:"tagged_user_ids,omitempty"`
 	Community       *string   `json:"community,omitempty"`
 	WhoCanReplyPost *string   `json:"who_can_reply_post,omitempty"`
 	PostType        *string   `json:"post_type,omitempty"`

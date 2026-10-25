@@ -3,8 +3,9 @@ package product
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -50,8 +51,11 @@ func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnec
 	if article && (caps.Articles == nil || !*caps.Articles) {
 		return nil, conflict("This connection has no verified X Articles access. Reconnect an eligible account.")
 	}
+	if target.AutoActions != nil && target.AutoActions.QuoteAfterHours > 0 && !socialidentity.XEnterpriseQuotesEnabled() {
+		return nil, conflict("X quote follow-ups require the deployed application's approved Enterprise API access.")
+	}
 	check := func(text string, selected []string, options *postoptions.PublishOptions, isArticle bool) error {
-		if options != nil && (options.QuoteRemoteID != "" || options.QuoteFirstPost) {
+		if options != nil && (options.QuoteRemoteID != "" || options.QuoteFirstPost) && !socialidentity.XEnterpriseQuotesEnabled() {
 			return conflict("X quote posts require Enterprise API access, which this connection has not verified.")
 		}
 		if !isArticle {
@@ -96,6 +100,17 @@ func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnec
 				if !mediaresize.Static(item.MIME) {
 					return invalid("Photo tags are supported on static photos only.")
 				}
+			}
+		}
+		if options != nil {
+			if len(options.TaggedUserIDs) == 0 {
+				options.TaggedUserIDs = options.PhotoTagIDs
+			}
+			if isArticle && len(options.TaggedUserIDs) > 0 {
+				return conflict("Photo tags are not supported on articles.")
+			}
+			if err := socialidentity.CheckXPhotoTags(options.TaggedUserIDs, media); err != nil {
+				return conflict(err.Error())
 			}
 		}
 		if err := socialidentity.CheckXMedia(*caps, media); err != nil {

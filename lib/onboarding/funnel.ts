@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { trackEvent } from '@/lib/analytics'
 
 /**
- * The onboarding funnel (docs/rfcs/032-background-onboarding-agent.md,
+ * The onboarding funnel (docs/rfcs/034-background-onboarding-agent.md,
  * observability): a URL or manual description submitted, the profile
  * confirmed, and the first campaign ready to approve.
  */

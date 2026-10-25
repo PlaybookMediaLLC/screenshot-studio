@@ -42,7 +42,7 @@ Canonical audit events and revision history preserve actor/source and outcome; q
 
 **Source:** TF-017, TF-079. [Source requirements](../changelog-features.md).
 
-**Dependencies:** Existing draft-tags user experiment; RFC 039 product decision.
+**Dependencies:** Existing draft-tags user experiment; RFC 042 product decision.
 
 **Affected code and current evidence:** `components/write/tags.tsx`; `components/write/library.tsx`; `components/drafts/DraftCalendar.tsx`; `services/internal/product/content_draft_write.go`.
 

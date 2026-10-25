@@ -3,7 +3,7 @@
 {{- if and (gt (int .Values.collab.replicaCount) 1) (not .Values.collab.redis.enabled) }}
 {{- fail "collab.replicaCount above 1 needs collab.redis.enabled (COLLAB_REDIS_URL in existingSecret)" }}
 {{- end }}
-# Real-time co-editing of content drafts (RFC 037). A Hocuspocus server that
+# Real-time co-editing of content drafts (RFC 013). A Hocuspocus server that
 # holds no database credential: it authorizes connections and loads and stores
 # documents only through the Go backend, with COLLAB_SERVICE_TOKEN.
 apiVersion: v1

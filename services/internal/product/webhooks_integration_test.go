@@ -46,7 +46,7 @@ func (r *receiver) ServeHTTP(w http.ResponseWriter, request *http.Request) {
 	w.WriteHeader(r.status)
 }
 
-// RFC 043 acceptance 12: webhook creation validates the destination and the
+// RFC 024 acceptance 12: webhook creation validates the destination and the
 // events; a real draft change produces a signed delivery that retries, stops
 // for a manual replay, and keeps one event ID throughout.
 func TestOutboundWebhookDelivery(t *testing.T) {

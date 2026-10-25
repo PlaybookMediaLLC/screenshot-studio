@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// subscribe gives a test workspace an active plan. There is no free plan, so a
+// subscribe gives a test workspace an active plan. Paid product features require this plan, so a
 // workspace without one can do nothing.
 func subscribe(t *testing.T, ctx context.Context, repo *Configuration, org, plan string) {
 	t.Helper()

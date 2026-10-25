@@ -2,13 +2,14 @@ package product
 
 import (
 	"errors"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/lucsky/cuid"
-	"reflect"
-	"testing"
-	"time"
 )
 
 func TestNativeQuoteReceiptsPersistAndCannotRetryPublishedRoot(t *testing.T) {

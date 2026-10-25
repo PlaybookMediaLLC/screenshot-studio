@@ -2,7 +2,7 @@
  * Writes the production OpenAPI document, the one `/openapi.json` serves, to
  * `services/internal/shotsapi/openapi.json`. The Go MCP server embeds that
  * file, the typed client is generated from it, and CI diffs it against the
- * base branch to block unintended breaking changes (RFC 034, RFC 038).
+ * base branch to block unintended breaking changes (RFC 014, RFC 026).
  */
 import { writeFileSync } from 'node:fs'
 import { openApiSpec } from '../lib/api/openapi'

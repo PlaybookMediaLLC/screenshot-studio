@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { xLength } from '@/lib/content-drafts/x-length'
+import { serializeDraft } from '@/lib/content-drafts/serialize'
 import { CAPABILITIES } from '@/lib/write/capabilities'
 import { type DraftFinisherWire, writeApi } from '@/lib/write/client'
 import {
@@ -36,6 +36,7 @@ import {
 import { threadLabels } from '@/lib/write/numbering'
 import { cn } from '@/lib/utils'
 import { PdfCarousel } from './pdf-carousel'
+import { AutoDmDraft } from './auto-dm-draft'
 
 /** A numbering style as the dialog shows it. */
 const STYLE_EXAMPLES: Record<Numbering['style'], string> = {
@@ -49,11 +50,12 @@ const STYLE_EXAMPLES: Record<Numbering['style'], string> = {
 }
 
 /**
- * A platform version's settings bar (RFC 042): on X, numbering, finishers
+ * A platform version's settings bar (RFC 025): on X, numbering, finishers
  * and a community; on LinkedIn, visibility, a first comment and a PDF
  * document. Each is stored with the version and applied when it publishes.
  */
 export function VersionOptionsBar({
+  captionLimit,
   channel,
   onApplyFinisher,
   onChange,
@@ -64,6 +66,7 @@ export function VersionOptionsBar({
   uploadFile,
 }: {
   channel: DraftChannel
+  captionLimit?: number
   onApplyFinisher?: (text: string, quoteFirstPost: boolean) => void
   onChange: (options: VersionOptions) => void
   options: VersionOptions
@@ -93,7 +96,7 @@ export function VersionOptionsBar({
       </Button>
     )
   }
-  if (CAPABILITIES[channel].thread && onApplyFinisher && setId) {
+  if (['x', 'bluesky', 'mastodon'].includes(channel) && onApplyFinisher && setId) {
     tools.push(
       <Button
         className={button}
@@ -173,6 +176,13 @@ export function VersionOptionsBar({
       data-testid={`version-options-${channel}`}
     >
       {tools}
+      {channel === 'x' ? (
+        <AutoDmDraft
+          value={options.autoDm}
+          onChange={(autoDm) => onChange({ ...options, autoDm })}
+          readOnly={readOnly}
+        />
+      ) : null}
       {dialog === 'numbering' ? (
         <NumberingDialog
           numbering={options.numbering}
@@ -183,7 +193,8 @@ export function VersionOptionsBar({
       ) : null}
       {dialog === 'finisher' && setId && onApplyFinisher ? (
         <FinisherDialog
-          quoteSupported={['x', 'bluesky', 'mastodon'].includes(channel)}
+          channel={channel}
+          captionLimit={captionLimit}
           onApply={onApplyFinisher}
           onClose={() => setDialog(null)}
           setId={setId}
@@ -191,6 +202,7 @@ export function VersionOptionsBar({
       ) : null}
       {dialog === 'community' ? (
         <CommunityDialog
+          setId={setId}
           community={options.community}
           onChange={(community) => onChange({ ...options, community })}
           onClose={() => setDialog(null)}
@@ -332,16 +344,19 @@ export function NumberingDialog({
  * to that post only after it is live.
  */
 export function FinisherDialog({
-  quoteSupported = true,
+  channel = 'x',
+  captionLimit,
   onApply,
   onClose,
   setId,
 }: {
-  quoteSupported?: boolean
+  channel?: DraftChannel
+  captionLimit?: number
   onApply: (text: string, quoteFirstPost: boolean) => void
   onClose: () => void
   setId: string
 }) {
+  const quoteSupported = ['x', 'bluesky', 'mastodon'].includes(channel)
   const [items, setItems] = React.useState<DraftFinisherWire[] | null>(null)
   const [editing, setEditing] = React.useState<{
     id?: string
@@ -350,6 +365,12 @@ export function FinisherDialog({
     text: string
   } | null>(null)
   const [busy, setBusy] = React.useState(false)
+  const [search, setSearch] = React.useState('')
+  const count = serializeDraft(
+    [{ type: 'p', children: [{ text: editing?.text ?? '' }] }],
+    channel
+  ).length
+  const limit = captionLimit ?? CAPABILITIES[channel].captionLimit
   React.useEffect(() => {
     void writeApi
       .finishers(setId)
@@ -363,9 +384,14 @@ export function FinisherDialog({
     if (!editing) return
     setBusy(true)
     try {
+      const fields = {
+        name: editing.name,
+        text: editing.text,
+        quoteFirstPost: editing.quoteFirstPost,
+      }
       const saved = editing.id
-        ? await writeApi.updateFinisher(setId, editing.id, editing)
-        : await writeApi.createFinisher(setId, editing)
+        ? await writeApi.updateFinisher(setId, editing.id, fields)
+        : await writeApi.createFinisher(setId, fields)
       setItems((current) => [...(current ?? []).filter((item) => item.id !== saved.id), saved])
       setEditing(null)
     } catch (error) {
@@ -408,12 +434,13 @@ export function FinisherDialog({
             <Label className="grid gap-1 text-xs text-neutral-400">
               <span className="flex justify-between">
                 Text
-                <span className={cn(xLength(editing.text) > 280 && 'text-red-300')}>
-                  {xLength(editing.text)}/280
+                <span className={cn(count > limit && 'text-red-300')}>
+                  {count}/{limit}
                 </span>
               </span>
               <Textarea
                 className="min-h-24"
+                maxLength={25_000}
                 onChange={(event) => setEditing({ ...editing, text: event.target.value })}
                 value={editing.text}
               />
@@ -454,58 +481,64 @@ export function FinisherDialog({
             {items?.length === 0 ? (
               <p className="text-sm text-neutral-400">No finishers yet.</p>
             ) : null}
+            <Input
+              aria-label="Search finishers"
+              placeholder="Search finishers…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
             <ul className="grid gap-2">
-              {items?.map((item) => (
-                <li
-                  className="rounded-lg border border-white/[0.06] p-3"
-                  data-testid="finisher"
-                  key={item.id}
-                >
-                  <p className="flex items-center justify-between text-sm text-white">
-                    {item.name}
-                    {item.quoteFirstPost ? (
-                      <span className="text-[11px] text-sky-300">quotes the first post</span>
-                    ) : null}
-                  </p>
-                  <FinisherPreview quoteFirstPost={item.quoteFirstPost} text={item.text} />
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <Button
-                      onClick={() => {
-                        if (item.quoteFirstPost && !quoteSupported) {
-                          toast.error(
-                            'This channel does not support native quotes. Edit the finisher and turn quoting off.'
-                          )
-                          return
-                        }
-                        onApply(item.text, item.quoteFirstPost)
-                        onClose()
-                      }}
-                      size="sm"
-                      type="button"
-                    >
-                      Add to current draft
-                    </Button>
-                    <Button
-                      onClick={() => setEditing({ ...item })}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      className="text-red-300"
-                      disabled={busy}
-                      onClick={() => void remove(item.id)}
-                      size="sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </li>
-              ))}
+              {items
+                ?.filter((item) =>
+                  `${item.name} ${item.text}`
+                    .toLocaleLowerCase()
+                    .includes(search.trim().toLocaleLowerCase())
+                )
+                .map((item) => (
+                  <li
+                    className="rounded-lg border border-white/[0.06] p-3"
+                    data-testid="finisher"
+                    key={item.id}
+                  >
+                    <p className="flex items-center justify-between text-sm text-white">
+                      {item.name}
+                      {item.quoteFirstPost ? (
+                        <span className="text-[11px] text-sky-300">quotes the first post</span>
+                      ) : null}
+                    </p>
+                    <FinisherPreview quoteFirstPost={item.quoteFirstPost} text={item.text} />
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Button
+                        onClick={() => {
+                          onApply(item.text, item.quoteFirstPost)
+                          onClose()
+                        }}
+                        size="sm"
+                        type="button"
+                      >
+                        Add to current draft
+                      </Button>
+                      <Button
+                        onClick={() => setEditing({ ...item })}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        className="text-red-300"
+                        disabled={busy}
+                        onClick={() => void remove(item.id)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </li>
+                ))}
             </ul>
             <DialogFooter>
               <Button
@@ -544,17 +577,25 @@ const COMMUNITY_URL = /^(?:https:\/\/(?:x|twitter)\.com\/i\/communities\/)?(\d{1
 
 /** Post the X version to a community, by its URL or id, and choose whether followers see it too. */
 function CommunityDialog({
+  setId,
   community,
   onChange,
   onClose,
 }: {
+  setId: string | null
   community?: VersionOptions['community']
   onChange: (community: VersionOptions['community']) => void
   onClose: () => void
 }) {
   const [value, setValue] = React.useState(community?.id ?? '')
   const [name, setName] = React.useState(community?.name ?? '')
-  const [share, setShare] = React.useState(community?.shareWithFollowers ?? false)
+  const [shareWithFollowers, setShareWithFollowers] = React.useState(
+    community?.shareWithFollowers ?? true
+  )
+  const [query, setQuery] = React.useState('')
+  const [results, setResults] = React.useState<{ id: string; name: string }[] | null>(null)
+  const [searching, setSearching] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
   const id = COMMUNITY_URL.exec(value.trim())?.[1]
   return (
     <Dialog onOpenChange={(open) => !open && onClose()} open>
@@ -562,8 +603,8 @@ function CommunityDialog({
         <DialogHeader>
           <DialogTitle>Audience</DialogTitle>
           <DialogDescription>
-            Post to everyone, or to an X community you belong to. This is where the post appears;
-            who can reply is set per post.
+            Everyone (Anyone on X) is the default audience. Community posts remain visible to
+            everyone on X. Who can reply is set per post.
           </DialogDescription>
         </DialogHeader>
         <Label className="grid gap-1 text-xs text-neutral-400">
@@ -577,16 +618,83 @@ function CommunityDialog({
         {value && !id ? (
           <p className="text-xs text-amber-300">Use a community’s URL or its numeric id.</p>
         ) : null}
+        {setId ? (
+          <form
+            className="grid gap-2"
+            onSubmit={async (event) => {
+              event.preventDefault()
+              if (searching) return
+              setSearching(true)
+              setError(null)
+              try {
+                setResults((await writeApi.communities(setId, query)).items)
+              } catch (error) {
+                setResults(null)
+                setError(
+                  error instanceof Error ? error.message : 'Community search is unavailable.'
+                )
+              } finally {
+                setSearching(false)
+              }
+            }}
+          >
+            <Label htmlFor="community-search">Search X communities</Label>
+            <div className="flex gap-2">
+              <Input
+                id="community-search"
+                maxLength={200}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search by topic or name"
+              />
+              <Button disabled={searching || !query.trim()} type="submit">
+                {searching ? 'Searching…' : 'Search'}
+              </Button>
+            </div>
+            {error ? (
+              <p role="alert" className="text-xs text-red-300">
+                {error}
+              </p>
+            ) : null}
+            {results?.length === 0 ? (
+              <p role="status" className="text-xs">
+                No communities found.
+              </p>
+            ) : null}
+            <div className="grid max-h-36 gap-1 overflow-auto">
+              {results?.map((item) => (
+                <Button
+                  className="justify-start"
+                  variant="ghost"
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setValue(item.id)
+                    setName(item.name)
+                  }}
+                >
+                  {item.name}
+                </Button>
+              ))}
+            </div>
+          </form>
+        ) : null}
         <Label className="grid gap-1 text-xs text-neutral-400">
           Name, for your reference
           <Input maxLength={200} onChange={(event) => setName(event.target.value)} value={name} />
         </Label>
-        <Label className="flex items-center justify-between text-sm">
-          Share with my followers too
+        <Label className="flex items-center justify-between gap-3 text-sm">
+          <span>
+            Share to timeline
+            <span className="block text-xs text-muted-foreground">
+              Also share with your followers. Turning this off stops that broadcast; the community
+              post remains public.
+            </span>
+          </span>
           <Switch
-            aria-label="Share with followers"
-            checked={share}
-            onCheckedChange={(checked) => setShare(checked === true)}
+            aria-label="Share to timeline"
+            checked={shareWithFollowers}
+            onCheckedChange={setShareWithFollowers}
           />
         </Label>
         <DialogFooter>
@@ -606,7 +714,7 @@ function CommunityDialog({
           <Button
             disabled={!id}
             onClick={() => {
-              if (id) onChange({ id, name: name.trim() || undefined, shareWithFollowers: share })
+              if (id) onChange({ id, name: name.trim() || undefined, shareWithFollowers })
               onClose()
             }}
             type="button"

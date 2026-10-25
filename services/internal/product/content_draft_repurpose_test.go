@@ -2,6 +2,10 @@ package product
 
 import (
 	"errors"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/draftdoc"
@@ -9,9 +13,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"github.com/lucsky/cuid"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestRepurposeSeedsOnlyVisibleConfirmedContent(t *testing.T) {
@@ -22,7 +23,7 @@ func TestRepurposeSeedsOnlyVisibleConfirmedContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	connection := w.db.Client.ChannelConnection.Create().SetID(cuid.New()).SetOrganizationID(w.org).SetPlatform("x").SetExternalAccountID("repurpose").SetSecretReference("fixture").SetCreatedByUserID(w.owner.UserID).SetSocialSetID(*source.SocialSetID).SaveX(w.ctx)
+	connection := w.db.Client.ChannelConnection.Create().SetID(cuid.New()).SetOrganizationID(w.org).SetPlatform("linkedin").SetExternalAccountID("repurpose").SetSecretReference("fixture").SetCreatedByUserID(w.owner.UserID).SetSocialSetID(*source.SocialSetID).SaveX(w.ctx)
 	// The canonical receipt confirms one reply, while a second never reached the provider.
 	post := w.db.Client.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(w.org).SetChannelConnectionID(connection.ID).SetContentDraftID(source.ID).SetSocialSetID(*source.SocialSetID).SetStatus(scheduledpost.StatusPUBLISHED).SetScheduledFor(time.Now().Add(-time.Hour)).SetPublishedAt(time.Now()).SetCaption("Confirmed root").SetRemotePostID("remote-root").SetIdempotencyKey(cuid.New()).SetReplies([]thread.Reply{{Caption: "Confirmed reply"}, {Caption: "Never delivered"}}).SetThreadProgress(postoptions.ThreadProgress{Posted: 1, LastReplyID: "remote-reply"}).SaveX(w.ctx)
 	input := ContentDraftInput{Kind: "repurpose", Target: &draftdoc.Target{SourceDraftID: source.ID}}
@@ -30,7 +31,7 @@ func TestRepurposeSeedsOnlyVisibleConfirmedContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if copy.PlainText != "Confirmed root\n\nConfirmed reply" || len(copy.Body) != 3 || copy.ReviewStatus != "none" || copy.ApprovedVersion != nil || copy.Target.SourcePostID != post.ID || copy.SourceDraftID == nil || *copy.SourceDraftID != source.ID {
+	if copy.PlainText != "Confirmed root\n\nConfirmed reply" || len(copy.Body) != 4 || copy.ReviewStatus != "none" || copy.ApprovedVersion != nil || copy.Target.SourcePostID != post.ID || copy.SourceDraftID == nil || *copy.SourceDraftID != source.ID {
 		t.Fatalf("copy=%+v", copy)
 	}
 	if strings.Contains(copy.PlainText, "Private") || strings.Contains(copy.PlainText, "Never") {

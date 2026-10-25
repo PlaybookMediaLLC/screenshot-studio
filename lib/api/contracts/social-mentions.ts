@@ -4,19 +4,19 @@ import { socialSetParamsSchema } from '@/lib/api/contracts/social-sets'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 
 /**
- * Mentions (RFC 042): an account a post tags, looked up with the social
+ * Mentions (RFC 025): an account a post tags, looked up with the social
  * set's own account, so the lookup spends that account's provider limit.
  */
-/** What a looked-up mention is: an X user or a LinkedIn organization. */
+/** What a looked-up mention is: an X user, LinkedIn organization or eligible Page follower. */
 export const mentionKindSchema = z.enum(['person', 'organization'])
 
-/** An account a post can tag, as its platform writes it in a post (RFC 042). */
+/** An account a post can tag, as its platform writes it in a post (RFC 025). */
 export const socialMentionSchema = z.object({
   handle: z.string().optional(),
   image: z.string().optional(),
   kind: mentionKindSchema,
   label: z.string(),
-  /** The X username, or a LinkedIn organization URN. */
+  /** The native numeric X user ID, or a LinkedIn person/organization URN. */
   providerId: z.string(),
 })
 
@@ -48,8 +48,9 @@ export const lookupMentionsContract = defineContract({
   path: '/api/v1/social-sets/{id}/mentions',
   query: z.object({
     channel: z.enum(['x', 'linkedin']),
-    q: z.string().trim().min(1).max(200),
+    kind: mentionKindSchema.optional(),
+    q: z.string().trim().max(200),
   }),
   summary:
-    "Look up a mention with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address",
+    "Look up a mention with the set's own account: an X user by exact username, a LinkedIn company page, or eligible LinkedIn Page followers with approved People Typeahead access",
 })

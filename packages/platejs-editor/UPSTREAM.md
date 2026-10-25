@@ -1,7 +1,7 @@
 # Upstream: oppulence-canvas `packages/platejs-editor`
 
 This package is a vendored copy, decided in
-[RFC 037](../../docs/rfcs/037-workspaces-and-content-drafts.md).
+[RFC 013](../../docs/rfcs/013-workspaces-and-content-drafts.md).
 
 | | |
 | --- | --- |
@@ -67,7 +67,7 @@ Build and tooling (this repository has no Bun, Turbo or Biome):
   trip, and a package `.prettierrc.json` matching the upstream style.
   Upstream files are not reformatted; Prettier checks only `test/`.
 
-Boundaries (RFC 037: the package reaches nothing the app owns, enforced by
+Boundaries (RFC 013: the package reaches nothing the app owns, enforced by
 `test/editor-package-boundary.test.ts`):
 
 - `src/lib/editor-services.tsx` (new): `EditorServicesProvider` injects the
@@ -76,8 +76,8 @@ Boundaries (RFC 037: the package reaches nothing the app owns, enforced by
   uploadthing is gone (`src/lib/uploadthing.ts` and the `OurFileRouter` type
   export are deleted), and a failed upload rejects instead of falling back to
   a mock object URL.
-- `src/ui/media-placeholder-node.tsx`: keeps the host's `assetId` on the
-  uploaded media node.
+- `src/ui/media-placeholder-node.tsx`: keeps the host's `assetId`, MIME type and ready state on the
+  uploaded media node so the host can distinguish GIFs and videos without URL guesses.
 - `src/components/use-chat.ts`: the chat endpoint comes from `ai.chat`; with
   none, a send fails visibly instead of posting to `/api/ai/command`. The
   system template names Shots instead of Eigenn.

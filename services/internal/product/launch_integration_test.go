@@ -64,6 +64,8 @@ func TestLaunchPipeline(t *testing.T) {
 	exec(`INSERT INTO design (id,"organizationId","campaignId",name,document,"renderKey","updatedAt") VALUES ($1,$2,$3,'Hero','{"version":1,"image":{}}','old',now())`, designID, org, campaignID)
 	exec(`INSERT INTO brand_kit (id,"organizationId",name,version,definition,status,"updatedAt") VALUES ($1,$2,'Brand',1,'{}','ACTIVE',now())`, "kit_"+id, org)
 	repo := NewConfiguration(db.Client)
+	subscribe(t, ctx, repo, org, "pro")
+	subscribe(t, ctx, repo, other, "pro")
 	owner, foreign := actors[org], actors[other]
 	expect := func(err, kind error, what string) {
 		t.Helper()
@@ -318,6 +320,7 @@ func TestLaunchRunLease(t *testing.T) {
 		_, _ = db.SQL.ExecContext(ctx, `DELETE FROM "user" WHERE id=$1`, userID)
 	})
 	repo := NewConfiguration(db.Client)
+	subscribe(t, ctx, repo, org, "pro")
 	owner := Actor{OrganizationID: org, UserID: userID, SessionID: "session_" + id}
 
 	results := make(chan error, 8)

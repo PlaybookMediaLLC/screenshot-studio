@@ -49,7 +49,7 @@ spec:
           args:
             - "-listen=:5678"
             - >-
-              -text={"status":"success","data":{"screenshot":{"url":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg=="}}}
+              -text={"status":"success","data":{"screenshot":{"url":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=="}}}
           ports:
             - name: http
               containerPort: 5678

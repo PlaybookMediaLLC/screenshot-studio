@@ -1,9 +1,9 @@
 name: Sync Upstream
 
 # Nightly fork sync. Fetches KartikLabhshetwar/screenshot-studio, merges its main into the
-# long-lived "upstream" branch, and opens a PR from "upstream" to main when
-# the branch carries changes that main does not have. A human reviews and
-# merges the PR, so upstream code never lands on main unreviewed.
+# long-lived "upstream" branch, and opens a PR from "upstream" to develop when
+# the branch carries changes that develop does not have. A human reviews and
+# merges the PR, so upstream code reaches production only through a develop -> main release.
 # If the merge conflicts, the job fails and a human resolves it on the
 # "upstream" branch.
 on:
@@ -33,6 +33,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          ref: develop
           # Full history: the merge needs the common ancestor.
           fetch-depth: 0
 
@@ -42,22 +43,22 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream https://github.com/KartikLabhshetwar/screenshot-studio.git
           git fetch upstream main
-          # Reuse the existing branch, or create it from main on the first run.
+          # Reuse the existing branch, or create it from develop on the first run.
           git checkout upstream || git checkout -b upstream
           git merge --no-edit upstream/main
           git push origin upstream
 
-      - name: Open PR against main
+      - name: Open PR against develop
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # No delta against main: nothing to open.
-          if git diff --quiet origin/main upstream; then
-            echo "upstream branch matches main; no PR needed."
+          # No delta against develop: nothing to open.
+          if git diff --quiet origin/develop upstream; then
+            echo "upstream branch matches develop; no PR needed."
             exit 0
           fi
           # An open sync PR already tracks the branch; the push above updated it.
-          if [ "$(gh pr list --head upstream --base main --state open --json number --jq length)" != "0" ]; then
+          if [ "$(gh pr list --head upstream --base develop --state open --json number --jq length)" != "0" ]; then
             echo "Sync PR already open; branch updated."
             exit 0
           fi
@@ -65,7 +66,7 @@ jobs:
           # rejects the Actions token with "Resource not accessible by
           # integration" even with pull-requests: write granted.
           gh api "repos/${GITHUB_REPOSITORY}/pulls" \
-            -f base=main \
+            -f base=develop \
             -f head=upstream \
             -f title="chore: sync upstream $(date -u +%F)" \
-            -f body="Nightly merge of KartikLabhshetwar/screenshot-studio main into the upstream branch. Review the diff, then merge."
+            -f body="Nightly merge of KartikLabhshetwar/screenshot-studio main into the upstream branch. Review and merge into develop; release through develop to main."

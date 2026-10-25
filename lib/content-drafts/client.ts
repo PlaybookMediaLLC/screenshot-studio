@@ -68,6 +68,7 @@ const one = (id: string) => `${base}/${encodeURIComponent(id)}`
 
 /** Fields a save writes; `baseVersion` is the version the editor last saw. */
 export type DraftSave = {
+  collabGeneration?: number
   assetIds?: string[]
   baseVersion: number
   body?: unknown[]
@@ -81,7 +82,7 @@ export type DraftSave = {
   /** Labels (an experiment). */
   tags?: string[]
   title?: string
-  /** Write (RFC 042): the draft's structured parts beside the body. */
+  /** Write (RFC 025): the draft's structured parts beside the body. */
   article?: DraftWire['article'] & object
   platformVersions?: DraftWire['platformVersions']
   primaryPlatform?: DraftChannel
@@ -98,7 +99,7 @@ export const draftsApi = {
     call<DraftWire>(base, { body: input, method: 'POST' }),
   get: (id: string) => call<DraftWire>(one(id)),
   posts: (id: string) => call<{ posts: DraftPostWire[] }>(`${one(id)}/posts`),
-  remove: (id: string) => call<{ deleted: true }>(one(id), { method: 'DELETE' }),
+  remove: (id: string, expected?: { version: number; calendarVersion: number }) => call<{ deleted: true }>(`${one(id)}${expected ? `?version=${expected.version}&calendarVersion=${expected.calendarVersion}` : ''}`, { method: 'DELETE' }),
   save: (id: string, input: DraftSave) =>
     call<DraftWire>(one(id), { body: input, method: 'PATCH' }),
   schedule: (id: string, input: z.input<typeof contentDraftScheduleSchema>) =>
@@ -131,6 +132,18 @@ export const draftsApi = {
       body: { scheduledFor: scheduledFor.toISOString() },
       method: 'POST',
     }),
+  swapPosts: (id: string, withId: string) =>
+    call<{ posts: DraftPostWire[] }>(`/api/v1/content-draft-posts/${encodeURIComponent(id)}/swap`, {
+      body: { withId },
+      method: 'POST',
+    }),
+  publishQueuedPost: (id: string) =>
+    call<{ post: DraftPostWire }>(
+      `/api/v1/content-draft-posts/${encodeURIComponent(id)}/publish-now`,
+      {
+        method: 'POST',
+      }
+    ),
   resumeThread: (id: string) =>
     call<{ post: DraftPostWire }>(`/api/v1/content-draft-posts/${encodeURIComponent(id)}/resume`, {
       method: 'POST',

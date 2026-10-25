@@ -7,7 +7,7 @@ import { contentDraftIdSchema } from '@/lib/api/contracts/content-drafts'
 import { isoInstantSchema } from '@/lib/api/contracts/settings-platform'
 
 /**
- * Social sets (RFC 043): publishing identities with their accounts, schedules,
+ * Social sets (RFC 024): publishing identities with their accounts, schedules,
  * new-draft defaults, public profiles and Writing Assistant. Each schema
  * mirrors the backend SDK's type, so the Go contract and this one cannot drift.
  */

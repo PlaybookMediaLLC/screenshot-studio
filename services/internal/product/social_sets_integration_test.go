@@ -18,7 +18,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// RFC 043 acceptance: social sets are addressed by ID, keep their own
+// RFC 024 acceptance: social sets are addressed by ID, keep their own
 // schedules and defaults, stay private until shared, and changing a template,
 // a default or a display time zone never rewrites stored work.
 func TestSocialSetsPlatform(t *testing.T) {

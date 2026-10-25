@@ -43,7 +43,7 @@ func (ProductSurface) Indexes() []ent.Index {
 
 // SurfaceCapture is one screenshot of a product surface. A newer capture
 // supersedes the current one; superseded captures stay readable so content
-// built from them keeps its source (docs/rfcs/013-product-asset-map.md).
+// built from them keeps its source (docs/rfcs/018-product-asset-map.md).
 type SurfaceCapture struct{ ent.Schema }
 
 func (SurfaceCapture) Annotations() []schema.Annotation {

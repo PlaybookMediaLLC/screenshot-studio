@@ -6,6 +6,7 @@ A changelog entry is a release note. It says what Typefully shipped. It does not
 
 | File | Content |
 |---|---|
+| [implementation-evidence.md](implementation-evidence.md) | Integration-branch implementation and verification evidence |
 | [coverage.md](coverage.md) | Current 109-entry implementation and verification matrix |
 | [execution.md](execution.md) | Executed checks, failures repaired, and release blockers |
 | [triage.md](triage.md) | Historical October 19 baseline; current status is in coverage.md |
@@ -31,7 +32,7 @@ The 2026-10-24 assignment reopens the October 23 scheduling expansion. All 15 ep
 
 ## Step 1: Triage each entry against Shots
 
-Give each `TF-` entry one status. Write the evidence: a code path, or a line in RFC 037 or RFC 039.
+Give each `TF-` entry one status. Write the evidence: a code path, or a line in RFC 013 or RFC 042.
 
 | Status | Meaning | Next action |
 |---|---|---|
@@ -39,7 +40,7 @@ Give each `TF-` entry one status. Write the evidence: a code path, or a line in 
 | Partial | Shots does part of it. | Write a work item for the gap only. |
 | Missing | Shots does not do it. | Write a work item. |
 | Verify | The code does not show the answer. | Test locally and with a permitted real account where available; record external blockers. |
-| Later | RFC 039 defers it. | Record the product decision/dependency in the corresponding work item. |
+| Later | RFC 042 defers it. | Record the product decision/dependency in the corresponding work item. |
 | Skip | It is about Typefully, not about the product. | Keep the reason. No work item. |
 
 ## Step 2: Shape the work items
@@ -58,7 +59,7 @@ A work item is one change that a user can see. It ships alone. One person finish
 
 **Source:** TF-xxx (link)
 **Gap:** Missing | Partial. Evidence: `path:line`
-**Priority:** RFC 039 P1 to P5, or Later (reason), or Unranked
+**Priority:** RFC 042 P1 to P5, or Later (reason), or Unranked
 **Size:** S (2 days or less) | M (1 week or less) | L (split it)
 **Depends on:** other work items, provider app reviews, RFCs
 
@@ -78,7 +79,7 @@ Who needs it, and what they cannot do today.
 - Provider adapter: `services/internal/social/integrations/social/<provider>/...`
 - Data and migration
 - UI: `components/drafts/...`
-- Metering and plan gate (RFC 035)
+- Metering and plan gate (RFC 023)
 
 ### Failure behavior
 What happens when the provider rejects it.
@@ -97,17 +98,17 @@ The metric that proves it works in production.
 
 Apply these rules from the RFCs to every item:
 
-1. The composer and Go use the same limits (RFC 039).
-2. An update never publishes at once by accident (RFC 039, lesson 3).
-3. A failed extra, such as a first comment, does not fail the post (RFC 039, lesson 4).
-4. A channel without a feature shows that state, not empty data (RFC 039, lesson 5).
-5. One idempotency key for each draft, channel, and version (RFC 037).
+1. The composer and Go use the same limits (RFC 042).
+2. An update never publishes at once by accident (RFC 042, lesson 3).
+3. A failed extra, such as a first comment, does not fail the post (RFC 042, lesson 4).
+4. A channel without a feature shows that state, not empty data (RFC 042, lesson 5).
+5. One idempotency key for each draft, channel, and version (RFC 013).
 
 ## Step 4: Set the order
 
-1. Put each epic in an RFC 039 priority (P1 to P5), or in "Later" with the reason.
+1. Put each epic in an RFC 042 priority (P1 to P5), or in "Later" with the reason.
 2. The reopened assignment includes previously unranked feasible work; only explicit product/security and provider boundaries remain blocked.
-3. Start provider app reviews first. RFC 039 says that the TikTok, Meta, and Google reviews take weeks.
+3. Start provider app reviews first. RFC 042 says that the TikTok, Meta, and Google reviews take weeks.
 
 ## Step 5: Keep the items here
 

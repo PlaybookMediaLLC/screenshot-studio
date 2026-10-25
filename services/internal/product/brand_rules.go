@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Brand rules enforced on write (docs/rfcs/011-brand-profile.md): copy that
+// Brand rules enforced on write (docs/rfcs/019-brand-profile.md): copy that
 // uses a prohibited term is refused, and a brand kit definition is validated
 // and saved in its canonical schema-version-1 shape.
 

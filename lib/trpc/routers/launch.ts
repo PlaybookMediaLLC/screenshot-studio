@@ -64,7 +64,9 @@ const campaignInput = z.object({ campaignId: z.string().cuid() })
 /** True when AI is configured and the workspace has not turned it off. */
 export async function isAiEnabled(access: OrganizationAccess): Promise<boolean> {
   if (!isCampaignStudioConfigured()) return false
-  const { workspace } = await backendSDK(access).getWorkspace()
+  const sdk = backendSDK(access)
+  if (!(await sdk.getFeatureDecision('workspace:paid')).allowed) return false
+  const { workspace } = await sdk.getWorkspace()
   // No settings row is the default: on.
   return workspace?.workspaceSettings?.aiAgentEnabled !== false
 }

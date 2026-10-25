@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -21,6 +20,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
@@ -51,6 +51,9 @@ type GeneratedAssetInput struct {
 	Height         int
 	ParentAssetID  string
 	Width          int
+	// Only the provider conversion pipeline may create trusted cache entries.
+	// Unexported so HTTP inputs cannot claim this provenance.
+	providerDerivative bool
 }
 
 type GeneratedAssetRecord struct {
@@ -60,6 +63,7 @@ type GeneratedAssetRecord struct {
 }
 
 type AssetUploadInput struct {
+	ParentAssetID  string  `json:"parentAssetId"`
 	ProjectID      string  `json:"projectId"`
 	Bytes          int     `json:"bytes"`
 	Classification string  `json:"classification"`
@@ -88,11 +92,10 @@ func validAssetSegment(value string) bool {
 }
 
 func validAssetUpload(input AssetUploadInput) bool {
-	limit := 50 << 20
+	limit := medialimits.UploadBytes(input.ContentType, "pro")
 	if input.ContentType == "application/pdf" {
-		// LinkedIn documents (RFC 042): up to 100 MB, named .pdf so the
+		// LinkedIn documents (RFC 025): up to 100 MB, named .pdf so the
 		// publisher sends them as documents.
-		limit = pdfByteLimit
 		if !strings.HasSuffix(strings.ToLower(input.FileName), ".pdf") {
 			return false
 		}
@@ -140,6 +143,9 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if err := requireFeature(features, plan, "asset:create"); err != nil {
 		return nil, err
 	}
+	if input.Bytes > medialimits.UploadBytes(input.ContentType, plan) {
+		return nil, invalid("The file exceeds this plan’s media upload limit.")
+	}
 	used, err := c.client.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID),
 		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
 		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
@@ -150,6 +156,16 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
 	if int64(used)+int64(input.Bytes) > limits[plan] {
 		return nil, ErrStorageQuota
+	}
+	var parent *ent.Asset
+	if input.ParentAssetID != "" {
+		parent, err = c.client.Asset.Query().Where(asset.ID(input.ParentAssetID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
+		if ent.IsNotFound(err) {
+			return nil, publishing.ErrNotFound
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 	id := uuid.NewString()
 	key := fmt.Sprintf("org/%s/%s/%s/1/%s", actor.OrganizationID, input.Classification, id, input.FileName)
@@ -166,6 +182,9 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 		SetObjectKey(key).SetMediaType(input.ContentType).SetBytes(input.Bytes)
 	if input.SHA256 != nil {
 		create.SetSha256(*input.SHA256)
+	}
+	if parent != nil {
+		create.SetParentAssetID(parent.ID).SetNillableAltText(parent.AltText)
 	}
 	row, err := create.Save(ctx)
 	if err != nil {
@@ -221,11 +240,20 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if !exists {
 		return nil, ErrObjectMissing
 	}
+	if sha256 != nil && row.Sha256 != nil && !strings.EqualFold(*sha256, *row.Sha256) {
+		return nil, invalid("The completion checksum differs from the reserved upload.")
+	}
+	if sha256 != nil && row.Sha256 == nil {
+		row.Sha256 = sha256
+	}
 	if err := c.checkUploadedBytes(ctx, actor, row); err != nil {
 		return nil, err
 	}
 	dimensions, err := c.uploadedImageDimensions(ctx, row)
 	if err != nil {
+		if errors.Is(err, ErrInvalidInput) {
+			_, _ = c.client.Asset.Update().Where(asset.ID(row.ID), asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusFAILED).Save(ctx)
+		}
 		return nil, err
 	}
 	tx, err := c.client.Tx(ctx)
@@ -266,23 +294,27 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	return &result, nil
 }
 
-// checkUploadedBytes reads an upload back from storage and fails it when its
-// bytes are not its declared type (RFC 042). A store that cannot stream
-// objects skips the check.
+// checkUploadedBytes verifies the actual length, digest and media signature.
+// A store without streaming still verifies bytes through its Read contract.
 func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row *ent.Asset) error {
-	opener, ok := c.objects.(objectOpener)
-	if !ok {
-		return nil
+	var object io.ReadCloser
+	var err error
+	if opener, ok := c.objects.(objectOpener); ok {
+		object, err = opener.Open(ctx, row.ObjectKey)
+	} else {
+		var data []byte
+		data, err = c.objects.Read(ctx, row.ObjectKey)
+		object = io.NopCloser(bytes.NewReader(data))
 	}
-	object, err := opener.Open(ctx, row.ObjectKey)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
 	}
 	defer object.Close()
-	if err := verifyAssetBytes(row.MediaType, object); err != nil {
-		if _, failErr := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID),
-			asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusFAILED).Save(ctx); failErr != nil {
-			return failErr
+	if err := verifyUploadedContent(object, row.MediaType, row.Bytes, row.Sha256); err != nil {
+		if errors.Is(err, ErrInvalidInput) {
+			if _, failErr := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusFAILED).Save(ctx); failErr != nil {
+				return failErr
+			}
 		}
 		return err
 	}
@@ -362,15 +394,22 @@ func (c *Configuration) StoreGeneratedAsset(ctx context.Context, actor Actor, in
 	if input.ContentType != "image/png" && input.ContentType != "image/jpeg" && input.ContentType != "image/webp" {
 		return nil, ErrInvalidInput
 	}
+	return c.storeGeneratedAsset(ctx, actor, input)
+}
+
+func (c *Configuration) storeGeneratedAsset(ctx context.Context, actor Actor, input GeneratedAssetInput) (*GeneratedAssetRecord, error) {
 	if input.Classification != "capture" && input.Classification != "derived" &&
 		input.Classification != "export" && input.Classification != "input" {
 		return nil, ErrInvalidInput
 	}
-	if len(input.Body) == 0 || len(input.Body) > 50<<20 || !validAssetSegment(input.FileName) ||
+	if len(input.Body) == 0 || len(input.Body) > medialimits.Limits.PaidImageBytes || !validAssetSegment(input.FileName) ||
 		!validAssetSegment(actor.OrganizationID) || input.Width <= 0 || input.Height <= 0 {
 		return nil, ErrInvalidInput
 	}
-	dimensions, _, err := image.DecodeConfig(bytes.NewReader(input.Body))
+	if err := verifyAssetBytes(input.ContentType, bytes.NewReader(input.Body)); err != nil {
+		return nil, err
+	}
+	dimensions, err := decodeAssetDimensions(bytes.NewReader(input.Body))
 	if err != nil || dimensions.Width != input.Width || dimensions.Height != input.Height {
 		return nil, ErrInvalidInput
 	}
@@ -392,6 +431,9 @@ func (c *Configuration) StoreGeneratedAsset(ctx context.Context, actor Actor, in
 	if err := requireFeature(features, plan, "asset:create"); err != nil {
 		return nil, err
 	}
+	if len(input.Body) > medialimits.UploadBytes(input.ContentType, plan) {
+		return nil, invalid("The file exceeds this plan’s media upload limit.")
+	}
 	used, err := c.client.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID),
 		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
 		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
@@ -405,6 +447,9 @@ func (c *Configuration) StoreGeneratedAsset(ctx context.Context, actor Actor, in
 	}
 	id := uuid.NewString()
 	key := fmt.Sprintf("org/%s/%s/%s/1/%s", actor.OrganizationID, input.Classification, id, input.FileName)
+	if input.providerDerivative {
+		key = providerImagePrefix(actor.OrganizationID) + id + "/1/" + input.FileName
+	}
 	if err := c.objects.Put(ctx, key, input.ContentType, bytes.NewReader(input.Body)); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
 	}
@@ -427,6 +472,11 @@ func (c *Configuration) StoreGeneratedAsset(ctx context.Context, actor Actor, in
 		SetWidth(input.Width).SetHeight(input.Height)
 	if input.ParentAssetID != "" {
 		create.SetParentAssetID(input.ParentAssetID)
+		parent, err := tx.Asset.Get(ctx, input.ParentAssetID)
+		if err != nil {
+			return nil, err
+		}
+		create.SetNillableAltText(parent.AltText)
 	}
 	row, err := create.Save(ctx)
 	if err != nil {

@@ -1,12 +1,15 @@
 // Package postoptions holds what a scheduled post carries beyond its text
-// (RFC 037): follow-up actions after it is live, a poll, and how far a thread
+// (RFC 013): follow-up actions after it is live, a poll, and how far a thread
 // got. A leaf package, so the ent schema can use its types.
 package postoptions
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // AutoActions are what happens after a post is live, on channels that
@@ -19,11 +22,11 @@ type AutoActions struct {
 	PlugAtLikes int    `json:"plugAtLikes,omitempty"`
 	PlugText    string `json:"plugText,omitempty"`
 	PlugMetric  string `json:"plugMetric,omitempty"`
-	// QuoteAfterHours publishes a native quote after this many hours.
-	// It requires the same verified provider eligibility as an ordinary quote.
+	// QuoteAfterHours posts QuoteText as a native quote this many hours after
+	// publication. The provider must grant native quote access at execution.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
-	// Retweets repost the post at each rule's time (RFC 042), and
+	// Retweets repost the post at each rule's time (RFC 025), and
 	// UnretweetAfterMinutes removes each of those reposts this long after
 	// it went up; 0 keeps them.
 	Retweets              []RetweetRule `json:"retweets,omitempty"`
@@ -77,15 +80,22 @@ type Poll struct {
 
 // ThreadProgress is how much of a thread is live: the replies posted, of
 // how many, and the last live reply a resumed thread answers.
-type ThreadProgress struct {
-	Quotes      []QuoteReceipt `json:"quotes,omitempty"`
-	LastReplyID string         `json:"lastReplyId,omitempty"`
-	Posted      int            `json:"posted"`
-	Total       int            `json:"total"`
+// ThreadReceipt records the exact successful continuation for attribution.
+type ThreadReceipt struct {
+	RemoteID    string    `json:"remoteId"`
+	Position    int       `json:"position"`
+	PublishedAt time.Time `json:"publishedAt"`
 }
 
-// QuoteReceipt preserves the server's quote approval state at publication.
-// A published status can exist while its native quote awaits federation approval.
+type ThreadProgress struct {
+	Quotes      []QuoteReceipt  `json:"quotes,omitempty"`
+	Receipts    []ThreadReceipt `json:"receipts,omitempty"`
+	LastReplyID string          `json:"lastReplyId,omitempty"`
+	Posted      int             `json:"posted"`
+	Total       int             `json:"total"`
+}
+
+// QuoteReceipt preserves the native quote approval state of a published status.
 type QuoteReceipt struct {
 	PostID string `json:"postId"`
 	State  string `json:"state"`
@@ -95,13 +105,15 @@ type QuoteReceipt struct {
 // replies, impressions, …), as its platform reports them.
 type Metrics map[string]float64
 
-// PublishOptions are a draft post's settings beyond its text (RFC 042):
+// PublishOptions are a draft post's settings beyond its text (RFC 025):
 // who can reply, its labels, where it goes, and what it quotes. Each field
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.
 type PublishOptions struct {
 	// X: up to ten numeric user IDs tagged in attached photos.
-	PhotoTagIDs []string `json:"photoTagIds,omitempty"`
+	PhotoTagIDs   []string     `json:"photoTagIds,omitempty"`
+	LinkPreview   *LinkPreview `json:"linkPreview,omitempty"`
+	TaggedUserIDs []string     `json:"taggedUserIds,omitempty"`
 	// X: who can reply (following, mentionedUsers, subscribers, verified);
 	// empty is everyone. Replies never change who can see the post.
 	ReplySettings string `json:"replySettings,omitempty"`
@@ -116,6 +128,7 @@ type PublishOptions struct {
 	// X: this reply quotes the thread's first post, once it is live.
 	QuoteFirstPost bool `json:"quoteFirstPost,omitempty"`
 	// X articles: the title and cover; the caption is the body.
+	ArticleHTML         string `json:"articleHtml,omitempty"`
 	ArticleTitle        string `json:"articleTitle,omitempty"`
 	ArticleCoverAssetID string `json:"articleCoverAssetId,omitempty"`
 	// LinkedIn: PUBLIC or CONNECTIONS; empty is PUBLIC.
@@ -131,7 +144,7 @@ type PublishOptions struct {
 
 // Empty reports whether no option is set.
 func (o PublishOptions) Empty() bool {
-	return len(o.PhotoTagIDs) == 0 && o.ReplySettings == "" && !o.MadeWithAI && !o.PaidPartnership && o.CommunityID == "" && !o.ShareWithFollowers && o.QuoteRemoteID == "" && !o.QuoteFirstPost && o.ArticleTitle == "" && o.ArticleCoverAssetID == "" && o.Visibility == "" && o.FirstComment == "" && o.DocumentAssetID == "" && o.DocumentTitle == "" && o.PollQuestion == ""
+	return len(o.PhotoTagIDs) == 0 && len(o.TaggedUserIDs) == 0 && func() bool { o.TaggedUserIDs = nil; o.PhotoTagIDs = nil; return reflect.DeepEqual(o, PublishOptions{}) }()
 }
 
 // LivePostURL is a live post's address on its platform, where one can be
@@ -146,7 +159,12 @@ func LivePostURL(platform string, remoteID *string) *string {
 		url = "https://x.com/i/status/" + *remoteID
 	case "linkedin":
 		url = "https://www.linkedin.com/feed/update/" + *remoteID
-	case "threads", "bluesky", "mastodon":
+	case "bluesky":
+		if uri, err := socialidentity.BlueskyPostURI(*remoteID); err == nil {
+			parts := strings.Split(strings.TrimPrefix(uri, "at://"), "/")
+			url = "https://bsky.app/profile/" + parts[0] + "/post/" + parts[2]
+		}
+	case "threads", "mastodon", "mastodon-custom":
 		// These providers report a post's address as its id.
 		if strings.HasPrefix(*remoteID, "https://") {
 			url = *remoteID

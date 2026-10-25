@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,14 +14,16 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/articlebody"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
-// Scheduling a content draft (RFC 037) creates one canonical scheduled post
+// Scheduling a content draft (RFC 013) creates one canonical scheduled post
 // per channel, through the same scheduled_post queue and Temporal workflow as
 // campaign posts. The web serializes the draft per channel; the backend
 // re-checks each caption before anything is queued.
@@ -41,8 +44,8 @@ func EnableE2EDraftPlatform() {
 }
 
 // draftChannelImageLimits is how many images each channel takes in one post.
-// A post carries its first images up to that many; the composer's preview
-// says so (lib/content-drafts/serialize.ts holds the same numbers).
+// Excess attachments are rejected, never silently truncated. The composer
+// enforces the same counts (lib/content-drafts/serialize.ts).
 var draftChannelImageLimits = map[string]int{
 	"bluesky": 4, "instagram": 10, "linkedin": 9, "mastodon": 4, "threads": 10, "x": 4,
 }
@@ -67,7 +70,7 @@ type ContentDraftScheduleTarget struct {
 	AutoActions *postoptions.AutoActions `json:"autoActions"`
 	// Poll asks a question with the post (X, LinkedIn).
 	Poll *postoptions.Poll `json:"poll"`
-	// Options are the first post's settings beyond its text (RFC 042).
+	// Options are the first post's settings beyond its text (RFC 025).
 	Options *postoptions.PublishOptions `json:"options"`
 	// ReplyTo is the live X post a reply draft answers.
 	ReplyTo string `json:"replyTo"`
@@ -84,13 +87,14 @@ const contentDraftReplyLimit = 24
 // the backend reserves. NaturalPostingTime overrides the draft's own choice
 // for this schedule.
 type ScheduleContentDraftInput struct {
-	ExpectedQueueSlot  *time.Time                   `json:"expectedQueueSlot"`
-	NaturalPostingTime *bool                        `json:"naturalPostingTime"`
-	Queue              bool                         `json:"queue"`
-	ScheduledFor       time.Time                    `json:"scheduledFor"`
-	Targets            []ContentDraftScheduleTarget `json:"targets"`
-	Version            int                          `json:"version"`
-	// Write (RFC 042): publish now, or a wall time in a zone (the set's when
+	ExpectedQueueSlot   *time.Time                   `json:"expectedQueueSlot"`
+	BaseCalendarVersion int                          `json:"baseCalendarVersion"`
+	NaturalPostingTime  *bool                        `json:"naturalPostingTime"`
+	Queue               bool                         `json:"queue"`
+	ScheduledFor        time.Time                    `json:"scheduledFor"`
+	Targets             []ContentDraftScheduleTarget `json:"targets"`
+	Version             int                          `json:"version"`
+	// Write (RFC 025): publish now, or a wall time in a zone (the set's when
 	// empty), resolved here; Disambiguation picks a repeated hour.
 	Disambiguation string `json:"disambiguation"`
 	LocalTime      string `json:"localTime"`
@@ -113,11 +117,12 @@ func naturalOffset(draftID string, version int, base time.Time) int {
 // AccountStanding is a display projection of verified connection capabilities.
 // Scheduling independently rechecks the current proof in its transaction.
 type AccountStanding struct {
-	Premium       bool                    `json:"premium"`
-	XCaptionLimit *int                    `json:"xCaptionLimit"`
-	XArticles     *bool                   `json:"xArticles"`
-	NativeQuotes  bool                    `json:"nativeQuotes"`
-	PollLimits    *postoptions.PollLimits `json:"pollLimits,omitempty"`
+	MastodonQuotes *bool                      `json:"mastodonQuotes"`
+	PollLimits     *socialidentity.PollLimits `json:"pollLimits"`
+	Premium        bool                       `json:"premium"`
+	XCaptionLimit  *int                       `json:"xCaptionLimit"`
+	XArticles      *bool                      `json:"xArticles"`
+	XQuotes        bool                       `json:"xQuotes"`
 }
 
 // AccountStandingReader reads an account's standing from its platform
@@ -155,7 +160,7 @@ type ContentDraftPost struct {
 	Platform            string    `json:"platform"`
 	ScheduledFor        time.Time `json:"scheduledFor"`
 	Status              string    `json:"status"`
-	// How the instant was chosen (RFC 043): queue or explicit, the instant
+	// How the instant was chosen (RFC 024): queue or explicit, the instant
 	// before any natural offset, the offset, and the time zone it was read in.
 	NaturalOffsetSeconds *int       `json:"naturalOffsetSeconds"`
 	ScheduleMode         *string    `json:"scheduleMode"`
@@ -169,7 +174,7 @@ type ContentDraftPost struct {
 	// A thread: how many replies it has and how many went out.
 	Replies        int                        `json:"replies"`
 	ThreadProgress postoptions.ThreadProgress `json:"threadProgress"`
-	// Its follow-ups once live (RFC 042), each with its receipt.
+	// Its follow-ups once live (RFC 025), each with its receipt.
 	Automations []PostAutomation `json:"automations"`
 }
 
@@ -234,7 +239,7 @@ func validateDraftTargets(input ScheduleContentDraftInput) error {
 			return invalid("Each channel must be a distinct, valid connection.")
 		}
 		seen[target.ChannelConnectionID] = true
-		if strings.TrimSpace(target.Caption) == "" {
+		if strings.TrimSpace(target.Caption) == "" && len(target.AssetIDs) == 0 && (target.Options == nil || target.Options.DocumentAssetID == "") {
 			return invalid("Every channel needs a caption.")
 		}
 	}
@@ -278,11 +283,22 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if target.AssetIDs != nil {
 			ids = target.AssetIDs
 		}
+		if err := checkLinkPreviewMedia(target.Options, len(ids)); err != nil {
+			return nil, nil, err
+		}
+		if distinctAssetCount(ids) != len(ids) {
+			return nil, nil, invalid("Each attachment in a post must be distinct. Move the copy to another post or apply a distinct edit.")
+		}
 		if err := checkPostOptions(channel, target.Options, true); err != nil {
 			return nil, nil, err
 		}
 		if channel == "bluesky" {
 			if err := checkBlueskyTarget(ctx, tx, connection, target, ids); err != nil {
+				return nil, nil, err
+			}
+		}
+		if channel == "mastodon" {
+			if err := checkMastodonPolls(ctx, tx, connection, target, ids); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -294,7 +310,9 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 			}
 			limit = caps.PostTextLimit()
 		}
-		ids = ids[:min(len(ids), draftChannelImageLimits[channel])]
+		if len(ids) > draftChannelImageLimits[channel] {
+			return nil, nil, invalid("Too many attachments for " + channel + ". Remove attachments before scheduling.")
+		}
 		if target.AssetIDs != nil {
 			if ids, err = contentDraftAssets(ctx, tx, organizationID, ids); err != nil {
 				return nil, nil, err
@@ -323,23 +341,7 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 			}
 			media++
 		}
-		needsNativeQuote := target.Options != nil && target.Options.QuoteRemoteID != ""
-		for _, reply := range target.Replies {
-			if reply.Options != nil && reply.Options.QuoteFirstPost {
-				needsNativeQuote = true
-			}
-		}
-		if channel == "mastodon" && needsNativeQuote && !c.accountStanding(ctx, connection).NativeQuotes {
-			return nil, nil, conflict("Reconnect Mastodon on a server with native quotes (API version 7 or newer) and grant search access.")
-		}
-		var pollErr error
-		if channel == "mastodon" && target.Poll != nil {
-			standing := c.accountStanding(ctx, connection)
-			pollErr = standing.PollLimits.Validate(target.Poll, media)
-		} else {
-			pollErr = checkPoll(channel, target.Poll, target.Options, media)
-		}
-		if err := pollErr; err != nil {
+		if err := checkPoll(channel, target.Poll, target.Options, media); err != nil {
 			return nil, nil, err
 		}
 		if err := checkDraftExtras(channel, target); err != nil {
@@ -392,7 +394,7 @@ func checkDraftExtras(channel string, target ContentDraftScheduleTarget) error {
 	return nil
 }
 
-// checkRetweetRules checks automatic reposts (RFC 042): at most five, each
+// checkRetweetRules checks automatic reposts (RFC 025): at most five, each
 // a duration after publishing (up to 30 days) or a wall-clock time up to 30
 // days later in a real time zone, and a removal delay of up to a week.
 func checkRetweetRules(actions postoptions.AutoActions) error {
@@ -427,6 +429,15 @@ func checkDraftKindTargets(kind string, targets []ContentDraftScheduleTarget) er
 		}
 		switch kind {
 		case "article":
+			assets := map[string]string{}
+			for _, id := range target.AssetIDs {
+				assets[id] = ""
+			}
+			if options.ArticleHTML != "" {
+				if _, err := articlebody.Render(options.ArticleHTML, assets); err != nil {
+					return invalid(err.Error())
+				}
+			}
 			if len(targets) != 1 {
 				return invalid("An article goes to one X account and cannot go to other platforms with it.")
 			}
@@ -445,7 +456,7 @@ func checkDraftKindTargets(kind string, targets []ContentDraftScheduleTarget) er
 				return invalid("A quote names the post it quotes.")
 			}
 		default:
-			if target.ReplyTo != "" || options.ArticleTitle != "" {
+			if target.ReplyTo != "" || options.ArticleTitle != "" || options.ArticleHTML != "" {
 				return invalid("Only a reply answers a post, and only an article has a title.")
 			}
 		}
@@ -485,11 +496,22 @@ func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel 
 		if length := draftPostLength(channel, reply.Caption); length > limit {
 			return conflict(fmt.Sprintf("Post %d is %d characters; the %s limit is %d.", index+2, length, channel, limit))
 		}
+		if err := checkLinkPreviewMedia(reply.Options, len(reply.AssetIDs)); err != nil {
+			return err
+		}
 		if err := checkPostOptions(channel, reply.Options, false); err != nil {
 			return err
 		}
-		ids, err := contentDraftAssets(ctx, tx, organizationID,
-			reply.AssetIDs[:min(len(reply.AssetIDs), draftChannelImageLimits[channel])])
+		if err := checkPoll(channel, reply.Poll, reply.Options, len(reply.AssetIDs)); err != nil {
+			return err
+		}
+		if distinctAssetCount(reply.AssetIDs) != len(reply.AssetIDs) {
+			return invalid("Each attachment in a reply must be distinct.")
+		}
+		if len(reply.AssetIDs) > draftChannelImageLimits[channel] {
+			return invalid("Too many attachments for " + channel + ".")
+		}
+		ids, err := contentDraftAssets(ctx, tx, organizationID, reply.AssetIDs)
 		if err != nil {
 			return err
 		}
@@ -565,14 +587,32 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err := validateDraftTargets(input); err != nil {
 		return nil, err
 	}
-	if _, err := c.loadDraft(ctx, actor, draftID); err != nil {
+	loadedDraft, err := c.loadDraft(ctx, actor, draftID)
+	if err != nil {
 		return nil, err
+	}
+	if loadedDraft.Version == input.Version {
+		input.Targets = slices.Clone(input.Targets)
+		for i := range input.Targets {
+			target := &input.Targets[i]
+			target.AssetIDs = slices.Clone(target.AssetIDs)
+			target.Replies = slices.Clone(target.Replies)
+			for j := range target.Replies {
+				target.Replies[j].AssetIDs = slices.Clone(target.Replies[j].AssetIDs)
+			}
+		}
+		if err := c.prepareDraftImages(ctx, actor, input.Targets, loadedDraft.AssetIds); err != nil {
+			return nil, err
+		}
 	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM organization WHERE id=$1 FOR SHARE`, actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	draft, err := visibleContentDraft(ctx, tx.Client(), actor, draftID)
 	if err != nil {
 		return nil, err
@@ -593,10 +633,18 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if draft.Status == contentdraft.StatusArchived {
 		return nil, conflict("Restore this draft before scheduling it.")
 	}
+	if input.BaseCalendarVersion > 0 && draft.CalendarVersion != input.BaseCalendarVersion {
+		return nil, conflict("The calendar changed. Reload before scheduling.")
+	}
 	if draft.Version != input.Version {
 		return nil, &ContentDraftVersionConflictError{Current: draft.Version}
 	}
 	if err := c.requireDraftApproval(ctx, draft); err != nil {
+		return nil, err
+	}
+	bound := *c
+	bound.client = tx.Client()
+	if err := bound.requireDraftSchedulingPlan(ctx, actor, draft, input); err != nil {
 		return nil, err
 	}
 	reason := "schedule"
@@ -686,8 +734,8 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		channelIDs = append(channelIDs, target.ChannelConnectionID)
 	}
 	// A scheduled draft is no longer only planned.
-	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version)).
-		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(channelIDs).AddVersion(1).
+	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version), contentdraft.CalendarVersion(draft.CalendarVersion)).
+		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(channelIDs).AddVersion(1).AddCalendarVersion(1).
 		ClearPlannedFor().ClearPlanTimeZone().
 		SetNillableUpdatedByUserID(projectActor(actor)).Save(ctx)
 	if err != nil {
@@ -724,7 +772,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	return result, nil
 }
 
-// draftSocialSet is the draft's set, or for a draft written before RFC 043,
+// draftSocialSet is the draft's set, or for a draft written before RFC 024,
 // the workspace's default set.
 func (c *Configuration) draftSocialSet(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraft) (*ent.SocialSet, error) {
 	if draft.SocialSetID == nil {
@@ -748,7 +796,7 @@ type draftPlacement struct {
 func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, draft *ent.ContentDraft,
 	input ScheduleContentDraftInput, now time.Time) (draftPlacement, error) {
 	placement := draftPlacement{base: input.ScheduledFor.UTC(), mode: scheduledpost.ScheduleModeExplicit}
-	// Write (RFC 042): publish now goes out now, with no offset; a wall time
+	// Write (RFC 025): publish now goes out now, with no offset; a wall time
 	// is resolved in its zone (the set's when it names none), refusing a time
 	// the clocks skip and asking which of a repeated hour.
 	if input.PublishNow {
@@ -794,6 +842,16 @@ func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, dra
 		placement.offset = max(placement.offset, -placement.offset)
 		placement.at = placement.base.Add(time.Duration(placement.offset) * time.Second)
 	}
+	if !placement.at.After(now.Add(30 * time.Second)) {
+		if !natural {
+			return placement, invalid("Pick a time at least 30 seconds in the future.")
+		}
+		placement.offset = int(now.Add(31*time.Second).Sub(placement.base).Seconds()) + 1
+		if placement.offset > naturalOffsetLimit {
+			return placement, invalid("Pick a later natural posting time.")
+		}
+		placement.at = placement.base.Add(time.Duration(placement.offset) * time.Second)
+	}
 	return placement, nil
 }
 
@@ -824,4 +882,12 @@ func (c *Configuration) ListContentDraftPosts(ctx context.Context, actor Actor, 
 		items = append(items, item)
 	}
 	return items, nil
+}
+
+func distinctAssetCount(ids []string) int {
+	seen := map[string]bool{}
+	for _, id := range ids {
+		seen[id] = true
+	}
+	return len(seen)
 }

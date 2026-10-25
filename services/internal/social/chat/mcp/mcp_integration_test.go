@@ -101,9 +101,9 @@ func (memoryObjects) Read(context.Context, string) ([]byte, error) {
 
 type fakeCapture struct{ pages []string }
 
-func (f *fakeCapture) CaptureWith(_ context.Context, pageURL string, _ capture.Options) ([]byte, error) {
+func (f *fakeCapture) CaptureWith(ctx context.Context, pageURL string, _ capture.Options) ([]byte, error) {
 	f.pages = append(f.pages, pageURL)
-	return []byte("\x89PNG\r\n\x1a\n0000"), nil
+	return (memoryObjects{}).Read(ctx, "")
 }
 
 // fixture is two paying workspaces and one without a plan, each with keys.
@@ -296,7 +296,11 @@ func (f *fixture) seed(label string) (releaseID, campaignID, assetID string) {
 	if _, err := f.product.TransitionCampaignPosts(f.ctx, actor, campaign.ID, product.CampaignPostDecision{Decision: "submit"}); err != nil {
 		f.t.Fatal(err)
 	}
-	upload, err := f.product.SignAssetUpload(f.ctx, actor, product.AssetUploadInput{Bytes: 10, ContentType: "image/png", FileName: "b.png"})
+	imageBytes, err := (memoryObjects{}).Read(f.ctx, "")
+	if err != nil {
+		f.t.Fatal(err)
+	}
+	upload, err := f.product.SignAssetUpload(f.ctx, actor, product.AssetUploadInput{Bytes: len(imageBytes), ContentType: "image/png", FileName: "b.png"})
 	if err != nil {
 		f.t.Fatal(err)
 	}
@@ -369,7 +373,11 @@ func TestEveryToolIsTenantIsolated(t *testing.T) {
 		t.Fatalf("createRelease: %v", body)
 	}
 
-	body, isError = f.call(session, "createAssetUploadUrl", map[string]any{"bytes": 20, "contentType": "image/png", "fileName": "a.png"})
+	imageBytes, err := (memoryObjects{}).Read(f.ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, isError = f.call(session, "createAssetUploadUrl", map[string]any{"bytes": len(imageBytes), "contentType": "image/png", "fileName": "a.png"})
 	ownAsset := body["asset"].(map[string]any)["id"].(string)
 	if isError || f.db.Client.Asset.Query().Where(asset.ID(ownAsset), asset.OrganizationID(f.orgs["a"])).CountX(f.ctx) != 1 {
 		t.Fatalf("createAssetUploadUrl: %v", body)
@@ -496,7 +504,7 @@ func TestEntitlementRefusalMatchesREST(t *testing.T) {
 	f := newFixture(t)
 	body, isError := f.call(f.session("free"), "listReleases", map[string]any{})
 	refusedWith(t, "listReleases", body, isError, "workspace_feature_not_entitled")
-	if body["status"] != float64(403) || body["feature"] != "workspace:use" || body["currentPlan"] != "free" ||
+	if body["status"] != float64(403) || body["feature"] != "workspace:paid" || body["currentPlan"] != "free" ||
 		body["requiredPlan"] != "pro" {
 		t.Fatalf("free workspace: %v", body)
 	}
@@ -691,6 +699,8 @@ func TestDraftToolsShareRESTAuthority(t *testing.T) {
 	if !failed {
 		t.Fatal("stale version accepted")
 	}
+	_, _, _, _, connectionID := f.approvedPost()
+	f.db.Client.ContentDraft.UpdateOneID(id).SetChannelConnectionIds([]string{connectionID}).SaveX(f.ctx)
 	body, failed = f.call(session, "planContentDraft", map[string]any{"id": id, "plannedFor": time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339), "timeZone": "UTC"})
 	if failed {
 		t.Fatalf("plan: %v", body)

@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"net/http"
 	"net/url"
 	"os"
@@ -28,7 +27,7 @@ import (
 const identifier = "mastodon-custom"
 
 // read:accounts also works on instances predating Mastodon 4.3's profile scope.
-var scopes = []string{"read:accounts", "write:statuses", "write:media", "read:search", "read:statuses"}
+var scopes = []string{"read:accounts", "read:search", "read:statuses", "write:statuses", "write:media"}
 var accountID = regexp.MustCompile(`^[0-9]{1,80}$`)
 var accountName = regexp.MustCompile(`^[a-zA-Z0-9_]{1,64}$`)
 var errConnection = errors.New("Mastodon connection could not be verified; reconnect on the selected server")
@@ -149,7 +148,7 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 	// Mastodon scopes are hierarchical: an existing broad read/write grant
 	// covers the narrowly requested account, status and media permissions.
 	granted := strings.Fields(token.Scope)
-	for _, required := range scopes {
+	for _, required := range []string{"read:accounts", "write:statuses", "write:media"} {
 		found := false
 		for _, scope := range granted {
 			if scope == required || scope == strings.SplitN(required, ":", 2)[0] {
@@ -265,22 +264,4 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 		return nil, err
 	}
 	return p.Provider.FinalizePost(ctx, accessToken, raw, integration)
-}
-
-// PollLimits uses the connected origin, never the default Mastodon instance.
-func (p *Provider) PollLimits(ctx context.Context, integration *ent.Integration) (*postoptions.PollLimits, error) {
-	origin, err := instanceURL(integration)
-	if err != nil {
-		return nil, err
-	}
-	return p.DynamicPollLimits(ctx, origin)
-}
-
-// QuoteSupport uses the verified connected instance and its advertised API version.
-func (p *Provider) QuoteSupport(ctx context.Context, integration *ent.Integration) (bool, error) {
-	origin, err := instanceURL(integration)
-	if err != nil {
-		return false, err
-	}
-	return p.DynamicQuoteSupport(ctx, origin)
 }

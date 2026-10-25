@@ -2,9 +2,10 @@ package product
 
 import (
 	"errors"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"sync"
 	"testing"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
 func TestDraftImportReceipts(t *testing.T) {

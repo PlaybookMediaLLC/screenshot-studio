@@ -102,6 +102,7 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
     const at = new Date(Math.ceil((Date.now() + 65_000) / 60_000) * 60_000)
     await schedule.getByRole('button', { name: 'Today (UTC)', exact: true }).click()
     await schedule.getByLabel('Time', { exact: true }).fill(at.toISOString().slice(11, 16))
+    await schedule.getByRole('checkbox', { name: 'Open a new draft after scheduling' }).uncheck()
     await schedule.getByRole('button', { name: 'Confirm schedule', exact: true }).click()
     await expect(page.getByTestId('draft-post')).toContainText('Scheduled')
     const queued = await database.query(
@@ -155,7 +156,7 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
         { timeout: 30_000 }
       )
       .toBe(17)
-    await page.goto('/write/analyze')
+    await page.goto('/write/analyze/observations')
     await expect(page.getByTestId('social-analytics')).toContainText('17')
     const download = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Export CSV', exact: true }).click()

@@ -19,7 +19,7 @@ import (
 )
 
 // shotsPlatform is the Shots domain the MCP tools and the agent token
-// exchange call (RFC 038): the platform Ent client on the shared database,
+// exchange call (RFC 026): the platform Ent client on the shared database,
 // the Redis counters /v1 meters quotas with, the tenant object store, and the
 // screenshot API. It is the same service graph services/backend serves /v1 with.
 type shotsPlatform struct {

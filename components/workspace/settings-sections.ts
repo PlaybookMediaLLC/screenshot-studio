@@ -1,6 +1,6 @@
 /**
  * Settings sections, each its own route under /workspace; shared by the
- * sidebar, the in-page settings navigation and the page (RFC 043). Sections
+ * sidebar, the in-page settings navigation and the page (RFC 024). Sections
  * are grouped by who owns what they change: the person, the workspace, or a
  * publishing identity (a brand).
  */

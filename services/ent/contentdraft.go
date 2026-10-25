@@ -50,6 +50,8 @@ type ContentDraft struct {
 	ShareToken *string `json:"share_token,omitempty"`
 	// GuestComments holds the value of the "guest_comments" field.
 	GuestComments []map[string]string `json:"guest_comments,omitempty"`
+	// CalendarVersion holds the value of the "calendar_version" field.
+	CalendarVersion int `json:"calendar_version,omitempty"`
 	// Version holds the value of the "version" field.
 	Version int `json:"version,omitempty"`
 	// SocialSetID holds the value of the "social_set_id" field.
@@ -82,6 +84,8 @@ type ContentDraft struct {
 	PlanTimeZone *string `json:"plan_time_zone,omitempty"`
 	// SourceDraftID holds the value of the "source_draft_id" field.
 	SourceDraftID *string `json:"source_draft_id,omitempty"`
+	// CollabGeneration holds the value of the "collab_generation" field.
+	CollabGeneration int `json:"collab_generation,omitempty"`
 	// CollabState holds the value of the "collab_state" field.
 	CollabState *[]byte `json:"collab_state,omitempty"`
 	// CreatedByUserID holds the value of the "created_by_user_id" field.
@@ -104,7 +108,7 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case contentdraft.FieldNaturalPostingTime, contentdraft.FieldSuppressSlackOnPublish:
 			values[i] = new(sql.NullBool)
-		case contentdraft.FieldApprovedVersion, contentdraft.FieldVersion:
+		case contentdraft.FieldApprovedVersion, contentdraft.FieldCalendarVersion, contentdraft.FieldVersion, contentdraft.FieldCollabGeneration:
 			values[i] = new(sql.NullInt64)
 		case contentdraft.FieldID, contentdraft.FieldOrganizationID, contentdraft.FieldTitle, contentdraft.FieldPlainText, contentdraft.FieldStatus, contentdraft.FieldReviewStatus, contentdraft.FieldReviewedByUserID, contentdraft.FieldReviewNote, contentdraft.FieldShareToken, contentdraft.FieldSocialSetID, contentdraft.FieldPrimaryPlatform, contentdraft.FieldKind, contentdraft.FieldScratchpad, contentdraft.FieldPlanTimeZone, contentdraft.FieldSourceDraftID, contentdraft.FieldCreatedByUserID, contentdraft.FieldUpdatedByUserID:
 			values[i] = new(sql.NullString)
@@ -237,6 +241,12 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field guest_comments: %w", err)
 				}
 			}
+		case contentdraft.FieldCalendarVersion:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field calendar_version", values[i])
+			} else if value.Valid {
+				_m.CalendarVersion = int(value.Int64)
+			}
 		case contentdraft.FieldVersion:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field version", values[i])
@@ -348,6 +358,12 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.SourceDraftID = new(string)
 				*_m.SourceDraftID = value.String
+			}
+		case contentdraft.FieldCollabGeneration:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field collab_generation", values[i])
+			} else if value.Valid {
+				_m.CollabGeneration = int(value.Int64)
 			}
 		case contentdraft.FieldCollabState:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -470,6 +486,9 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString("guest_comments=")
 	builder.WriteString(fmt.Sprintf("%v", _m.GuestComments))
 	builder.WriteString(", ")
+	builder.WriteString("calendar_version=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CalendarVersion))
+	builder.WriteString(", ")
 	builder.WriteString("version=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Version))
 	builder.WriteString(", ")
@@ -529,6 +548,9 @@ func (_m *ContentDraft) String() string {
 		builder.WriteString("source_draft_id=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("collab_generation=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CollabGeneration))
 	builder.WriteString(", ")
 	if v := _m.CollabState; v != nil {
 		builder.WriteString("collab_state=")

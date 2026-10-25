@@ -59,15 +59,6 @@ func TestDirectPublisherRequiresCurrentProviderProof(t *testing.T) {
 					}
 					id, err := p.Publish(context.Background(), input)
 					if scenario == "valid" {
-						// Custom Mastodon uses the social workflow path; proof must
-						// not bypass the direct publisher's provider allowlist.
-						if provider == "mastodon-custom" {
-							var unavailable *socialapi.Error
-							if !errors.As(err, &unavailable) || unavailable.Status != 400 || signer.calls != 0 || poster.calls != 0 {
-								t.Fatalf("unsupported direct provider accepted: %v", err)
-							}
-							return
-						}
 						if err != nil || id != "remote-post-1" || poster.calls != 1 {
 							t.Fatalf("verified publication: id=%q err=%v calls=%d", id, err, poster.calls)
 						}

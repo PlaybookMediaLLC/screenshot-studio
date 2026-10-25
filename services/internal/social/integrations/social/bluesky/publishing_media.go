@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -17,6 +16,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"

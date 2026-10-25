@@ -28,11 +28,12 @@ import { DraftRequestError, type DraftWire, draftsApi } from '@/lib/content-draf
 import type { BlockImages } from '@/lib/content-drafts/serialize'
 import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
-import type { Automation } from '@/lib/write/document'
+import type { AutoDm, Automation, Community } from '@/lib/write/document'
 import { offsetLabel, readWhen, resolveLocalTime, wallTime } from '@/lib/write/zoned-time'
 import { browserTimeZone } from '@/components/settings/TimeZonePicker'
 import { cn } from '@/lib/utils'
 import { AutomationControls } from './automation'
+import { AutoDmDraft } from './auto-dm-draft'
 import type { PreviewItem } from './preview'
 import { healthLabel, SetDot } from '../sets'
 import { useWrite } from '../write-context'
@@ -50,7 +51,7 @@ export type ScheduleContext = {
   canPublish: boolean
   draft: DraftWire
   flush: () => Promise<void>
-  onDone: (result: { draft: DraftWire }) => void
+  onDone: (result: { draft: DraftWire; newDraft?: boolean }) => void
   onToggle: (accountId: string, on: boolean) => void
   requireApproval: boolean
   setTimeZone: string | null
@@ -60,6 +61,10 @@ export type ScheduleContext = {
   /** The X version's follow-ups, and how to change them on the draft. */
   automation: Automation | undefined
   onAutomation?: (automation: Automation | undefined) => void
+  community?: Community
+  onCommunity?: (community: Community) => void
+  autoDm?: AutoDm
+  onAutoDm?: (config: AutoDm | undefined) => void
 }
 
 /** Problems that block every destination, collected for the dialogs. */
@@ -84,7 +89,7 @@ function blocking(context: ScheduleContext): string[] {
 }
 
 /**
- * Schedule or plan a draft (RFC 042). A planned time only puts the draft on
+ * Schedule or plan a draft (RFC 025). A planned time only puts the draft on
  * the calendar; Confirm makes it publish. Times are chosen in the set's zone
  * and resolved by the backend, which refuses a time the clocks skip and asks
  * which of two a repeated time means.
@@ -95,16 +100,18 @@ export function ScheduleDialog({
   initialDay,
   initialTime,
   onClose,
+  onPreview,
 }: {
   context: ScheduleContext
   initialQueue?: boolean
   initialDay?: string
   initialTime?: string
   onClose: () => void
+  onPreview?: () => void
 }) {
   const { data } = useWrite()
   const scope = useSocialSetScope()
-  // The draft's set owns the queue: its weekly slots in its zone (RFC 043).
+  // The draft's set owns the queue: its weekly slots in its zone (RFC 024).
   const setId =
     context.draft.socialSetId ?? data.sets.find((item) => item.visibility === 'WORKSPACE')?.id
   const cachedSet = useQueryClient().getQueryData<SocialSetRecord>(socialSetKey(scope, setId ?? ''))
@@ -121,20 +128,24 @@ export function ScheduleDialog({
   const [time, setTime] = React.useState(
     initialTime && /^([01]\d|2[0-3]):[0-5]\d$/.test(initialTime) ? initialTime : '09:00'
   )
-  const [queue, setQueue] = React.useState(Boolean(initialQueue))
-  // The draft's own choice, copied from its set when it was created (RFC 043).
-  const [natural, setNatural] = React.useState(context.draft.naturalPostingTime)
+  const [queue, setQueue] = React.useState(Boolean(initialQueue && data.advancedScheduling))
+  const [continueWriting, setContinueWriting] = React.useState(context.draft.status === 'draft')
+  // The draft's own choice, copied from its set when it was created (RFC 024).
+  const [natural, setNatural] = React.useState(
+    context.draft.naturalPostingTime && data.advancedScheduling
+  )
   const [when, setWhen] = React.useState('')
   const [disambiguation, setDisambiguation] = React.useState<'earlier' | 'later' | null>(null)
   const [bestTimes, setBestTimes] = React.useState<{ at: string; reason: string }[]>([])
   const [browsing, setBrowsing] = React.useState(false)
   const [busy, setBusy] = React.useState(false)
   React.useEffect(() => {
+    if (!data.advancedScheduling) return
     void draftsApi
       .bestTimes(setId)
       .then(({ items }) => setBestTimes(items))
       .catch(() => setBestTimes([]))
-  }, [setId])
+  }, [setId, data.advancedScheduling])
   const local = `${day}T${time}`
   const resolution = resolveLocalTime(local, zone)
   const instant =
@@ -171,9 +182,10 @@ export function ScheduleDialog({
           : { disambiguation: disambiguation ?? undefined, localTime: local, timeZone: zone }),
         naturalPostingTime: natural,
         version: context.versionRef.current,
+        baseCalendarVersion: context.draft.calendarVersion,
       })
       context.versionRef.current = result.draft.version
-      context.onDone(result)
+      context.onDone({ ...result, newDraft: continueWriting })
       const first = result.posts[0]
       toast.success(
         result.created
@@ -194,6 +206,7 @@ export function ScheduleDialog({
     try {
       await context.flush()
       const saved = await writeApi.plan(context.draft.id, {
+        baseCalendarVersion: context.draft.calendarVersion,
         plannedFor: clear || !instant ? null : instant.toISOString(),
         timeZone: zone,
       })
@@ -324,6 +337,7 @@ export function ScheduleDialog({
             </Button>
           ))}
           <Button
+            disabled={!data.advancedScheduling}
             aria-pressed={queue}
             className={cn('rounded-full', queue && 'border-sky-400/60 text-sky-200')}
             onClick={() => setQueue(!queue)}
@@ -331,122 +345,140 @@ export function ScheduleDialog({
             type="button"
             variant="outline"
           >
-            Next free slot{nextSlot ? ` · ${new Date(nextSlot.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}` : ' · none available'}
+            Next free slot
+            {nextSlot
+              ? ` · ${new Date(nextSlot.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}`
+              : ' · none available'}
           </Button>
         </div>
-        <details className="rounded-lg border border-white/10 p-3" open={initialQueue || undefined}>
-          <summary className="cursor-pointer text-sm text-neutral-300">Advanced scheduling</summary>
-          <div className="mt-3 grid gap-3">
-            <Input
-              aria-label="When, in words"
-              onChange={(event) => {
-                setWhen(event.target.value)
-                const wall = readWhen(event.target.value, zone)
-                if (wall) {
-                  setDay(wall.slice(0, 10))
-                  setTime(wall.slice(11))
-                  setQueue(false)
-                  setDisambiguation(null)
-                }
-              }}
-              placeholder='Type a time: "tomorrow 9am", "in 3 hours", "fri 2pm"'
-              value={when}
-            />
-            {when ? (
-              <p className="text-xs text-neutral-400" data-testid="when-reading">
-                {readWhen(when, zone)
-                  ? `→ ${summary}`
-                  : `Could not read that time. Still selected: ${summary}.`}
-              </p>
-            ) : null}
-            {bestTimes.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-xs text-neutral-400">Suggested times</span>
-                {bestTimes.map((best) => (
-                  <Button
-                    className="rounded-full border-emerald-400/30 text-emerald-200"
-                    key={best.at}
-                    onClick={() => setInstant(new Date(best.at))}
-                    size="sm"
-                    title={best.reason}
-                    type="button"
-                    variant="outline"
-                  >
-                    {new Date(best.at).toLocaleString(undefined, {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      timeZone: zone,
-                      weekday: 'short',
-                    })}
-                    <span className="ml-1 text-xs text-neutral-300">· {best.reason}</span>
-                  </Button>
-                ))}
-              </div>
-            ) : null}
-            <Button
-              className="rounded-full"
-              onClick={() => setBrowsing(!browsing)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              {browsing ? 'Hide queue' : 'Browse queue'}
-            </Button>
-            {browsing ? (
-              <ul
-                className="grid max-h-40 gap-1 overflow-y-auto rounded-md border border-white/[0.06] p-2 text-xs"
-                data-testid="queue-slots"
-              >
-                {slots.length === 0 ? (
-                  <li className="text-neutral-400">
-                    No weekly slots: add them in the set’s scheduling settings.
-                  </li>
-                ) : null}
-                {slots.map((slot) => (
-                  <li className="flex items-center justify-between" key={slot.at.toISOString()}>
-                    <LocalTime
-                      options={{
-                        day: 'numeric',
+        {data.advancedScheduling ? (
+          <details
+            className="rounded-lg border border-white/10 p-3"
+            open={initialQueue || undefined}
+          >
+            <summary className="cursor-pointer text-sm text-neutral-300">
+              Advanced scheduling
+            </summary>
+            <div className="mt-3 grid gap-3">
+              <Input
+                aria-label="When, in words"
+                onChange={(event) => {
+                  setWhen(event.target.value)
+                  const wall = readWhen(event.target.value, zone)
+                  if (wall) {
+                    setDay(wall.slice(0, 10))
+                    setTime(wall.slice(11))
+                    setQueue(false)
+                    setDisambiguation(null)
+                  }
+                }}
+                placeholder='Type a time: "tomorrow 9am", "in 3 hours", "fri 2pm"'
+                value={when}
+              />
+              {when ? (
+                <p className="text-xs text-neutral-400" data-testid="when-reading">
+                  {readWhen(when, zone)
+                    ? `→ ${summary}`
+                    : `Could not read that time. Still selected: ${summary}.`}
+                </p>
+              ) : null}
+              {bestTimes.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-neutral-400">Suggested times</span>
+                  {bestTimes.map((best) => (
+                    <Button
+                      className="rounded-full border-emerald-400/30 text-emerald-200"
+                      key={best.at}
+                      onClick={() => setInstant(new Date(best.at))}
+                      size="sm"
+                      title={best.reason}
+                      type="button"
+                      variant="outline"
+                    >
+                      {new Date(best.at).toLocaleString(undefined, {
                         hour: 'numeric',
                         minute: '2-digit',
-                        month: 'short',
                         timeZone: zone,
                         weekday: 'short',
-                      }}
-                      value={slot.at.toISOString()}
-                    />
-                    {slot.busy ? (
-                      <span className="text-neutral-400">taken</span>
-                    ) : (
-                      <Button
-                        onClick={() => setInstant(slot.at)}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        Schedule here
-                      </Button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <Label className="flex items-center justify-between gap-3 text-sm">
-              <span>
-                Natural posting time
-                <span className="block text-[11px] text-neutral-400">
-                  Shifts this post by up to four minutes either way so it does not land on the
-                  minute; a retry keeps the same time.
+                      })}
+                      <span className="ml-1 text-xs text-neutral-300">· {best.reason}</span>
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+              <Button
+                className="rounded-full"
+                onClick={() => setBrowsing(!browsing)}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                {browsing ? 'Hide queue' : 'Browse queue'}
+              </Button>
+              {browsing ? (
+                <ul
+                  className="grid max-h-40 gap-1 overflow-y-auto rounded-md border border-white/[0.06] p-2 text-xs"
+                  data-testid="queue-slots"
+                >
+                  {slots.length === 0 ? (
+                    <li className="text-neutral-400">
+                      No weekly slots: add them in the set’s scheduling settings.
+                    </li>
+                  ) : null}
+                  {slots.map((slot) => (
+                    <li className="flex items-center justify-between" key={slot.at.toISOString()}>
+                      <LocalTime
+                        options={{
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          month: 'short',
+                          timeZone: zone,
+                          weekday: 'short',
+                        }}
+                        value={slot.at.toISOString()}
+                      />
+                      {slot.busy ? (
+                        <span className="text-neutral-400">taken</span>
+                      ) : (
+                        <Button
+                          onClick={() => setInstant(slot.at)}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          Schedule here
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <Label className="flex items-center justify-between gap-3 text-sm">
+                <span>
+                  Natural posting time
+                  <span className="block text-[11px] text-neutral-400">
+                    Shifts this post by up to four minutes either way so it does not land on the
+                    minute; a retry keeps the same time.
+                  </span>
                 </span>
-              </span>
-              <Switch
-                aria-label="Natural posting time"
-                checked={natural}
-                onCheckedChange={(checked) => setNatural(checked === true)}
-              />
-            </Label>
-          </div>
-        </details>
+                <Switch
+                  aria-label="Natural posting time"
+                  checked={natural}
+                  onCheckedChange={(checked) => setNatural(checked === true)}
+                />
+              </Label>
+            </div>
+          </details>
+        ) : (
+          <p className="text-sm text-neutral-400">
+            Free scheduling: one account and 10 posts per month.{' '}
+            <a href="/pricing" className="underline">
+              Upgrade to Pro
+            </a>{' '}
+            for queue slots, suggested times and automatic follow-ups.
+          </p>
+        )}
         <Destinations context={context} publishAt={instant ?? now} timeZone={zone} />
         <p
           className="rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white"
@@ -467,7 +499,16 @@ export function ScheduleDialog({
         </p>
         {past && !queue ? <p className="text-xs text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
+        <label className="flex items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            checked={continueWriting}
+            onChange={(event) => setContinueWriting(event.target.checked)}
+          />
+          Open a new draft after scheduling
+        </label>
         <DialogFooter className="flex-wrap gap-2">
+          {onPreview ? <Button onClick={onPreview} type="button" variant="outline">Preview</Button> : null}
           {context.draft.plannedFor ? (
             <Button
               className="mr-auto"
@@ -549,6 +590,29 @@ function upcomingSlots(
   return out.sort((a, b) => a.at.getTime() - b.at.getTime()).slice(0, 12)
 }
 
+/** One persisted audience choice shared by scheduling and immediate-publish review. */
+function CommunityTimeline({ context }: { context: ScheduleContext }) {
+  if (!context.community || !context.items.some((item) => item.account.channel === 'x')) return null
+  return (
+    <Label className="flex items-center justify-between gap-3 py-2 text-sm">
+      <span>
+        Share to timeline
+        <span className="block text-xs text-neutral-400">
+          Also share this community post with your followers. It remains public when off.
+        </span>
+      </span>
+      <Switch
+        aria-label="Share to timeline"
+        checked={context.community.shareWithFollowers ?? true}
+        disabled={!context.onCommunity}
+        onCheckedChange={(shareWithFollowers) =>
+          context.onCommunity?.({ ...context.community!, shareWithFollowers })
+        }
+      />
+    </Label>
+  )
+}
+
 /** The destinations with their switches, accounts and health. */
 function Destinations({
   context,
@@ -591,7 +655,15 @@ function Destinations({
           />
         </Label>
       ))}
+      <CommunityTimeline context={context} />
       {context.items.some((item) => item.account.channel === 'x') ? (
+        <AutoDmDraft
+          value={context.autoDm}
+          onChange={(next) => context.onAutoDm?.(next)}
+          readOnly={!context.onAutoDm}
+        />
+      ) : null}
+      {data.advancedScheduling && context.items.some((item) => item.account.channel === 'x') ? (
         <AutomationControls
           automation={context.automation}
           onChange={(next) => context.onAutomation?.(next)}
@@ -620,7 +692,7 @@ function Problems({ problems }: { problems: string[] }) {
 }
 
 /**
- * The final review before publishing now (RFC 042): the set, each exact
+ * The final review before publishing now (RFC 025): the set, each exact
  * account, what each will post, how many posts, media, audience and labels,
  * follow-ups, who may publish and the approval state. Only Publish now
  * publishes, once: the same version and accounts replay rather than repeat.
@@ -736,7 +808,15 @@ export function PublishReview({
             )
           })}
         </ul>
+        <CommunityTimeline context={context} />
         {context.items.some((item) => item.account.channel === 'x') ? (
+          <AutoDmDraft
+            value={context.autoDm}
+            onChange={(next) => context.onAutoDm?.(next)}
+            readOnly={!context.onAutoDm}
+          />
+        ) : null}
+        {data.advancedScheduling && context.items.some((item) => item.account.channel === 'x') ? (
           <AutomationControls
             automation={context.automation}
             onChange={(next) => context.onAutomation?.(next)}

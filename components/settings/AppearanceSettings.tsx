@@ -5,7 +5,7 @@ import { ChoiceGroup, useSaveState } from '@/components/settings/controls'
 import { type Preferences, usePreferences } from '@/components/settings/PreferencesProvider'
 
 /**
- * Appearance (RFC 043): how Shots looks to you, on every device you sign in
+ * Appearance (RFC 024): how Shots looks to you, on every device you sign in
  * on. Each choice applies at once and is kept only when the server confirms
  * it; if a save fails, the previous choice comes back.
  */

@@ -304,12 +304,12 @@ func (p *Provider) UploadFile(ctx context.Context, instanceURL, fileURL, accessT
 // media ids and the status content). The url makes CheckPostStatus /
 // FinalizePost work the same for the default instance and custom instances.
 type PendingData struct {
-	QuoteURL       string                    `json:"quoteUrl,omitempty"`
-	Poll           *integrations.PollDetails `json:"poll,omitempty"`
-	URL            string                    `json:"url"`
-	Message        string                    `json:"message"`
-	MediaIDs       []string                  `json:"mediaIds"`
-	IdempotencyKey string                    `json:"idempotencyKey"`
+	QuoteID        string      `json:"quoteId,omitempty"`
+	Poll           *NativePoll `json:"poll,omitempty"`
+	URL            string      `json:"url"`
+	Message        string      `json:"message"`
+	MediaIDs       []string    `json:"mediaIds"`
+	IdempotencyKey string      `json:"idempotencyKey"`
 }
 
 func (p *Provider) uploadAll(ctx context.Context, url, accessToken string, media []integrations.MediaContent) ([]string, error) {
@@ -328,19 +328,15 @@ func (p *Provider) uploadAll(ctx context.Context, url, accessToken string, media
 
 func (p *Provider) DynamicPostPending(ctx context.Context, _, accessToken, url string, posts []integrations.PostDetails) ([]integrations.PostResponse, error) {
 	if len(posts) == 0 {
-		return nil, fmt.Errorf("a post is required")
+		return nil, fmt.Errorf("Choose a post to publish")
 	}
 	firstPost := posts[0]
-	target, err := quoteTarget(firstPost.Settings)
+	quote, err := p.quoteTarget(ctx, url, accessToken, firstPost.Settings)
 	if err != nil {
 		return nil, err
 	}
-	if target != "" {
-		if _, err := p.resolveQuote(ctx, url, accessToken, target); err != nil {
-			return nil, err
-		}
-	}
-	if err := p.validatePoll(ctx, url, firstPost); err != nil {
+	poll, err := p.checkedPoll(ctx, url, firstPost.Poll, len(firstPost.Media))
+	if err != nil {
 		return nil, err
 	}
 
@@ -353,9 +349,8 @@ func (p *Provider) DynamicPostPending(ctx context.Context, _, accessToken, url s
 		return nil, err
 	}
 	pending, _ := json.Marshal(PendingData{
-		QuoteURL: target,
+		QuoteID: quote, Poll: poll,
 		URL:      url,
-		Poll:     firstPost.Poll,
 		Message:  firstPost.Message,
 		MediaIDs: mediaIDs,
 		// Statuses POSTs are deduplicated by Mastodon via Idempotency-Key.
@@ -435,12 +430,16 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 		return nil, err
 	}
 	pairs := []string{"status", pending.Message, "visibility", "public"}
-	if pending.QuoteURL != "" {
-		id, err := p.resolveQuote(ctx, pending.URL, accessToken, pending.QuoteURL)
-		if err != nil {
+	if pending.QuoteID != "" {
+		if _, err := p.checkedQuote(ctx, pending.URL, accessToken, pending.QuoteID); err != nil {
 			return nil, err
 		}
-		pairs = append(pairs, "quoted_status_id", id)
+		pairs = append(pairs, "quoted_status_id", pending.QuoteID)
+	}
+	if pending.Poll != nil {
+		if _, err := p.checkedPoll(ctx, pending.URL, &integrations.PollDetails{Options: pending.Poll.Options, DurationMinutes: pending.Poll.Minutes, Multiple: pending.Poll.Multiple}, len(pending.MediaIDs)); err != nil {
+			return nil, err
+		}
 	}
 	pairs = append(pairs, pollPairs(pending.Poll)...)
 	for _, file := range pending.MediaIDs {
@@ -471,7 +470,7 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	if !statusID.MatchString(post.ID) {
 		return nil, fmt.Errorf("Mastodon returned no confirmed status ID; check the account before retrying")
 	}
-	if pending.QuoteURL != "" {
+	if pending.QuoteID != "" {
 		state := "unconfirmed"
 		if post.Quote != nil {
 			state = post.Quote.State
@@ -482,7 +481,7 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	if post.Quote != nil {
 		state = post.Quote.State
 	}
-	return &integrations.PendingCheckResponse{Status: "completed", PostID: post.ID, ReleaseURL: pending.URL + "/statuses/" + post.ID, QuoteState: confirmedQuoteState(pending.QuoteURL != "", state)}, nil
+	return &integrations.PendingCheckResponse{Status: "completed", PostID: post.ID, ReleaseURL: pending.URL + "/statuses/" + post.ID, QuoteState: confirmedQuoteState(pending.QuoteID != "", state)}, nil
 }
 
 // DynamicPost is the old blocking behavior, kept for workflow versions before
@@ -540,14 +539,15 @@ func (p *Provider) DynamicPost(ctx context.Context, id, accessToken, url string,
 
 func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID, accessToken, url string, posts []integrations.PostDetails) ([]integrations.PostResponse, error) {
 	if len(posts) == 0 {
-		return nil, fmt.Errorf("a reply is required")
+		return nil, fmt.Errorf("Choose a reply to publish")
 	}
 	commentPost := posts[0]
-	quoteID, err := p.nativeQuoteID(ctx, url, accessToken, commentPost.Settings)
+	quote, err := p.quoteTarget(ctx, url, accessToken, commentPost.Settings)
 	if err != nil {
 		return nil, err
 	}
-	if err := p.validatePoll(ctx, url, commentPost); err != nil {
+	poll, err := p.checkedPoll(ctx, url, commentPost.Poll, len(commentPost.Media))
+	if err != nil {
 		return nil, err
 	}
 	replyToID := lastCommentID
@@ -559,10 +559,10 @@ func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID,
 		return nil, err
 	}
 	pairs := []string{"status", commentPost.Message, "visibility", "public", "in_reply_to_id", replyToID}
-	if quoteID != "" {
-		pairs = append(pairs, "quoted_status_id", quoteID)
+	if quote != "" {
+		pairs = append(pairs, "quoted_status_id", quote)
 	}
-	pairs = append(pairs, pollPairs(commentPost.Poll)...)
+	pairs = append(pairs, pollPairs(poll)...)
 	for _, file := range mediaIDs {
 		pairs = append(pairs, "media_ids[]", file)
 	}
@@ -588,7 +588,7 @@ func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID,
 	if post.Quote != nil {
 		state = post.Quote.State
 	}
-	return []integrations.PostResponse{{ID: commentPost.ID, PostID: post.ID, ReleaseURL: url + "/statuses/" + post.ID, Status: "completed", QuoteState: confirmedQuoteState(quoteID != "", state)}}, nil
+	return []integrations.PostResponse{{ID: commentPost.ID, PostID: post.ID, ReleaseURL: url + "/statuses/" + post.ID, Status: "completed", QuoteState: confirmedQuoteState(quote != "", state)}}, nil
 }
 
 func (p *Provider) Post(ctx context.Context, id, accessToken string, posts []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {

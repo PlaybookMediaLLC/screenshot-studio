@@ -25,7 +25,7 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.String("id").StorageKey("id").Immutable(),
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
 		// A post comes from exactly one source: a campaign's creative variant or
-		// a hand-written content draft (RFC 037). A check constraint enforces it.
+		// a hand-written content draft (RFC 013). A check constraint enforces it.
 		field.String("variant_id").StorageKey("variantId").Optional().Nillable().Immutable(),
 		field.String("content_draft_id").StorageKey("contentDraftId").Optional().Nillable().Immutable(),
 		// A draft post's media. Variant posts take theirs from the variant.
@@ -49,7 +49,7 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.JSON("auto_actions", postoptions.AutoActions{}).StorageKey("autoActions").Optional().Immutable(),
 		// A poll on the post (X, LinkedIn).
 		field.JSON("poll", postoptions.Poll{}).StorageKey("poll").Optional().Immutable(),
-		// The post's settings beyond its text (RFC 042), as scheduled.
+		// The post's settings beyond its text (RFC 025), as scheduled.
 		field.JSON("publish_options", postoptions.PublishOptions{}).StorageKey("publishOptions").Optional().Immutable(),
 		field.String("channel_connection_id").StorageKey("channelConnectionId").Immutable(),
 		field.Time("scheduled_for").StorageKey("scheduledFor"),
@@ -57,7 +57,7 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.String("caption").StorageKey("caption"),
 		field.String("idempotency_key").StorageKey("idempotencyKey").NotEmpty().Immutable(),
 		field.String("trigger_run_id").StorageKey("triggerRunId").Optional().Nillable(),
-		// How a draft post's instant was chosen (RFC 043): its set, queue or an
+		// How a draft post's instant was chosen (RFC 024): its set, queue or an
 		// explicit time, the instant before any natural offset, the offset, and
 		// the time zone it was read in.
 		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable().Immutable(),

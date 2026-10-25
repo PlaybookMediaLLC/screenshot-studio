@@ -5,7 +5,7 @@ package x
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"errors"
 	"math"
 	"net/url"
 	"os"
@@ -280,7 +280,7 @@ func (p *Provider) AutoPlugPost(ctx context.Context, integration *ent.Integratio
 	return err == nil, err
 }
 
-// RetweetPost reposts a post from the account (RFC 042 Auto-RT).
+// RetweetPost reposts a post from the account (RFC 025 Auto-RT).
 func (p *Provider) RetweetPost(ctx context.Context, integration *ent.Integration, id string) error {
 	return newClient(integration.Token).retweet(ctx, integration.InternalID, id)
 }
@@ -295,7 +295,7 @@ func (p *Provider) PostEngagement(ctx context.Context, integration *ent.Integrat
 	return newClient(integration.Token).tweetEngagement(ctx, id)
 }
 
-// ReplyTo posts text as a reply to a post (RFC 042 Auto-Plug) and returns
+// ReplyTo posts text as a reply to a post (RFC 025 Auto-Plug) and returns
 // the reply's id, which the plug's receipt keeps.
 func (p *Provider) ReplyTo(ctx context.Context, integration *ent.Integration, id, text string) (string, error) {
 	if integration == nil {
@@ -379,8 +379,10 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 }
 
 type tweet struct {
-	ID            string            `json:"id"`
-	PublicMetrics map[string]*int64 `json:"public_metrics"`
+	ID               string            `json:"id"`
+	PublicMetrics    map[string]*int64 `json:"public_metrics"`
+	OrganicMetrics   map[string]*int64 `json:"organic_metrics"`
+	NonPublicMetrics map[string]*int64 `json:"non_public_metrics"`
 }
 
 func (p *Provider) loadAllTweets(ctx context.Context, c *client, id, until, since, token string) ([]tweet, error) {
@@ -482,8 +484,15 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 	var res struct {
 		Data *tweet `json:"data"`
 	}
-	if err := c.get(ctx, v2("tweets/"+postID), url.Values{"tweet.fields": {"public_metrics,created_at"}}, &res); err != nil {
-		return nil, err
+	if err := c.get(ctx, v2("tweets/"+url.PathEscape(postID)), url.Values{"tweet.fields": {"public_metrics,organic_metrics,non_public_metrics,created_at"}}, &res); err != nil {
+		var response *apiResponseError
+		if !errors.As(err, &response) || response.Code != 403 && response.Code != 400 {
+			return nil, err
+		}
+		// An account may be authorized for public counters but not private clicks.
+		if err = c.get(ctx, v2("tweets/"+url.PathEscape(postID)), url.Values{"tweet.fields": {"public_metrics,created_at"}}, &res); err != nil {
+			return nil, err
+		}
 	}
 	if res.Data == nil || res.Data.PublicMetrics == nil {
 		return out, nil
@@ -503,6 +512,15 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 			})
 		}
 	}
+	for source, label := range map[string]string{"user_profile_clicks": "Profile clicks", "url_link_clicks": "Link clicks"} {
+		value := res.Data.NonPublicMetrics[source]
+		if value == nil {
+			value = res.Data.OrganicMetrics[source]
+		}
+		if value != nil {
+			out = append(out, integrations.AnalyticsData{Label: label, Data: []integrations.AnalyticsItem{{Total: strconv.FormatInt(*value, 10), Date: today}}})
+		}
+	}
 	return out, nil
 }
 
@@ -512,13 +530,12 @@ func (p *Provider) Mention(ctx context.Context, token, query, _ string, _ *ent.I
 		Data *user `json:"data"`
 	}
 	if err := c.get(ctx, v2("users/by/username/"+url.PathEscape(query)), url.Values{"user.fields": {"username,name,profile_image_url"}}, &res); err != nil {
-		log.Println(err)
-		return []integrations.MentionResult{}, false, nil
+		return nil, false, err
 	}
 	if res.Data == nil || res.Data.Username == "" {
 		return []integrations.MentionResult{}, false, nil
 	}
-	return []integrations.MentionResult{{ID: res.Data.Username, Image: res.Data.ProfileImageURL, Label: res.Data.Name}}, false, nil
+	return []integrations.MentionResult{{NativeID: res.Data.ID, ID: res.Data.Username, Image: res.Data.ProfileImageURL, Label: res.Data.Name}}, false, nil
 }
 
 func (p *Provider) MentionFormat(idOrHandle, _ string) string { return "@" + idOrHandle }

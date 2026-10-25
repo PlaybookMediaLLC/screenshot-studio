@@ -10,7 +10,7 @@ import {
 } from '@/lib/tenant/schemas'
 
 /**
- * Scheduled post contracts (RFC 020, RFC 038). A member with
+ * Scheduled post contracts (RFC 030, RFC 026). A member with
  * `publish:manage` reads the schedule, and changes it with a sign-in under 15
  * minutes old with two-factor. A key reads it with `artifact:read` and changes
  * it with `post:schedule`. Only approved variants can be scheduled.
@@ -80,6 +80,7 @@ export const listScheduledPostsContract = defineContract({
 export const createScheduledPostContract = defineContract({
   access: {
     apiKeyScope: 'post:schedule',
+    feature: 'workspace:paid',
     permission: 'publish:manage',
     quota: 'api:write:minute',
     sensitive: true,

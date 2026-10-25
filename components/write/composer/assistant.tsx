@@ -29,8 +29,8 @@ const STARTERS = [
 ]
 
 /**
- * The writing assistant (RFC 042): a conversation about the open draft in
- * the set's voice, from its Writing Assistant (RFC 043): the workspace brand
+ * The writing assistant (RFC 025): a conversation about the open draft in
+ * the set's voice, from its Writing Assistant (RFC 024): the workspace brand
  * refined by the set's style guide and samples, merged by the backend. The
  * conversation stays in this panel; nothing in the draft changes unless the
  * writer adds a reply to it. Each answer uses the workspace's AI credits.
@@ -232,7 +232,7 @@ export function AssistantPanel({
 
 /**
  * Where a set's Writing Assistant is set up: its style guide and samples
- * live in the set's settings (RFC 043), and the assistant and Rewrite follow
+ * live in the set's settings (RFC 024), and the assistant and Rewrite follow
  * them.
  */
 function AssistantSetup({ onDone, set }: { onDone: () => void; set: WriteSet | null }) {

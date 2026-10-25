@@ -5,7 +5,7 @@ description: Verify Screenshot Studio tenant isolation end to end. Use before re
 
 # Verify Tenant Isolation
 
-Read RFC 002, RFC 003, RFC 004, RFC 005, RFC 006, and RFC 007. Treat every
+Read RFC 010, RFC 009, RFC 050, RFC 015, RFC 011, and RFC 035. Treat every
 organization boundary as a security control, not a UI convention.
 
 ## Test setup

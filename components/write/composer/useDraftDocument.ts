@@ -20,7 +20,7 @@ import { normalizeMentions } from '@/lib/write/normalize-mentions'
 import { readVersions } from '@/lib/write/versions'
 
 /**
- * A draft's document in the composer (RFC 042): the primary body, the
+ * A draft's document in the composer (RFC 025): the primary body, the
  * platform versions, the title, destinations, target and article, saved on
  * a short debounce against the version the editor last saw. A save that
  * meets a newer version reloads it (or, in a live session, merges comment
@@ -36,7 +36,7 @@ const AUTOSAVE_DELAY_MS = 800
 // Keep failed edits across client route changes (including browser Back).
 const pendingDocuments = new Map<
   string,
-  { document: DraftDocument; discussions: DraftDiscussions; version: number }
+  { document: DraftDocument; discussions: DraftDiscussions; version: number; generation: number }
 >()
 
 /** The parts of a draft the composer edits and saves. */
@@ -88,6 +88,7 @@ export function useDraftDocument({
   const [saveState, setSaveState] = React.useState<SaveState>(recovery ? 'error' : 'saved')
   const [server, setServer] = React.useState<DraftWire>(draft)
   const version = React.useRef(recovery?.version ?? draft.version)
+  const generation = React.useRef(recovery?.generation ?? draft.collabGeneration)
   const latest = React.useRef(document)
   const savedCallback = React.useRef(onSaved)
   savedCallback.current = onSaved
@@ -102,6 +103,9 @@ export function useDraftDocument({
   const reloadLatest = React.useCallback(async () => {
     const fresh = await draftsApi.get(draft.id)
     version.current = fresh.version
+    generation.current = fresh.collabGeneration
+    pendingDocuments.delete(draft.id)
+    discussions.current = readDiscussions(fresh.discussions)
     setServer(fresh)
     latest.current = documentOf(fresh)
     dirty.current = false
@@ -123,6 +127,7 @@ export function useDraftDocument({
             article: next.article ?? undefined,
             assetIds: serializeDraft(next.value, 'linkedin').assetIds,
             baseVersion: version.current,
+            collabGeneration: collaborating ? generation.current : undefined,
             body: normalizeMentions(next.value),
             channelConnectionIds: next.channelConnectionIds,
             // Legacy per-channel text moved into platform versions: clear it once.
@@ -138,6 +143,7 @@ export function useDraftDocument({
           setRetryCount(0)
           legacyText.current = false
           version.current = saved.version
+          generation.current = saved.collabGeneration
           setServer(saved)
           savedCallback.current?.(saved)
           // Drain edits made during this request before reporting Saved or leaving.
@@ -157,6 +163,14 @@ export function useDraftDocument({
             // Another editor's autosave moved the version: save on top of it,
             // keeping the comment threads they saved as well as ours.
             const fresh = await draftsApi.get(draft.id)
+            if (fresh.collabGeneration !== generation.current) {
+              await reloadLatest()
+              setSaveState('saved')
+              toast.info(
+                'This draft was replaced elsewhere. Showing the latest version; your last edit was not saved.'
+              )
+              return false
+            }
             version.current = fresh.version
             discussions.current = mergeDiscussions(
               discussions.current,
@@ -206,6 +220,7 @@ export function useDraftDocument({
           document: latest.current,
           discussions: discussions.current,
           version: version.current,
+          generation: generation.current,
         })
     }
   }, [canEdit, collaborating, draft.id, reloadLatest])
@@ -218,6 +233,7 @@ export function useDraftDocument({
       document: latest.current,
       discussions: discussions.current,
       version: version.current,
+      generation: generation.current,
     })
     setSaveState('unsaved')
     if (timer.current) clearTimeout(timer.current)

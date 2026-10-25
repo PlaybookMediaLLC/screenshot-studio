@@ -48,9 +48,8 @@ func TestPostSettingsMapEachPlatformsFields(t *testing.T) {
 
 func TestAFinisherQuotesTheFirstPostOnlyOnceItIsLive(t *testing.T) {
 	finisher := &postoptions.PublishOptions{QuoteFirstPost: true}
-	before := decode(t, must(postSettings("x", nil, finisher, "")))
-	if _, ok := before["quote_tweet_id"]; ok {
-		t.Fatalf("a quote of a post that does not exist yet: %v", before)
+	if _, err := postSettings("x", nil, finisher, ""); err == nil {
+		t.Fatal("a quote of a post that does not exist yet was accepted")
 	}
 	after := decode(t, must(postSettings("x", nil, finisher, "1800")))
 	if after["quote_tweet_id"] != "1800" {
@@ -94,11 +93,23 @@ func must(raw json.RawMessage, err error) json.RawMessage {
 	return raw
 }
 
+func TestBlueskyFinisherRequiresVerifiedRoot(t *testing.T) {
+	options := &postoptions.PublishOptions{QuoteFirstPost: true}
+	if _, err := postSettings("bluesky", nil, options, ""); err == nil {
+		t.Fatal("unconfirmed root accepted")
+	}
+	root := "at://did:plc:abcdefghijklmnopqrstuvwx/app.bsky.feed.post/root"
+	settings, err := postSettings("bluesky", nil, options, root)
+	if err != nil || decode(t, settings)["quote_uri"] != root {
+		t.Fatalf("lost root: %s %v", settings, err)
+	}
+}
+
 func TestNativeFinisherTargetsUsePublishedRoot(t *testing.T) {
 	for _, tc := range []struct{ platform, root, field, want string }{
-		{"bluesky", "at://did:plc:alice/app.bsky.feed.post/3kroot", "quote_url", "https://bsky.app/profile/did:plc:alice/post/3kroot"},
-		{"mastodon", "123", "quote_status_id", "123"},
-		{"mastodon-custom", "456", "quote_status_id", "456"},
+		{"bluesky", "at://did:plc:alice/app.bsky.feed.post/3kroot", "quote_uri", "at://did:plc:alice/app.bsky.feed.post/3kroot"},
+		{"mastodon", "123", "quote_uri", "123"},
+		{"mastodon-custom", "456", "quote_uri", "456"},
 	} {
 		raw, err := postSettings(tc.platform, nil, &postoptions.PublishOptions{QuoteFirstPost: true}, tc.root)
 		if err != nil {

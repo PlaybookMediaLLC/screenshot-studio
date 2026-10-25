@@ -2,13 +2,13 @@
 #
 # CI compares services/internal/shotsapi/openapi.json with the base revision
 # using oasdiff and fails on any breaking change not listed here. A breaking
-# change to /api/v1 needs a new major version (RFC 034), so a line here should
+# change to /api/v1 needs a new major version (RFC 014), so a line here should
 # be rare and should name the approving RFC in its pull request.
 #
 # Format: METHOD /path followed by oasdiff's message, for example
 #   GET /api/v1/example api path removed without deprecation
 
-# RFC 042 (Write) with RFC 043: a draft's experimental string tags became tag
+# RFC 025 (Write) with RFC 024: a draft's experimental string tags became tag
 # records of its social set, read as tagIds. The experiment shipped in 2.27.0.
 GET /api/v1/content-drafts removed the required property `items/items/tags` from the response with the `200` status
 POST /api/v1/content-drafts removed the required property `tags` from the response with the `201` status

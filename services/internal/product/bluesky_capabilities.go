@@ -3,8 +3,9 @@ package product
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"

@@ -20,7 +20,7 @@ type AssetAltText struct {
 	ID      string  `json:"id"`
 }
 
-// SetAssetAltText describes one of the workspace's images (RFC 042). The
+// SetAssetAltText describes one of the workspace's images (RFC 025). The
 // description goes out with the image wherever it is posted; empty clears it.
 func (c *Configuration) SetAssetAltText(ctx context.Context, actor Actor, assetID, altText string) (*AssetAltText, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {

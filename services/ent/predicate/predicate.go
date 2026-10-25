@@ -12,6 +12,15 @@ type AccountDeletionRequest func(*sql.Selector)
 // AgentAuthorization is the predicate function for agentauthorization builders.
 type AgentAuthorization func(*sql.Selector)
 
+// AnalyticsAccount is the predicate function for analyticsaccount builders.
+type AnalyticsAccount func(*sql.Selector)
+
+// AnalyticsPost is the predicate function for analyticspost builders.
+type AnalyticsPost func(*sql.Selector)
+
+// AnalyticsSnapshot is the predicate function for analyticssnapshot builders.
+type AnalyticsSnapshot func(*sql.Selector)
+
 // Apikey is the predicate function for apikey builders.
 type Apikey func(*sql.Selector)
 
@@ -47,6 +56,9 @@ type BrandKit func(*sql.Selector)
 
 // BrandProfile is the predicate function for brandprofile builders.
 type BrandProfile func(*sql.Selector)
+
+// CalendarMutation is the predicate function for calendarmutation builders.
+type CalendarMutation func(*sql.Selector)
 
 // Campaign is the predicate function for campaign builders.
 type Campaign func(*sql.Selector)
@@ -153,6 +165,18 @@ type OutboxEvent func(*sql.Selector)
 // PageKnowledge is the predicate function for pageknowledge builders.
 type PageKnowledge func(*sql.Selector)
 
+// PlatformAutoDMCampaign is the predicate function for platformautodmcampaign builders.
+type PlatformAutoDMCampaign func(*sql.Selector)
+
+// PlatformAutoDMDelivery is the predicate function for platformautodmdelivery builders.
+type PlatformAutoDMDelivery func(*sql.Selector)
+
+// PlatformAutoDMOptOut is the predicate function for platformautodmoptout builders.
+type PlatformAutoDMOptOut func(*sql.Selector)
+
+// PlatformAutoDMRecipient is the predicate function for platformautodmrecipient builders.
+type PlatformAutoDMRecipient func(*sql.Selector)
+
 // PlatformCreativeSet is the predicate function for platformcreativeset builders.
 type PlatformCreativeSet func(*sql.Selector)
 
@@ -188,6 +212,9 @@ type PlatformSlackPacing func(*sql.Selector)
 
 // PlatformSlackPersonalConnection is the predicate function for platformslackpersonalconnection builders.
 type PlatformSlackPersonalConnection func(*sql.Selector)
+
+// PlatformSocialMention is the predicate function for platformsocialmention builders.
+type PlatformSocialMention func(*sql.Selector)
 
 // PlatformSocialObservation is the predicate function for platformsocialobservation builders.
 type PlatformSocialObservation func(*sql.Selector)

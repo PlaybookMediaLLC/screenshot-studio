@@ -1,10 +1,11 @@
 // Package draftdoc holds the structured parts of a content draft that Go
-// stores and checks (RFC 042): its platform versions and their options, the
+// stores and checks (RFC 025): its platform versions and their options, the
 // post it replies to or quotes, and an article's title and cover. A leaf
 // package, so the ent schema can use its types.
 package draftdoc
 
 import "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
+import "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/autodm"
 
 // SchemaVersion is the platform versions document this backend writes.
 const SchemaVersion = 1
@@ -41,6 +42,11 @@ type PlatformVersion struct {
 // VersionOptions are a platform version's settings. Each field belongs to
 // the platforms that support it; the backend refuses it anywhere else.
 type VersionOptions struct {
+	LinkPreviews []postoptions.LinkPreview `json:"linkPreviews,omitempty"`
+	AutoDM       *autodm.Config            `json:"autoDm,omitempty"`
+	// Preferred length when making a thread; publication still checks account limits.
+	SplitLimit   int  `json:"splitLimit,omitempty"`
+	SplitOnPaste bool `json:"splitOnPaste,omitempty"`
 	// X: post to a community instead of the timeline.
 	Community *Community `json:"community,omitempty"`
 	// X: number a thread's posts when it is serialized.
@@ -59,7 +65,7 @@ type VersionOptions struct {
 type Community struct {
 	ID                 string `json:"id"`
 	Name               string `json:"name,omitempty"`
-	ShareWithFollowers bool   `json:"shareWithFollowers,omitempty"`
+	ShareWithFollowers *bool  `json:"shareWithFollowers,omitempty"`
 }
 
 // NumberingStyles are the numbering formats: #1, 1️⃣, 1., 1/, /1, 1/9, 1 of 9.

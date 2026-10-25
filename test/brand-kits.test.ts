@@ -109,7 +109,7 @@ test('older kits (colours and a typeface name) still read', () => {
   assert.equal(fontIdForName('"Inter", sans-serif'), 'inter')
 })
 
-test('a stored definition is the canonical RFC 011 kit plus the editor block', () => {
+test('a stored definition is the canonical RFC 019 kit plus the editor block', () => {
   const definition = brandKitDefinition({
     colors: { accent: '#6D5DFC', background: '#fff', foreground: '#111111', palette: ['#abc'] },
     fonts: { primary: 'google:Plus Jakarta Sans', secondary: 'inter' },

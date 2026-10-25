@@ -19,7 +19,7 @@ const AV = availabilitySchema.enum
 /**
  * Status from pages/ApprovalsPage.tsx ("the Copilot and Autopilot modes are
  * designed and written down, not shipped"); descriptions from
- * docs/rfcs/031-autonomy-modes.md and the roadmap in sections.tsx.
+ * docs/rfcs/044-autonomy-modes.md and the roadmap in sections.tsx.
  */
 const RUNGS: { mode: AutonomyMode; status: Availability; body: string; rise: string }[] = [
   {

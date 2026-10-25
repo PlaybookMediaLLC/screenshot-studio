@@ -19,15 +19,18 @@ trustworthy if the self-test passes too.
 from __future__ import annotations
 
 import glob
+import json
 import os
 import re
 import subprocess
 import sys
 
 RFC_DIR = "docs/rfcs"
-IMPLEMENTED = ["019-approval-workflow.md", "020-social-publishing.md"]
+CATALOG_PATH = os.path.join(RFC_DIR, "catalog.json")
+AUDIT = "052-detail-audit-2026-08-26.md"
+IMPLEMENTED = ["012-approval-workflow.md", "030-social-publishing.md"]
 
-# Declared as a prerequisite by RFC 010 rather than claimed to exist.
+# Declared as a prerequisite by RFC 020 rather than claimed to exist.
 ALLOWED_MISSING_IDENTIFIERS = {"creative:render", "post:schedule"}
 
 PLANNED_SECTION = re.compile(
@@ -42,6 +45,80 @@ def read(path: str) -> str:
 
 def rfc_paths() -> list[str]:
     return sorted(glob.glob(os.path.join(RFC_DIR, "*.md")))
+
+
+def load_catalog() -> dict:
+    try:
+        value = json.loads(read(CATALOG_PATH))
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def catalog_entries(catalog: dict | None = None) -> list[dict[str, str]]:
+    entries = (load_catalog() if catalog is None else catalog).get("rfcs", [])
+    if not isinstance(entries, list):
+        return []
+    return [
+        entry for entry in entries
+        if isinstance(entry, dict)
+        and all(isinstance(entry.get(key), str) for key in ("id", "legacyId", "category", "file"))
+        and re.fullmatch(r"\d{3}", entry["id"])
+        and re.fullmatch(r"\d{3}", entry["legacyId"])
+    ]
+
+
+def check_catalog(docs: dict[str, str], catalog: dict) -> list[str]:
+    """Canonical IDs, file titles, index order and the legacy map must agree."""
+    entries = catalog_entries(catalog)
+    if catalog.get("schemaVersion") != 1 or not entries or len(entries) != len(catalog.get("rfcs", [])):
+        return ["RFC catalog is missing, malformed or has no valid entries"]
+    groups = ["active", "conditional", "foundation", "deferred", "historical"]
+    if catalog.get("groupOrder") != groups:
+        return ["catalog must order active, conditional, foundation, deferred and historical work"]
+    problems = []
+    ids = [entry["id"] for entry in entries]
+    files = [entry["file"] for entry in entries]
+    legacy = [entry["legacyId"] for entry in entries]
+    if ids != [f"{n:03}" for n in range(1, len(entries) + 1)]:
+        problems.append("catalog IDs must be unique, contiguous and ascending from 001")
+    if len(set(files)) != len(files) or len(set(legacy)) != len(legacy):
+        problems.append("catalog filenames and previous IDs must each be unique")
+    if not {f"{n:03}" for n in range(52)}.issubset(set(legacy)):
+        problems.append("catalog is missing one of the 52 original RFC identities")
+    categories = [entry["category"] for entry in entries]
+    if any(category not in groups for category in categories):
+        problems.append("catalog has an unknown priority category")
+    elif categories != sorted(categories, key=groups.index):
+        problems.append("catalog entries are out of priority-category order")
+    numbered = {name for name in docs if re.match(r"\d{3}-.*\.md$", name)}
+    if numbered != set(files):
+        problems.append(f"catalog/files disagree: {sorted(numbered ^ set(files))}")
+    for entry in entries:
+        name, number = entry["file"], entry["id"]
+        text = docs.get(name, "")
+        if not re.fullmatch(re.escape(number) + r"-[a-z0-9-]+\.md", name):
+            problems.append(f"invalid canonical filename: {name}")
+        if not text.startswith(f"# RFC {number}:"):
+            problems.append(f"{name} title does not match RFC {number}")
+        if not re.search(rf"^\*\*Priority:\*\* {number} — ", text, re.M):
+            problems.append(f"{name} is missing its priority header")
+        if not re.search(rf"^\*\*Previous ID:\*\* {entry['legacyId']} ", text, re.M):
+            problems.append(f"{name} has an incorrect previous-ID header")
+    index = docs.get("README.md", "").split("## Complete RFC inventory", 1)
+    inventory = re.findall(r"\]\((\d{3}-[a-z0-9-]+\.md)\)", index[1]) if len(index) == 2 else []
+    if inventory != files:
+        problems.append("RFC index must list every canonical file once in catalog priority order")
+    mapping = docs.get("renumbering-2026-10-24.md", "")
+    actual_mapping = re.findall(r"^\| (\d{3}) \| \[(\d{3}) — [^\]]+\]\(([^)]+)\) \| ([a-z]+) \|$", mapping, re.M)
+    expected_mapping = [(e["legacyId"], e["id"], e["file"], e["category"]) for e in entries]
+    if sorted(actual_mapping) != sorted(expected_mapping):
+        problems.append("renumbering table must map every previous ID to its canonical file/category once")
+    for name, text in docs.items():
+        for label, target in re.findall(r"\[((?:RFC )?\d{3})(?:[^\]]*)\]\((\d{3}-[^)]+\.md)(?:#[^)]*)?\)", text):
+            if label[-3:] != target[:3]:
+                problems.append(f"{name} labels {target} as {label}")
+    return problems
 
 
 def lib_sources() -> str:
@@ -117,17 +194,17 @@ def check_tables(docs: dict[str, str]) -> list[str]:
 
 
 def check_coverage(docs: dict[str, str]) -> list[str]:
-    audit = docs.get("000-detail-audit-2026-08-26.md")
+    audit = docs.get(AUDIT)
     if not audit or "## Coverage" not in audit:
         return ["audit document is missing its Coverage section"]
     section = audit.split("## Coverage")[1]
 
     def listed(label: str) -> set[str]:
-        return set(re.findall(r"\d{3}", section.split(label)[1].split("\n")[0]))
+        return set(re.findall(r"\d{3}", section.split(label)[1].split("\n")[0])) if label in section else set()
 
     high = listed("**High priority:**")
     medium = listed("**Medium priority:**")
-    sufficient = {f"{i:03d}" for i in list(range(1, 10)) + [33]}
+    sufficient = listed("**Sufficient for current purpose:**")
     problems = []
     for a, b, label in (
         (high, medium, "high/medium"),
@@ -136,9 +213,13 @@ def check_coverage(docs: dict[str, str]) -> list[str]:
     ):
         if a & b:
             problems.append(f"RFCs classified twice ({label}): {sorted(a & b)}")
-    expected = {f"{i:03d}" for i in range(1, 34)}
+    expected = {entry["id"] for entry in catalog_entries() if 1 <= int(entry["legacyId"]) <= 33}
+    if len(expected) != 33:
+        return ["catalog must resolve all 33 RFCs in the original audit scope"]
     if missing := expected - (high | medium | sufficient):
         problems.append(f"RFCs absent from coverage: {sorted(missing)}")
+    if extra := (high | medium | sufficient) - expected:
+        problems.append(f"RFCs outside the historical audit scope: {sorted(extra)}")
     return problems
 
 
@@ -153,14 +234,19 @@ def check_enum_casing(docs: dict[str, str]) -> list[str]:
 
 def check_acceptance(docs: dict[str, str]) -> list[str]:
     problems = []
-    for i in range(10, 33):
-        matches = [n for n in docs if n.startswith(f"{i:03d}-")]
-        if not matches:
+    expanded = [
+        entry for entry in catalog_entries()
+        if 10 <= int(entry["legacyId"]) <= 32 or 45 <= int(entry["legacyId"]) <= 51
+    ]
+    if len(expanded) != 30:
+        return ["catalog must resolve all 30 expanded RFCs"]
+    for entry in expanded:
+        name = entry["file"]
+        if name not in docs:
             # A missing document must fail loudly. Skipping it would let a
             # deleted or renamed RFC pass this check silently.
-            problems.append(f"RFC {i:03d} not found; expected an expanded document")
+            problems.append(f"RFC {entry['id']} not found; expected an expanded document")
             continue
-        name = matches[0]
         section = re.search(
             r"## .*Acceptance criteria(.*?)(\n## |\Z)", docs[name], re.S | re.I
         )
@@ -223,7 +309,7 @@ def evaluate_observability(name: str, text: str) -> list[str]:
 
 def check_observability(docs: dict[str, str]) -> list[str]:
     """Every RFC the audit flagged must carry a usable observability section."""
-    audit = docs.get("000-detail-audit-2026-08-26.md", "")
+    audit = docs.get("052-detail-audit-2026-08-26.md", "")
     if not audit:
         return ["audit document missing; observability check would be meaningless"]
     flagged = sorted(set(re.findall(r"^\| \[(\d{3})\]", audit, re.M)))
@@ -266,9 +352,9 @@ def check_paths(docs: dict[str, str]) -> list[str]:
 
 
 def check_transition_table(docs: dict[str, str]) -> list[str]:
-    """RFC 019's table is normative; compare it field-by-field to the code."""
+    """RFC 012's table is normative; compare it field-by-field to the code."""
     source_path = "lib/tenant/campaign-status.ts"
-    doc = docs.get("019-approval-workflow.md")
+    doc = docs.get("012-approval-workflow.md")
     if not doc or not os.path.exists(source_path):
         return ["cannot compare transition table: file missing"]
     code = read(source_path)
@@ -362,7 +448,7 @@ def check_audit_promises(docs: dict[str, str]) -> list[str]:
     which is how the missing cancellation and reconciliation sections were
     found, not to police vocabulary.
     """
-    audit = docs.get("000-detail-audit-2026-08-26.md")
+    audit = docs.get("052-detail-audit-2026-08-26.md")
     if not audit:
         return ["audit document not found; cannot verify its promises"]
     rows = re.findall(r"^\| \[(\d{3})\][^|]*\|\s*(.+?)\s*\|$", audit, re.M)
@@ -387,7 +473,7 @@ def check_audit_promises(docs: dict[str, str]) -> list[str]:
 def check_grounded_paragraphs(docs: dict[str, str], source: str) -> list[str]:
     """Any paragraph citing a real source file must not invent symbols.
 
-    The `Implemented RFCs cite only real symbols` check covers RFCs 019 and 020.
+    The `Implemented RFCs cite only real symbols` check covers RFCs 012 and 030.
     This one applies the same standard to every document: citing a concrete file
     is a claim about real code, so every symbol named alongside it must exist.
     Proposed schema fields in `ts` blocks are untouched, because those describe
@@ -420,9 +506,8 @@ def check_cross_references(docs: dict[str, str]) -> list[str]:
                 continue  # the document's own title line
             if not any(k.startswith(f"{number}-") for k in docs):
                 problems.append(f"{name} references RFC {number}, which does not exist")
-        header = re.search(r"\*\*Depends on:\*\*\s*(.+)", text)
-        if header:
-            for number in sorted(set(re.findall(r"(\d{3})", header.group(1)))):
+        for header in re.finditer(r"\*\*(?:Depends on|Reuses|Historical dependencies):\*\*\s*(.+)", text):
+            for number in sorted(set(re.findall(r"RFC (\d{3})", header.group(1)))):
                 if not any(k.startswith(f"{number}-") for k in docs):
                     problems.append(f"{name} declares a dependency on missing RFC {number}")
     return problems
@@ -442,18 +527,18 @@ def evaluate_script_allowlist(scripts: list[str], ignored: list[str]) -> list[st
 def evaluate_inside_out(deps: dict[str, list[str]], implemented: set[str]) -> list[str]:
     """Pure core: a proposal must not hard-depend on later, unbuilt work.
 
-    RFC 009 sets an inside-out build order, so a lower-numbered proposal that
-    depends on a higher-numbered one inverts it. That is only safe when the
-    dependency is already implemented, because then the document describes a
-    surface over shipped behavior rather than one waiting on future work.
+    The current index orders new work. Reused foundations are separate from
+    unbuilt prerequisites; historical dependency cycles do not define that order.
     """
     problems = []
     for number in sorted(deps):
         for dependency in sorted(deps[number]):
-            if dependency > number and dependency not in implemented:
+            if dependency == number:
+                problems.append(f"RFC {number} cannot depend on itself")
+            elif dependency > number and dependency not in implemented:
                 problems.append(
                     f"RFC {number} depends on later RFC {dependency}, which is not implemented; "
-                    "this inverts the inside-out order in RFC 009"
+                    "this inverts the current RFC priority order"
                 )
     return problems
 
@@ -485,29 +570,32 @@ def evaluate_documented_check_count(text: str, actual: int) -> list[str]:
 
 def check_documented_check_count(docs: dict[str, str], total: int) -> list[str]:
     """The audit must not misstate how many checks exist."""
-    audit = next((t for n, t in docs.items() if n.startswith("000-")), None)
+    audit = docs.get(AUDIT)
     if audit is None:
         return ["audit document not found; its check count cannot be verified"]
     return evaluate_documented_check_count(audit, total)
 
 
 def check_inside_out_order(docs: dict[str, str]) -> list[str]:
-    """The critical path must build inside-out, as RFC 009 requires."""
+    """Active and conditional prerequisites must follow the canonical order."""
     if not docs:
         return ["no documents; inside-out check would be meaningless"]
-    deps, implemented = {}, set()
-    for name, text in docs.items():
-        number = name[:3]
-        # "Partially implemented" and "Implemented locally" both mean real code
-        # exists to build against, which is what makes an inversion safe.
-        if re.search(r"\*\*Status:\*\*\s*(?:\w+ )?[Ii]mplemented", text):
-            implemented.add(number)
+    entries = catalog_entries()
+    deps, problems = {}, []
+    implemented = {entry["id"] for entry in entries if entry["category"] == "foundation"}
+    for entry in entries:
+        if entry["category"] not in {"active", "conditional"}:
+            continue
+        name, number = entry["file"], entry["id"]
+        text = docs.get(name, "")
         header = re.search(r"\*\*Depends on:\*\*\s*(.+)", text)
         if header:
-            deps[number] = re.findall(r"(\d{3})", header.group(1))
+            deps[number] = re.findall(r"RFC (\d{3})", header.group(1))
+        else:
+            problems.append(f"{name} must explicitly state new-work dependencies, including None")
     if not deps:
         return ["no dependency headers parsed; inside-out check would be meaningless"]
-    return evaluate_inside_out(deps, implemented)
+    return problems + evaluate_inside_out(deps, implemented)
 
 
 def check_tracked_scripts_survive_reclone() -> list[str]:
@@ -553,6 +641,7 @@ def check_shipped_symbols(docs: dict[str, str], source: str) -> list[str]:
 
 def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
     return [
+        ("RFC catalog, priority order and renumbering agree", check_catalog(docs, load_catalog())),
         ("inter-RFC links resolve", check_links(docs)),
         ("code fences balanced", check_fences(docs)),
         ("table columns aligned", check_tables(docs)),
@@ -561,7 +650,7 @@ def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
         ("every expanded RFC has >= 5 acceptance criteria", check_acceptance(docs)),
         ("permissions, scopes, and features exist in code", check_identifiers(docs)),
         ("cited source paths exist", check_paths(docs)),
-        ("RFC 019 table matches campaignPostTransitions", check_transition_table(docs)),
+        ("RFC 012 table matches campaignPostTransitions", check_transition_table(docs)),
         ("Implemented RFCs cite only real symbols", check_shipped_symbols(docs, source)),
         ("audit promises are substantiated", check_audit_promises(docs)),
         ("every doc citing a real file names real symbols", check_grounded_paragraphs(docs, source)),
@@ -574,25 +663,36 @@ def run(docs: dict[str, str], source: str) -> list[tuple[str, list[str]]]:
 
 def self_test(docs: dict[str, str], source: str) -> int:
     """Confirm each check fails on input it is supposed to reject."""
-    doc19 = docs["019-approval-workflow.md"]
-    doc31 = next(t for n, t in docs.items() if n.startswith("031-"))
+    approval_doc = docs["012-approval-workflow.md"]
+    autonomy_doc = docs["044-autonomy-modes.md"]
+    catalog = load_catalog()
+    entries = catalog_entries(catalog)
+    first = entries[0]["file"]
     cases = [
-        ("links", lambda: check_links({"x.md": doc31 + "\n[x](099-nope.md)\n"})),
+        ("catalog (missing)", lambda: check_catalog(docs, {})),
+        ("catalog (duplicate ID)", lambda: check_catalog(docs, {**catalog, "rfcs": [entries[0], entries[0], *entries[2:]]})),
+        ("catalog (missing document)", lambda: check_catalog({n: t for n, t in docs.items() if n != first}, catalog)),
+        ("catalog (wrong title)", lambda: check_catalog({**docs, first: docs[first].replace("# RFC 001:", "# RFC 099:")}, catalog)),
+        ("catalog (reversed inventory)", lambda: check_catalog({**docs, "README.md": docs["README.md"].replace(
+            "](" + first + ")", "](" + entries[1]["file"] + ")")}, catalog)),
+        ("catalog (missing legacy mapping)", lambda: check_catalog({**docs, "renumbering-2026-10-24.md": ""}, catalog)),
+        ("catalog (wrong category order)", lambda: check_catalog(docs, {**catalog, "groupOrder": list(reversed(catalog["groupOrder"]))})),
+        ("links", lambda: check_links({"x.md": autonomy_doc + "\n[x](099-nope.md)\n"})),
         # The original case used a bare `099-` target, which the old digit-anchored
         # regex happened to match, so the check passed its self-test while blind to
         # every `./` and `../` link. Pin both shapes.
         ("links (dot-slash target)", lambda: check_links({"x.md": "[x](./099-nope.md)"})),
         ("links (parent-dir target)", lambda: check_links({"x.md": "[x](../nope.md)"})),
         ("links (anchor suffix)", lambda: check_links({"x.md": "[x](./099-nope.md#s)"})),
-        ("fences", lambda: check_fences({"x.md": doc31 + "\n```ts\n"})),
+        ("fences", lambda: check_fences({"x.md": autonomy_doc + "\n```ts\n"})),
         ("tables", lambda: check_tables({"x.md": "\n| a | b |\n| --- | --- |\n| 1 | 2 | 3 |\n"})),
         (
             "coverage",
             lambda: check_coverage(
                 {
-                    "000-detail-audit-2026-08-26.md": docs[
-                        "000-detail-audit-2026-08-26.md"
-                    ].replace("**Medium priority:** 011", "**Medium priority:** 010, 011")
+                    "052-detail-audit-2026-08-26.md": docs[
+                        "052-detail-audit-2026-08-26.md"
+                    ].replace("**Medium priority:**", "**Medium priority:** 020,", 1)
                 }
             ),
         ),
@@ -601,10 +701,11 @@ def self_test(docs: dict[str, str], source: str) -> int:
             "acceptance",
             lambda: check_acceptance(
                 {
-                    "010-x.md": re.sub(
+                    **docs,
+                    "020-programmable-creative-engine.md": re.sub(
                         r"## Acceptance criteria.*?(?=\n## )",
                         "## Acceptance criteria\n\n1. one\n\n",
-                        docs[next(n for n in docs if n.startswith("010-"))],
+                        docs["020-programmable-creative-engine.md"],
                         flags=re.S,
                     )
                 }
@@ -615,18 +716,19 @@ def self_test(docs: dict[str, str], source: str) -> int:
         (
             "transition table",
             lambda: check_transition_table(
-                {"019-approval-workflow.md": doc19.replace("`release:create`", "`publish:manage`")}
+                {"012-approval-workflow.md": approval_doc.replace("`release:create`", "`publish:manage`")}
             ),
         ),
         (
             "shipped symbols",
             lambda: check_shipped_symbols(
-                {"019-approval-workflow.md": "## S\n\nCalls `fabricatedHelper`.\n\n## T\n"}, source
+                {"012-approval-workflow.md": "## S\n\nCalls `fabricatedHelper`.\n\n## T\n"}, source
             ),
         ),
         # A check that passes when its input is missing is worse than no check.
         # These three confirm each fails loudly rather than silently skipping.
         ("acceptance (missing RFC)", lambda: check_acceptance({})),
+        ("acceptance (active RFC)", lambda: check_acceptance({**docs, first: "# RFC 001: No criteria\n"})),
         ("shipped symbols (missing doc)", lambda: check_shipped_symbols({}, source)),
         ("shipped symbols (no sources)", lambda: check_shipped_symbols(docs, "")),
         (
@@ -634,8 +736,8 @@ def self_test(docs: dict[str, str], source: str) -> int:
             lambda: check_audit_promises(
                 {
                     **docs,
-                    "029-recurring-campaign-generation.md": re.sub(
-                        r"(?i)freshness", "xxxx", docs["029-recurring-campaign-generation.md"]
+                    "041-recurring-campaign-generation.md": re.sub(
+                        r"(?i)freshness", "xxxx", docs["041-recurring-campaign-generation.md"]
                     ),
                 }
             ),
@@ -662,6 +764,9 @@ def self_test(docs: dict[str, str], source: str) -> int:
             lambda: evaluate_inside_out({"018": ["019"]}, set()),
         ),
         ("inside-out (no documents)", lambda: check_inside_out_order({})),
+        ("inside-out (self dependency)", lambda: evaluate_inside_out({"002": ["002"]}, set())),
+        ("inside-out (active depends on conditional)", lambda: check_inside_out_order({**docs, first: docs[first].replace(
+            "**Depends on:** None — start the assisted pilot program now.", "**Depends on:** RFC 007")})),
         (
             "documented check count (stale number)",
             lambda: evaluate_documented_check_count("It runs fifteen checks:", 16),
@@ -681,6 +786,17 @@ def self_test(docs: dict[str, str], source: str) -> int:
         ),
     ]
     failures = 0
+    positive_cases = [
+        ("catalog accepts the current numbering", lambda: check_catalog(docs, catalog)),
+        ("historical coverage survives renumbering", lambda: check_coverage(docs)),
+        ("all expanded RFCs retain acceptance gates", lambda: check_acceptance(docs)),
+        ("current active dependencies are valid", lambda: check_inside_out_order(docs)),
+        ("a reused foundation may have a later number", lambda: evaluate_inside_out({"002": ["011"]}, {"011"})),
+    ]
+    for label, case in positive_cases:
+        problems = case()
+        print(f"  [{'PASS' if not problems else 'FAIL'}] {label}")
+        failures += bool(problems)
     print("Self-test: every check must reject known-bad input\n")
     for label, case in cases:
         caught = bool(case())

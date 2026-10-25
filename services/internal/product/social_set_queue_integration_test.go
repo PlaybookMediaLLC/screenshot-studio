@@ -8,6 +8,7 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/schema"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/lucsky/cuid"
 )
 
 func TestAgentQueueDefaultsDoNotPublishOrMoveExistingWork(t *testing.T) {
@@ -27,7 +28,8 @@ func TestAgentQueueDefaultsDoNotPublishOrMoveExistingWork(t *testing.T) {
 		t.Fatal("draft key changed queue", err)
 	}
 	w.exec(t, `UPDATE apikey SET permissions='{"artifact":["read"],"queue":["write"]}' WHERE id=$1`, keyID)
-	draft, err := w.repo.CreateContentDraft(w.ctx, w.owner, ContentDraftInput{SocialSetID: set.ID, PlainText: "Keep this plan"})
+	connection := w.db.Client.ChannelConnection.Create().SetID(cuid.New()).SetOrganizationID(w.org).SetPlatform("x").SetExternalAccountID("queue-account").SetSecretReference("fixture").SetCreatedByUserID(w.owner.UserID).SetSocialSetID(set.ID).SaveX(w.ctx)
+	draft, err := w.repo.CreateContentDraft(w.ctx, w.owner, ContentDraftInput{SocialSetID: set.ID, ChannelConnectionIDs: []string{connection.ID}, PlainText: "Keep this plan"})
 	if err != nil {
 		t.Fatal(err)
 	}

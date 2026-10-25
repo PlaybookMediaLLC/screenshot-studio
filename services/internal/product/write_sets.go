@@ -11,7 +11,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
-// Write (RFC 042) on the settings platform's social sets (RFC 043): a draft
+// Write (RFC 025) on the settings platform's social sets (RFC 024): a draft
 // belongs to a set the actor may see; drafts written before sets belong to
 // the workspace's default set.
 
@@ -71,7 +71,11 @@ func (c *Configuration) draftSetFilter(ctx context.Context, actor Actor, setID s
 
 // setAccount is a set's active account on a platform, if it has one.
 func setAccount(ctx context.Context, client *ent.Client, set *ent.SocialSet, platform string) (*ent.ChannelConnection, error) {
+	platforms := []string{platform}
+	if platform == "linkedin" {
+		platforms = append(platforms, "linkedin-page")
+	}
 	return client.ChannelConnection.Query().Where(channelconnection.OrganizationID(set.OrganizationID),
-		channelconnection.SocialSetID(set.ID), channelconnection.Platform(platform),
+		channelconnection.SocialSetID(set.ID), channelconnection.PlatformIn(platforms...),
 		channelconnection.StatusEQ(channelconnection.StatusACTIVE)).First(ctx)
 }

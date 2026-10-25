@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/helpers"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ids"
@@ -342,24 +341,10 @@ func multipartForm(pairs ...string) ([]byte, string) {
 	return buf.Bytes(), w.FormDataContentType()
 }
 
-func (p *Provider) createTextContent(ctx context.Context, userID, accessToken, message, replyToID, quoteID string, poll *integrations.PollDetails) (string, error) {
+func (p *Provider) createTextContent(ctx context.Context, userID, accessToken, message, replyToID, quoteID string, poll string) (string, error) {
 	pairs := []string{"media_type", "TEXT", "text", message, "access_token", accessToken}
-	if poll != nil {
-		if err := postoptions.CheckThreadsPoll(poll.Options, poll.DurationMinutes, 0, poll.Multiple); err != nil {
-			return "", err
-		}
-		if poll.Question != "" || strings.TrimSpace(message) == "" {
-			return "", fmt.Errorf("Threads polls use the post text as their question")
-		}
-		attachment := map[string]string{}
-		for i, option := range poll.Options {
-			attachment["option_"+string(rune('a'+i))] = option
-		}
-		encoded, err := json.Marshal(attachment)
-		if err != nil {
-			return "", err
-		}
-		pairs = append(pairs, "poll_attachment", string(encoded))
+	if poll != "" {
+		pairs = append(pairs, "poll_attachment", poll)
 	}
 	if replyToID != "" {
 		pairs = append(pairs, "reply_to_id", replyToID)
@@ -393,15 +378,14 @@ func (p *Provider) publishThread(ctx context.Context, userID, accessToken, creat
 }
 
 func (p *Provider) createThreadContent(ctx context.Context, userID, accessToken string, post integrations.PostDetails, replyToID, quoteID string) (string, error) {
-	if post.Poll != nil {
-		if err := postoptions.CheckThreadsPoll(post.Poll.Options, post.Poll.DurationMinutes, len(post.Media), post.Poll.Multiple); err != nil {
-			return "", err
-		}
+	poll, err := pollAttachment(post)
+	if err != nil {
+		return "", err
 	}
 	switch len(post.Media) {
 	case 0:
 		// Text-only content
-		return p.createTextContent(ctx, userID, accessToken, post.Message, replyToID, quoteID, post.Poll)
+		return p.createTextContent(ctx, userID, accessToken, post.Message, replyToID, quoteID, poll)
 	case 1:
 		// Single media content
 		return p.createSingleMediaContent(ctx, userID, accessToken, post.Media[0], post.Message, false, replyToID)
@@ -453,10 +437,9 @@ func (p *Provider) PostPending(ctx context.Context, userID, accessToken string, 
 		return []integrations.PostResponse{}, nil
 	}
 	firstPost := posts[0]
-	if firstPost.Poll != nil {
-		if err := postoptions.CheckThreadsPoll(firstPost.Poll.Options, firstPost.Poll.DurationMinutes, len(firstPost.Media), firstPost.Poll.Multiple); err != nil {
-			return nil, err
-		}
+	poll, pollErr := pollAttachment(firstPost)
+	if pollErr != nil {
+		return nil, pollErr
 	}
 
 	// Carousels: only create the child containers here, the carousel container
@@ -484,7 +467,7 @@ func (p *Provider) PostPending(ctx context.Context, userID, accessToken string, 
 		err         error
 	)
 	if len(firstPost.Media) == 0 {
-		containerID, err = p.createTextContent(ctx, userID, accessToken, firstPost.Message, "", "", firstPost.Poll)
+		containerID, err = p.createTextContent(ctx, userID, accessToken, firstPost.Message, "", "", poll)
 	} else {
 		containerID, err = p.createSingleMediaContent(ctx, userID, accessToken, firstPost.Media[0], firstPost.Message, false, "")
 	}
@@ -574,12 +557,6 @@ func (p *Provider) Post(ctx context.Context, userID, accessToken string, posts [
 	if len(posts) == 0 {
 		return []integrations.PostResponse{}, nil
 	}
-	firstPost := posts[0]
-	if firstPost.Poll != nil {
-		if err := postoptions.CheckThreadsPoll(firstPost.Poll.Options, firstPost.Poll.DurationMinutes, len(firstPost.Media), firstPost.Poll.Multiple); err != nil {
-			return nil, err
-		}
-	}
 	responses, err := p.PostPending(ctx, userID, accessToken, posts, integration)
 	if err != nil {
 		return nil, err
@@ -614,7 +591,7 @@ func (p *Provider) Post(ctx context.Context, userID, accessToken string, posts [
 			}
 		}
 		if result.Status == "completed" {
-			return []integrations.PostResponse{{ID: firstPost.ID, PostID: result.PostID, Status: "success", ReleaseURL: result.ReleaseURL}}, nil
+			return []integrations.PostResponse{{ID: posts[0].ID, PostID: result.PostID, Status: "success", ReleaseURL: result.ReleaseURL}}, nil
 		}
 
 		pendingData = result.PendingData
@@ -659,6 +636,9 @@ func rawJSON(ctx context.Context, rawURL string, out any) error {
 		return err
 	}
 	defer res.Body.Close()
+	if err := integrations.CheckResponse(res); err != nil {
+		return err
+	}
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err

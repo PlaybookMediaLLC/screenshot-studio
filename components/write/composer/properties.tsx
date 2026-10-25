@@ -73,7 +73,7 @@ function detail(item: DraftActivityWire): string {
 }
 
 /**
- * The draft's properties (RFC 042): its internal title, tags, scratchpad,
+ * The draft's properties (RFC 025): its internal title, tags, scratchpad,
  * id, counts, times, status and activity. The title, tags and scratchpad
  * are internal and never part of a post. A platform's count is shown beside
  * the plain counts, so an over-limit X post is never hidden by a green one.

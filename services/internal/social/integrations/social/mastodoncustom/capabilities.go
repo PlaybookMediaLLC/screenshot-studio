@@ -11,7 +11,16 @@ import (
 // responses cannot establish publishing capabilities and must not get defaults.
 func (p *Provider) instanceCapabilities(ctx context.Context, origin string) (socialidentity.Capabilities, error) {
 	var instance struct {
+		APIVersions struct {
+			Mastodon int `json:"mastodon"`
+		} `json:"api_versions"`
 		Configuration struct {
+			Polls *struct {
+				MaxOptions    int `json:"max_options"`
+				MaxCharacters int `json:"max_characters_per_option"`
+				MinExpiration int `json:"min_expiration"`
+				MaxExpiration int `json:"max_expiration"`
+			} `json:"polls"`
 			Statuses struct {
 				MaxCharacters            int `json:"max_characters"`
 				MaxMediaAttachments      int `json:"max_media_attachments"`
@@ -33,11 +42,14 @@ func (p *Provider) instanceCapabilities(ctx context.Context, origin string) (soc
 	}
 	statuses, media := instance.Configuration.Statuses, instance.Configuration.Media
 	capabilities := socialidentity.Capabilities{
-		Version: 1, MaxCharacters: statuses.MaxCharacters,
+		MastodonAPIVersion: instance.APIVersions.Mastodon, Version: 1, MaxCharacters: statuses.MaxCharacters,
 		MaxMediaAttachments: statuses.MaxMediaAttachments, CharactersReservedPerURL: statuses.CharactersReservedPerURL,
 		MediaMIMETypes: media.SupportedMIMETypes, ImageSizeLimit: media.ImageSizeLimit, VideoSizeLimit: media.VideoSizeLimit,
 		ImageMatrixLimit: media.ImageMatrixLimit, VideoMatrixLimit: media.VideoMatrixLimit,
 		VideoFrameRateLimit: media.VideoFrameRateLimit, MediaDescriptionLimit: media.DescriptionLimit,
+	}
+	if p := instance.Configuration.Polls; p != nil {
+		capabilities.Polls = &socialidentity.PollLimits{MaxOptions: p.MaxOptions, MaxOptionCharacters: p.MaxCharacters, MinDurationSeconds: p.MinExpiration, MaxDurationSeconds: p.MaxExpiration}
 	}
 	if err := capabilities.Validate(); err != nil {
 		return socialidentity.Capabilities{}, err

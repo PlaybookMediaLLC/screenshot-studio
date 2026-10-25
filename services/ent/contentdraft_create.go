@@ -160,6 +160,20 @@ func (_c *ContentDraftCreate) SetGuestComments(v []map[string]string) *ContentDr
 	return _c
 }
 
+// SetCalendarVersion sets the "calendar_version" field.
+func (_c *ContentDraftCreate) SetCalendarVersion(v int) *ContentDraftCreate {
+	_c.mutation.SetCalendarVersion(v)
+	return _c
+}
+
+// SetNillableCalendarVersion sets the "calendar_version" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableCalendarVersion(v *int) *ContentDraftCreate {
+	if v != nil {
+		_c.SetCalendarVersion(*v)
+	}
+	return _c
+}
+
 // SetVersion sets the "version" field.
 func (_c *ContentDraftCreate) SetVersion(v int) *ContentDraftCreate {
 	_c.mutation.SetVersion(v)
@@ -360,6 +374,20 @@ func (_c *ContentDraftCreate) SetNillableSourceDraftID(v *string) *ContentDraftC
 	return _c
 }
 
+// SetCollabGeneration sets the "collab_generation" field.
+func (_c *ContentDraftCreate) SetCollabGeneration(v int) *ContentDraftCreate {
+	_c.mutation.SetCollabGeneration(v)
+	return _c
+}
+
+// SetNillableCollabGeneration sets the "collab_generation" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableCollabGeneration(v *int) *ContentDraftCreate {
+	if v != nil {
+		_c.SetCollabGeneration(*v)
+	}
+	return _c
+}
+
 // SetCollabState sets the "collab_state" field.
 func (_c *ContentDraftCreate) SetCollabState(v []byte) *ContentDraftCreate {
 	_c.mutation.SetCollabState(v)
@@ -483,6 +511,10 @@ func (_c *ContentDraftCreate) defaults() {
 		v := contentdraft.DefaultGuestComments
 		_c.mutation.SetGuestComments(v)
 	}
+	if _, ok := _c.mutation.CalendarVersion(); !ok {
+		v := contentdraft.DefaultCalendarVersion
+		_c.mutation.SetCalendarVersion(v)
+	}
 	if _, ok := _c.mutation.Version(); !ok {
 		v := contentdraft.DefaultVersion
 		_c.mutation.SetVersion(v)
@@ -514,6 +546,10 @@ func (_c *ContentDraftCreate) defaults() {
 	if _, ok := _c.mutation.TagIds(); !ok {
 		v := contentdraft.DefaultTagIds
 		_c.mutation.SetTagIds(v)
+	}
+	if _, ok := _c.mutation.CollabGeneration(); !ok {
+		v := contentdraft.DefaultCollabGeneration
+		_c.mutation.SetCollabGeneration(v)
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := contentdraft.DefaultCreatedAt()
@@ -570,6 +606,9 @@ func (_c *ContentDraftCreate) check() error {
 	if _, ok := _c.mutation.GuestComments(); !ok {
 		return &ValidationError{Name: "guest_comments", err: errors.New(`ent: missing required field "ContentDraft.guest_comments"`)}
 	}
+	if _, ok := _c.mutation.CalendarVersion(); !ok {
+		return &ValidationError{Name: "calendar_version", err: errors.New(`ent: missing required field "ContentDraft.calendar_version"`)}
+	}
 	if _, ok := _c.mutation.Version(); !ok {
 		return &ValidationError{Name: "version", err: errors.New(`ent: missing required field "ContentDraft.version"`)}
 	}
@@ -598,6 +637,14 @@ func (_c *ContentDraftCreate) check() error {
 	}
 	if _, ok := _c.mutation.TagIds(); !ok {
 		return &ValidationError{Name: "tag_ids", err: errors.New(`ent: missing required field "ContentDraft.tag_ids"`)}
+	}
+	if _, ok := _c.mutation.CollabGeneration(); !ok {
+		return &ValidationError{Name: "collab_generation", err: errors.New(`ent: missing required field "ContentDraft.collab_generation"`)}
+	}
+	if v, ok := _c.mutation.CollabGeneration(); ok {
+		if err := contentdraft.CollabGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "collab_generation", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.collab_generation": %w`, err)}
+		}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "ContentDraft.created_at"`)}
@@ -700,6 +747,10 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 		_spec.SetField(contentdraft.FieldGuestComments, field.TypeJSON, value)
 		_node.GuestComments = value
 	}
+	if value, ok := _c.mutation.CalendarVersion(); ok {
+		_spec.SetField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+		_node.CalendarVersion = value
+	}
 	if value, ok := _c.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)
 		_node.Version = value
@@ -763,6 +814,10 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.SourceDraftID(); ok {
 		_spec.SetField(contentdraft.FieldSourceDraftID, field.TypeString, value)
 		_node.SourceDraftID = &value
+	}
+	if value, ok := _c.mutation.CollabGeneration(); ok {
+		_spec.SetField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
+		_node.CollabGeneration = value
 	}
 	if value, ok := _c.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)

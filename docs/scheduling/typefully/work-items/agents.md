@@ -1,6 +1,6 @@
 # Epic AGENT: APIs and external clients
 
-The assignment reopens scoped draft integrations in [RFC 038](../../../rfcs/038-mcp-and-agent-integrations.md). It does **not** authorize API-key draft publication or autonomous approval. The implementation uses the existing Go server, product services and workspace keys.
+The assignment reopens scoped draft integrations in [RFC 026](../../../rfcs/026-mcp-and-agent-integrations.md). It does **not** authorize API-key draft publication or autonomous approval. The implementation uses the existing Go server, product services and workspace keys.
 
 ## WI-AGENT-1: Author and plan drafts through existing MCP
 

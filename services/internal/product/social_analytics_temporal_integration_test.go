@@ -40,7 +40,7 @@ func TestSocialAnalyticsTemporalSchedule(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	provider := &analyticsFixture{}
+	provider := &observationMetricsFixture{}
 	w.repo.WithPostMetrics(provider)
 	temporalClient, err := client.Dial(client.Options{HostPort: address})
 	if err != nil {

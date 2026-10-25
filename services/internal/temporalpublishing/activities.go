@@ -189,7 +189,7 @@ type autoActor interface {
 	AutoAct(context.Context, socialapi.AutoActionInput) (socialapi.AutoActionResult, error)
 }
 
-// autoActionRecorder records a follow-up that went out (RFC 043).
+// autoActionRecorder records a follow-up that went out (RFC 024).
 type autoActionRecorder interface {
 	RecordAutoAction(context.Context, string, string) error
 }
@@ -201,7 +201,7 @@ type connectionChecker interface {
 
 // RunAutoActions runs the follow-ups due now; a provider without them has
 // nothing to do, so every one reports done. An account removed from its
-// social set since the post went out (RFC 043) takes no further action.
+// social set since the post went out (RFC 024) takes no further action.
 func (a *Activities) RunAutoActions(ctx context.Context, input AutoActionsInput) (AutoActionsResult, error) {
 	actor, ok := a.provider.(autoActor)
 	actions := input.Job.AutoActions

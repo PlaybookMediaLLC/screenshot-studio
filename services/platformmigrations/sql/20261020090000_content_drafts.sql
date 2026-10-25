@@ -1,4 +1,4 @@
--- Content drafts (RFC 037): posts written by hand in the document editor,
+-- Content drafts (RFC 013): posts written by hand in the document editor,
 -- kept as drafts and scheduled to channels. Additive; no existing rows change.
 CREATE TABLE "content_draft" (
   "id" TEXT NOT NULL,

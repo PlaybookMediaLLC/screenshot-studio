@@ -4,11 +4,12 @@ package mediaresize
 import (
 	"bytes"
 	"errors"
-	"golang.org/x/image/draw"
-	_ "golang.org/x/image/webp"
 	"image"
 	"image/jpeg"
 	"image/png"
+
+	"golang.org/x/image/draw"
+	_ "golang.org/x/image/webp"
 )
 
 // MaxSourceBytes is the composer import ceiling for automatic image resizing.

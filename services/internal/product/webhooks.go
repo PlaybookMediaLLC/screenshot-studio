@@ -16,7 +16,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Outbound webhooks (RFC 043) are managed by a workspace's owners and admins.
+// Outbound webhooks (RFC 024) are managed by a workspace's owners and admins.
 // A signing secret is returned once, when it is made; afterwards the API
 // only ever says that one exists.
 
@@ -103,7 +103,7 @@ func (c *Configuration) authorizeWebhooks(ctx context.Context, actor Actor) erro
 	if err := c.authorizeDecision(ctx, actor, "owner", "admin"); err != nil {
 		return err
 	}
-	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:use")
+	return c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:paid")
 }
 
 func webhookRecord(row *ent.WebhookSubscription) WebhookRecord {

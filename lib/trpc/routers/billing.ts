@@ -57,7 +57,7 @@ export const billingRouter = router({
       credits: { ...credits, left: Math.max(credits.left - creditBalance, 0) },
       emails,
       graceUntil,
-      paid: entitlements.features['workspace:use'] === true,
+      paid: entitlements.features['workspace:paid'] === true,
       posts,
       plan,
       status: entitlements.status,

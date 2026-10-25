@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Page discovery (docs/rfcs/012-product-intelligence.md): same-origin pages
+// Page discovery (docs/rfcs/017-product-intelligence.md): same-origin pages
 // scored by path, robots.txt honored, the homepage excluded (it is always
 // read). A port of lib/onboarding/pages.ts.
 

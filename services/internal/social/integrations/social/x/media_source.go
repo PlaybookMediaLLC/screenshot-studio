@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -16,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	_ "golang.org/x/image/webp"
@@ -24,6 +25,9 @@ import (
 // mediaFacts describe the exact staged bytes uploaded by this adapter. Pending
 // facts are checked against fresh account limits before attaching their IDs.
 type mediaFacts struct {
+	Width      int    `json:"width,omitempty"`
+	Height     int    `json:"height,omitempty"`
+	VideoCodec string `json:"videoCodec,omitempty"`
 	MIME       string `json:"mime"`
 	Bytes      int64  `json:"bytes"`
 	DurationMS int64  `json:"durationMs,omitempty"`
@@ -164,7 +168,7 @@ func stageMedia(ctx context.Context, source string, caps socialidentity.XCapabil
 	}
 	item.facts.Bytes = size
 	if mime == "video/mp4" {
-		item.facts.DurationMS, err = inspectMP4(ctx, file, size)
+		item.facts.DurationMS, err = inspectMP4(ctx, file, size, &item.facts)
 	} else {
 		data, e := io.ReadAll(io.NewSectionReader(file, 0, size))
 		if e != nil {
@@ -226,4 +230,15 @@ func (r contextMediaReader) Read(p []byte) (int, error) {
 		return 0, err
 	}
 	return r.reader.Read(p)
+}
+
+func checkPhotoTagFacts(ids []string, facts []mediaFacts) error {
+	media := make([]socialidentity.XMedia, len(facts))
+	for i, f := range facts {
+		media[i] = socialidentity.XMedia{MIME: f.MIME, Bytes: f.Bytes}
+	}
+	if err := socialidentity.CheckXPhotoTags(ids, media); err != nil {
+		return publishRejected(err.Error())
+	}
+	return nil
 }

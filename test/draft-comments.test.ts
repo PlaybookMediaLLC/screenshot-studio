@@ -56,3 +56,28 @@ test('post and text anchors remain on their original post after content changes'
   assert.equal(commentAnchorExists({ ...anchor, scope: 'post' }, body, versions, 'x'), true)
   assert.equal(commentAnchorExists({ ...anchor, platform: 'linkedin' }, body, versions, 'x'), false)
 })
+
+test('anchored additions extend the original comment protocol without overlapping alternatives', () => {
+  const anchor = { platform: 'x', postId: 'post-1', quote: 'Evidence' }
+  assert.deepEqual(draftCommentInputSchema.parse({ ...add, anchor }), { ...add, anchor })
+  for (const action of [
+    add,
+    {
+      action: 'edit',
+      baseVersion: 2,
+      threadId: 'thread-1',
+      commentId: 'comment-1',
+      text: 'Updated',
+    },
+    { action: 'delete', baseVersion: 2, threadId: 'thread-1', commentId: 'comment-1' },
+    { action: 'resolve', baseVersion: 2, threadId: 'thread-1', resolved: true },
+    { action: 'delete_thread', baseVersion: 2, threadId: 'thread-1' },
+  ])
+    assert.deepEqual(draftCommentInputSchema.parse(action), action)
+  for (const invalid of [
+    { ...anchor, platform: 'unknown' },
+    { ...anchor, postId: '' },
+    { ...anchor, userId: 'forged' },
+  ])
+    assert.equal(draftCommentInputSchema.safeParse({ ...add, anchor: invalid }).success, false)
+})

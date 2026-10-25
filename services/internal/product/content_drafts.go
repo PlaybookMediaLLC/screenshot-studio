@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"regexp"
 	"slices"
 	"strings"
@@ -30,7 +29,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Content drafts (RFC 037): posts written by hand in the document editor.
+// Content drafts (RFC 013): posts written by hand in the document editor.
 // Reading needs any workspace role; writing needs the roles that edit
 // artifacts. Every operation is plan-gated by contentDraftFeature.
 const (
@@ -63,6 +62,7 @@ func (e *ContentDraftVersionConflictError) Unwrap() error { return publishing.Er
 // ContentDraftRecord is a draft as the API returns it. The collaboration
 // state is not part of it.
 type ContentDraftRecord struct {
+	CollabGeneration     int               `json:"collabGeneration"`
 	AssetIDs             []string          `json:"assetIds"`
 	Body                 []any             `json:"body"`
 	ChannelConnectionIDs []string          `json:"channelConnectionIds"`
@@ -77,6 +77,7 @@ type ContentDraftRecord struct {
 	Title                string            `json:"title"`
 	UpdatedAt            time.Time         `json:"updatedAt"`
 	UpdatedByUserID      *string           `json:"updatedByUserId"`
+	CalendarVersion      int               `json:"calendarVersion"`
 	Version              int               `json:"version"`
 	// Review before scheduling: none, pending, approved or changes_requested;
 	// approval holds for ApprovedVersion only.
@@ -89,14 +90,14 @@ type ContentDraftRecord struct {
 	// PublishedPosts counts the draft's live posts (lists only).
 	PublishedPosts int `json:"publishedPosts"`
 	// The draft's social set and what it copied from the set's defaults when
-	// it was created (RFC 043); later changes to the set leave these alone.
+	// it was created (RFC 024); later changes to the set leave these alone.
+	SuppressSlackOnPublish bool              `json:"suppressSlackOnPublish"`
 	Engagement             schema.Engagement `json:"engagement"`
 	NaturalPostingTime     bool              `json:"naturalPostingTime"`
-	SuppressSlackOnPublish bool              `json:"suppressSlackOnPublish"`
 	PlannedFor             *time.Time        `json:"plannedFor"`
 	PrimaryPlatform        *string           `json:"primaryPlatform"`
 	SocialSetID            *string           `json:"socialSetId"`
-	// Write (RFC 042): the draft's kind and target, platform versions,
+	// Write (RFC 025): the draft's kind and target, platform versions,
 	// article, internal scratchpad, tags of its set, pin and plan zone.
 	Article          *draftdoc.Article         `json:"article"`
 	Kind             string                    `json:"kind"`
@@ -142,6 +143,7 @@ type ContentDraftListQuery struct {
 type ContentDraftInput struct {
 	// ImportKey is an optional actor-bound receipt for retried batch imports.
 	ImportKey            string            `json:"importKey"`
+	RequestKey           string            `json:"requestKey"`
 	AssetIDs             []string          `json:"assetIds"`
 	Body                 []any             `json:"body"`
 	ChannelConnectionIDs []string          `json:"channelConnectionIds"`
@@ -153,7 +155,7 @@ type ContentDraftInput struct {
 	// default set. Without ChannelConnectionIDs the draft starts with the
 	// set's default platforms.
 	SocialSetID string `json:"socialSetId"`
-	// Write (RFC 042): the kind and its target, the platform the body is
+	// Write (RFC 025): the kind and its target, the platform the body is
 	// written for (the set's primary when empty), versions, tags of the set.
 	Article          *draftdoc.Article          `json:"article"`
 	Kind             string                     `json:"kind"`
@@ -167,8 +169,11 @@ type ContentDraftInput struct {
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.
 // Status may move between draft and archived; scheduled is set by scheduling.
 type ContentDraftUpdate struct {
+	// CollabGeneration identifies a live editor projection. Omit for an external body replacement.
+	CollabGeneration     *int               `json:"collabGeneration"`
 	AssetIDs             *[]string          `json:"assetIds"`
 	BaseVersion          int                `json:"baseVersion"`
+	BaseCalendarVersion  int                `json:"baseCalendarVersion"`
 	Body                 *[]any             `json:"body"`
 	ChannelConnectionIDs *[]string          `json:"channelConnectionIds"`
 	ChannelText          *map[string]string `json:"channelText"`
@@ -181,18 +186,18 @@ type ContentDraftUpdate struct {
 	PrimaryPlatform    *string `json:"primaryPlatform"`
 	// PlannedFor is RFC 3339, or empty to clear.
 	PlannedFor *string `json:"plannedFor"`
-	// Write (RFC 042): content that bumps the version like the body.
+	// Write (RFC 025): content that bumps the version like the body.
 	Article          *draftdoc.Article          `json:"article"`
 	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions"`
 	Target           *draftdoc.Target           `json:"target"`
 }
 
 func contentDraftRecord(row *ent.ContentDraft) ContentDraftRecord {
-	return ContentDraftRecord{AssetIDs: nonNilStrings(row.AssetIds), Body: nonNilBody(row.Body),
+	return ContentDraftRecord{CollabGeneration: row.CollabGeneration, AssetIDs: nonNilStrings(row.AssetIds), Body: nonNilBody(row.Body),
 		ChannelConnectionIDs: nonNilStrings(row.ChannelConnectionIds), CreatedAt: row.CreatedAt,
 		CreatedByUserID: row.CreatedByUserID, ChannelText: nonNilChannelText(row.ChannelText), Discussions: nonNilDiscussions(row.Discussions), ID: row.ID, OrganizationID: row.OrganizationID, PlainText: row.PlainText,
 		Status: string(row.Status), Title: row.Title, UpdatedAt: row.UpdatedAt, UpdatedByUserID: row.UpdatedByUserID,
-		Version: row.Version, ApprovedVersion: row.ApprovedVersion, ReviewNote: row.ReviewNote,
+		Version: row.Version, CalendarVersion: row.CalendarVersion, ApprovedVersion: row.ApprovedVersion, ReviewNote: row.ReviewNote,
 		ReviewStatus: string(row.ReviewStatus), ReviewedByUserID: row.ReviewedByUserID, ShareToken: row.ShareToken,
 		GuestComments: nonNilComments(row.GuestComments), Engagement: row.Engagement,
 		NaturalPostingTime: row.NaturalPostingTime, SuppressSlackOnPublish: row.SuppressSlackOnPublish, PlannedFor: row.PlannedFor, PrimaryPlatform: row.PrimaryPlatform,
@@ -355,7 +360,7 @@ func contentDraftChannels(ctx context.Context, tx *ent.Tx, organizationID string
 }
 
 // contentDraftVisible reports whether actor may see draft: a draft in no set
-// (written before RFC 043) is the workspace's, otherwise it follows its set.
+// (written before RFC 024) is the workspace's, otherwise it follows its set.
 func contentDraftVisible(ctx context.Context, client *ent.Client, actor Actor, draft *ent.ContentDraft) (bool, error) {
 	if draft.SocialSetID == nil {
 		return true, nil
@@ -560,36 +565,15 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 			return nil, err
 		}
 	}
-	set, defaults, defaultPrimary, err := c.draftDefaults(ctx, tx, actor, input.SocialSetID)
+	replay, creationHash, err := beginDraftCreation(ctx, tx, actor, input)
 	if err != nil {
 		return nil, err
 	}
-	primary := input.PrimaryPlatform
-	if primary == "" {
-		primary = "x"
-		// A set names a platform; the body is written for its channel.
-		if defaultPrimary != nil && draftPlatformChannels[*defaultPrimary] != "" {
-			primary = draftPlatformChannels[*defaultPrimary]
-		}
-		// Replies and articles are X's; a quote is the platform of the post it quotes.
-		if kind == "quote" && input.Target != nil && postoptions.MastodonQuoteURL.MatchString(input.Target.URL) {
-			primary = "mastodon"
-		} else if kind == "quote" && input.Target != nil && strings.HasPrefix(input.Target.URL, "https://bsky.app/") {
-			primary = "bluesky"
-		} else if kind == "reply" || kind == "article" || kind == "quote" && (input.Target == nil || !strings.Contains(input.Target.URL, "linkedin.com")) {
-			primary = "x"
-		} else if kind == "quote" {
-			primary = "linkedin"
-		}
-	}
-	if err := draftKindChannel(kind, primary); err != nil {
-		return nil, err
+	if replay != nil {
+		return replay, tx.Commit()
 	}
 	target, err := draftTarget(kind, input.Target)
 	if err != nil {
-		return nil, err
-	}
-	if err := draftTargetChannel(kind, primary, target); err != nil {
 		return nil, err
 	}
 	if kind == "repurpose" {
@@ -605,6 +589,34 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		if title, err = contentDraftTitle(input.Title); err != nil {
 			return nil, err
 		}
+	}
+	set, defaults, defaultPrimary, err := c.draftDefaults(ctx, tx, actor, input.SocialSetID)
+	if err != nil {
+		return nil, err
+	}
+	primary := input.PrimaryPlatform
+	if primary == "" {
+		primary = "x"
+		// A set names a platform; the body is written for its channel.
+		if defaultPrimary != nil && draftPlatformChannels[*defaultPrimary] != "" {
+			primary = draftPlatformChannels[*defaultPrimary]
+		}
+		if kind == "reply" || kind == "article" {
+			primary = "x"
+		}
+		if kind == "quote" {
+			target, err := draftTarget(kind, input.Target)
+			if err != nil {
+				return nil, err
+			}
+			primary = target.Platform
+		}
+	}
+	if err := draftKindChannel(kind, primary); err != nil {
+		return nil, err
+	}
+	if err := draftTargetChannel(kind, primary, target); err != nil {
+		return nil, err
 	}
 	article, err := draftArticle(kind, input.Article)
 	if err != nil {
@@ -668,12 +680,20 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 			return nil, err
 		}
 	}
+	if err := rememberDraftMentions(ctx, tx, row); err != nil {
+		return nil, err
+	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_created", "content_draft", row.ID,
 		map[string]any{"kind": kind, "socialSetId": set.ID}); err != nil {
 		return nil, err
 	}
 	if err := emitDraftEvent(ctx, tx, row, webhooks.DraftCreated, nil); err != nil {
 		return nil, err
+	}
+	if input.RequestKey != "" {
+		if _, err = tx.CalendarMutation.Create().SetID(calendarReceiptID(actor, input.RequestKey)).SetOrganizationID(actor.OrganizationID).SetActorID(actor.UserID).SetInputHash(creationHash).SetResult(map[string]any{"draftId": row.ID}).Save(ctx); err != nil {
+			return nil, err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, err
@@ -921,14 +941,28 @@ func decodeTimeCursor(raw string) (time.Time, string, error) {
 func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx, actor Actor, current *ent.ContentDraft,
 	update *ent.ContentDraftUpdate, input ContentDraftUpdate) error {
 	if input.PlannedFor != nil {
+		if input.BaseCalendarVersion < 1 || input.BaseCalendarVersion != current.CalendarVersion {
+			return conflict("The calendar changed. Reload before updating the date.")
+		}
+		if err := ensureDraftCanPlan(ctx, tx.Client(), current.ID); err != nil {
+			return err
+		}
+		update.Where(contentdraft.CalendarVersion(input.BaseCalendarVersion))
+		if current.Status != contentdraft.StatusDraft {
+			return conflict("Unschedule or duplicate this content before planning it.")
+		}
+		update.AddCalendarVersion(1)
 		if *input.PlannedFor == "" {
-			update.ClearPlannedFor()
+			update.ClearPlannedFor().ClearPlanTimeZone()
 		} else {
-			at, err := time.Parse(time.RFC3339, *input.PlannedFor)
-			if err != nil {
-				return invalid("Plan the draft for a date and time.")
+			if err := ensurePlanningDestinations(ctx, tx.Client(), current); err != nil {
+				return err
 			}
-			update.SetPlannedFor(at.UTC())
+			at, err := time.Parse(time.RFC3339, *input.PlannedFor)
+			if err != nil || !at.After(time.Now()) {
+				return invalid("Plan the draft for a future date and time.")
+			}
+			update.SetPlannedFor(at.UTC()).SetPlanTimeZone("UTC")
 		}
 	}
 	if input.NaturalPostingTime != nil {
@@ -945,6 +979,13 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 		body, err := contentDraftBody(*input.Body)
 		if err != nil {
 			return err
+		}
+		if input.CollabGeneration != nil {
+			if *input.CollabGeneration != current.CollabGeneration {
+				return conflict("The draft body was replaced. Reload it before saving.")
+			}
+		} else if !sameJSON(body, current.Body) {
+			update.ClearCollabState().AddCollabGeneration(1)
 		}
 		update.SetBody(body)
 	}
@@ -1043,6 +1084,21 @@ func (c *Configuration) applyContentDraftUpdate(ctx context.Context, tx *ent.Tx,
 		if *input.Status != "draft" && *input.Status != "archived" {
 			return invalid("A draft can be set to draft or archived; scheduling sets scheduled.")
 		}
+		if *input.Status == "draft" {
+			committed, err := hasDraftPublicationCommitment(ctx, tx.Client(), current.ID)
+			if err != nil {
+				return err
+			}
+			if committed {
+				if current.Status != contentdraft.StatusArchived {
+					return conflict("Unschedule active publications or duplicate published content before planning it.")
+				}
+				// Restore visibility without relabelling a retained publication as
+				// uncommitted content. Planning commands keep their own guard.
+				update.SetStatus(contentdraft.StatusScheduled)
+				return nil
+			}
+		}
 		update.SetStatus(contentdraft.Status(*input.Status))
 	}
 	return nil
@@ -1100,6 +1156,11 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	row, err := tx.ContentDraft.Get(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if input.Body != nil || input.PlatformVersions != nil {
+		if err := rememberDraftMentions(ctx, tx, row); err != nil {
+			return nil, err
+		}
 	}
 	if err := recordContentDraftRevision(ctx, tx, actor, row, false, "edit"); err != nil {
 		return nil, err
@@ -1170,6 +1231,11 @@ func contentDraftMiss(ctx context.Context, tx *ent.Tx, actor Actor, id string) e
 }
 
 func (c *Configuration) DeleteContentDraft(ctx context.Context, actor Actor, id string) error {
+	return c.DeleteContentDraftAtVersion(ctx, actor, id, 0, 0)
+}
+
+// DeleteContentDraftAtVersion rejects stale calendar detail panels before deleting content.
+func (c *Configuration) DeleteContentDraftAtVersion(ctx context.Context, actor Actor, id string, version, calendarVersion int) error {
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return err
 	}
@@ -1181,9 +1247,15 @@ func (c *Configuration) DeleteContentDraft(ctx context.Context, actor Actor, id 
 		return err
 	}
 	defer tx.Rollback()
+	if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
+		return err
+	}
 	existing, err := visibleContentDraft(ctx, tx.Client(), actor, id)
 	if err != nil {
 		return err
+	}
+	if version > 0 && (existing.Version != version || existing.CalendarVersion != calendarVersion) {
+		return conflict("This draft changed. Reload before deleting.")
 	}
 	count, err := tx.ContentDraft.Delete().Where(contentdraft.ID(id), contentdraft.OrganizationID(actor.OrganizationID)).Exec(ctx)
 	if ent.IsConstraintError(err) {

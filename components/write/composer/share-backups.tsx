@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 import { draftHref, useWrite } from '../write-context'
 
 /**
- * Share & collaborate (RFC 042): the internal link, which only members who
+ * Share & collaborate (RFC 025): the internal link, which only members who
  * can see the set can open, and the public link, an explicit switch that
  * gives anyone with it read and comment access until it is turned off.
  * Copying the internal link never turns the public one on.
@@ -205,10 +205,14 @@ const REASONS: Record<RevisionWire['reason'], string> = {
   publish: 'When published',
   recovery: 'When recovered',
   schedule: 'When scheduled',
+  'calendar.move': 'When moved',
+  'calendar.swap': 'When swapped',
+  'calendar.unschedule': 'When unscheduled',
+  'calendar.remove_date': 'When the date was removed',
 }
 
 /**
- * Automatic backups (RFC 042): immutable snapshots, browsed one at a time
+ * Automatic backups (RFC 025): immutable snapshots, browsed one at a time
  * with previous and next, shown per platform, compared with the draft now,
  * and recovered as a new draft. The draft itself is never changed here.
  */

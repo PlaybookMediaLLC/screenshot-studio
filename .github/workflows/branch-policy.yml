@@ -1,0 +1,31 @@
+name: Branch policy
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Branch policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Inspect metadata only. Never check out or execute code from the PR.
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (pr.base.ref === 'develop') {
+              core.info('Work PR targets develop.');
+            } else if (
+              pr.base.ref === 'main' &&
+              pr.head.ref === 'develop' &&
+              pr.head.repo?.full_name === pr.base.repo.full_name
+            ) {
+              core.info('Release promotion from this repository’s develop to main.');
+            } else {
+              core.setFailed('Work PRs must target develop. Only this repository’s develop branch may target main for a release.');
+            }

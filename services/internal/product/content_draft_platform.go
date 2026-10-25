@@ -4,12 +4,13 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	entsql "entgo.io/ent/dialect/sql"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	entsql "entgo.io/ent/dialect/sql"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -25,11 +26,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 	"github.com/lucsky/cuid"
 )
 
-// Content drafts, round two (RFC 037): the posting queue and its settings,
+// Content drafts, round two (RFC 013): the posting queue and its settings,
 // best times, moving one post, review, guest share links, revisions,
 // resuming a thread that stopped, and engagement on live posts.
 
@@ -62,7 +62,7 @@ func (c *Configuration) workspaceZone(ctx context.Context, organizationID string
 }
 
 // draftSettings is the workspace's review policy with the default social
-// set's schedule: since RFC 043 a set owns its slots and time zone, and this
+// set's schedule: since RFC 024 a set owns its slots and time zone, and this
 // older settings shape reads and writes the workspace's first set.
 func (c *Configuration) draftSettings(ctx context.Context, organizationID string) (ContentDraftSettings, error) {
 	set, err := c.defaultSocialSet(ctx, organizationID)
@@ -98,6 +98,11 @@ func (c *Configuration) UpdateContentDraftSettings(ctx context.Context, actor Ac
 	}
 	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, contentDraftFeature); err != nil {
 		return nil, err
+	}
+	if input.PostingSlots != nil {
+		if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+			return nil, err
+		}
 	}
 	current, err := c.draftSettings(ctx, actor.OrganizationID)
 	if err != nil {
@@ -155,7 +160,7 @@ func queueSlots(slots []schema.QueueSlot) ([]schema.QueueSlot, error) {
 	return out, nil
 }
 
-// resolveWallTime is the instant a local wall time names in zone (RFC 043).
+// resolveWallTime is the instant a local wall time names in zone (RFC 024).
 // When the clock repeats it (autumn), it is the first occurrence. When the
 // clock skips it (spring), it is the same number of minutes after the
 // transition: 02:30 on a day that jumps from 02:00 to 03:00 is 03:30.
@@ -248,6 +253,9 @@ func (c *Configuration) NextQueueSlot(ctx context.Context, actor Actor, socialSe
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return time.Time{}, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+		return time.Time{}, err
+	}
 	set, err := c.resolveSocialSet(ctx, actor, socialSetID)
 	if err != nil {
 		return time.Time{}, err
@@ -301,6 +309,9 @@ func (c *Configuration) BestPostingTimes(ctx context.Context, actor Actor, socia
 	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
 		return nil, err
 	}
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+		return nil, err
+	}
 	set, err := c.resolveSocialSet(ctx, actor, socialSetID)
 	if err != nil {
 		return nil, err
@@ -309,6 +320,7 @@ func (c *Configuration) BestPostingTimes(ctx context.Context, actor Actor, socia
 	query := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
 		scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED), scheduledpost.SocialSetID(set.ID), scheduledpost.MetricsAtNotNil(),
 		scheduledpost.ScheduledForGTE(time.Now().AddDate(0, 0, -120)))
+	query.Where(scheduledpost.SocialSetID(set.ID))
 	posts, err := query.All(ctx)
 	if err != nil {
 		return nil, err
@@ -413,7 +425,7 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 		return nil, err
 	}
 	defer tx.Rollback()
-	moved, err := c.moveDraftPostInTransaction(ctx, tx, actor, postID, at)
+	moved, err := c.moveDraftPostTx(ctx, tx, actor, postID, at)
 	if err != nil {
 		return nil, err
 	}
@@ -423,7 +435,7 @@ func (c *Configuration) MoveContentDraftPost(ctx context.Context, actor Actor, p
 	return moved, nil
 }
 
-func (c *Configuration) moveDraftPostInTransaction(ctx context.Context, tx *ent.Tx, actor Actor, postID string, at time.Time) (*MovedDraftPost, error) {
+func (c *Configuration) moveDraftPostTx(ctx context.Context, tx *ent.Tx, actor Actor, postID string, at time.Time, zones ...string) (*MovedDraftPost, error) {
 	post, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(postID), scheduledpost.OrganizationID(actor.OrganizationID),
 		scheduledpost.ContentDraftIDNotNil()).WithChannelConnection().Only(ctx)
 	if ent.IsNotFound(err) {
@@ -438,62 +450,10 @@ func (c *Configuration) moveDraftPostInTransaction(ctx context.Context, tx *ent.
 	if post.Status != scheduledpost.StatusSCHEDULED {
 		return nil, conflict("Only a queued post can move; this one is " + strings.ToLower(string(post.Status)) + ".")
 	}
-	if post.Edges.ChannelConnection.Status != channelconnection.StatusACTIVE {
-		return nil, conflict("Reconnect this account before moving its scheduled post.")
+	if len(zones) > 0 {
+		post.ScheduleTimeZone = &zones[0]
 	}
-	// Claim the queued state atomically. A worker or another calendar request
-	// may have changed it since the read above. Never overwrite PROCESSING or
-	// create a second replacement after another move has won.
-	changed, err := tx.ScheduledPost.Update().Where(scheduledpost.ID(post.ID),
-		scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED)).
-		SetStatus(scheduledpost.StatusCANCELLED).Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if changed != 1 {
-		return nil, conflict("This post changed while it was moving. Refresh the calendar before trying again.")
-	}
-	create := tx.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(post.OrganizationID).
-		SetNillableContentDraftID(post.ContentDraftID).SetNillableAssetID(post.AssetID).
-		SetChannelConnectionID(post.ChannelConnectionID).SetScheduledFor(at.UTC()).
-		SetStatus(scheduledpost.StatusSCHEDULED).SetCaption(post.Caption).
-		SetNillableSocialSetID(post.SocialSetID).SetScheduleMode(scheduledpost.ScheduleModeExplicit).SetSlotAt(at.UTC()).
-		SetNaturalOffsetSeconds(0).SetNillableScheduleTimeZone(post.ScheduleTimeZone).
-		SetIdempotencyKey(fmt.Sprintf("%s:moved:%d", post.IdempotencyKey, at.Unix()))
-	if len(post.AssetIds) > 0 {
-		create.SetAssetIds(post.AssetIds)
-	}
-	if len(post.Replies) > 0 {
-		create.SetReplies(post.Replies)
-	}
-	if !post.AutoActions.Empty() {
-		create.SetAutoActions(post.AutoActions)
-	}
-	if len(post.Poll.Options) > 0 {
-		create.SetPoll(post.Poll)
-	}
-	if post.ReplyTo != nil {
-		create.SetReplyTo(*post.ReplyTo)
-	}
-	if !post.PublishOptions.Empty() {
-		create.SetPublishOptions(post.PublishOptions)
-	}
-	moved, err := create.Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if err := recordProductActivity(ctx, tx, actor, "post.moved", "post.moved", "scheduled_post", moved.ID,
-		map[string]any{"from": post.ID, "scheduledFor": at.UTC()}); err != nil {
-		return nil, err
-	}
-	movedPost := contentDraftPost(moved, post.Edges.ChannelConnection.Platform)
-	if draft, err := tx.ContentDraft.Get(ctx, *post.ContentDraftID); err != nil {
-		return nil, err
-	} else if err := emitDraftEvent(ctx, tx, draft, webhooks.DraftScheduled, map[string]any{
-		"posts": scheduledPostsData([]ContentDraftPost{movedPost}), "scheduleMode": "explicit"}); err != nil {
-		return nil, err
-	}
-	return &MovedDraftPost{Cancelled: post.ID, Post: contentDraftPost(moved, post.Edges.ChannelConnection.Platform), Scheduled: moved}, nil
+	return replaceQueuedDraftPost(ctx, tx, actor, post, at)
 }
 
 // requireVisibleDraftPost refuses a draft post whose draft the actor cannot see.
@@ -508,9 +468,14 @@ func requireVisibleDraftPost(ctx context.Context, client *ent.Client, actor Acto
 // CalendarPost is a draft post on the calendar, with its draft's title.
 type CalendarPost struct {
 	ContentDraftPost
-	DraftID    string   `json:"draftId"`
-	DraftTitle string   `json:"draftTitle"`
-	TagIDs     []string `json:"tagIds"`
+	CampaignID      *string  `json:"campaignId,omitempty"`
+	CampaignTitle   string   `json:"campaignTitle,omitempty"`
+	DraftID         string   `json:"draftId"`
+	DraftTitle      string   `json:"draftTitle"`
+	SocialSetID     *string  `json:"socialSetId"`
+	TagIDs          []string `json:"tagIds"`
+	Version         int      `json:"version"`
+	CalendarVersion int      `json:"calendarVersion"`
 }
 
 // ListContentDraftPostsBetween lists the workspace's draft posts due in
@@ -538,17 +503,19 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 	if socialSetID == "" {
 		inSets = scheduledpost.Or(scheduledpost.SocialSetIDIsNil(), inSets)
 	}
-	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID), inSets,
-		scheduledpost.ContentDraftIDNotNil(), scheduledpost.ScheduledForGTE(from), scheduledpost.ScheduledForLT(to),
+	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID),
+		scheduledpost.Or(scheduledpost.And(inSets, scheduledpost.ContentDraftIDNotNil()), scheduledpost.And(scheduledpost.ContentDraftIDIsNil(), scheduledpost.HasChannelConnectionWith(channelconnection.OrganizationID(actor.OrganizationID), channelconnection.SocialSetIDIn(visible...)))), scheduledpost.ScheduledForGTE(from), scheduledpost.ScheduledForLT(to),
 		scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING,
 			scheduledpost.StatusPUBLISHED, scheduledpost.StatusFAILED, scheduledpost.StatusUNKNOWN_DELIVERY)).
-		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldScheduledFor)).Limit(500).All(ctx)
+		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldScheduledFor)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
 	ids := map[string]bool{}
 	for _, post := range posts {
-		ids[*post.ContentDraftID] = true
+		if post.ContentDraftID != nil {
+			ids[*post.ContentDraftID] = true
+		}
 	}
 	keys := make([]string, 0, len(ids))
 	for id := range ids {
@@ -572,14 +539,24 @@ func (c *Configuration) ListContentDraftPostsBetween(ctx context.Context, actor 
 	for _, draft := range drafts {
 		visibleDrafts[draft.ID] = draft
 	}
+	campaigns, err := c.calendarCampaigns(ctx, actor, posts)
+	if err != nil {
+		return nil, err
+	}
 	items := make([]CalendarPost, 0, len(posts))
 	for _, post := range posts {
+		if post.ContentDraftID == nil {
+			if entry, ok := campaigns[post.ID]; ok {
+				items = append(items, entry)
+			}
+			continue
+		}
 		draft, visible := visibleDrafts[*post.ContentDraftID]
 		if !visible {
 			continue
 		}
 		items = append(items, CalendarPost{ContentDraftPost: contentDraftPost(post, post.Edges.ChannelConnection.Platform),
-			DraftID: *post.ContentDraftID, DraftTitle: draft.Title, TagIDs: nonNilStrings(draft.TagIds)})
+			DraftID: *post.ContentDraftID, DraftTitle: draft.Title, SocialSetID: draft.SocialSetID, TagIDs: draft.TagIds, Version: draft.Version, CalendarVersion: draft.CalendarVersion})
 	}
 	return items, nil
 }
@@ -605,7 +582,7 @@ func (c *Configuration) ListPlannedContentDrafts(ctx context.Context, actor Acto
 	}
 	rows, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), sets,
 		contentdraft.StatusNEQ(contentdraft.StatusArchived), contentdraft.PlannedForGTE(from), contentdraft.PlannedForLT(to)).
-		Order(ent.Asc(contentdraft.FieldPlannedFor), ent.Asc(contentdraft.FieldID)).Limit(500).All(ctx)
+		Order(ent.Asc(contentdraft.FieldPlannedFor), ent.Asc(contentdraft.FieldID)).All(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -980,7 +957,7 @@ func recordContentDraftRevision(ctx context.Context, tx *ent.Tx, actor Actor, dr
 	return pruneContentDraftRevisions(ctx, tx, draft.ID)
 }
 
-// pruneContentDraftRevisions applies the backup retention (RFC 042): every
+// pruneContentDraftRevisions applies the backup retention (RFC 025): every
 // backup from the last 30 days, then the last one of each day for a year,
 // then none. It runs as a draft gains a backup, so a draft nobody edits
 // keeps what it had.
@@ -1007,7 +984,7 @@ type ContentDraftRevisionRecord struct {
 	PlainText       string    `json:"plainText"`
 	Title           string    `json:"title"`
 	Version         int       `json:"version"`
-	// Write (RFC 042): why the backup was kept, and, in a single read, the
+	// Write (RFC 025): why the backup was kept, and, in a single read, the
 	// platform versions and article as they were.
 	Article          *draftdoc.Article          `json:"article,omitempty"`
 	PlatformVersions *draftdoc.PlatformVersions `json:"platformVersions,omitempty"`

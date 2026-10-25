@@ -529,6 +529,28 @@ func FuzzInspectMP4(f *testing.F) {
 	})
 }
 
+// This verifies Shots' staged bytes and technical facts, not X's published resolution.
+func TestTenMinute1080pSourcePreservedWithoutPremium(t *testing.T) {
+	source := "testdata/ten-minute-1080p.mp4"
+	data, err := os.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caps := socialidentity.XVerifiedAccountLimits("read-write", ptr("None"))
+	item, err := stageMedia(context.Background(), source, caps, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer item.close()
+	if item.facts.DurationMS != 600000 || item.facts.Width != 1920 || item.facts.Height != 1080 || item.facts.VideoCodec != "h264" {
+		t.Fatalf("source facts lost: %+v", item.facts)
+	}
+	staged, err := os.ReadFile(item.file.Name())
+	if err != nil || !bytes.Equal(staged, data) {
+		t.Fatal("source was reduced or altered")
+	}
+}
+
 func TestOversizeStaticImageIsResizedWithoutChangingSource(t *testing.T) {
 	source := append(pngBytes(), make([]byte, 5000001)...)
 	path := t.TempDir() + "/large.png"

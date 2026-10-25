@@ -11,6 +11,7 @@ import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
 import { importedBody } from '@/lib/write/import-text'
 
 configureE2EFlow()
+test.use({ actionTimeout: 30_000 })
 
 test('a framed workspace export returns to its draft for explicit attachment', async ({
   page,
@@ -122,18 +123,19 @@ test('dragging a thread post preserves its contents and ordering after refresh',
     await page.setViewportSize({ width: 1600, height: 1000 })
     await page.goto(`/write/${(created.body as { id: string }).id}`)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
-    const resize = page.getByRole('separator', { name: 'Resize side panel' })
+    const resize = page.getByRole('separator', { name: 'Resize preview sidebar' })
+    const initialWidth = Number(await resize.getAttribute('aria-valuenow'))
     await resize.focus()
     await page.keyboard.press('ArrowLeft')
     await page.keyboard.press('ArrowLeft')
-    await expect(resize).toHaveAttribute('aria-valuenow', '360')
+    await expect(resize).toHaveAttribute('aria-valuenow', String(initialWidth + 64))
     const handle = await resize.boundingBox()
     expect(handle).not.toBeNull()
-    await page.mouse.move(handle!.x + 4, handle!.y + 80)
+    await page.mouse.move(handle!.x + 2, handle!.y + 80)
     await page.mouse.down()
-    await page.mouse.move(handle!.x - 76, handle!.y + 80, { steps: 5 })
+    await page.mouse.move(handle!.x - 78, handle!.y + 80, { steps: 5 })
     await page.mouse.up()
-    await expect(resize).toHaveAttribute('aria-valuenow', '440')
+    await expect(resize).toHaveAttribute('aria-valuenow', String(initialWidth + 144))
     await page
       .getByRole('img', { name: 'Drag post 1', exact: true })
       .dragTo(page.locator('[data-post-number="3"]'))

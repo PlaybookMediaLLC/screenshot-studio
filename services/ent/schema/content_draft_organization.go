@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// ContentDraftTag labels drafts within one social set (RFC 042).
+// ContentDraftTag labels drafts within one social set (RFC 025).
 type ContentDraftTag struct{ ent.Schema }
 
 func (ContentDraftTag) Annotations() []schema.Annotation {
@@ -32,7 +32,7 @@ func (ContentDraftTag) Indexes() []ent.Index {
 	return []ent.Index{index.Fields("social_set_id", "created_at")}
 }
 
-// ContentDraftFinisher is a reusable closing post for a thread (RFC 042). With
+// ContentDraftFinisher is a reusable closing post for a thread (RFC 025). With
 // QuoteFirstPost, publishing quotes the thread's first post once it is live.
 type ContentDraftFinisher struct{ ent.Schema }
 

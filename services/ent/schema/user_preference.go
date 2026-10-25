@@ -9,7 +9,7 @@ import (
 	"entgo.io/ent/schema/field"
 )
 
-// UserPreference is one person's preferences (RFC 043), keyed by the person
+// UserPreference is one person's preferences (RFC 024), keyed by the person
 // so they follow them across workspaces and never change anyone else's view.
 type UserPreference struct{ ent.Schema }
 

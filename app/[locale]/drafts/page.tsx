@@ -6,7 +6,7 @@ type DraftsPageProps = {
   searchParams: Promise<{ socialSet?: string }>
 }
 
-/** Drafts moved to Write (RFC 042); old links keep working, set and all. */
+/** Drafts moved to Write (RFC 025); old links keep working, set and all. */
 export default async function DraftsPage({ params, searchParams }: DraftsPageProps) {
   const { locale } = await params
   const { socialSet } = await searchParams

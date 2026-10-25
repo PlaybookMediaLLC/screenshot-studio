@@ -346,7 +346,7 @@ function WebhookRow({ onSecret, webhook }: { onSecret: (secret: string) => void;
 }
 
 /**
- * Outbound webhooks (RFC 043): signed HTTPS deliveries of draft events to
+ * Outbound webhooks (RFC 024): signed HTTPS deliveries of draft events to
  * your own systems, retried for a while and replayable after that.
  */
 export function WebhookSettings({ canManage }: { canManage: boolean }) {

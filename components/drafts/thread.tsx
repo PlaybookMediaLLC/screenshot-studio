@@ -22,7 +22,7 @@ import { POST_COLUMN } from './layout'
 import { Button } from '@/components/ui/button'
 
 /**
- * Threads (RFC 037, RFC 042): a draft is one or more posts. Every post starts
+ * Threads (RFC 013, RFC 025): a draft is one or more posts. Every post starts
  * at a post break block, the first one included, so each post has a stable
  * id and its own settings (who can reply, labels, a poll), kept on its break.
  * A break is drawn as its post's header; a line joins the avatars. Moving a
@@ -240,7 +240,7 @@ export const PostBreakPlugin = createPlatePlugin({
     },
     normalizeNode(entry, options) {
       const [node, path] = entry
-      if (node.type === 'mention_input') {
+      if (node.type === 'mention_input' && !editor.plugins.mention_input) {
         editor.tf.withoutNormalizing(() => {
           editor.tf.removeNodes({ at: path })
           editor.tf.insertNodes(normalizeMentions(node) as { text: string }, { at: path })

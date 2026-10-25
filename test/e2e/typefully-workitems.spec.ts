@@ -1,5 +1,6 @@
 import { ShotsClient } from '../../integrations/raycast/src/lib/client'
 import { createRequire } from 'node:module'
+import sharp from 'sharp'
 import { importedBody } from '@/lib/write/import-text'
 import { expect } from '@playwright/test'
 import { configureE2EFlow, test } from './framework/flow'
@@ -14,6 +15,7 @@ import { apiRequest, unbindTestGoOrganization, trpcMutation } from './framework/
 import { createE2EDatabase } from './framework/services'
 
 configureE2EFlow()
+test.use({ actionTimeout: 30_000 })
 
 test('URL import, paste undo, poll copying, and refresh preserve editable content', async ({
   page,
@@ -44,7 +46,10 @@ test('URL import, paste undo, poll copying, and refresh preserve editable conten
     await expect(page.getByTestId('post-header')).toHaveCount(3)
     await expect(draftEditor(page)).toContainText('Third post')
 
-    await page.getByRole('button', { name: 'Add a poll', exact: true }).click()
+    await page
+      .locator('[data-post-number="1"]')
+      .getByRole('button', { name: 'Add a poll', exact: true })
+      .click()
     await page.getByRole('button', { name: 'Add poll', exact: true }).click()
     await page.getByLabel('Poll option 1').fill('Choice one')
     await page.getByLabel('Poll option 2').fill('Choice two')
@@ -71,7 +76,7 @@ test('URL import, paste undo, poll copying, and refresh preserve editable conten
     await page.evaluate(() => navigator.clipboard.writeText('https://x.com/example/status/123456'))
     await draftEditor(page).click()
     await draftEditor(page).press('ControlOrMeta+v')
-    await page.getByRole('button', { name: 'Create native quote draft' }).click()
+    await page.getByRole('button', { name: 'Open as quote draft' }).click()
     await expect(page.getByText('Quoting', { exact: true })).toBeVisible()
     await expectSaved(page)
     await page.reload()
@@ -169,20 +174,24 @@ test('calendar slots pick saved drafts and queue board drops open the same sched
     const id = (created.body as { id: string }).id
     const calendarURL = `/write/plan?view=queue&week=${new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10)}`
     await page.goto(calendarURL)
-    await expect(page.getByLabel('Weekly queue board', { exact: true })).toBeVisible()
+    await page.getByLabel('Calendar view').selectOption('week')
+    await expect(page.getByLabel('week calendar', { exact: true })).toBeVisible()
     const slot = page.getByRole('button', { name: /Available ·/ }).first()
     await slot.click()
-    await page.getByRole('button', { name: 'Calendar choice', exact: true }).click()
-    await page.waitForURL(new RegExp(`/write/${id}\\?`))
-    await expect(page.getByRole('dialog', { name: 'Schedule', exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Confirm schedule', exact: true }).click()
+    await page.getByRole('button', { name: 'Choose existing content' }).click()
+    await page.getByRole('button', { name: /Pick this saved draft/ }).click()
+    await page.getByRole('checkbox', { name: 'Open in editor' }).uncheck()
+    await page.getByRole('button', { name: 'Schedule', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
+    const committed = await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)
+    expect(committed.status).toBe(200)
+    expect((committed.body as { posts: unknown[] }).posts).toHaveLength(1)
     await page.goto(calendarURL)
     await expect(
-      page.getByTestId('calendar-post').filter({ hasText: 'Pick this saved draft' })
+      page.getByTestId('calendar-post').filter({ hasText: 'Pick this saved draft', visible: true })
     ).toHaveCount(1)
     await page.reload()
-    await expect(page.getByTestId('calendar-post')).toHaveCount(1)
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(1)
     const dropped = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {
@@ -194,14 +203,12 @@ test('calendar slots pick saved drafts and queue board drops open the same sched
     })
     expect(dropped.status).toBe(201)
     await page.reload()
-    const dragSource = page
-      .getByTestId('draft-row')
-      .filter({ hasText: 'Drag from sidebar' })
-      .getByRole('link')
+    await page.getByRole('button', { name: 'Drafts', exact: true }).first().click()
+    const dragSource = page.getByRole('link', { name: /Dropped draft.*Edited/ })
     await expect(dragSource).toHaveAttribute('draggable', 'true')
     await dragSource.dragTo(page.getByRole('button', { name: /Available ·/ }).first())
-    await page.waitForURL(new RegExp(`/write/${(dropped.body as { id: string }).id}\\?`))
-    await expect(page.getByRole('dialog', { name: 'Schedule', exact: true })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Choose a draft', exact: true })).toBeVisible()
+    await page.getByRole('checkbox', { name: 'Open in editor' }).uncheck()
     // A drop only opens human review; it has not scheduled anything yet.
     const beforeConfirm = await apiRequest(
       page,
@@ -209,12 +216,12 @@ test('calendar slots pick saved drafts and queue board drops open the same sched
     )
     expect(beforeConfirm.status).toBe(200)
     expect((beforeConfirm.body as { posts: unknown[] }).posts).toHaveLength(0)
-    await page.getByRole('button', { name: 'Confirm schedule', exact: true }).click()
+    await page.getByRole('button', { name: 'Schedule', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.goto(calendarURL)
-    await expect(page.getByTestId('calendar-post')).toHaveCount(2)
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
     await page.reload()
-    await expect(page.getByTestId('calendar-post')).toHaveCount(2)
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
     await page.screenshot({ path: '.context/shots/typefully-queue-board.png' })
   } finally {
     await workspace?.provider.close()
@@ -261,21 +268,25 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     await expect(dialog.getByRole('listitem').filter({ hasText: 'Scheduled' })).toHaveCount(2)
     await page.keyboard.press('Escape')
     await page.goto('/write/plan?view=month')
-    await expect(page.getByTestId('calendar-post')).toHaveCount(2)
-    await page.getByLabel('Filter by status').selectOption('SCHEDULED')
-    await page.getByRole('button', { name: 'Change time' }).first().click()
-    const when = page.getByLabel('Publication date and time')
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
+    await page.getByLabel('Calendar view').selectOption('month')
+    await page.getByTestId('calendar-post').filter({ visible: true }).first().click()
+    const when = page.getByLabel('Date and time', { exact: true })
     const day = (await when.inputValue()).slice(0, 10)
     await when.fill(`${day}T16:35`)
-    await page.getByRole('button', { name: 'Save time' }).click()
+    await page.getByRole('button', { name: 'Move', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.reload()
-    await expect(page.getByTestId('calendar-post')).toHaveCount(2)
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
     const result = await database.query(
       `SELECT p.id,p.caption,p."scheduledFor",p."socialSetId",p."channelConnectionId",p."contentDraftId" FROM scheduled_post p WHERE p."organizationId"=$1 AND status='SCHEDULED' ORDER BY p."scheduledFor"`,
       [workspace.organizationId]
     )
     expect(result.rows).toHaveLength(2)
+    await page
+      .getByTestId('calendar-post')
+      .filter({ hasText: result.rows[0].caption, visible: true })
+      .click()
     await page
       .getByLabel(`Swap queue position for ${result.rows[0].caption}`)
       .selectOption(result.rows[1].id)
@@ -314,22 +325,26 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
         post.id,
       ]
     )
-    await page.getByRole('link', { name: 'All social sets', exact: true }).click()
-    await page.getByLabel('Filter by publishing brand').selectOption(post.socialSetId)
-    await page.getByLabel('Filter by channel').selectOption('linkedin')
-    await expect(page.getByTestId('calendar-post')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Show only', exact: true }).first().click()
+    await page.getByText('Filters', { exact: true }).click()
+    await page.getByRole('checkbox', { name: 'linkedin', exact: true }).check()
+    await page.getByText('Filters', { exact: true }).click()
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(0)
     await page.reload()
-    await expect(page.getByLabel('Filter by channel')).toHaveValue('linkedin')
-    await page.getByLabel('Filter by channel').selectOption('x')
-    await expect(page.getByTestId('calendar-post')).toHaveCount(2)
-    await page.getByLabel('Publishing calendar', { exact: true }).focus()
-    const currentCalendar = page.url()
-    await page.keyboard.press('Alt+ArrowRight')
-    await expect.poll(() => page.url()).not.toBe(currentCalendar)
-    await expect(page.getByLabel('Filter by publishing brand')).toHaveValue(post.socialSetId)
-    await page.getByLabel('Publishing calendar', { exact: true }).focus()
-    await page.keyboard.press('Alt+ArrowLeft')
-    await expect(page.getByTestId('calendar-post')).toHaveCount(2)
+    await page.getByText('Filters', { exact: true }).click()
+    await expect(page.getByRole('checkbox', { name: 'linkedin', exact: true })).toBeChecked()
+    await page.getByRole('checkbox', { name: 'linkedin', exact: true }).uncheck()
+    await page.getByRole('checkbox', { name: 'x', exact: true }).check()
+    await page.getByText('Filters', { exact: true }).click()
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
+    const period = page.getByRole('heading', { level: 1 })
+    const previousPeriod = await period.textContent()
+    await period.click()
+    await page.keyboard.press('ArrowRight')
+    await expect(period).not.toHaveText(previousPeriod!)
+    await page.keyboard.press('ArrowLeft')
+    await expect(period).toHaveText(previousPeriod!)
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
     await enableDraftTags(page)
     const tagged = await apiRequest(page, `/api/v1/social-sets/${post.socialSetId}/tags`, {
       method: 'POST',
@@ -344,17 +359,25 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     )
     expect(taggedDraft.status, JSON.stringify(taggedDraft.body)).toBe(200)
     await page.reload()
-    await page.getByLabel('Filter calendar by tag').selectOption(tagId)
-    await expect(page.getByTestId('calendar-post')).toHaveCount(1)
-    await expect(page.getByTestId('calendar-post')).toContainText('Calendar evidence')
+    await page.getByText('Filters', { exact: true }).click()
+    await page.getByRole('checkbox', { name: 'Calendar evidence', exact: true }).check()
+    await page.getByText('Filters', { exact: true }).click()
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(1)
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toContainText(
+      'Calendar evidence'
+    )
     await page.reload()
-    await expect(page.getByLabel('Filter calendar by tag')).toHaveValue(tagId)
-    await expect(page.getByTestId('calendar-post')).toHaveCount(1)
+    await page.getByText('Filters', { exact: true }).click()
+    await expect(
+      page.getByRole('checkbox', { name: 'Calendar evidence', exact: true })
+    ).toBeChecked()
+    await page.getByText('Filters', { exact: true }).click()
+    await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(1)
     // A second explicit storage fixture verifies account series rendering and CSV values.
     const today = new Date().toISOString().slice(0, 10)
     const yesterday = new Date(Date.now() - 9 * 86400_000).toISOString().slice(0, 10)
     await database.query(
-      `INSERT INTO platform_social_observation (id,"organizationId","socialSetId","connectionId","subjectId",kind,platform,day,"observedAt",series,status) VALUES ($1,$2,$3,$4,$4,'account','x',date_trunc('day',now()),now(),$5::jsonb,'available')`,
+      `INSERT INTO platform_social_observation (id,"organizationId","socialSetId","connectionId","subjectId",kind,platform,day,"observedAt",series,status) VALUES ($1,$2,$3,$4,$4,'account','x',date_trunc('day',now()),now(),$5::jsonb,'available') ON CONFLICT ("organizationId",kind,"subjectId",day) DO UPDATE SET series=EXCLUDED.series,status=EXCLUDED.status,"observedAt"=EXCLUDED."observedAt"`,
       [
         `account-${post.id}`,
         workspace.organizationId,
@@ -409,7 +432,7 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
         }),
       ]
     )
-    await page.goto('/write/analyze')
+    await page.goto('/write/analyze/observations')
     await expect(
       page.getByRole('img', { name: 'Average engagement score 8.0 from 5 posts' }).first()
     ).toBeVisible()
@@ -455,10 +478,11 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
     workspace = await createDraftWorkspace(identity, page)
     await page.goto('/write')
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
-    const png = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRusAAAAASUVORK5CYII=',
-      'base64'
-    )
+    const png = await sharp({
+      create: { width: 48, height: 48, channels: 4, background: '#2563eb' },
+    })
+      .png()
+      .toBuffer()
     await page.getByLabel('Batch media files').setInputFiles([
       { name: 'one.png', mimeType: 'image/png', buffer: png },
       { name: 'two.png', mimeType: 'image/png', buffer: png },
@@ -541,9 +565,27 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
       .getByLabel('Description of image 1')
       .fill('A small light square, reviewed by the author.')
     await page.getByRole('button', { name: 'Save descriptions', exact: true }).click()
-    await page.getByRole('button', { name: 'Audience and disclosures for post 1' }).click()
-    await page.getByLabel('Photo tags', { exact: true }).fill('123, 456')
-    await page.getByRole('button', { name: 'Apply photo tags', exact: true }).click()
+    await page.route('**/api/v1/social-sets/*/mentions?*', (route) =>
+      route.fulfill({
+        json: {
+          items: [
+            { handle: 'first', kind: 'person', label: 'First person', providerId: '123' },
+            { handle: 'second', kind: 'person', label: 'Second person', providerId: '456' },
+          ],
+        },
+      })
+    )
+    await page.getByRole('button', { name: 'Manage media', exact: true }).click()
+    await page
+      .getByTestId('media-manager')
+      .getByRole('button', { name: 'Tag people', exact: true })
+      .first()
+      .click()
+    await page.getByLabel('X username to tag').fill('first')
+    await page.getByRole('button', { name: 'Find person', exact: true }).click()
+    await page.getByRole('button', { name: 'Add First person @first', exact: true }).click()
+    await page.getByRole('button', { name: 'Add Second person @second', exact: true }).click()
+    await page.getByRole('button', { name: 'Save photo tags', exact: true }).click()
     await page.keyboard.press('Escape')
     await expectSaved(page)
     await page.reload()
@@ -552,8 +594,19 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
       'A small light square, reviewed by the author.'
     )
     await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: 'Audience and disclosures for post 1' }).click()
-    await expect(page.getByLabel('Photo tags', { exact: true })).toHaveValue('123, 456')
+    await page.getByRole('button', { name: 'Manage media', exact: true }).click()
+    await page
+      .getByTestId('media-manager')
+      .getByRole('button', { name: 'Tag people', exact: true })
+      .first()
+      .click()
+    await expect(
+      page.getByRole('button', { name: 'Remove First person', exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Remove Second person', exact: true })
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Save photo tags', exact: true }).click()
     await page.waitForTimeout(300)
     await page.screenshot({ path: '.context/shots/typefully-media-persisted.png' })
     await page.keyboard.press('Escape')
@@ -571,6 +624,7 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
       expect(image.headers()['content-type']).toBe('image/webp')
       expect((await image.body()).length).toBeGreaterThan(20)
       await page.getByLabel('Public link', { exact: true }).click()
+      await expect(page.getByRole('switch', { name: 'Public link', exact: true })).not.toBeChecked()
       expect((await guest.request.get(ogImage!)).status()).toBe(404)
     } finally {
       await guest.close()

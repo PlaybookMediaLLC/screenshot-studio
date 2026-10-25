@@ -99,6 +99,11 @@ func ShareToken(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldShareToken, v))
 }
 
+// CalendarVersion applies equality check predicate on the "calendar_version" field. It's identical to CalendarVersionEQ.
+func CalendarVersion(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldCalendarVersion, v))
+}
+
 // Version applies equality check predicate on the "version" field. It's identical to VersionEQ.
 func Version(v int) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldVersion, v))
@@ -147,6 +152,11 @@ func PlanTimeZone(v string) predicate.ContentDraft {
 // SourceDraftID applies equality check predicate on the "source_draft_id" field. It's identical to SourceDraftIDEQ.
 func SourceDraftID(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldSourceDraftID, v))
+}
+
+// CollabGeneration applies equality check predicate on the "collab_generation" field. It's identical to CollabGenerationEQ.
+func CollabGeneration(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldCollabGeneration, v))
 }
 
 // CollabState applies equality check predicate on the "collab_state" field. It's identical to CollabStateEQ.
@@ -682,6 +692,46 @@ func ShareTokenEqualFold(v string) predicate.ContentDraft {
 // ShareTokenContainsFold applies the ContainsFold predicate on the "share_token" field.
 func ShareTokenContainsFold(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldContainsFold(FieldShareToken, v))
+}
+
+// CalendarVersionEQ applies the EQ predicate on the "calendar_version" field.
+func CalendarVersionEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldCalendarVersion, v))
+}
+
+// CalendarVersionNEQ applies the NEQ predicate on the "calendar_version" field.
+func CalendarVersionNEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldCalendarVersion, v))
+}
+
+// CalendarVersionIn applies the In predicate on the "calendar_version" field.
+func CalendarVersionIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldCalendarVersion, vs...))
+}
+
+// CalendarVersionNotIn applies the NotIn predicate on the "calendar_version" field.
+func CalendarVersionNotIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldCalendarVersion, vs...))
+}
+
+// CalendarVersionGT applies the GT predicate on the "calendar_version" field.
+func CalendarVersionGT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldCalendarVersion, v))
+}
+
+// CalendarVersionGTE applies the GTE predicate on the "calendar_version" field.
+func CalendarVersionGTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldCalendarVersion, v))
+}
+
+// CalendarVersionLT applies the LT predicate on the "calendar_version" field.
+func CalendarVersionLT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldCalendarVersion, v))
+}
+
+// CalendarVersionLTE applies the LTE predicate on the "calendar_version" field.
+func CalendarVersionLTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldCalendarVersion, v))
 }
 
 // VersionEQ applies the EQ predicate on the "version" field.
@@ -1247,6 +1297,46 @@ func SourceDraftIDEqualFold(v string) predicate.ContentDraft {
 // SourceDraftIDContainsFold applies the ContainsFold predicate on the "source_draft_id" field.
 func SourceDraftIDContainsFold(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldContainsFold(FieldSourceDraftID, v))
+}
+
+// CollabGenerationEQ applies the EQ predicate on the "collab_generation" field.
+func CollabGenerationEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldCollabGeneration, v))
+}
+
+// CollabGenerationNEQ applies the NEQ predicate on the "collab_generation" field.
+func CollabGenerationNEQ(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldCollabGeneration, v))
+}
+
+// CollabGenerationIn applies the In predicate on the "collab_generation" field.
+func CollabGenerationIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldIn(FieldCollabGeneration, vs...))
+}
+
+// CollabGenerationNotIn applies the NotIn predicate on the "collab_generation" field.
+func CollabGenerationNotIn(vs ...int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNotIn(FieldCollabGeneration, vs...))
+}
+
+// CollabGenerationGT applies the GT predicate on the "collab_generation" field.
+func CollabGenerationGT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGT(FieldCollabGeneration, v))
+}
+
+// CollabGenerationGTE applies the GTE predicate on the "collab_generation" field.
+func CollabGenerationGTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldGTE(FieldCollabGeneration, v))
+}
+
+// CollabGenerationLT applies the LT predicate on the "collab_generation" field.
+func CollabGenerationLT(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLT(FieldCollabGeneration, v))
+}
+
+// CollabGenerationLTE applies the LTE predicate on the "collab_generation" field.
+func CollabGenerationLTE(v int) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldLTE(FieldCollabGeneration, v))
 }
 
 // CollabStateEQ applies the EQ predicate on the "collab_state" field.

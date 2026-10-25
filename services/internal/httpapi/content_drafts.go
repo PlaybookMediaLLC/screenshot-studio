@@ -4,18 +4,20 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
-// ContentDraftStore keeps a workspace's hand-written post drafts (RFC 037).
+// ContentDraftStore keeps a workspace's hand-written post drafts (RFC 013).
 type ContentDraftStore interface {
 	CreateContentDraft(context.Context, product.Actor, product.ContentDraftInput) (*product.ContentDraftRecord, error)
 	GetContentDraft(context.Context, product.Actor, string) (*product.ContentDraftRecord, error)
 	ListContentDrafts(context.Context, product.Actor, product.ContentDraftListQuery) (*product.ContentDraftPage, error)
 	UpdateContentDraft(context.Context, product.Actor, string, product.ContentDraftUpdate) (*product.ContentDraftRecord, error)
 	DeleteContentDraft(context.Context, product.Actor, string) error
+	DeleteContentDraftAtVersion(context.Context, product.Actor, string, int, int) error
 	ScheduleContentDraft(context.Context, product.Actor, string, product.ScheduleContentDraftInput) (*product.ScheduleContentDraftResult, error)
 	ListContentDraftPosts(context.Context, product.Actor, string) ([]product.ContentDraftPost, error)
 	IssueContentDraftCollabToken(context.Context, product.Actor, string) (*product.CollabToken, error)
@@ -134,7 +136,21 @@ func (s *Server) deleteContentDraft(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.configuration.DeleteContentDraft(r.Context(), workspaceActor(r), id); err != nil {
+	version, calendarVersion := 0, 0
+	if r.URL.Query().Get("version") != "" || r.URL.Query().Get("calendarVersion") != "" {
+		var e error
+		version, e = strconv.Atoi(r.URL.Query().Get("version"))
+		if e != nil || version < 1 {
+			writeError(w, 400, "invalid version")
+			return
+		}
+		calendarVersion, e = strconv.Atoi(r.URL.Query().Get("calendarVersion"))
+		if e != nil || calendarVersion < 1 {
+			writeError(w, 400, "invalid calendar revision")
+			return
+		}
+	}
+	if err := s.configuration.DeleteContentDraftAtVersion(r.Context(), workspaceActor(r), id, version, calendarVersion); err != nil {
 		writeStoreError(w, err)
 		return
 	}

@@ -91,7 +91,7 @@ export function tenantAccess(requirement: TenantAccessRequirement): Authenticate
  * A signed-in member of the active workspace with `requirement.permission`,
  * on a paid plan, then the optional feature and quota. An API key is refused
  * with 403 before the session is read: approving and publishing are a
- * person's decisions (RFC 019, RFC 020). `sensitive` also requires a fresh
+ * person's decisions (RFC 012, RFC 030). `sensitive` also requires a fresh
  * second factor.
  */
 export function memberAccess(
@@ -108,7 +108,7 @@ export function memberAccess(
     const access = sensitive
       ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
       : await requireActiveOrganizationPermission(request.headers, permission)
-    // There is no free plan: every tenant operation needs an active subscription.
+    // Basic workspace access precedes the operation-specific feature gate.
     await requireWorkspaceFeature(access, 'workspace:use')
     if (feature) await requireWorkspaceFeature(access, feature)
     if (quota) await consumeWorkspaceQuota(access, quota)
@@ -129,7 +129,7 @@ export function paidSessionAccess(
     const access = options.sensitive
       ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
       : await requireActiveOrganizationPermission(request.headers, permission)
-    await requireWorkspaceFeature(access, 'workspace:use')
+    await requireWorkspaceFeature(access, 'workspace:paid')
     return access
   }
 }

@@ -2,10 +2,11 @@ package shotsapi
 
 import (
 	"encoding/json"
-	"github.com/google/jsonschema-go/jsonschema"
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 const fixture = `{

@@ -20,7 +20,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Onboarding runs (docs/rfcs/032-background-onboarding-agent.md). The run row
+// Onboarding runs (docs/rfcs/034-background-onboarding-agent.md). The run row
 // mirrors the Temporal workflow for the UI; PageKnowledge holds the pages it
 // read. Both are written only for the workspace the run was started in.
 
@@ -49,7 +49,7 @@ const (
 	onboardingAbandonAfter = 10 * time.Minute
 )
 
-// onboardingLimits are a plan's pages and tokens per run. There is no free plan.
+// onboardingLimits are a plan's pages and tokens per run. Free scheduling does not include the onboarding agent.
 func onboardingLimits(plan string) (pages, tokens int) {
 	if plan == "business" || plan == "enterprise" {
 		return 100, 400_000

@@ -12,7 +12,7 @@ import (
 )
 
 type timelineFixture struct {
-	analyticsFixture
+	observationMetricsFixture
 	posts       []postoptions.ObservedPost
 	timelineErr error
 	reads       int

@@ -3,7 +3,7 @@ import { AUTO_DM_UNAVAILABLE } from '@/lib/write/automation'
 import type { DraftChannel, DraftKind, PostPoll } from '@/lib/write/document'
 
 /**
- * What each platform can publish (RFC 042), one typed entry per platform.
+ * What each platform can publish (RFC 025), one typed entry per platform.
  * Every capability here is backed by the provider's documentation and the
  * adapter that sends it; the matrix in
  * docs/scheduling/typefully/write/implementation-matrix.md links the sources.
@@ -92,6 +92,7 @@ const X: PlatformCapabilities = {
   media: { imageLimit: 4, kinds: ['image', 'gif', 'video'], videoAlone: true },
   mentions: 'handle',
   poll: {
+    durationRange: { min: 5, max: 10_080 },
     durationsMinutes: [
       5,
       30,
@@ -204,17 +205,18 @@ export const CAPABILITIES: Record<DraftChannel, PlatformCapabilities> = {
 
 /** Publishing capabilities verified for the connected account. */
 export const accountStandingSchema = z.object({
-  nativeQuotes: z.boolean().optional(),
-  pollLimits: z
-    .object({
-      max_options: z.number().int().min(2),
-      max_characters_per_option: z.number().int().positive(),
-      min_expiration: z.number().int().positive(),
-      max_expiration: z.number().int().positive(),
-    })
-    .nullish(),
   maxWeightedCharacters: z.union([z.literal(280), z.literal(25_000)]).nullish(),
   articles: z.boolean().nullish(),
+  xQuotes: z.boolean().optional(),
+  mastodonQuotes: z.boolean().nullish(),
+  pollLimits: z
+    .object({
+      maxOptions: z.number().int().min(2).max(20),
+      maxOptionCharacters: z.number().int().min(1).max(1000),
+      minDurationSeconds: z.number().int().positive(),
+      maxDurationSeconds: z.number().int().positive(),
+    })
+    .nullish(),
 })
 
 /** One verified account's capabilities; absent fields remain unknown. */
@@ -241,13 +243,14 @@ export function kindAvailability(
       reason: `${CAPABILITIES[channel].label} does not take ${kind} drafts.`,
     }
   }
-  if (channel === 'mastodon' && kind === 'quote' && !account?.nativeQuotes)
+  if (channel === 'mastodon' && kind === 'quote' && account?.mastodonQuotes !== true)
     return {
-      action: 'reconnect',
       available: false,
-      reason: 'Reconnect Mastodon on a server with native quote support and grant search access.',
+      action: 'reconnect',
+      reason:
+        'Reconnect to a Mastodon server with native quotes and read:search/read:statuses permissions.',
     }
-  if (channel === 'x' && kind === 'quote') {
+  if (channel === 'x' && kind === 'quote' && account?.xQuotes !== true) {
     return {
       action: 'none',
       available: false,
@@ -276,36 +279,49 @@ export function pollProblems(
   channel: DraftChannel,
   poll: PostPoll,
   mediaCount: number,
-  limits?: AccountStanding['pollLimits']
+  standing?: AccountStanding
 ): string[] {
-  const rules = pollRules(channel, limits)
-  if (!rules) return [`${CAPABILITIES[channel].label} posts cannot carry a poll.`]
+  const rules = pollRules(channel, standing)
+  if (!rules)
+    return [
+      channel === 'mastodon'
+        ? 'Reconnect Mastodon to verify this server’s poll limits.'
+        : `${CAPABILITIES[channel].label} posts cannot carry a poll.`,
+    ]
   const problems: string[] = []
-  const options = poll.options
-  if (poll.multiple && channel !== 'mastodon')
-    problems.push('Multiple-choice polls are supported only on Mastodon.')
   if (rules.question === 'post-text' && poll.question)
     problems.push('This poll uses the post text as its question.')
+  if (poll.multiple && channel !== 'mastodon')
+    problems.push('Multiple-choice polls are supported only on Mastodon.')
+  const options = poll.options.map((option) => option.trim())
   if (rules.question === 'field') {
     const question = poll.question?.trim() ?? ''
     if (!question) problems.push('Ask the poll question.')
-    else if ([...question].length > rules.questionLimit)
+    else if ([...(poll.question ?? '')].length > rules.questionLimit)
       problems.push(`Keep the question to ${rules.questionLimit} characters.`)
+  } else if (poll.question?.trim()) {
+    problems.push('Use the post text as the poll question on this platform.')
   }
   if (options.length < rules.minOptions || options.length > rules.maxOptions) {
     problems.push(`A poll has ${rules.minOptions} to ${rules.maxOptions} options.`)
   }
-  if (options.some((option) => !option.trim())) problems.push('Fill in every option.')
-  if (options.some((option) => [...option].length > rules.maxOptionLength)) {
+  if (
+    channel === 'mastodon' &&
+    new Set(options.map((option) => option.toLowerCase())).size !== options.length
+  )
+    problems.push('Each poll choice must be distinct.')
+  if (options.some((option) => !option)) problems.push('Fill in every option.')
+  if (poll.options.some((option) => [...option].length > rules.maxOptionLength)) {
     problems.push(`Keep each option to ${rules.maxOptionLength} characters.`)
   }
-  if (
-    !Number.isInteger(poll.durationMinutes) ||
+  // Older Threads drafts stored the provider's one-day default as 1440.
+  const duration = channel === 'threads' && poll.durationMinutes === 1440 ? 0 : poll.durationMinutes
+  const validDuration =
+    Number.isInteger(duration) &&
     (rules.durationRange
-      ? poll.durationMinutes < rules.durationRange.min ||
-        poll.durationMinutes > rules.durationRange.max
-      : !rules.durationsMinutes.includes(poll.durationMinutes))
-  ) {
+      ? duration >= rules.durationRange.min && duration <= rules.durationRange.max
+      : rules.durationsMinutes.includes(duration))
+  if (!validDuration) {
     problems.push(`Pick one of ${CAPABILITIES[channel].label}'s poll lengths.`)
   }
   if (mediaCount > 0 && !rules.withMedia) {
@@ -314,34 +330,23 @@ export function pollProblems(
   return problems
 }
 
-/** Instance-specific rules; missing instance configuration never implies defaults. */
-export function pollRules(
-  channel: DraftChannel,
-  limits?: AccountStanding['pollLimits']
-): PollRules | null {
+/** Use the authenticated server's observed poll configuration; unknown limits stay unavailable. */
+export function pollRules(channel: DraftChannel, standing?: AccountStanding): PollRules | null {
   if (channel === 'x') return { ...X.poll!, durationRange: { min: 5, max: 10_080 } }
   if (channel !== 'mastodon') return CAPABILITIES[channel].poll
-  if (
-    !limits ||
-    limits.max_options < 2 ||
-    limits.max_characters_per_option < 1 ||
-    limits.min_expiration < 1 ||
-    limits.max_expiration < limits.min_expiration
-  )
-    return null
-  const min = Math.ceil(limits.min_expiration / 60)
-  const max = Math.floor(limits.max_expiration / 60)
-  if (max < min) return null
+  const limits = standing?.pollLimits
+  if (!limits) return null
+  const min = Math.ceil(limits.minDurationSeconds / 60),
+    max = Math.floor(limits.maxDurationSeconds / 60)
+  if (min > max) return null
   return {
-    durationsMinutes: [min, 60, 360, 1_440, 4_320, 10_080, max].filter(
-      (value, index, all) => value >= min && value <= max && all.indexOf(value) === index
-    ),
-    durationRange: { min, max },
-    maxOptionLength: limits.max_characters_per_option,
-    maxOptions: limits.max_options,
     minOptions: 2,
+    maxOptions: limits.maxOptions,
+    maxOptionLength: limits.maxOptionCharacters,
     question: 'post-text',
-    questionLimit: 500,
+    questionLimit: 0,
     withMedia: false,
+    durationsMinutes: [Math.min(max, Math.max(min, 1440))],
+    durationRange: { min, max },
   }
 }

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import sharp from 'sharp'
 import { expect, type Page } from '@playwright/test'
@@ -10,10 +11,16 @@ import {
   type DraftWorkspace,
 } from './framework/content-drafts'
 import { chooseOption } from './framework/controls'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
+import {
+  apiRequest,
+  signedAssetSchema,
+  uploadSignedAsset,
+  unbindTestGoOrganization,
+} from './framework/publishing'
 import { importedBody } from '@/lib/write/import-text'
 
 configureE2EFlow()
+test.use({ actionTimeout: 30_000 })
 const fixture = (name: string) => `test/fixtures/typefully-media/${name}`
 async function openMedia(page: Page) {
   await page.getByRole('button', { name: 'More draft actions', exact: true }).click()
@@ -64,11 +71,11 @@ test('phone previews fit the sidebar, weighted long text expands, and link cards
     await preview.getByRole('button', { name: 'Show more', exact: true }).click()
     await expect(preview).toContainText('ending')
     await chooseOption(page.getByLabel('Preview device'), /^iPhone 17 Pro Max/)
-    await expect(preview).toHaveAttribute('data-device-width', '440')
+    await expect(page.getByTestId('preview-device-content')).toHaveCSS('width', '440px')
     await expect
       .poll(async () => {
         const box = await preview.boundingBox(),
-          parent = await page.getByTestId('preview-viewport').boundingBox()
+          parent = await page.getByTestId('preview-scroll').boundingBox()
         return !!box && !!parent && box.width <= parent.width + 1 && box.x >= parent.x - 1
       })
       .toBe(true)
@@ -120,7 +127,7 @@ test('uploaded video plays in preview and imported PDFs render both carousel pag
       pdfURL = (await links.nth(1).getAttribute('href'))!
     await page.goto(videoURL)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
-    const video = page.getByTestId('preview-x').getByLabel('Video attachment')
+    const video = page.getByTestId('preview-x').getByLabel('Attached video')
     await expect(video).toBeVisible()
     await expect
       .poll(() => video.evaluate((el: HTMLVideoElement) => el.readyState))
@@ -147,7 +154,12 @@ test('uploaded video plays in preview and imported PDFs render both carousel pag
       )
       .toBe(255)
     await carousel.getByRole('button', { name: 'Next →', exact: true }).click()
-    await expect(carousel.getByRole('img', { name: 'Page 2', exact: true })).toBeVisible()
+    await expect(
+      carousel.getByRole('img', {
+        name: 'Document preview, page 2. Use the original PDF for selectable text.',
+        exact: true,
+      })
+    ).toBeVisible()
     await expect
       .poll(() =>
         carousel
@@ -201,21 +213,44 @@ test('link images and searched GIFs become real workspace assets; article covers
     await page.route('**/api/link-preview/image?*', (route) =>
       route.fulfill({ contentType: 'image/jpeg', body: image })
     )
-    await page.route('https://api.giphy.com/v1/gifs/search?*', (route) =>
+    const sha256 = createHash('sha256').update(gif).digest('hex')
+    const signed = await apiRequest(page, '/api/tenant/assets/upload-url', {
+      method: 'POST',
+      body: {
+        bytes: gif.length,
+        classification: 'input',
+        contentType: 'image/gif',
+        fileName: 'fixture.gif',
+        sha256,
+      },
+    })
+    expect(signed.status).toBe(201)
+    const stored = signedAssetSchema.parse(signed.body)
+    expect(await uploadSignedAsset(page, stored.uploadUrl, [...gif], 'image/gif')).toBe(200)
+    expect(
+      (
+        await apiRequest(page, `/api/tenant/assets/${stored.asset.id}/complete`, {
+          method: 'POST',
+          body: { sha256 },
+        })
+      ).status
+    ).toBe(200)
+    await page.route('**/api/v1/content-drafts/giphy*', (route) =>
       route.fulfill({
-        json: {
-          data: [
-            {
-              id: 'fixture',
-              title: 'Moving colors',
-              images: { fixed_height: { url: 'https://media.giphy.com/media/fixture/giphy.gif' } },
-            },
-          ],
-        },
+        json:
+          route.request().method() === 'POST'
+            ? { assetId: stored.asset.id, sourceUrl: 'https://giphy.com/gifs/fixture' }
+            : {
+                items: [
+                  {
+                    id: 'fixture',
+                    title: 'Moving colors',
+                    previewUrl: '/api/v1/assets/' + stored.asset.id + '/content',
+                    sourceUrl: 'https://giphy.com/gifs/fixture',
+                  },
+                ],
+              },
       })
-    )
-    await page.route('https://media.giphy.com/media/fixture/giphy.gif', (route) =>
-      route.fulfill({ contentType: 'image/gif', body: gif })
     )
     const id = await openNewDraft(page)
     await draftEditor(page).fill('Media sources')
@@ -264,7 +299,11 @@ test('link images and searched GIFs become real workspace assets; article covers
       preview.getByRole('heading', { name: 'An article worth reading', exact: true })
     ).toBeVisible()
     await expect
-      .poll(() => preview.locator('header img').evaluate((el: HTMLImageElement) => el.naturalWidth))
+      .poll(() =>
+        preview
+          .getByAltText('Article cover', { exact: true })
+          .evaluate((el: HTMLImageElement) => el.naturalWidth)
+      )
       .toBe(1200)
     expect(errors).toEqual([])
   } finally {

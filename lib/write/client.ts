@@ -9,7 +9,7 @@ import type {
 import { call, type DraftPostWire, type DraftWire } from '@/lib/content-drafts/client'
 
 /**
- * Browser calls to the Write API (RFC 042) with the session cookie: a set's
+ * Browser calls to the Write API (RFC 025) with the session cookie: a set's
  * engagement defaults, tags and finishers, and a draft's properties, plan, copies,
  * backups, activity and recovery. Failures throw `DraftRequestError`.
  */
@@ -35,7 +35,12 @@ const post = (id: string) => `/api/v1/content-draft-posts/${encodeURIComponent(i
 
 /** The Write API. */
 export const writeApi = {
-  /** A set's engagement defaults (RFC 043), based on the set's version. */
+  /** Search communities without exposing the connection's credentials to the browser. */
+  communities: (setId: string, query: string) =>
+    call<{ items: { id: string; name: string }[] }>(
+      `/api/v1/social-sets/${encodeURIComponent(setId)}/communities?${new URLSearchParams({ q: query })}`
+    ),
+  /** A set's engagement defaults (RFC 024), based on the set's version. */
   updateSetEngagement: (
     id: string,
     baseVersion: number,
@@ -77,9 +82,15 @@ export const writeApi = {
     }),
   properties: (id: string, input: z.input<typeof draftPropertiesInputSchema>) =>
     call<DraftWire>(`${draft(id)}/properties`, { body: input, method: 'PATCH' }),
-  plan: (id: string, input: { plannedFor: string | null; timeZone?: string }) =>
-    call<DraftWire>(`${draft(id)}/plan`, { body: input, method: 'POST' }),
-  duplicate: (id: string) => call<DraftCopyWire>(`${draft(id)}/duplicate`, { method: 'POST' }),
+  plan: (
+    id: string,
+    input: { baseCalendarVersion: number; plannedFor: string | null; timeZone?: string }
+  ) => call<DraftWire>(`${draft(id)}/plan`, { body: input, method: 'POST' }),
+  duplicate: (id: string, requestKey?: string) =>
+    call<DraftCopyWire>(
+      `${draft(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`,
+      { method: 'POST' }
+    ),
   copy: (id: string, input: { socialSetId: string; tagMode: 'match' | 'drop' }) =>
     call<DraftCopyWire>(`${draft(id)}/copy`, { body: input, method: 'POST' }),
   recover: (id: string, revisionId: string) =>

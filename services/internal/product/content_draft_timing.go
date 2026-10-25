@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Scheduling times (RFC 042). A schedule names a local wall time in a time
+// Scheduling times (RFC 025). A schedule names a local wall time in a time
 // zone; Go resolves it, refusing a time the clocks skip and asking which of
 // two instants a repeated time means.
 

@@ -2,15 +2,16 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    branches: [develop, main]
+    types: [opened, synchronize, reopened, edited, closed]
   push:
-    branches: [main]
+    branches: [develop, main]
 
 permissions:
   contents: read
 
 concurrency:
-  # A merged PR's ref becomes main; its close event must still cancel only that PR.
+  # A merged PR's ref becomes its base; its close event must still cancel only that PR.
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
@@ -83,6 +84,7 @@ jobs:
         run: docker build --tag screenshot-studio-backend:${{ github.sha }} services
 
   validate:
+    name: CI validation
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -160,7 +162,7 @@ jobs:
 
   # The public contract: the committed OpenAPI document and typed client must
   # match the zod contracts, and a pull request may not break the document
-  # unless the break is listed in breaking-changes-allowed.txt (RFC 034).
+  # unless the break is listed in breaking-changes-allowed.txt (RFC 014).
   openapi:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
@@ -212,8 +214,9 @@ jobs:
       E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:
       fail-fast: false
-      # Three shards keep each job inside its 30 minutes: shard 1 also tests
-      # the render service and the last shard runs the recovery check.
+      # Three full-suite shards plus an independent Plan/Analyze acceptance run.
+      # The focused run ensures these long workflows execute even when unrelated
+      # browser regressions exhaust a full-suite shard's time budget.
       matrix:
         include:
           - shard: '1/3'
@@ -222,6 +225,8 @@ jobs:
             shard_index: 2
           - shard: '3/3'
             shard_index: 3
+          - shard: 'plan-analyze'
+            shard_index: 4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -271,7 +276,11 @@ jobs:
       - name: Verify tenant isolation
         run: ./bin/studio tenant-isolation
       - name: Verify browser end-to-end flows
+        if: matrix.shard_index <= 3
         run: ./bin/studio e2e --shard=${{ matrix.shard }}
+      - name: Verify Plan and Analyze acceptance flows
+        if: matrix.shard_index == 4
+        run: ./bin/studio e2e test/e2e/plan-analyze.spec.ts
       # Collected before the recovery check, which calls `compose up
       # --force-recreate app` and so destroys the container that served the
       # failing tests. Collecting only at the end left every failure on the

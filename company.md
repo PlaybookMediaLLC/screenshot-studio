@@ -82,7 +82,7 @@ still require direct validation.
 The existing subscription structure is **Pro $199/month**, **Business
 $699/month**, and **Enterprise starting at $3,000/month**, with metered AI
 usage and no free plan. The billing implementation and current allowances are
-documented in [RFC 035](docs/rfcs/035-pricing-and-unit-economics.md).
+documented in [RFC 023](docs/rfcs/023-pricing-and-unit-economics.md).
 
 For release readiness, test a guided paid pilot at approximately
 **$199–$399/month**, or a defined per-release fee. This is a commercial

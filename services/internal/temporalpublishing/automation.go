@@ -14,9 +14,9 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-// A live post's follow-ups (RFC 042): its LinkedIn first comment, reposts at
+// A live post's follow-ups (RFC 025): its LinkedIn first comment, reposts at
 // set times and their removal, a plug reply once it has enough engagement,
-// and the RFC 037 like-gated repost and quote. Each step has a receipt keyed
+// and the RFC 013 like-gated repost and quote. Each step has a receipt keyed
 // by post and step, written before the step acts again, so a retried
 // activity or a replayed workflow never posts twice; cancelling marks the
 // pending receipts and the steps then do nothing.

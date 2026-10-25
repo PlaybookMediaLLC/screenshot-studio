@@ -46,7 +46,7 @@ func TestScreenshotCache(t *testing.T) {
 	})
 	objects := &recordingAssetObjects{}
 	repo := NewConfiguration(db.Client).WithObjectStore(objects)
-	png, err := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg==")
+	png, err := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { draftChannelSchema } from '@/lib/write/document'
 
 /**
- * AI Refine and the writing assistant (RFC 042), shared by the composer and
+ * AI Refine and the writing assistant (RFC 025), shared by the composer and
  * the routes. Refine works on an explicit scope (a selection, one post, or
  * every post of the version open) and answers one text per text sent; the
  * composer previews it and applies it only when accepted.
@@ -62,7 +62,7 @@ export const refineInputSchema = z.strictObject({
   limit: z.number().int().min(1).max(100_000),
   /** The writer's instruction, for `custom`. */
   prompt: z.string().trim().max(1_000).optional(),
-  /** The draft, whose set's writing context (RFC 043) guides the writing. */
+  /** The draft, whose set's writing context (RFC 024) guides the writing. */
   draftId: z.string().max(40).optional(),
   scope: refineScopeSchema,
   texts: z.array(z.string().max(100_000)).min(1).max(25),
@@ -82,7 +82,7 @@ export const assistantInputSchema = z.strictObject({
   channel: draftChannelSchema,
   /** The draft's posts as the platform would read them. */
   draft: z.array(z.string().max(100_000)).max(25),
-  /** The draft, whose set's writing context (RFC 043) guides the writing. */
+  /** The draft, whose set's writing context (RFC 024) guides the writing. */
   draftId: z.string().max(40).optional(),
   messages: z.array(assistantMessageSchema).min(1).max(30),
 })

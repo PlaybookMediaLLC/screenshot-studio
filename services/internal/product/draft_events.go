@@ -12,7 +12,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
 )
 
-// Draft webhook events (RFC 043) are written in the transaction of the change
+// Draft webhook events (RFC 024) are written in the transaction of the change
 // they describe. Their data is redacted: identifiers, the title, status, tags,
 // platforms and times; never the body, comments, reviewers or credentials.
 
@@ -45,7 +45,7 @@ func draftEventData(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraft) (m
 		"updatedAt": draft.UpdatedAt, "version": draft.Version}, nil
 }
 
-// draftTagData is tags as webhooks show them (RFC 042): each tag's id and
+// draftTagData is tags as webhooks show them (RFC 025): each tag's id and
 // name, in the draft's order; a tag deleted meanwhile is left out.
 func draftTagData(ctx context.Context, tx *ent.Tx, organizationID string, ids []string) ([]map[string]string, error) {
 	items := []map[string]string{}

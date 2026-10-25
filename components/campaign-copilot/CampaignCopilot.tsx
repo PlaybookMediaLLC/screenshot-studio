@@ -180,7 +180,7 @@ function MessageBubble({
 }
 
 /**
- * The campaign agent's conversation panel (RFC 017): messages, each run's
+ * The campaign agent's conversation panel (RFC 028): messages, each run's
  * steps, a composer, and Cancel while a run works. It reads the database
  * through `conversation.get` and polls while a run is RUNNING, so a reload
  * shows the same state. Campaigns it creates open on the campaign pages.

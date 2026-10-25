@@ -6,7 +6,7 @@ import { createE2EDatabase, grantWorkspacePlan, queryRow, queryRows } from './fr
 import { trpcQuery } from './framework/trpc'
 
 /**
- * The onboarding agent end to end (docs/rfcs/032-background-onboarding-agent.md):
+ * The onboarding agent end to end (docs/rfcs/034-background-onboarding-agent.md):
  * a pasted URL becomes a reviewable draft in under ten seconds, the
  * background run reports progress until it has read the site and derived the
  * ideal customer profile, the founder accepts a field, and a re-run of the

@@ -10,6 +10,17 @@ import {
   listDraftCommentsContract,
 } from '@/lib/api/contracts/draft-comments'
 import {
+  draftLinkImageContract,
+  draftGiphySearchContract,
+  draftGiphyAttachContract,
+} from '@/lib/api/contracts/draft-media'
+import {
+  mutateCalendarContract,
+  getAnalyticsContract,
+  refreshAnalyticsContract,
+  updateAnalyticsSettingsContract,
+} from './plan-analyze'
+import {
   decideCampaignApprovalContract,
   listApprovalsContract,
   requestCampaignReviewContract,
@@ -93,6 +104,13 @@ export const documentedContracts = [
   getSocialSetContract,
   bestPostingTimesContract,
   listCalendarPostsContract,
+  draftLinkImageContract,
+  draftGiphySearchContract,
+  draftGiphyAttachContract,
+  mutateCalendarContract,
+  getAnalyticsContract,
+  refreshAnalyticsContract,
+  updateAnalyticsSettingsContract,
   previewMastodonInstanceContract,
   createSocialConnectionAttemptContract,
   getSocialConnectionAvailabilityContract,

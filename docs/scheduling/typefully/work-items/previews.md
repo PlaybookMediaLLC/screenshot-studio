@@ -12,7 +12,7 @@ Reconciled against `19390194` and the implementation in this working tree. The O
 
 **Dependencies:** Canonical publication serializer and channel capability limits.
 
-**Affected code and current evidence:** `components/write/composer/preview.tsx`; `components/write/composer/preview-viewport.tsx`; `components/write/composer/WriteComposer.tsx`; `lib/write/publication.ts`.
+**Affected code and current evidence:** `components/write/composer/preview.tsx`; `lib/write/preview-layout.ts`; `components/write/composer/WriteComposer.tsx`; `lib/write/publication.ts`.
 
 ### Implementation gap and disposition
 

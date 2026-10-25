@@ -131,7 +131,7 @@ to use the product and being allowed to.
 
 ## A note on the roadmap
 
-The README ranks RFC 010, the programmable creative engine, as next. It is
+The README ranks RFC 020, the programmable creative engine, as next. It is
 an internal refactor of the editor into domain services and produces no
 user-visible capability.
 

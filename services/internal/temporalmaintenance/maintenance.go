@@ -81,7 +81,10 @@ func Register(w worker.Worker, runner Runner) {
 func ScheduleOptions(job string) client.ScheduleOptions {
 	spec := client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: time.Minute}}}
 	catchup := 5 * time.Minute
-	if job == "account-deletions" || job == "social-analytics" {
+	if job == "social-analytics" {
+		spec = client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: 15 * time.Minute}}}
+	}
+	if job == "account-deletions" {
 		spec = client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: time.Hour}}}
 		catchup = 24 * time.Hour
 	}

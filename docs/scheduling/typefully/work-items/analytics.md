@@ -60,16 +60,17 @@ An invalid range produces an actionable date error. No observations yields an ex
 ### Verification and observability
 `test/write-analytics.test.ts` tests aggregation, date bounds, zero/unavailable and CSV. `test/e2e/typefully-workitems.spec.ts` exercises stored observations, period selection, export and reload using explicitly labeled storage fixtures. Account charts, weekly/monthly switching and CSV passed browser assertions; the continuous lifecycle also verified maintenance-ingested metrics after actual local-worker publication. Use observation timestamps and status counts to diagnose stale charts.
 
-## WI-ANALYTICS-3: Preserve the public-analytics product boundary
+## WI-ANALYTICS-3: Explicit, revocable public analytics
 
-**Gap:** Later: the specific product decision or missing provider contract is recorded below.
+**Source:** TF-004. **Classification:** Exists: scoped public read and revoke passed the combined browser suite. **Priority:** Reopened. **Size:** M.
 
-**Source:** TF-004. **Classification:** Later, not implemented. [Source requirements](../changelog-features.md).
-**Priority:** Separate product decision. **Size:** S specification. **Depends on:** An accepted public analytics data-sharing policy.
+The current `develop` implementation adds an explicit per-account sharing control in `components/analyze/AnalyzeWorkspace.tsx`, backed by `services/internal/product/analytics.go`. This supersedes the earlier deferral. Sharing is off until an authorized member enables it; a public draft-review token is never an analytics grant.
 
-The current product decision retains authenticated workspace analytics. A public draft-review token grants neither account metrics nor access to the analytics API. Public profiles are also excluded (TF-015/TF-051); do not infer an analytics sharing grant from a draft link.
+**Dependencies and affected layers:** Existing connected-account analytics, the account's sharing settings, `lib/api/contracts/plan-analyze.ts`, authenticated settings routes and the separate public analytics token route. No account credentials or mutation controls enter the public report.
 
-Acceptance: public visitors cannot read analytics, revoked share links cannot reveal cached data, and coverage continues to label this feature deferred. Verify existing analytics authorization tests and public-share negative tests. Audit denied access through existing API telemetry; never log private metrics as an error payload.
+**Acceptance:** An authorized member enables sharing, opens the scoped report without a session, and revokes it. The previous URL then refuses access. Unsupported metrics remain unavailable. Draft-review links, other workspaces and private accounts cannot confer a public sharing grant.
+
+**Failure and verification:** Revoked or unknown tokens return an unavailable state with no stale private report. `services/internal/product/plan_analyze_test.go` verifies scope and revocation; `test/e2e/plan-analyze.spec.ts` exercises enabling, public reading and revoke. Existing analytics audit events identify setting changes. Provider ingestion remains separately gated and is not certified by sharing a stored fixture.
 
 ## WI-ANALYTICS-4: Save a personal accent beside analytics access
 

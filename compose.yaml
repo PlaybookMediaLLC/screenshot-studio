@@ -168,7 +168,7 @@ services:
       PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ${PLATFORM_NOTIFICATION_ENCRYPTION_KEY:-}
       PLATFORM_SOCIAL_ENCRYPTION_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_KEY:-}
       PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY:-}
-      # Seals outbound webhook secrets (RFC 043); unset, webhooks are unavailable.
+      # Seals outbound webhook secrets (RFC 024); unset, webhooks are unavailable.
       PLATFORM_WEBHOOK_ENCRYPTION_KEY: ${PLATFORM_WEBHOOK_ENCRYPTION_KEY:-}
       PLATFORM_ACTIVITY_LEGACY_PAUSED: ${PLATFORM_ACTIVITY_LEGACY_PAUSED:-true}
       SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
@@ -214,7 +214,7 @@ services:
       rustfs-init:
         condition: service_completed_successfully
 
-  # Real-time co-editing of content drafts (RFC 037). It holds no database
+  # Real-time co-editing of content drafts (RFC 013). It holds no database
   # credential: it authorizes, loads and stores only through the backend.
   collab:
     build:
@@ -274,7 +274,7 @@ services:
       PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ${PLATFORM_NOTIFICATION_ENCRYPTION_KEY:-}
       PLATFORM_SOCIAL_ENCRYPTION_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_KEY:-}
       PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY:-}
-      # Seals outbound webhook secrets (RFC 043); unset, webhooks are unavailable.
+      # Seals outbound webhook secrets (RFC 024); unset, webhooks are unavailable.
       PLATFORM_WEBHOOK_ENCRYPTION_KEY: ${PLATFORM_WEBHOOK_ENCRYPTION_KEY:-}
       PLATFORM_ACTIVITY_LEGACY_PAUSED: ${PLATFORM_ACTIVITY_LEGACY_PAUSED:-true}
       SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
@@ -348,7 +348,7 @@ services:
       PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ${PLATFORM_NOTIFICATION_ENCRYPTION_KEY:-}
       PLATFORM_SOCIAL_ENCRYPTION_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_KEY:-}
       PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY:-}
-      # Seals outbound webhook secrets (RFC 043); unset, webhooks are unavailable.
+      # Seals outbound webhook secrets (RFC 024); unset, webhooks are unavailable.
       PLATFORM_WEBHOOK_ENCRYPTION_KEY: ${PLATFORM_WEBHOOK_ENCRYPTION_KEY:-}
       PLATFORM_ACTIVITY_LEGACY_PAUSED: ${PLATFORM_ACTIVITY_LEGACY_PAUSED:-true}
       SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
@@ -389,7 +389,7 @@ services:
       PORT: '3000'
       RUN_CRON: 'true'
       RUN_WORKER: 'true'
-      # The MCP server (RFC 038) serves the same domain as publishing-backend:
+      # The MCP server (RFC 026) serves the same domain as publishing-backend:
       # its media bucket, its quota Redis, and its campaign rollout.
       PLATFORM_MCP_URL: http://localhost:3100/mcp
       PLATFORM_QUOTA_REDIS_URL: ${REDIS_URL:-redis://redis:6379}

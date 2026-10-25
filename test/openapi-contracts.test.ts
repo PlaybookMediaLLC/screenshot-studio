@@ -13,6 +13,8 @@ import * as blueskyConnections from '@/lib/api/contracts/bluesky-connections'
 import * as campaigns from '@/lib/api/contracts/campaigns'
 import * as canvases from '@/lib/api/contracts/canvases'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
+import * as draftMedia from '@/lib/api/contracts/draft-media'
+import * as draftCollaboration from '@/lib/api/contracts/draft-collaboration'
 import * as contentDraftPlatform from '@/lib/api/contracts/content-draft-platform'
 import * as writeAi from '@/lib/api/contracts/write-ai'
 import * as draftBatch from '@/lib/api/contracts/draft-batch'
@@ -31,6 +33,7 @@ import * as settingsPlatform from '@/lib/api/contracts/settings-platform'
 import * as sharing from '@/lib/api/contracts/sharing'
 import * as shell from '@/lib/api/contracts/shell'
 import * as socialMentions from '@/lib/api/contracts/social-mentions'
+import * as socialCommunities from '@/lib/api/contracts/social-communities'
 import * as socialConnections from '@/lib/api/contracts/social-connections'
 import * as socialAvailability from '@/lib/api/contracts/social-availability'
 import * as socialInstances from '@/lib/api/contracts/social-instances'
@@ -42,6 +45,7 @@ import * as storeScreenshots from '@/lib/api/contracts/store-screenshots'
 import * as unsubscribe from '@/lib/api/contracts/unsubscribe'
 import * as webhooks from '@/lib/api/contracts/webhooks'
 import * as write from '@/lib/api/contracts/write'
+import * as planAnalyze from '@/lib/api/contracts/plan-analyze'
 import { openApiSpec } from '@/lib/api/openapi'
 import { getMinimumPlan } from '@/lib/billing/plans'
 
@@ -58,6 +62,8 @@ const contracts = new Map<string, RouteContract>(
     campaigns,
     canvases,
     contentDraftPlatform,
+    draftMedia,
+    draftCollaboration,
     writeAi,
     contentDrafts,
     draftTags,
@@ -76,6 +82,7 @@ const contracts = new Map<string, RouteContract>(
     sharing,
     shell,
     socialMentions,
+    socialCommunities,
     socialConnections,
     socialAvailability,
     socialInstances,
@@ -87,6 +94,7 @@ const contracts = new Map<string, RouteContract>(
     unsubscribe,
     webhooks,
     write,
+    planAnalyze,
   ]
     .flatMap((module) => Object.entries(module))
     .filter(([, value]) => routeContractSchema.safeParse(value).success)
@@ -221,7 +229,7 @@ test('approving is human-only; agents ask for review and schedule only with post
     assert.equal(contract.access.apiKeyScope, 'post:schedule', contract.name)
     assert.equal(contract.access.quota, 'api:write:minute', contract.name)
   }
-  // A session still needs a fresh second factor where RFC 020 asks for one.
+  // A session still needs a fresh second factor where RFC 030 asks for one.
   assert.equal(scheduledPosts.createScheduledPostContract.access.sensitive, true)
   assert.equal(scheduledPosts.cancelScheduledPostContract.access.sensitive, true)
   const schedule = campaigns.scheduleCampaignPostContract.body

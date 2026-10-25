@@ -15,7 +15,7 @@ import { draftVocabulary } from '@/lib/content-drafts/vocabulary'
 import { SOCIAL_SET_COOKIE } from '@/lib/settings/appearance'
 
 /**
- * What every Write page loads (RFC 042): the social sets the member may see,
+ * What every Write page loads (RFC 025): the social sets the member may see,
  * the active one, its draft library for the chosen lifecycle tab, filters
  * and order, its queue, and its tags. The active set comes from the URL,
  * then the last one chosen (a cookie), then the workspace's default set.
@@ -41,7 +41,7 @@ export const writeQuerySchema = z.object({
 export type WriteQuery = z.infer<typeof writeQuerySchema>
 
 /**
- * The settings platform's experiments Write follows (RFC 043): tags on drafts.
+ * The settings platform's experiments Write follows (RFC 024): tags on drafts.
  * The backend refuses them unless the person turned them on and the workspace
  * allows them. Planning was promoted and is always on.
  */
@@ -50,9 +50,10 @@ export const writeExperimentSchema = z.enum(['draft-tags'])
 /** Load the library for a Write page. */
 export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<string, unknown>) {
   const query = writeQuerySchema.parse(rawQuery)
-  const [sets, experimentList] = await Promise.all([
+  const [sets, experimentList, advanced] = await Promise.all([
     listSocialSets(tenant),
     orNull(backendSDK(tenant).listExperiments()),
+    backendSDK(tenant).getFeatureDecision('content:scheduling-advanced'),
   ])
   const enabled = (id: z.infer<typeof writeExperimentSchema>) =>
     experimentList?.items.some((item) => item.id === id && item.enabled) ?? false
@@ -105,6 +106,7 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
   return {
     activeSet: activeSet ?? null,
     importStorageScope: `${tenant.organizationId}:${tenant.principal.kind === 'session' ? tenant.principal.userId : 'key'}`,
+    advancedScheduling: advanced.allowed,
     experiments,
     library,
     hasMore: page.nextCursor !== null,

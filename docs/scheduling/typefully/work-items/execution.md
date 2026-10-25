@@ -1,6 +1,31 @@
 # Typefully implementation and verification record
 
-Branch `work`; baseline `19390194` (2.36.4). The assignment reopens all 15 epics. [Coverage](coverage.md) accounts for every TF-001–TF-109 entry and all 47 work items, linking implementation, test boundaries, observed user workflows and restrictions. Local implementation and release checks are complete: 31 entries are Exists, 70 remain Partial because their documented external outcomes or capabilities are unverified, three are Later and five are Skip. No live social-provider certification is claimed.
+Branch `codex/typefully-backlog-completion`, targeting `develop`. Original baseline `19390194` (2.36.4), reconciled with `develop` at `65e3f42f`. [Coverage](coverage.md) accounts for all 109 entries and 47 work items. Current classifications are 32 Exists, 71 Partial, one Later and five Skip. Partial includes provider outcomes and activation decisions that local fixtures cannot verify. No live social-provider certification is claimed.
+
+## Develop integration
+
+The newer Plan/Analyze workspaces, canonical verified account capabilities, immutable calendar versions, rich Article editor, native media controls, collaboration generations, limited free scheduling policy, public analytics sharing and disabled Auto-DM ledger are retained. Earlier public-sharing and Auto-DM deferrals in this record are superseded by their current work-item specifications.
+
+Original workflows now use the current composer: explicit paste-to-thread and cross-channel poll copy, the full Shots export/import handoff, owned media ordering, native server-side GIF approval, local preview cards and published-thread insertion. Recorded observations/CSV are available from Analyze at `/write/analyze/observations`; both ingestion projections run through the existing maintenance worker. The current weekly calendar supports saved-content selection, drag placement and an equivalent keyboard queue swap. Legacy `view=queue` URLs open its week view.
+
+The combined-tree verification below supersedes corresponding historical checks. Earlier results remain historical evidence and do not certify the merge by themselves.
+
+| Combined-tree command | Observed result |
+|---|---|
+| `npm test` | 1,110 root tests passed; collaboration 8 passed/1 skipped; Plate 21 passed |
+| `npm run verify:rfcs` | 18/18 passed |
+| `npm run quality:check` | Passed: format, zero-warning ESLint, TypeScript, 1,110 root tests, workspace tests and 18/18 RFC checks |
+| `/tmp/typefully-validation.sh tests ./... -count=1` | Passed across all Go packages with the product and notifications integration databases configured; regenerated Ent plus the final changed-package rerun also passed |
+| `npm run api:generate`, `oasdiff breaking` against `65e3f42f`, SDK build and generated-client TypeScript | Passed without adding compatibility exceptions. Anchored and ordinary comment additions retain exclusive, backward-compatible request alternatives |
+| `npm test --prefix integrations/zapier` | Four passed |
+| `/tmp/typefully-validation.sh tests ./internal/product ./internal/social/chat/mcp -count=1` | Passed with actual PostgreSQL after reconciling connected-destination planning and confirmed-content repurposing |
+| `/tmp/typefully-migration-check.sh` | Fresh/idempotent and upgrade preservation passed, 3.904s, including the develop migrations |
+| Go race checks | Publishing, Temporal publishing, notifications, tenant publishing and MCP all passed against isolated PostgreSQL databases |
+| `go vet ./...` and normal API/worker builds | Passed; normal runtime binaries are built without the E2E build tag |
+| Final poll/preview regression | 29 tests passed; legacy Threads one-day defaults normalize to the provider default, and the editor/preview explain that duration is controlled by Threads |
+| Main browser integration | 15 checks passed in the second combined-tree run: Plan, Analyze sharing/revocation, new-draft scheduling defaults, immutable X/LinkedIn options, continuous Temporal publication/notification/observations/repurposing, frame handoff, media previews, thread editing, calendar placement, sharing and external clients |
+| Bulk scheduling/report regression | Passed after isolating the observation fixture from the maintenance collector: Spread, month filters, move/swap, stored metrics, recommended weekly slots and CSV |
+
 
 ## Implemented slices by epic
 
@@ -36,7 +61,7 @@ Five additive migrations belong to this work:
 
 Apply migrations before the new Go API/worker, then deploy the SDK/web together. Old records keep their content, approval, notification opt-outs and preference values. New preferences require the updated API response. Existing platform publishing, AI, experiment and provider-access gates remain in force. The migration tests execute fresh installation, upgrade and repeat application; the upgrade fixture preserves approved draft version 7, notification opt-out generation 9 and an existing light theme at preference version 3.
 
-## Executed checks
+## Original implementation checks (before develop integration)
 
 Local PostgreSQL, Redis, RustFS and Temporal back the tests. Go is 1.26.8. Private `/tmp/typefully-*.sh` wrappers supply local service endpoints and credentials; they are not committed. Product, notifications, migration and continuous-browser suites use separate disposable databases to prevent global fanout fixtures from consuming another suite's events.
 
@@ -56,7 +81,7 @@ Local PostgreSQL, Redis, RustFS and Temporal back the tests. Go is 1.26.8. Priva
 | `npm run build` through `/tmp/typefully-host.sh build` | Passed with exit 0 in `typefully-build-final1.log`: webpack compilation, TypeScript (62s), all 1,142 static pages and build traces completed | MediaPipe dynamic-import dependency warnings and circular webpack chunk warnings remain; this is not a warning-free build |
 | `npm run start` through `/tmp/typefully-host.sh serve`, followed by status-only HTTP requests | Production sign-in and OpenAPI returned 200; unauthenticated `/api/v1/me/preferences` returned 401; Go `/readyz` returned 200 | Local production bundle smoke; no production deployment or authenticated browser suite against the production bundle |
 
-The temporary production smoke server and isolated browser provider fixtures were stopped. Normal development web, Go API, worker and collaboration services were restored against the original local database. Development sign-in/OpenAPI and API readiness returned 200; collaboration was listening on port 1234. The restored API/worker are built without the E2E build tag.
+Before integration, the temporary production smoke server and isolated browser provider fixtures were stopped. Normal development web, Go API, worker and collaboration services were restored against the original local database. Development sign-in/OpenAPI and API readiness returned 200; collaboration was listening on port 1234. The restored API/worker are built without the E2E build tag.
 
 ### Browser and real-worker evidence
 
@@ -108,6 +133,6 @@ Initial test failures are retained in local logs. Regression checks also repaire
 | Slack / email | Real workspace grant, destination access and delivery. The task verified controlled OAuth/HTTP peers with actual fanout/Temporal. |
 | AI / GIPHY | Production credentials and permitted models/search access; transcription accuracy and generated writing quality remain unverified. |
 | Native/external clients | Raycast macOS execution, Apple Shortcut import/signing, hosted Zapier workflows and ChatGPT/Claude directory approval require their external environments. |
-| Deferred products | Public analytics needs the explicit sharing/privacy decision; Auto-DM needs an accepted consent/abuse model and provider scope; Substack Notes lacks an established supported official publishing contract. These three entries remain Later. Five Typefully-specific products/releases remain Skip with reasons in coverage. |
+| Deferred products | Public analytics sharing is now implemented by develop with explicit enable and revoke. Auto-DM has a default-off ledger/adapter and still needs an accepted consent/abuse model and provider scope. Substack Notes alone remains Later because no supported official publishing contract is established. Five Typefully-specific products/releases remain Skip with reasons in coverage. |
 
-Do not activate restricted provider features from fixture success. Supported local authoring, organization, media, scheduling controls, preferences, contracts and reports passed the recorded checks and can be reviewed behind current product gates. Publishing still requires a healthy authorized connection, applicable entitlement and approval. The build warnings above and the provider/native-client boundaries remain release considerations. API-key draft publishing and autonomous approval remain deliberately unavailable. No production deployment, live public post, vendor message, commit or pull request has been performed by this task.
+Do not activate restricted provider features from fixture success. Supported local authoring, organization, media, scheduling controls, preferences, contracts and reports passed the recorded checks and can be reviewed behind current product gates. Publishing still requires a healthy authorized connection, applicable entitlement and approval. The build warnings above and the provider/native-client boundaries remain release considerations. API-key draft publishing and autonomous approval remain deliberately unavailable. No production deployment, live public post or vendor message has been performed. The user authorized a work PR and merge into develop; this does not authorize a production promotion.

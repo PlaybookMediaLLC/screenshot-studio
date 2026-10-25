@@ -52,7 +52,7 @@ type Preferences struct {
 	SocialSetChannels SocialSetChannels   `json:"socialSetChannels"`
 	Events            map[string]Channels `json:"events"`
 	Generation        int                 `json:"generation"`
-	// SocialSets turns activity kinds off for one social set (RFC 043): set
+	// SocialSets turns activity kinds off for one social set (RFC 024): set
 	// ID, then kind, false for off. A kind not listed follows Events.
 	SocialSets map[string]map[string]bool `json:"socialSets"`
 }
@@ -202,7 +202,7 @@ func preferences(ctx context.Context, db queryer, org, user string) (Preferences
 	return p, nil
 }
 
-// emailWanted reads the person's email master switch (RFC 043); off, no
+// emailWanted reads the person's email master switch (RFC 024); off, no
 // notification email reaches them in any workspace.
 func emailWanted(ctx context.Context, db queryer, user string) (bool, error) {
 	var on bool
@@ -498,7 +498,7 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 	if row["deletedAt"] != nil || row["status"] == "DELETED" {
 		return false, row, nil
 	}
-	// A private social set's drafts and posts are its owner's alone (RFC 043).
+	// A private social set's drafts and posts are its owner's alone (RFC 024).
 	if private, owner, err := privateSocialSet(ctx, s.DB, org, socialSetOf(row)); err != nil {
 		return false, nil, err
 	} else if private && owner != user {

@@ -33,7 +33,7 @@ export function PricingPage() {
       finale={{ lead: 'Start on Pro today', trail: 'and move up when you launch every week.' }}
     >
       <PageHero
-        body="Every plan includes the editor, the API, roles, and approval. Higher plans raise every limit. Enterprise adds the controls a security review asks for."
+        body="Paid plans include the editor, the API, roles, and approval. Higher plans raise every limit. Enterprise adds the controls a security review asks for."
         eyebrow={{ label: 'Pricing' }}
         lead="Pick a plan for how often you ship."
         location="pricing_hero"
@@ -41,6 +41,20 @@ export function PricingPage() {
         trail="Change plans or cancel any time from the billing portal."
       >
         <PricingNotice />
+        <div className="my-8 rounded-xl border p-6">
+          <h2 className="text-xl font-semibold">Free basic scheduling</h2>
+          <p className="mt-2">
+            One seat, one connected account, and 10 text or link posts per month. Choose an exact
+            time or publish now. No credit card required.
+          </p>
+          <p className="mt-2 text-sm">
+            Media uploads, AI, queue slots, suggested times and automated follow-ups require a paid
+            plan.
+          </p>
+          <Link className="mt-4 inline-block underline" href="/write">
+            Start scheduling free
+          </Link>
+        </div>
         <PlanCards location="pricing_cards" />
       </PageHero>
 
@@ -143,7 +157,7 @@ export function PricingPage() {
         items={[
           {
             q: 'Is there a free plan?',
-            a: 'No. Every workspace needs a paid plan. You sign up, create a workspace, and subscribe. Pro includes the editor, the image tools, release intake, the API, roles, and approval.',
+            a: 'Yes. Free basic scheduling includes one seat, one connected account and 10 text or link posts per month. Pro adds media uploads, AI, advanced scheduling, the editor tools and release workflows.',
           },
           {
             q: 'How do I buy Pro or Business?',

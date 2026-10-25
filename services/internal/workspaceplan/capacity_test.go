@@ -27,7 +27,7 @@ func TestResolveSubscriptionStanding(t *testing.T) {
 		{"grace expires now", &ent.WorkspaceEntitlement{Plan: "pro", Status: "past_due", GraceUntil: &now}, "pro", false},
 		{"grace", &ent.WorkspaceEntitlement{Plan: "pro", Status: "past_due", GraceUntil: &future}, "pro", true},
 		{"grace cannot extend validity", &ent.WorkspaceEntitlement{Plan: "pro", Status: "past_due", GraceUntil: &future, ValidUntil: &past}, "pro", false},
-		{"unknown plan", &ent.WorkspaceEntitlement{Plan: "unexpected", Status: "active"}, "free", true},
+		{"unknown plan", &ent.WorkspaceEntitlement{Plan: "unexpected", Status: "active"}, "free", false},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			plan, _, active := Resolve(test.row, now)

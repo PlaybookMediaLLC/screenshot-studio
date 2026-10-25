@@ -3,10 +3,11 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
 type pageSettingsFixture struct {

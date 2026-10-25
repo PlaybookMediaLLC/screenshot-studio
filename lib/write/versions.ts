@@ -13,7 +13,7 @@ import {
 } from '@/lib/write/document'
 
 /**
- * Platform versions and post identity (RFC 042). The primary body is the
+ * Platform versions and post identity (RFC 025). The primary body is the
  * draft's; every other platform's version is synced (serialized from the
  * primary each time) or manual (its own body). Nothing here overwrites a
  * manual body: switching back to synced is an explicit call that says which

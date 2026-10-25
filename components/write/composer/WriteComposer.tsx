@@ -3,6 +3,7 @@
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
+import { LinkCards } from './link-cards'
 import dynamic from 'next/dynamic'
 import { useSearchParams } from 'next/navigation'
 import { EyeIcon as Eye } from '@phosphor-icons/react/dist/ssr/Eye'
@@ -57,18 +58,22 @@ import { platformEditorServices } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { engagementAutomation } from '@/lib/write/automation'
 import { CAPABILITIES } from '@/lib/write/capabilities'
-import { nativePostURL } from '@/lib/write/post-url'
-import { createWritingDraft } from '../pending-draft'
 import { writeApi } from '@/lib/write/client'
 import {
   type DraftChannel,
   type PlateBody,
-  type PostPoll,
   primaryChannel,
   type VersionOptions,
 } from '@/lib/write/document'
 import { buildPublication } from '@/lib/write/publication'
-import { forkVersion, versionFor, withOptions, withVersion } from '@/lib/write/versions'
+import {
+  bodyFor,
+  bodyPosts,
+  forkVersion,
+  versionFor,
+  withOptions,
+  withVersion,
+} from '@/lib/write/versions'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { SetDot } from '../sets'
@@ -76,6 +81,9 @@ import { useKeys, useShortcuts } from '../shortcuts'
 import { DraftsDrawerButton } from '../WriteFrame'
 import { useWrite, type WriteSet } from '../write-context'
 import { CommentsPanel } from './comments'
+import { ComposerEmojiPicker } from './emoji-picker'
+import { ThreadTools } from './thread-tools'
+import { ArticleTools } from './article-tools'
 import { MemberComments } from './member-comments'
 import {
   CompareDialog,
@@ -91,12 +99,20 @@ import { PropertiesPanel } from './properties'
 import { PublishReview, ScheduleDialog, type ScheduleContext } from './schedule'
 import { BackupsBrowser, ShareDialog } from './share-backups'
 import { AssistantPanel } from './assistant'
+import { withAssetDescription } from '@/lib/write/media-operations'
+import { DescribeImages, PreviewImageDescription } from './describe-images'
 import { MediaTools } from './media-tools'
-import { DescribeImages } from './describe-images'
-import { RefineButton } from './refine'
+import { MediaImportDialog } from './media-import-dialog'
 import { CopyPollDialog } from './copy-poll'
 import { PasteThreadDialog } from './paste-thread'
-import { MentionPicker, SocialMentionPlugin } from './social-mention'
+import type { PostPoll } from '@/lib/write/document'
+import { RefineButton } from './refine'
+import {
+  MentionPicker,
+  SocialMentionPlugin,
+  SocialMentionInputPlugins,
+  SocialMentionContext,
+} from './social-mention'
 import { type SaveState, useDraftDocument } from './useDraftDocument'
 import { VersionOptionsBar } from './version-options'
 
@@ -118,41 +134,13 @@ type Dialog =
   | 'share'
   | 'backups'
   | 'compare'
-  | 'paste'
   | 'media'
   | 'copy-poll'
+  | 'paste'
   | null
 
-/** A handful of emoji, one click from the post; the system picker has the rest. */
-const EMOJI = [
-  '🚀',
-  '✨',
-  '🎉',
-  '🔥',
-  '✅',
-  '👀',
-  '💡',
-  '📈',
-  '🛠️',
-  '🧵',
-  '👇',
-  '🙌',
-  '❤️',
-  '😂',
-  '🤔',
-  '⚡',
-  '📣',
-  '🧪',
-  '🐛',
-  '📦',
-  '🔗',
-  '🗓️',
-  '💬',
-  '👋',
-]
-
 /** Plugins Write adds to the editor; stable, so the editor is built once. */
-const WRITE_PLUGINS = [SocialMentionPlugin]
+const WRITE_PLUGINS = [SocialMentionPlugin, ...SocialMentionInputPlugins]
 
 /** What the save state reads as. */
 const SAVE_LABELS: Record<SaveState, string> = {
@@ -164,7 +152,7 @@ const SAVE_LABELS: Record<SaveState, string> = {
 }
 
 /**
- * The Write composer (RFC 042). The draft is its primary body plus a version
+ * The Write composer (RFC 025). The draft is its primary body plus a version
  * per platform; the tab being edited is UI state only. Destinations,
  * versions, options and the body save together against the draft's version.
  * Previews, the review and the schedule all use the publication the backend
@@ -194,14 +182,18 @@ export function WriteComposer({
   const { mod } = useKeys()
   const narrow = useIsMobile()
   const trpcClient = useTRPCClient()
-  const { beforeLeaveRef, canEdit, canPublish, canReview, canManageSets, showSaved } = useWrite()
+  const {
+    beforeLeaveRef,
+    openPreviewRef,
+    canEdit,
+    canPublish,
+    canReview,
+    canManageSets,
+    showSaved,
+  } = useWrite()
   const services = React.useMemo(
     () => platformEditorServices(trpcClient, aiEnabled),
     [trpcClient, aiEnabled]
-  )
-  const collaboration = React.useMemo(
-    () => (collabUrl ? { draftId: initial.id, url: collabUrl } : null),
-    [collabUrl, initial.id]
   )
   const {
     document,
@@ -215,7 +207,7 @@ export function WriteComposer({
     versionRef: version,
   } = useDraftDocument({
     canEdit,
-    collaborating: Boolean(collaboration),
+    collaborating: Boolean(collabUrl),
     draft: initial,
     onSaved: (saved) =>
       showSaved({
@@ -225,6 +217,13 @@ export function WriteComposer({
         updatedAt: saved.updatedAt,
       }),
   })
+  const collaboration = React.useMemo(
+    () =>
+      collabUrl
+        ? { draftId: initial.id, url: collabUrl, generation: server.collabGeneration }
+        : null,
+    [collabUrl, initial.id, server.collabGeneration]
+  )
   React.useEffect(() => {
     beforeLeaveRef.current = async () => {
       try {
@@ -239,6 +238,8 @@ export function WriteComposer({
     }
   }, [beforeLeaveRef, flush])
   const textDirection = usePreferences().preferences?.textDirection ?? 'ltr'
+  const [panelWidth, setPanelWidth] = React.useState(420)
+  const resize = React.useRef<{ x: number; width: number } | null>(null)
   const [tab, setTab] = React.useState<DraftChannel>(() => primaryChannel(initial.primaryPlatform))
   const [panel, setPanel] = React.useState<Panel | null>(() => {
     const asked = params.get('panel')
@@ -260,25 +261,40 @@ export function WriteComposer({
             ? 'manage'
             : null
   )
-  const [pastedPost, setPastedPost] = React.useState<ReturnType<typeof nativePostURL>>(null)
-  const [quotingPastedPost, setQuotingPastedPost] = React.useState(false)
   const [focus, setFocus] = React.useState(false)
-  const [compact, setCompact] = React.useState(false)
-  const [panelWidth, setPanelWidth] = React.useState(320)
-  const [panelMaximum, setPanelMaximum] = React.useState(640)
-  const composerArea = React.useRef<HTMLDivElement>(null)
+  const focusRoot = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
-    const area = composerArea.current
-    if (!area) return
-    const observer = new ResizeObserver(([entry]) => {
-      const maximum = Math.max(280, Math.min(640, Math.floor(entry.contentRect.width - 360)))
-      setPanelMaximum(maximum)
-      setPanelWidth((width) => Math.min(width, maximum))
-    })
-    observer.observe(area)
-    return () => observer.disconnect()
-  }, [])
-  const resizingPanel = React.useRef<{ x: number; width: number } | null>(null)
+    if (!focus || !focusRoot.current) return
+    // Hide the library and application chrome without remounting the editor.
+    // Inert also removes their controls from keyboard and accessibility focus.
+    const hidden: { element: HTMLElement; hidden: boolean; inert: boolean }[] = []
+    let branch: HTMLElement = focusRoot.current
+    while (branch.parentElement) {
+      for (const sibling of branch.parentElement.children) {
+        if (
+          sibling === branch ||
+          !(sibling instanceof HTMLElement) ||
+          ['SCRIPT', 'STYLE', 'LINK'].includes(sibling.tagName)
+        )
+          continue
+        hidden.push({ element: sibling, hidden: sibling.hidden, inert: sibling.inert })
+        sibling.hidden = true
+        sibling.inert = true
+      }
+      if (branch.parentElement === branch.ownerDocument.body) break
+      branch = branch.parentElement
+    }
+    return () => {
+      for (const previous of hidden) {
+        previous.element.hidden = previous.hidden
+        previous.element.inert = previous.inert
+      }
+    }
+  }, [focus])
+  const [description, setDescription] = React.useState<{ assetId: string; alt: string } | null>(
+    null
+  )
+  const [compact, setCompact] = React.useState(false)
   const shareButton = React.useRef<HTMLButtonElement>(null)
   const [posts, setPosts] = React.useState(initialPosts)
   const editor = React.useRef<PlateEditor | null>(null)
@@ -302,13 +318,14 @@ export function WriteComposer({
     platformVersions: document.versions,
     target: document.target,
   }
-  // Tables and math post as images, rendered when scheduling (RFC 037);
+  // Tables and math post as images, rendered when scheduling (RFC 013);
   // until then each counts as a pending image, as it will publish.
   const pendingBlocks: BlockImages = Array.from(
     { length: renderableBlockCount(document.value) },
     () => ''
   )
   const bodyArea = React.useRef<HTMLDivElement>(null)
+  const [pasteNotice, setPasteNotice] = React.useState(false)
   const renderBlocks = async (): Promise<BlockImages> => {
     if (pendingBlocks.length === 0 || !services.uploadFile) return []
     if (active !== primary || !bodyArea.current) {
@@ -332,8 +349,9 @@ export function WriteComposer({
           standing: {
             maxWeightedCharacters: account.xCaptionLimit,
             articles: account.xArticles,
+            xQuotes: account.xQuotes,
             pollLimits: account.pollLimits,
-            nativeQuotes: account.nativeQuotes,
+            mastodonQuotes: account.mastodonQuotes,
           },
         },
         pendingBlocks
@@ -369,15 +387,44 @@ export function WriteComposer({
     draft: server,
     flush,
     items,
-    onDone: ({ draft }) => {
+    onDone: ({ draft, newDraft }) => {
       setServer(draft)
       void refreshPosts()
+      if (newDraft)
+        void draftsApi
+          .create({ socialSetId: draft.socialSetId ?? undefined })
+          .then((next) => router.push(`/write/${next.id}`))
+          .catch(() =>
+            toast.error(
+              'Scheduled successfully, but the next draft could not be opened. Create one from the sidebar.'
+            )
+          )
     },
     onToggle: toggle,
     requireApproval,
     setTimeZone: set?.timeZone ?? null,
     versionRef: version,
     renderBlocks,
+    community: versionFor(document.versions, 'x').options?.community,
+    onCommunity: canEdit
+      ? (community) =>
+          update((current) => ({
+            versions: withOptions(current.versions, 'x', {
+              ...versionFor(current.versions, 'x').options,
+              community,
+            }),
+          }))
+      : undefined,
+    autoDm: versionFor(document.versions, 'x').options?.autoDm,
+    onAutoDm: canEdit
+      ? (autoDm) =>
+          update((current) => ({
+            versions: withOptions(current.versions, 'x', {
+              ...versionFor(current.versions, 'x').options,
+              autoDm,
+            }),
+          }))
+      : undefined,
     automation:
       versionFor(document.versions, 'x').options?.automation ??
       engagementAutomation(server.engagement),
@@ -392,6 +439,12 @@ export function WriteComposer({
       : undefined,
   }
   const togglePanel = (next: Panel) => setPanel((current) => (current === next ? null : next))
+  React.useEffect(() => {
+    openPreviewRef.current = () => setPanel('preview')
+    return () => {
+      openPreviewRef.current = null
+    }
+  }, [openPreviewRef])
   useShortcuts([
     {
       key: '\\',
@@ -514,7 +567,7 @@ export function WriteComposer({
     try {
       await flush()
       setServer(await draftsApi.save(initial.id, { baseVersion: version.current, status }))
-      toast.success(status === 'archived' ? 'Archived.' : 'Restored to drafts.')
+      toast.success(status === 'archived' ? 'Archived.' : 'Restored from archive.')
       router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The draft did not change.')
@@ -560,6 +613,19 @@ export function WriteComposer({
       </div>
     )
   }
+  const onDescriptionSaved = (assetId: string, alt: string) => {
+    const current = editor.current
+    if (current)
+      for (const [, path] of current.api.nodes({
+        at: [],
+        match: (node) => node.type === 'img' && node.assetId === assetId,
+      }))
+        current.tf.setNodes({ alt }, { at: path })
+    update((draft) => ({
+      value: withAssetDescription(draft.value, assetId, alt),
+      versions: withAssetDescription(draft.versions, assetId, alt),
+    }))
+  }
   const editorProps = {
     draftId: initial.id,
     extraPlugins: WRITE_PLUGINS,
@@ -575,16 +641,34 @@ export function WriteComposer({
           settings: Parameters<typeof PostSettingsTools>[0]['settings']
         }) => (
           <PostSettingsTools
-            limits={accounts.find((item) => item.channel === active)?.pollLimits}
             channel={active}
             number={number}
+            pollSources={channels
+              .filter((channel) => channel !== active)
+              .flatMap((channel) =>
+                bodyPosts(bodyFor(document.value as PlateBody, document.versions, channel)).flatMap(
+                  (post, index) =>
+                    post.settings.poll
+                      ? [
+                          {
+                            key: `${channel}-${index}`,
+                            label: `${CHANNEL_META[channel].label} · post ${index + 1}`,
+                            poll: post.settings.poll,
+                          },
+                        ]
+                      : []
+                )
+              )}
             settings={settings}
+            standing={{
+              pollLimits: accounts.find((account) => account.channel === active)?.pollLimits,
+            }}
           />
         )
       : undefined,
     readOnly: !canEdit,
     services,
-    // Text runs in the direction the person chose in Appearance (RFC 043).
+    // Text runs in the direction the person chose in Appearance (RFC 024).
     textDirection,
     title: document.title,
     user,
@@ -605,6 +689,8 @@ export function WriteComposer({
       />
     ) : panel === 'preview' ? (
       <PreviewPanel
+        initialChannel={active}
+        onDescribe={canEdit ? (media) => setDescription(media) : undefined}
         items={
           items.length
             ? items
@@ -642,7 +728,7 @@ export function WriteComposer({
       <AssistantPanel
         channel={active}
         onInsert={
-          canEdit && active === primary
+          canEdit && (active === primary || versionOfTab.mode === 'manual')
             ? (text) => {
                 if (editor.current) appendPost(editor.current, text)
               }
@@ -664,422 +750,396 @@ export function WriteComposer({
             ? 'Planned'
             : null
   return (
-    <div
-      ref={composerArea}
-      className={cn('flex min-h-full', compact && 'write-compact')}
-      data-testid="write-composer"
+    <SocialMentionContext.Provider
+      value={{ channel: active, setId: server.socialSetId ?? set?.id ?? null }}
     >
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-white/[0.06] bg-[#111111]/90 px-3 py-2 backdrop-blur">
-          <DraftsDrawerButton />
-          {set ? (
-            <span
-              className="hidden items-center gap-1.5 text-xs text-neutral-400 sm:flex"
-              data-testid="composer-identity"
-              title={`Writing as ${set.name}`}
-            >
-              <SetDot color={set.color} />
-              <span className={cn('max-w-32 truncate', panel ? 'hidden' : 'hidden xl:inline')}>
-                {set.name}
+      <div
+        // Opening a side panel changes text wrapping. Native scroll anchoring
+        // would otherwise jump the editor to a different scroll position.
+        ref={focusRoot}
+        className={cn(
+          'flex min-h-full [overflow-anchor:none]',
+          compact && 'write-compact',
+          focus && 'fixed inset-0 z-40 overflow-y-auto bg-[#111111]'
+        )}
+        data-testid="write-composer"
+      >
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-white/[0.06] bg-[#111111]/90 px-3 py-2 backdrop-blur">
+            <DraftsDrawerButton />
+            {set ? (
+              <span
+                className="hidden items-center gap-1.5 text-xs text-neutral-400 sm:flex"
+                data-testid="composer-identity"
+                title={`Writing as ${set.name}`}
+              >
+                <SetDot color={set.color} />
+                <span className={cn('max-w-32 truncate', panel ? 'hidden' : 'hidden xl:inline')}>
+                  {set.name}
+                </span>
               </span>
+            ) : null}
+            <span className="flex items-center gap-1 text-neutral-400 md:hidden">
+              {items.map((item) => (
+                <ChannelIcon channel={item.account.channel} key={item.account.id} />
+              ))}
             </span>
-          ) : null}
-          <span className="flex items-center gap-1 text-neutral-400 md:hidden">
-            {items.map((item) => (
-              <ChannelIcon channel={item.account.channel} key={item.account.id} />
-            ))}
-          </span>
-          <Input
-            aria-label="Draft title"
-            className="h-8 min-w-20 max-w-64 flex-1 truncate border-transparent bg-transparent text-sm text-neutral-300 focus:text-white"
-            disabled={!canEdit}
-            maxLength={200}
-            onChange={(event) => update({ title: event.target.value })}
-            placeholder="Untitled draft"
-            value={document.title}
-          />
-          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-1">
-            <span
-              className={cn(
-                'text-xs',
-                saveState === 'error' || saveState === 'offline'
-                  ? 'text-amber-300'
-                  : 'text-neutral-400'
-              )}
-              data-testid="save-state"
-              role="status"
-            >
-              {SAVE_LABELS[saveState]}
-            </span>
-            {saveState === 'error' || saveState === 'offline' ? (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  void flush().catch((error: unknown) =>
-                    toast.error(error instanceof Error ? error.message : 'Could not save.')
-                  )
-                }
-              >
-                Retry save
-              </Button>
-            ) : null}
-            {status ? (
-              <Pill
-                tone={
-                  status === 'Posted'
-                    ? 'blue'
-                    : status === 'Scheduled'
-                      ? 'green'
-                      : status === 'Planned'
-                        ? 'purple'
-                        : 'gray'
-                }
-              >
-                {status}
-              </Pill>
-            ) : null}
-            {requireApproval || server.reviewStatus !== 'none' ? (
-              <ReviewControls
-                canEdit={canEdit}
-                canReview={canReview}
-                draftId={initial.id}
-                onDraft={(next) => {
-                  setServer(next)
-                  router.refresh()
-                }}
-                review={{ ...server, version: version.current }}
-              />
-            ) : null}
-            {focus ? null : (
-              <>
-                <PanelButton
-                  active={panel === 'preview'}
-                  icon={<Eye aria-hidden className="size-4" />}
-                  label="Preview"
-                  onClick={() => togglePanel('preview')}
-                  shortcut={`${mod}⇧V`}
-                />
-                <PanelButton
-                  active={panel === 'comments'}
-                  icon={<MessageSquare aria-hidden className="size-4" />}
-                  label="Comments"
-                  onClick={() => togglePanel('comments')}
-                  shortcut={`${mod}⇧M`}
-                />
-                <PanelButton
-                  active={panel === 'properties'}
-                  icon={<PanelRight aria-hidden className="size-4" />}
-                  label="Draft details"
-                  onClick={() => togglePanel('properties')}
-                  shortcut={`${mod}\\`}
-                />
-                {aiEnabled ? (
-                  <PanelButton
-                    active={panel === 'assistant'}
-                    icon={<Sparkles aria-hidden className="size-4" />}
-                    label="Assistant"
-                    onClick={() => togglePanel('assistant')}
-                    shortcut={`${mod}J`}
-                  />
-                ) : null}
-                {/* The set's settings open beside the draft without unmounting it (RFC 043). */}
-                {set ? (
-                  <DraftSettingsDrawer
-                    canManage={canPublish}
-                    canWrite={canEdit}
-                    socialSet={{ id: set.id, name: set.name, timeZone: set.timeZone }}
-                  />
-                ) : null}
-              </>
-            )}
-            {/* With a panel open, Share shows as an icon so the header stays in its column. */}
-            <Button
-              ref={shareButton}
-              aria-label="Share"
-              className={panel ? 'size-8 px-0' : 'hidden sm:inline-flex'}
-              onClick={() => setDialog('share')}
-              size="sm"
-              title={`Share (${mod}⌥S)`}
-              variant="ghost"
-            >
-              {panel ? <Share2 aria-hidden className="size-4" /> : 'Share'}
-            </Button>
-            {canPublish && server.status !== 'archived' ? (
-              <>
-                <Button
-                  className="hidden sm:inline-flex"
-                  data-testid="schedule-button"
-                  onClick={() => setDialog('schedule')}
-                  size="sm"
-                  variant="outline"
-                >
-                  {server.status === 'scheduled' &&
-                  posts.some((post) => post.status === 'SCHEDULED')
-                    ? 'Reschedule'
-                    : 'Schedule'}
-                </Button>
-                <Button
-                  data-testid="publish-button"
-                  onClick={() => setDialog('publish')}
-                  size="sm"
-                  title={`Publish review (${mod}⇧↵)`}
-                >
-                  Publish
-                </Button>
-              </>
-            ) : null}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button aria-label="More draft actions" size="sm" variant="ghost">
-                  ⋯
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                {canPublish && server.status !== 'archived' ? (
-                  <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('schedule')}>
-                    Schedule…
-                  </DropdownMenuItem>
-                ) : null}
-                {canPublish && server.status !== 'archived' ? (
-                  <DropdownMenuItem onSelect={() => setDialog('queue')}>
-                    Add to queue
-                    <DropdownMenuShortcut>{mod}⌥↵</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('share')}>
-                  Share…
-                </DropdownMenuItem>
-                {canEdit && activePublication.settings[0]?.poll ? (
-                  <DropdownMenuItem
-                    onSelect={() => {
-                      setCopiedPoll({
-                        channel: active,
-                        poll: structuredClone(activePublication.settings[0].poll!),
-                      })
-                      setDialog('copy-poll')
-                    }}
-                  >
-                    Copy poll to channel…
-                  </DropdownMenuItem>
-                ) : null}
-                {canEdit && editorInstance ? (
-                  <DropdownMenuItem onSelect={() => setDialog('media')}>
-                    Manage media…
-                  </DropdownMenuItem>
-                ) : null}
-                {canEdit && CAPABILITIES[active].thread ? (
-                  <DropdownMenuItem onSelect={() => setDialog('paste')}>
-                    Paste as thread…
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem onSelect={() => setDialog('backups')}>
-                  View automatic backups
-                </DropdownMenuItem>
-                {canEdit ? (
-                  <DropdownMenuItem onSelect={() => void pin()}>
-                    {server.pinnedAt ? 'Unpin draft' : 'Pin draft'}
-                    <DropdownMenuShortcut>{mod}⇧P</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem onSelect={() => setFocus((current) => !current)}>
-                  {focus ? 'Leave focus mode' : 'Focus mode'}
-                  <DropdownMenuShortcut>{mod}⇧F</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setCompact((current) => !current)}>
-                  {compact ? 'Comfortable display' : 'Compact display'}
-                  <DropdownMenuShortcut>{mod}⇧H</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                {canEdit ? (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onSelect={() =>
-                        void archive(server.status === 'archived' ? 'draft' : 'archived')
-                      }
-                    >
-                      {server.status === 'archived' ? 'Restore from archive' : 'Archive draft'}
-                    </DropdownMenuItem>
-                  </>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-        {server.status === 'archived' ? (
-          <div
-            role="status"
-            className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300"
-          >
-            <span>Archived draft. Restore it before scheduling or publishing.</span>
-            {canEdit ? (
-              <Button size="sm" variant="outline" onClick={() => void archive('draft')}>
-                Restore draft
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        {accounts.length === 0 ? (
-          <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-neutral-300">
-            <span>
-              {canManageSets
-                ? 'Connect an account to publish. You can write your draft now.'
-                : canEdit
-                  ? 'An owner or admin can connect an account. You can write your draft now.'
-                  : 'An owner or admin can connect an account to publish this draft.'}
-            </span>
-            {canManageSets ? (
-              <Button size="sm" variant="outline" onClick={() => setDialog('manage')}>
-                Connect account
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-        <PlatformTabs
-          accounts={accounts}
-          active={active}
-          enabled={enabled}
-          onManage={canEdit ? () => setDialog('manage') : undefined}
-          onSelect={setTab}
-          primary={primary}
-          versions={document.versions}
-        />
-        <TargetBanner draft={server} />
-        {canEdit && pastedPost && server.kind === 'standard' ? (
-          <div
-            role="status"
-            className="flex flex-wrap items-center gap-2 border-b px-4 py-3 text-sm"
-          >
-            <span>
-              {CAPABILITIES[pastedPost.channel].label} post detected. Start a native quote in a new
-              draft?
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={quotingPastedPost}
-              onClick={async () => {
-                setQuotingPastedPost(true)
-                try {
-                  await createWritingDraft(
-                    {
-                      kind: 'quote',
-                      target: { url: pastedPost.url },
-                      primaryPlatform: pastedPost.channel,
-                      socialSetId: server.socialSetId ?? undefined,
-                      channelConnectionIds: accounts
-                        .filter((account) => account.channel === pastedPost.channel)
-                        .map((account) => account.id),
-                    },
-                    (id) => router.push(`/write/${id}`),
-                    flush
-                  )
-                } finally {
-                  setQuotingPastedPost(false)
-                }
-              }}
-            >
-              Create native quote draft
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={quotingPastedPost}
-              onClick={() => setPastedPost(null)}
-            >
-              Keep as link
-            </Button>
-          </div>
-        ) : null}
-        <VersionOptionsBar
-          channel={active}
-          onApplyFinisher={
-            canEdit && active === primary
-              ? (text, quoteFirstPost) => {
-                  if (editor.current)
-                    appendPost(editor.current, text, quoteFirstPost ? { quoteFirstPost: true } : {})
-                }
-              : undefined
-          }
-          onChange={(options) => setOptions(active, options)}
-          options={versionOfTab.options ?? {}}
-          postCount={activePublication.serialized.posts.length}
-          readOnly={!canEdit}
-          setId={server.socialSetId ?? set?.id ?? null}
-          uploadFile={
-            services.uploadFile
-              ? async (file) => ({ assetId: (await services.uploadFile!(file)).assetId ?? '' })
-              : undefined
-          }
-        />
-        {canEdit && activePublication.serialized.posts.every((post) => !post.caption.trim()) ? (
-          <Button
-            variant="ghost"
-            className="mx-6 mt-3 self-start text-sm"
-            onClick={() => togglePanel('assistant')}
-          >
-            Find a writing prompt
-          </Button>
-        ) : null}
-        <div
-          className="relative flex-1"
-          data-testid="composer-body"
-          ref={bodyArea}
-          onPasteCapture={(event) => {
-            if (canEdit) setPastedPost(nativePostURL(event.clipboardData.getData('text/plain')))
-          }}
-        >
-          {active === primary ? (
-            <DraftEditor
-              {...editorProps}
-              collaboration={collaboration}
-              initialDiscussions={readDiscussionsOnce(initial)}
-              initialValue={document.value}
-              key={`primary-${editorKey}`}
-              onChange={(next) => update({ value: next })}
-              onDiscussionsChange={onDiscussionsChange}
-              onEditor={(next) => {
-                editor.current = next
-                editorChannel.current = active
-                setEditorInstance(next)
-              }}
-              toolbarExtras={
-                <ToolbarExtras
-                  aiEnabled={aiEnabled}
-                  channel={active}
-                  limit={activePublication.serialized.limit}
-                  channels={items.map((item) => item.account.channel)}
-                  editor={editor}
-                  draftId={initial.id}
-                  setId={server.socialSetId ?? set?.id ?? null}
-                />
-              }
+            <Input
+              aria-label="Draft title"
+              className="h-8 min-w-20 max-w-64 flex-1 truncate border-transparent bg-transparent text-sm text-neutral-300 focus:text-white"
+              disabled={!canEdit}
+              maxLength={200}
+              onChange={(event) => update({ title: event.target.value })}
+              placeholder="Untitled draft"
+              value={document.title}
             />
-          ) : versionOfTab.mode === 'manual' ? (
-            <>
-              <ManualVersionNotice
-                channel={active}
-                onCompare={() => setDialog('compare')}
-                onResync={canEdit ? () => setDialog('manage') : undefined}
-                primary={primary}
-                value={document.value as PlateBody}
-                versions={document.versions}
-              />
+            <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-1">
+              <span
+                className={cn(
+                  'text-xs',
+                  saveState === 'error' || saveState === 'offline'
+                    ? 'text-amber-300'
+                    : 'text-neutral-400'
+                )}
+                data-testid="save-state"
+                role="status"
+              >
+                {SAVE_LABELS[saveState]}
+              </span>
+              {saveState === 'error' || saveState === 'offline' ? (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    void flush().catch((error: unknown) =>
+                      toast.error(error instanceof Error ? error.message : 'Could not save.')
+                    )
+                  }
+                >
+                  Retry save
+                </Button>
+              ) : null}
+              {status ? (
+                <Pill
+                  tone={
+                    status === 'Posted'
+                      ? 'blue'
+                      : status === 'Scheduled'
+                        ? 'green'
+                        : status === 'Planned'
+                          ? 'purple'
+                          : 'gray'
+                  }
+                >
+                  {status}
+                </Pill>
+              ) : null}
+              {requireApproval || server.reviewStatus !== 'none' ? (
+                <ReviewControls
+                  canEdit={canEdit}
+                  canReview={canReview}
+                  draftId={initial.id}
+                  onDraft={(next) => {
+                    setServer(next)
+                    router.refresh()
+                  }}
+                  review={{ ...server, version: version.current }}
+                />
+              ) : null}
+              {focus ? null : (
+                <>
+                  <PanelButton
+                    active={panel === 'preview'}
+                    icon={<Eye aria-hidden className="size-4" />}
+                    label="Preview"
+                    onClick={() => togglePanel('preview')}
+                    shortcut={`${mod}⇧V`}
+                  />
+                  <PanelButton
+                    active={panel === 'comments'}
+                    icon={<MessageSquare aria-hidden className="size-4" />}
+                    label="Comments"
+                    onClick={() => togglePanel('comments')}
+                    shortcut={`${mod}⇧M`}
+                  />
+                  <PanelButton
+                    active={panel === 'properties'}
+                    icon={<PanelRight aria-hidden className="size-4" />}
+                    label="Draft details"
+                    onClick={() => togglePanel('properties')}
+                    shortcut={`${mod}\\`}
+                  />
+                  {aiEnabled ? (
+                    <PanelButton
+                      active={panel === 'assistant'}
+                      icon={<Sparkles aria-hidden className="size-4" />}
+                      label="Assistant"
+                      onClick={() => togglePanel('assistant')}
+                      shortcut={`${mod}J`}
+                    />
+                  ) : null}
+                  {/* The set's settings open beside the draft without unmounting it (RFC 024). */}
+                  {set ? (
+                    <DraftSettingsDrawer
+                      canManage={canPublish}
+                      canWrite={canEdit}
+                      socialSet={{ id: set.id, name: set.name, timeZone: set.timeZone }}
+                    />
+                  ) : null}
+                </>
+              )}
+              {/* With a panel open, Share shows as an icon so the header stays in its column. */}
+              <Button
+                ref={shareButton}
+                aria-label="Share"
+                className={panel ? 'size-8 px-0' : 'hidden sm:inline-flex'}
+                onClick={() => setDialog('share')}
+                size="sm"
+                title={`Share (${mod}⌥S)`}
+                variant="ghost"
+              >
+                {panel ? <Share2 aria-hidden className="size-4" /> : 'Share'}
+              </Button>
+              {canPublish && server.status !== 'archived' ? (
+                <>
+                  <Button
+                    className="hidden sm:inline-flex"
+                    data-testid="schedule-button"
+                    onClick={() => setDialog('schedule')}
+                    size="sm"
+                    variant="outline"
+                  >
+                    {server.status === 'scheduled' &&
+                    posts.some((post) => post.status === 'SCHEDULED')
+                      ? 'Reschedule'
+                      : 'Schedule'}
+                  </Button>
+                  <Button
+                    data-testid="publish-button"
+                    onClick={() => setDialog('publish')}
+                    size="sm"
+                    title={`Publish review (${mod}⇧↵)`}
+                  >
+                    Publish
+                  </Button>
+                </>
+              ) : null}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button aria-label="More draft actions" size="sm" variant="ghost">
+                    ⋯
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  {canPublish && server.status !== 'archived' ? (
+                    <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('schedule')}>
+                      Schedule…
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canPublish && server.status !== 'archived' ? (
+                    <DropdownMenuItem onSelect={() => setDialog('queue')}>
+                      Add to queue
+                      <DropdownMenuShortcut>{mod}⌥↵</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('share')}>
+                    Share…
+                  </DropdownMenuItem>
+                  {canEdit && activePublication.settings[0]?.poll ? (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setCopiedPoll({
+                          channel: active,
+                          poll: structuredClone(activePublication.settings[0].poll!),
+                        })
+                        setDialog('copy-poll')
+                      }}
+                    >
+                      Copy poll to channel…
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canEdit && editorInstance ? (
+                    <DropdownMenuItem onSelect={() => setDialog('media')}>
+                      Manage media…
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canEdit && CAPABILITIES[active].thread ? (
+                    <DropdownMenuItem onSelect={() => setDialog('paste')}>
+                      Paste as thread…
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem onSelect={() => setDialog('backups')}>
+                    View automatic backups
+                  </DropdownMenuItem>
+                  {canEdit ? (
+                    <DropdownMenuItem onSelect={() => void pin()}>
+                      {server.pinnedAt ? 'Unpin draft' : 'Pin draft'}
+                      <DropdownMenuShortcut>{mod}⇧P</DropdownMenuShortcut>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem onSelect={() => setFocus((current) => !current)}>
+                    {focus ? 'Leave focus mode' : 'Focus mode'}
+                    <DropdownMenuShortcut>{mod}⇧F</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setCompact((current) => !current)}>
+                    {compact ? 'Comfortable display' : 'Compact display'}
+                    <DropdownMenuShortcut>{mod}⇧H</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  {canEdit ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onSelect={() =>
+                          void archive(server.status === 'archived' ? 'draft' : 'archived')
+                        }
+                      >
+                        {server.status === 'archived' ? 'Restore from archive' : 'Archive draft'}
+                      </DropdownMenuItem>
+                    </>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </header>
+          {server.status === 'archived' ? (
+            <div
+              role="status"
+              className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300"
+            >
+              <span>Archived draft. Restore it before scheduling or publishing.</span>
+              {canEdit ? (
+                <Button size="sm" variant="outline" onClick={() => void archive('draft')}>
+                  Restore draft
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          {accounts.length === 0 ? (
+            <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-neutral-300">
+              <span>
+                {canManageSets
+                  ? 'Connect an account to publish. You can write your draft now.'
+                  : canEdit
+                    ? 'An owner or admin can connect an account. You can write your draft now.'
+                    : 'An owner or admin can connect an account to publish this draft.'}
+              </span>
+              {canManageSets ? (
+                <Button size="sm" variant="outline" onClick={() => setDialog('manage')}>
+                  Connect account
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          <PlatformTabs
+            accounts={accounts}
+            active={active}
+            enabled={enabled}
+            onManage={canEdit ? () => setDialog('manage') : undefined}
+            onSelect={setTab}
+            primary={primary}
+            versions={document.versions}
+          />
+          <TargetBanner draft={server} />
+          {canEdit && server.kind === 'article' ? (
+            <ArticleTools
+              article={document.article}
+              onChange={(article) => update(() => ({ article }))}
+              editor={editor}
+              upload={services.uploadFile}
+            />
+          ) : null}
+          {canEdit && server.kind !== 'article' ? (
+            <LinkCards
+              text={activePublication.serialized.posts.map((post) => post.caption).join('\n')}
+              channel={active}
+              cards={versionOfTab.options?.linkPreviews ?? []}
+              onChange={(card) =>
+                update((current) => {
+                  const options = versionFor(current.versions, active).options ?? {}
+                  return {
+                    versions: withOptions(current.versions, active, {
+                      ...options,
+                      linkPreviews: [
+                        ...(options.linkPreviews ?? []).filter((item) => item.url !== card.url),
+                        card,
+                      ].slice(-25),
+                    }),
+                  }
+                })
+              }
+              onQuote={(url) => {
+                void (async () => {
+                  await flush()
+                  const next = await draftsApi.create({
+                    kind: 'quote',
+                    socialSetId: server.socialSetId ?? undefined,
+                    target: { url },
+                    body: bodyFor(document.value as PlateBody, document.versions, active),
+                  })
+                  router.push(`/write/${next.id}`)
+                })().catch((error) =>
+                  toast.error(
+                    error instanceof Error ? error.message : 'The quote draft could not be created.'
+                  )
+                )
+              }}
+            />
+          ) : null}
+          <VersionOptionsBar
+            channel={active}
+            captionLimit={activePublication.serialized.limit}
+            onApplyFinisher={
+              canEdit && (active === primary || versionOfTab.mode === 'manual')
+                ? (text, quoteFirstPost) => {
+                    if (editor.current)
+                      appendPost(
+                        editor.current,
+                        text,
+                        quoteFirstPost ? { quoteFirstPost: true } : {}
+                      )
+                  }
+                : undefined
+            }
+            onChange={(options) => setOptions(active, options)}
+            options={versionOfTab.options ?? {}}
+            postCount={activePublication.serialized.posts.length}
+            readOnly={!canEdit}
+            setId={server.socialSetId ?? set?.id ?? null}
+            uploadFile={
+              services.uploadFile
+                ? async (file) => ({ assetId: (await services.uploadFile!(file)).assetId ?? '' })
+                : undefined
+            }
+          />
+          {canEdit &&
+          server.kind !== 'article' &&
+          CAPABILITIES[active].thread &&
+          (active === primary || versionOfTab.mode === 'manual') ? (
+            <ThreadTools
+              pasted={pasteNotice}
+              onSplit={() => setPasteNotice(false)}
+              editor={editor}
+              channel={active}
+              limit={activePublication.serialized.limit}
+              options={versionOfTab.options ?? {}}
+              onChange={(options) => setOptions(active, options)}
+            />
+          ) : null}
+          <div
+            className="relative flex-1"
+            data-testid="composer-body"
+            ref={bodyArea}
+            onPasteCapture={() => setPasteNotice(true)}
+          >
+            {active === primary ? (
               <DraftEditor
                 {...editorProps}
-                collaboration={null}
-                initialDiscussions={{ threads: [], users: {} }}
-                initialValue={(versionOfTab.body ?? []) as Value}
-                key={`version-${active}-${editorKey}`}
-                onChange={(next) =>
-                  update((current) => ({
-                    versions: withVersion(current.versions, {
-                      ...versionFor(current.versions, active),
-                      body: next as PlateBody,
-                    }),
-                  }))
-                }
-                onDiscussionsChange={() => undefined}
+                collaboration={collaboration}
+                initialDiscussions={readDiscussionsOnce(initial)}
+                initialValue={document.value}
+                key={`primary-${editorKey}-${server.collabGeneration}`}
+                onChange={(next) => update({ value: next })}
+                onDiscussionsChange={onDiscussionsChange}
                 onEditor={(next) => {
                   editor.current = next
                   editorChannel.current = active
@@ -1088,308 +1148,355 @@ export function WriteComposer({
                 toolbarExtras={
                   <ToolbarExtras
                     aiEnabled={aiEnabled}
+                    onDescriptionSaved={onDescriptionSaved}
                     channel={active}
                     limit={activePublication.serialized.limit}
-                    channels={[active]}
+                    channels={items.map((item) => item.account.channel)}
                     editor={editor}
                     draftId={initial.id}
                     setId={server.socialSetId ?? set?.id ?? null}
                   />
                 }
               />
-            </>
-          ) : (
-            <SyncedVersion
-              channel={active}
-              onFork={
-                canEdit
-                  ? () =>
-                      update((current) => ({
-                        versions: forkVersion(
-                          current.versions,
-                          active,
-                          current.value as PlateBody,
-                          version.current,
-                          Boolean(CAPABILITIES[active].thread)
-                        ),
-                      }))
-                  : undefined
-              }
-              primary={primary}
-              value={document.value as PlateBody}
-            />
-          )}
-          <div
-            className={cn('mb-6 flex flex-wrap justify-end gap-3', POST_COLUMN)}
-            data-testid="platform-counters"
-          >
-            {items.map((item) => {
-              const over = item.publication.serialized.posts.some(
-                (post) => post.length > item.publication.serialized.limit
-              )
-              return (
-                <span
-                  className={cn(
-                    'flex items-center gap-1 text-xs',
-                    over ? 'text-red-400' : 'text-neutral-400'
-                  )}
-                  data-testid={`counter-${item.account.channel}`}
-                  key={item.account.id}
-                >
-                  <ChannelIcon channel={item.account.channel} />
-                  {item.publication.serialized.length} / {item.publication.serialized.limit}
-                </span>
-              )
-            })}
-          </div>
-          <DraftPosts
-            canSchedule={canPublish}
-            onCancel={async (postId) => {
-              try {
-                await trpcClient.scheduledPost.cancel.mutate({ scheduledPostId: postId })
-                await refreshPosts()
-                toast.success('Post cancelled.')
-              } catch (error) {
-                toast.error(
-                  error instanceof Error ? error.message : 'The post could not be cancelled.'
-                )
-              }
-            }}
-            onChange={(changed) =>
-              setPosts((current) =>
-                current.some((post) => post.id === changed.id)
-                  ? current.map((post) => (post.id === changed.id ? changed : post))
-                  : [changed, ...current]
-              )
-            }
-            posts={posts}
-          />
-          <div className="h-32" />
-        </div>
-      </div>
-      {panel && !focus && !narrow && !params.has('settings') ? (
-        <aside
-          aria-label={PANEL_TITLES[panel]}
-          className="relative max-w-[55vw] shrink-0 overflow-y-auto border-l border-white/[0.06]"
-          style={{ width: panelWidth }}
-        >
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize side panel"
-            aria-valuemin={280}
-            aria-valuemax={panelMaximum}
-            aria-valuenow={panelWidth}
-            tabIndex={0}
-            className="absolute bottom-0 left-0 top-0 z-10 w-2 cursor-col-resize touch-none hover:bg-sky-500/30 focus-visible:bg-sky-500/40"
-            onPointerDown={(event) => {
-              event.preventDefault()
-              resizingPanel.current = { x: event.clientX, width: panelWidth }
-              event.currentTarget.setPointerCapture(event.pointerId)
-            }}
-            onPointerMove={(event) => {
-              const drag = resizingPanel.current
-              if (drag)
-                setPanelWidth(
-                  Math.max(
-                    280,
-                    Math.min(panelMaximum, Math.round(drag.width + drag.x - event.clientX))
-                  )
-                )
-            }}
-            onPointerUp={(event) => {
-              resizingPanel.current = null
-              event.currentTarget.releasePointerCapture(event.pointerId)
-            }}
-            onPointerCancel={() => {
-              resizingPanel.current = null
-            }}
-            onKeyDown={(event) => {
-              if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-                event.preventDefault()
-                setPanelWidth((width) =>
-                  event.key === 'Home'
-                    ? 280
-                    : event.key === 'End'
-                      ? panelMaximum
-                      : Math.max(
-                          280,
-                          Math.min(panelMaximum, width + (event.key === 'ArrowLeft' ? 20 : -20))
-                        )
-                )
-              }
-            }}
-          />
-          <PanelHeader onClose={() => setPanel(null)} title={PANEL_TITLES[panel]} />
-          {panelContent}
-        </aside>
-      ) : null}
-      {panel && !focus && narrow && !params.has('settings') ? (
-        <>
-          <Sheet onOpenChange={(open) => !open && setPanel(null)} open>
-            <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-md" side="right">
-              <SheetHeader>
-                <SheetTitle>{PANEL_TITLES[panel]}</SheetTitle>
-                <SheetDescription className="sr-only">
-                  {PANEL_TITLES[panel]} for this draft
-                </SheetDescription>
-              </SheetHeader>
-              {panelContent}
-            </SheetContent>
-          </Sheet>
-        </>
-      ) : null}
-      {dialog === 'schedule' || dialog === 'queue' ? (
-        <ScheduleDialog
-          context={context}
-          initialDay={params.get('day') ?? undefined}
-          initialTime={params.get('time') ?? undefined}
-          initialQueue={dialog === 'queue'}
-          onClose={() => setDialog(null)}
-        />
-      ) : null}
-      {dialog === 'publish' ? (
-        <PublishReview
-          context={context}
-          onClose={() => setDialog(null)}
-          onPreview={() => {
-            setDialog(null)
-            setPanel('preview')
-          }}
-        />
-      ) : null}
-      {dialog === 'manage' ? (
-        <ManagePlatformsDialog
-          accounts={accounts}
-          onConnect={
-            canManageSets && set
-              ? async (provider) => {
-                  try {
-                    await flush()
-                    window.location.assign(
-                      `${connectHref(provider, set.id)}&${new URLSearchParams({ returnTo: `/write/${initial.id}` })}`
-                    )
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error
-                        ? error.message
-                        : 'Save the draft before connecting an account.'
-                    )
+            ) : versionOfTab.mode === 'manual' ? (
+              <>
+                <ManualVersionNotice
+                  channel={active}
+                  onCompare={() => setDialog('compare')}
+                  onResync={canEdit ? () => setDialog('manage') : undefined}
+                  primary={primary}
+                  value={document.value as PlateBody}
+                  versions={document.versions}
+                />
+                <DraftEditor
+                  {...editorProps}
+                  collaboration={null}
+                  initialDiscussions={{ threads: [], users: {} }}
+                  initialValue={(versionOfTab.body ?? []) as Value}
+                  key={`version-${active}-${editorKey}`}
+                  onChange={(next) =>
+                    update((current) => ({
+                      versions: withVersion(current.versions, {
+                        ...versionFor(current.versions, active),
+                        body: next as PlateBody,
+                      }),
+                    }))
                   }
+                  onDiscussionsChange={() => undefined}
+                  onEditor={(next) => {
+                    editor.current = next
+                    editorChannel.current = active
+                    setEditorInstance(next)
+                  }}
+                  toolbarExtras={
+                    <ToolbarExtras
+                      aiEnabled={aiEnabled}
+                      onDescriptionSaved={onDescriptionSaved}
+                      channel={active}
+                      limit={activePublication.serialized.limit}
+                      channels={[active]}
+                      editor={editor}
+                      draftId={initial.id}
+                      setId={server.socialSetId ?? set?.id ?? null}
+                    />
+                  }
+                />
+              </>
+            ) : (
+              <SyncedVersion
+                channel={active}
+                onFork={
+                  canEdit
+                    ? () =>
+                        update((current) => ({
+                          versions: forkVersion(
+                            current.versions,
+                            active,
+                            current.value as PlateBody,
+                            version.current,
+                            Boolean(CAPABILITIES[active].thread)
+                          ),
+                        }))
+                    : undefined
                 }
-              : undefined
-          }
-          draftVersion={version.current}
-          enabled={enabled}
-          kind={server.kind}
-          onChange={(change) =>
-            update({
-              ...(change.channelConnectionIds
-                ? { channelConnectionIds: change.channelConnectionIds }
-                : {}),
-              ...(change.primaryPlatform ? { primaryPlatform: change.primaryPlatform } : {}),
-              ...(change.versions ? { versions: change.versions } : {}),
-            })
-          }
-          onClose={() => setDialog(null)}
-          primary={primary}
-          value={document.value as PlateBody}
-          versions={document.versions}
-        />
-      ) : null}
-      {dialog === 'share' ? (
-        <ShareDialog
-          onInsertLink={
-            CAPABILITIES[active].thread
-              ? (link) => {
-                  if (editor.current) appendPost(editor.current, `Read the thread: ${link}`)
+                primary={primary}
+                value={document.value as PlateBody}
+              />
+            )}
+            <div
+              className={cn('mb-6 flex flex-wrap justify-end gap-3', POST_COLUMN)}
+              data-testid="platform-counters"
+            >
+              {items.map((item) => {
+                const over = item.publication.serialized.posts.some(
+                  (post) => post.length > item.publication.serialized.limit
+                )
+                return (
+                  <span
+                    className={cn(
+                      'flex items-center gap-1 text-xs',
+                      over ? 'text-red-400' : 'text-neutral-400'
+                    )}
+                    data-testid={`counter-${item.account.channel}`}
+                    key={item.account.id}
+                  >
+                    <ChannelIcon channel={item.account.channel} />
+                    {item.publication.serialized.length} / {item.publication.serialized.limit}
+                  </span>
+                )
+              })}
+            </div>
+            <DraftPosts
+              canSchedule={canPublish}
+              onCancel={async (postId) => {
+                try {
+                  await trpcClient.scheduledPost.cancel.mutate({ scheduledPostId: postId })
+                  await refreshPosts()
+                  toast.success('Post cancelled.')
+                } catch (error) {
+                  toast.error(
+                    error instanceof Error ? error.message : 'The post could not be cancelled.'
+                  )
                 }
-              : undefined
-          }
-          canEdit={canEdit}
-          draft={server}
-          onClose={() => {
-            setDialog(null)
-            requestAnimationFrame(() => shareButton.current?.focus())
-          }}
-          onDraft={setServer}
-        />
-      ) : null}
-      {dialog === 'copy-poll' && copiedPoll ? (
-        <CopyPollDialog
-          source={copiedPoll.channel}
-          poll={copiedPoll.poll}
-          destinations={accounts.map((account) => ({
-            channel: account.channel,
-            limits: account.pollLimits,
-          }))}
-          onClose={() => setDialog(null)}
-          onPrepare={(target) => {
-            if (target !== primary && versionFor(document.versions, target).mode !== 'manual')
-              update((current) => ({
-                versions: forkVersion(
-                  current.versions,
-                  target,
-                  current.value as PlateBody,
-                  server.version,
-                  Boolean(CAPABILITIES[target].thread)
-                ),
-              }))
-            setTab(target)
-          }}
-          onCopy={(target, poll) => {
-            const current = editor.current
-            const index = current?.children.findIndex((node) => node.type === 'post_break') ?? -1
-            if (!current || editorChannel.current !== target || index < 0) {
-              toast.info('Wait for the destination editor to load, then copy the poll.')
-              return false
+              }}
+              onChange={(changed) =>
+                setPosts((current) =>
+                  current.some((post) => post.id === changed.id)
+                    ? current.map((post) => (post.id === changed.id ? changed : post))
+                    : [changed, ...current]
+                )
+              }
+              posts={posts}
+            />
+            <div className="h-32" />
+          </div>
+        </div>
+        {panel && !focus && !narrow && !params.has('settings') ? (
+          <aside
+            aria-label={PANEL_TITLES[panel]}
+            className="relative max-w-[48vw] shrink-0 overflow-y-auto border-l border-white/[0.06] animate-in fade-in duration-150"
+            style={{ width: panelWidth }}
+          >
+            <div
+              role="separator"
+              aria-label="Resize preview sidebar"
+              aria-orientation="vertical"
+              aria-valuemin={256}
+              aria-valuemax={640}
+              aria-valuenow={panelWidth}
+              tabIndex={0}
+              className="absolute inset-y-0 left-0 z-10 w-1 cursor-col-resize touch-none hover:bg-sky-400 focus:bg-sky-400"
+              onPointerDown={(event) => {
+                resize.current = { x: event.clientX, width: panelWidth }
+                event.currentTarget.setPointerCapture(event.pointerId)
+              }}
+              onPointerMove={(event) => {
+                if (resize.current)
+                  setPanelWidth(
+                    Math.min(
+                      640,
+                      Math.max(256, resize.current.width + resize.current.x - event.clientX)
+                    )
+                  )
+              }}
+              onPointerUp={() => {
+                resize.current = null
+              }}
+              onPointerCancel={() => {
+                resize.current = null
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                  event.preventDefault()
+                  setPanelWidth((width) =>
+                    Math.min(640, Math.max(256, width + (event.key === 'ArrowLeft' ? 32 : -32)))
+                  )
+                }
+              }}
+            />
+            <PanelHeader onClose={() => setPanel(null)} title={PANEL_TITLES[panel]} />
+            {panelContent}
+          </aside>
+        ) : null}
+        {panel && !focus && narrow && !params.has('settings') ? (
+          <>
+            <Sheet onOpenChange={(open) => !open && setPanel(null)} open>
+              <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-md" side="right">
+                <SheetHeader>
+                  <SheetTitle>{PANEL_TITLES[panel]}</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    {PANEL_TITLES[panel]} for this draft
+                  </SheetDescription>
+                </SheetHeader>
+                {panelContent}
+              </SheetContent>
+            </Sheet>
+          </>
+        ) : null}
+        {description ? (
+          <PreviewImageDescription
+            assetId={description.assetId}
+            initialAlt={description.alt}
+            onClose={() => setDescription(null)}
+            onSaved={(alt) => onDescriptionSaved(description.assetId, alt)}
+          />
+        ) : null}
+        {dialog === 'schedule' || dialog === 'queue' ? (
+          <ScheduleDialog
+            context={context}
+            initialDay={params.get('day') ?? undefined}
+            initialTime={params.get('time') ?? undefined}
+            initialQueue={dialog === 'queue'}
+            onPreview={() => {
+              setDialog(null)
+              setPanel('preview')
+            }}
+            onClose={() => setDialog(null)}
+          />
+        ) : null}
+        {dialog === 'publish' ? (
+          <PublishReview
+            context={context}
+            onClose={() => setDialog(null)}
+            onPreview={() => {
+              setDialog(null)
+              setPanel('preview')
+            }}
+          />
+        ) : null}
+        {dialog === 'manage' ? (
+          <ManagePlatformsDialog
+            accounts={accounts}
+            onConnect={
+              canManageSets && set
+                ? async (provider) => {
+                    try {
+                      await flush()
+                      window.location.assign(
+                        `${connectHref(provider, set.id)}&${new URLSearchParams({ returnTo: `/write/${initial.id}` })}`
+                      )
+                    } catch (error) {
+                      toast.error(
+                        error instanceof Error
+                          ? error.message
+                          : 'Save the draft before connecting an account.'
+                      )
+                    }
+                  }
+                : undefined
             }
-            current.tf.setNodes({ poll: structuredClone(poll) }, { at: [index] })
-            toast.success('Poll copied. Review the destination before scheduling.')
-            return true
-          }}
-        />
-      ) : null}
-      {dialog === 'media' && editorInstance && services.uploadFile ? (
-        <MediaTools
-          editor={editorInstance}
-          uploadFile={services.uploadFile}
-          draftId={initial.id}
-          returnedAsset={params.get('attach') ?? undefined}
-          onClose={() => {
-            setDialog(null)
-            const url = new URL(window.location.href)
-            url.searchParams.delete('attach')
-            window.history.replaceState(null, '', url)
-          }}
-        />
-      ) : null}
-      {dialog === 'paste' ? (
-        <PasteThreadDialog
-          channel={active}
-          editor={editor}
-          limit={activePublication.serialized.limit}
-          onClose={() => setDialog(null)}
-        />
-      ) : null}
-      {dialog === 'backups' ? (
-        <BackupsBrowser
-          channels={channels}
-          current={document.value as PlateBody}
-          draftId={initial.id}
-          onClose={() => setDialog(null)}
-        />
-      ) : null}
-      {dialog === 'compare' ? (
-        <CompareDialog
-          channel={active}
-          onClose={() => setDialog(null)}
-          primary={primary}
-          value={document.value as PlateBody}
-          versions={document.versions}
-        />
-      ) : null}
-    </div>
+            draftVersion={version.current}
+            enabled={enabled}
+            kind={server.kind}
+            onChange={(change) =>
+              update({
+                ...(change.channelConnectionIds
+                  ? { channelConnectionIds: change.channelConnectionIds }
+                  : {}),
+                ...(change.primaryPlatform ? { primaryPlatform: change.primaryPlatform } : {}),
+                ...(change.versions ? { versions: change.versions } : {}),
+              })
+            }
+            onClose={() => setDialog(null)}
+            primary={primary}
+            value={document.value as PlateBody}
+            versions={document.versions}
+          />
+        ) : null}
+        {dialog === 'share' ? (
+          <ShareDialog
+            onInsertLink={
+              CAPABILITIES[active].thread
+                ? (link) => {
+                    if (editor.current) appendPost(editor.current, `Read the thread: ${link}`)
+                  }
+                : undefined
+            }
+            canEdit={canEdit}
+            draft={server}
+            onClose={() => {
+              setDialog(null)
+              requestAnimationFrame(() => shareButton.current?.focus())
+            }}
+            onDraft={setServer}
+          />
+        ) : null}
+        {dialog === 'copy-poll' && copiedPoll ? (
+          <CopyPollDialog
+            source={copiedPoll.channel}
+            poll={copiedPoll.poll}
+            destinations={accounts.map((account) => ({
+              channel: account.channel,
+              limits: account.pollLimits,
+            }))}
+            onClose={() => setDialog(null)}
+            onPrepare={(target) => {
+              if (target !== primary && versionFor(document.versions, target).mode !== 'manual')
+                update((current) => ({
+                  versions: forkVersion(
+                    current.versions,
+                    target,
+                    current.value as PlateBody,
+                    server.version,
+                    Boolean(CAPABILITIES[target].thread)
+                  ),
+                }))
+              setTab(target)
+            }}
+            onCopy={(target, poll) => {
+              const current = editor.current
+              const index = current?.children.findIndex((node) => node.type === 'post_break') ?? -1
+              if (!current || editorChannel.current !== target || index < 0) {
+                toast.info('Wait for the destination editor to load, then copy the poll.')
+                return false
+              }
+              current.tf.setNodes({ poll: structuredClone(poll) }, { at: [index] })
+              toast.success('Poll copied. Review the destination before scheduling.')
+              return true
+            }}
+          />
+        ) : null}
+        {dialog === 'media' && editorInstance && services.uploadFile ? (
+          <MediaImportDialog
+            editor={editorInstance}
+            uploadFile={services.uploadFile}
+            draftId={initial.id}
+            returnedAsset={params.get('attach') ?? undefined}
+            onClose={() => {
+              setDialog(null)
+              const url = new URL(window.location.href)
+              url.searchParams.delete('attach')
+              window.history.replaceState(null, '', url)
+            }}
+          />
+        ) : null}
+        {dialog === 'paste' ? (
+          <PasteThreadDialog
+            channel={active}
+            editor={editor}
+            limit={activePublication.serialized.limit}
+            onClose={() => setDialog(null)}
+          />
+        ) : null}
+        {dialog === 'backups' ? (
+          <BackupsBrowser
+            channels={channels}
+            current={document.value as PlateBody}
+            draftId={initial.id}
+            onClose={() => setDialog(null)}
+          />
+        ) : null}
+        {dialog === 'compare' ? (
+          <CompareDialog
+            channel={active}
+            onClose={() => setDialog(null)}
+            primary={primary}
+            value={document.value as PlateBody}
+            versions={document.versions}
+          />
+        ) : null}
+      </div>
+    </SocialMentionContext.Provider>
   )
 }
 
@@ -1431,6 +1538,7 @@ function PanelButton({
       aria-label={label}
       aria-pressed={active}
       className={cn('size-8 px-0', active && 'bg-white/[0.08] text-white')}
+      onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       size="sm"
       title={`${label} (${shortcut})`}
@@ -1486,6 +1594,7 @@ function TargetBanner({ draft }: { draft: DraftWire }) {
 
 /** The bottom toolbar's Write tools: mentions looked up on the platform, and emoji. */
 function ToolbarExtras({
+  onDescriptionSaved,
   aiEnabled,
   channel,
   channels,
@@ -1495,6 +1604,7 @@ function ToolbarExtras({
   setId,
 }: {
   aiEnabled: boolean
+  onDescriptionSaved: (assetId: string, alt: string) => void
   /** The version being edited, which Refine writes for. */
   channel: DraftChannel
   channels: DraftChannel[]
@@ -1516,6 +1626,7 @@ function ToolbarExtras({
         <RefineButton channel={channel} draftId={draftId} editor={editor} limit={limit} />
       ) : null}
       <MentionPicker channels={channels} editor={editor} setId={setId} />
+      <MediaTools channel={channel} setId={setId} onDescriptionSaved={onDescriptionSaved} />
       <Button
         aria-label="Describe images"
         className="h-7 rounded-md px-2 text-xs"
@@ -1532,6 +1643,7 @@ function ToolbarExtras({
           aiEnabled={aiEnabled}
           editor={editor.current}
           onClose={() => setDescribing(false)}
+          onSaved={onDescriptionSaved}
         />
       ) : null}
       <Popover onOpenChange={setOpen} open={open}>
@@ -1548,37 +1660,23 @@ function ToolbarExtras({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="grid w-64 grid-cols-8 gap-1 p-2"
+          className="w-80 p-2"
           onCloseAutoFocus={(event) => {
             event.preventDefault()
             editor.current?.tf.focus()
           }}
           side="top"
         >
-          {EMOJI.map((emoji) => (
-            <Button
-              aria-label={`Insert ${emoji}`}
-              className="h-7 text-lg"
-              key={emoji}
-              onClick={() => {
-                const current = editor.current
-                if (!current) return
-                if (!current.selection) current.tf.select(current.api.end([]))
-                current.tf.insertText(emoji)
-                current.tf.focus()
-                setOpen(false)
-              }}
-              onMouseDown={(event) => event.preventDefault()}
-              size={null}
-              type="button"
-              variant="ghost"
-            >
-              {emoji}
-            </Button>
-          ))}
-          <p className="col-span-8 text-[10px] text-neutral-400">
-            More: your system’s emoji picker.
-          </p>
+          <ComposerEmojiPicker
+            onSelect={(emoji) => {
+              const current = editor.current
+              if (!current) return
+              if (!current.selection) current.tf.select(current.api.end([]))
+              current.tf.insertText(emoji)
+              current.tf.focus()
+              setOpen(false)
+            }}
+          />
         </PopoverContent>
       </Popover>
     </>

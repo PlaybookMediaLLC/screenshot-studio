@@ -11,7 +11,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 )
 
-// The fast path's budgets (docs/rfcs/032-background-onboarding-agent.md).
+// The fast path's budgets (docs/rfcs/034-background-onboarding-agent.md).
 // The scrape and the site map run in parallel, so the budgets overlap; the
 // whole path stops at Total, before the request's 10 seconds are up.
 var FastPathBudget = struct{ Total, Scrape, Sitemap, Brand, Draft time.Duration }{

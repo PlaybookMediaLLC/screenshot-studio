@@ -25,8 +25,8 @@ type FeatureDecision struct {
 
 var minimumFeaturePlan = map[string]string{
 	"asset:create": "pro", "asset:read": "pro", "asset:update": "pro", "asset:delete": "pro",
-	"release:create": "pro", "source-app:create": "pro", "workspace:use": "pro", "enterprise:audit-drain": "enterprise",
-	"enterprise:sso": "enterprise", "enterprise:scim": "enterprise", "campaign:workflow": "pro", "content:drafts": "pro",
+	"release:create": "pro", "source-app:create": "pro", "workspace:use": "free", "workspace:paid": "pro", "content:scheduling-advanced": "pro", "enterprise:audit-drain": "enterprise",
+	"enterprise:sso": "enterprise", "enterprise:scim": "enterprise", "campaign:workflow": "pro", "content:drafts": "free",
 	OnboardingFeature: "pro", CreativeSetsFeature: "pro",
 }
 
@@ -40,8 +40,7 @@ func (e *FeatureNotEntitledError) Error() string {
 }
 
 // requireWorkspaceFeature refuses the call unless the workspace's current
-// entitlement grants feature. There is no free plan: a workspace without a
-// subscription is granted nothing.
+// entitlement grants feature. Free grants only explicitly listed basic capabilities.
 func (c *Configuration) requireWorkspaceFeature(ctx context.Context, organizationID, feature string) error {
 	entitlement, err := c.client.WorkspaceEntitlement.Query().Where(workspaceentitlement.ID(organizationID)).Only(ctx)
 	if err != nil && !ent.IsNotFound(err) {

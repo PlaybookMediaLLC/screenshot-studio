@@ -67,7 +67,7 @@ func newFakePDS(t *testing.T) *fakePDS {
 				_, _ = w.Write([]byte(`{"error":"InvalidRequest","message":"Unable to resolve handle"}`))
 				return
 			}
-			_, _ = w.Write([]byte(`{"did":"did:plc:alice"}`))
+			_, _ = w.Write([]byte(`{"did":"did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"}`))
 		case "/xrpc/com.atproto.repo.uploadBlob":
 			f.mu.Lock()
 			f.uploads++
@@ -172,7 +172,7 @@ func TestPostWithImageFacetsAndHandshake(t *testing.T) {
 	facets, _ := json.Marshal(record["facets"])
 	// "hé " is 4 bytes: the mention starts at byte 4; the unresolved handle
 	// keeps an empty did.
-	want := `[{"$type":"app.bsky.richtext.facet","features":[{"$type":"app.bsky.richtext.facet#mention","did":"did:plc:alice"}],"index":{"byteEnd":22,"byteStart":4}},` +
+	want := `[{"$type":"app.bsky.richtext.facet","features":[{"$type":"app.bsky.richtext.facet#mention","did":"did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"}],"index":{"byteEnd":22,"byteStart":4}},` +
 		`{"$type":"app.bsky.richtext.facet","features":[{"$type":"app.bsky.richtext.facet#mention","did":""}],"index":{"byteEnd":43,"byteStart":27}},` +
 		`{"features":[{"$type":"app.bsky.richtext.facet#tag","tag":"go"}],"index":{"byteEnd":47,"byteStart":44}}]`
 	if string(facets) != want {

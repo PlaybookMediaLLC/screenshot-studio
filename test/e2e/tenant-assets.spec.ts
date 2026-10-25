@@ -12,7 +12,7 @@ import { configureE2EFlow, test, type E2EIdentity } from './framework/flow'
 import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
 
 const png = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFgAI/ScL6fQAAAABJRU5ErkJggg==',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
   'base64'
 )
 const signedAssetSchema = z.object({

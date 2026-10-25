@@ -15,7 +15,7 @@ import { createE2EDatabase, queryRow } from './framework/services'
 
 configureE2EFlow()
 
-// RFC 043: settings a person, a workspace and a social set own. Every change
+// RFC 024: settings a person, a workspace and a social set own. Every change
 // is checked after a reload, so a save the server did not keep fails here.
 
 async function withDraftWorkspace(
@@ -88,8 +88,10 @@ test('personal settings are addressable, saved on the server and survive a reloa
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
   await expect(page.getByRole('switch', { name: 'Email notifications' })).not.toBeChecked()
-  await page.getByText('Slack delivery details', { exact: true }).click()
-  await expect(page.getByText('Direct messages are unavailable', { exact: false })).toBeVisible()
+  await expect(
+    page.getByText('No personal Slack account connected.', { exact: true })
+  ).toBeVisible()
+  await expect(page.getByText('Slack is unavailable.', { exact: false }).first()).toBeVisible()
 
   await openWorkspaceSetting(page, 'Account')
   await page.getByLabel('Search display time zone').fill('Tokyo')
@@ -97,6 +99,7 @@ test('personal settings are addressable, saved on the server and survive a reloa
     page.getByRole('combobox', { exact: true, name: 'Display time zone' }),
     /^Tokyo · Asia\/Tokyo · /
   )
+  await page.getByRole('button', { name: 'Save time zone', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
   await expect(

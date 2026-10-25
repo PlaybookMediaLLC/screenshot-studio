@@ -4,21 +4,27 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { type CalendarPostWire, draftsApi, call } from '@/lib/content-drafts/client'
+import { type CalendarPostWire, draftsApi } from '@/lib/content-drafts/client'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { addDays, zonedDayKey, zonedParts } from '@/lib/settings/zoned-time'
-import { availableDaySlots, shiftCalendar } from '@/lib/write/calendar'
-import { resolveLocalTime } from '@/lib/write/zoned-time'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { availableDaySlots, calendarMoveTime, shiftCalendar } from '@/lib/write/calendar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { CalendarDraftPicker } from './CalendarDraftPicker'
-import { socialSetHref } from '@/components/workspace/settings-sections'
 import { ChannelIcon } from './channel-meta'
+import { TargetDialog } from '@/components/write/library'
+import { CALENDAR_DRAFT_DRAG } from '@/lib/write/calendar'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 /** The drag type a calendar post carries. */
 const CALENDAR_DRAG = 'application/x-shots-calendar-post'
-const DRAFT_DRAG = 'application/x-shots-library-draft'
 
 /** A YYYY-MM-DD day as people read it, without moving it to another zone. */
 function readableDay(key: string, options: Intl.DateTimeFormatOptions): string {
@@ -31,25 +37,25 @@ export type PlannedDraft = {
   caption: string
   draftId: string
   title: string
-  socialSetId?: string
   tagIds?: string[]
-  platforms?: string[]
+  socialSetId?: string | null
+  platform?: string | null
 }
 
 /**
- * A week of draft posts in the social set's scheduling time zone (RFC 043):
+ * A week of draft posts in the social set's scheduling time zone (RFC 024):
  * each day's posts in time order, the same for every reader. A queued post
  * drags to another day and keeps its time of day there; live posts stay put.
  * Moving the view's first weekday changes only how the week is drawn.
  * Planned drafts show dashed: they hold a time but publish nothing until
- * scheduled (RFC 042).
+ * scheduled (RFC 025).
  */
 export function DraftCalendar({
   view = 'week',
   anchor,
-  daysCount = 7,
-  allSets = false,
-  socialSets = [],
+  dayCount = 7,
+  workspaceScope = false,
+  sets = [],
   tags = [],
   canMove,
   canPlan = false,
@@ -62,10 +68,10 @@ export function DraftCalendar({
 }: {
   view?: 'week' | 'month' | 'queue'
   anchor?: string
-  daysCount?: number
-  allSets?: boolean
-  socialSets?: { id: string; name: string; platforms?: string[] }[]
-  tags?: { id: string; name: string; socialSetId: string }[]
+  dayCount?: number
+  workspaceScope?: boolean
+  sets?: { id: string; name: string }[]
+  tags?: { id: string; name: string; color: string }[]
   canMove: boolean
   canPlan?: boolean
   postingSlots?: { weekday: number; time: string }[]
@@ -80,105 +86,107 @@ export function DraftCalendar({
   weekStart: string
 }) {
   const router = useRouter()
-  const [picking, setPicking] = React.useState<{ day: string; time?: string } | null>(null)
-  const [creating, setCreating] = React.useState(false)
-  const [over, setOver] = React.useState<string | null>(null)
   const params = useSearchParams()
-  const channelFilter = params.get('channel') ?? 'all'
-  const statusFilter = params.get('status') ?? 'all'
-  const setFilter = params.get('brand') ?? 'all'
-  const tagFilter = params.get('tag') ?? 'all'
-  const filter = (key: string, value: string) => {
-    const next = new URLSearchParams(params.toString())
-    if (value === 'all') next.delete(key)
-    else next.set(key, value)
-    window.history.replaceState(null, '', `${window.location.pathname}?${next}`)
+  const [busy, setBusy] = React.useState(false)
+  const pending = React.useRef(false)
+  const platform = params.get('platform') ?? 'all'
+  const status = params.get('status') ?? 'all'
+  const tag = params.get('calendarTag') ?? 'all'
+  const campaign = params.get('campaign') ?? 'all'
+  const filteredSet = params.get('calendarSet') ?? 'all'
+  const setFilter = (key: string, value: string) => {
+    const query = new URLSearchParams(params)
+    if (value === 'all') query.delete(key)
+    else query.set(key, value)
+    router.replace(`/write/plan?${query}`)
   }
-  const setChannelFilter = (value: string) => filter('channel', value)
-  const setStatusFilter = (value: string) => filter('status', value)
-  const setSetFilter = (value: string) => filter('brand', value)
-  const setTagFilter = (value: string) => filter('tag', value)
-  const [editing, setEditing] = React.useState<CalendarPostWire | null>(null)
-  const [localTime, setLocalTime] = React.useState('')
-  const [moving, setMoving] = React.useState(false)
-  const days = Array.from({ length: daysCount }, (_, index) => addDays(weekStart, index))
-  const weekHref = (weeks: number | null, nextView = view, nextAll = allSets) => {
-    const params = new URLSearchParams(socialSetId ? { set: socialSetId } : {})
-    params.set('view', nextView)
-    if (channelFilter !== 'all') params.set('channel', channelFilter)
-    if (statusFilter !== 'all') params.set('status', statusFilter)
-    if (nextAll && setFilter !== 'all') params.set('brand', setFilter)
-    if (tagFilter !== 'all') params.set('tag', tagFilter)
-    if (nextAll) params.set('all', 'true')
-    if (weeks !== null) params.set('week', shiftCalendar(anchor ?? weekStart, view, weeks))
-    const query = params.toString()
-    return `/write/plan${query ? `?${query}` : ''}`
+  const matches = (item: {
+    socialSetId?: string | null
+    tagIds?: string[]
+    campaignId?: string | null
+  }) =>
+    (filteredSet === 'all' || item.socialSetId === filteredSet) &&
+    (campaign === 'all' || item.campaignId === campaign) &&
+    (tag === 'all' || item.tagIds?.includes(tag))
+  const visiblePosts = posts.filter(
+    (post) =>
+      matches(post) &&
+      (platform === 'all' || post.platform === platform) &&
+      (status === 'all' || post.status === status)
+  )
+  const [creating, setCreating] = React.useState(false)
+  const [picking, setPicking] = React.useState<{ day: string; time: string } | null>(null)
+  const [moving, setMoving] = React.useState<{
+    id: string
+    day: string
+    time: string
+    swapId: string
+  } | null>(null)
+  const reviewDraft = (id: string, day: string, time = '09:00') => {
+    if (!canPlan) return
+    router.push(
+      `/write/${encodeURIComponent(id)}?${new URLSearchParams({ panel: 'schedule', day, time, ...(socialSetId ? { set: socialSetId } : {}) })}`
+    )
+  }
+  const [over, setOver] = React.useState<string | null>(null)
+  const days = Array.from({ length: dayCount }, (_, index) => addDays(weekStart, index))
+  const calendarHref = (step: number | null, mode = view) => {
+    const query = new URLSearchParams(params.toString())
+    query.set('view', mode)
+    if (step === null) query.delete('week')
+    else query.set('week', shiftCalendar(anchor ?? weekStart, view, step))
+    return `/write/plan?${query}`
+  }
+  const commit = async (mutation: () => Promise<unknown>) => {
+    if (pending.current) return
+    pending.current = true
+    setBusy(true)
+    try {
+      await mutation()
+      toast.success('Calendar updated.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The calendar could not be updated.')
+    } finally {
+      // Also refresh uncertain responses: the database may have committed before
+      // a workflow wake-up failed. Cards only move when the server confirms it.
+      router.refresh()
+      pending.current = false
+      setBusy(false)
+    }
   }
   const move = async (postId: string, day: string, time?: string) => {
-    const post = posts.find((item) => item.id === postId)
+    if (!canMove) return
+    const post = posts.find((item) => item.id === postId && item.status === 'SCHEDULED')
     if (!post) return
-    const from = new Date(post.scheduledFor)
-    if (!time && zonedDayKey(from, timeZone) === day) return
+    const from = new Date(post.slotAt ?? post.scheduledFor)
     const clock = zonedParts(from, timeZone)
-    const local = `${day}T${time ?? `${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`}`
-    const resolved = resolveLocalTime(local, timeZone)
-    if (resolved.kind !== 'exact') {
-      toast.error(
-        'This time is skipped or repeated by daylight saving. Choose an unambiguous time.'
-      )
-      return
-    }
-    const to = resolved.at
-    if (to.getTime() <= Date.now()) {
-      toast.error('That day has passed; pick a later one.')
-      return
-    }
-    setMoving(true)
     try {
-      await draftsApi.movePost(postId, to)
-      toast.success(`Moved to ${to.toLocaleString(undefined, { timeZone })} (${timeZone}).`)
-      setEditing(null)
-      router.refresh()
+      const to = calendarMoveTime(
+        day,
+        time ?? `${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`,
+        timeZone
+      )
+      if (to.getTime() <= Date.now() + 60_000)
+        throw new Error('Pick a time at least one minute in the future.')
+      if (to.getTime() === from.getTime()) return
+      await commit(() => draftsApi.movePost(postId, to))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The post could not move.')
-    } finally {
-      setMoving(false)
     }
   }
-  const swap = async (first: string, second: string) => {
-    if (moving || first === second) return
-    setMoving(true)
-    try {
-      await call('/api/v1/content-draft-posts/swap', { method: 'POST', body: { first, second } })
-      toast.success('Queue positions exchanged.')
-      router.refresh()
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'These posts could not exchange times.')
-    } finally {
-      setMoving(false)
+  const swap = (postId: string, target: CalendarPostWire) => {
+    if (!canMove || target.id === postId) return
+    const source = posts.find((post) => post.id === postId)
+    if (
+      !source ||
+      source.status !== 'SCHEDULED' ||
+      target.status !== 'SCHEDULED' ||
+      source.channelConnectionId !== target.channelConnectionId
+    ) {
+      toast.error('Only queued posts on the same account can swap.')
+      return
     }
-  }
-  const reviewDraft = (id: string, day: string, time?: string) => {
-    const query = new URLSearchParams({
-      panel: 'schedule',
-      day,
-      ...(time ? { time } : {}),
-      ...(socialSetId ? { set: socialSetId } : {}),
-    })
-    router.push(`/write/${id}?${query}`)
-  }
-  const dropDraft = async (id: string, day: string, time?: string) => {
-    if (!canPlan || day < today) return
-    try {
-      const draft = await draftsApi.get(id)
-      if (draft.queuedPosts > 0 || draft.status !== 'draft')
-        throw new Error('Choose an unscheduled draft, or move its scheduled card.')
-      if (socialSetId && draft.socialSetId !== socialSetId)
-        throw new Error('Choose the draft’s social set before placing it.')
-      reviewDraft(id, day, time)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'This draft is unavailable.')
-    }
+    void commit(() => draftsApi.swapPosts(postId, target.id))
   }
   const plan = async (day: string, time?: string) => {
     if (creating) return
@@ -201,171 +209,245 @@ export function DraftCalendar({
   return (
     <div
       className="flex h-full flex-col"
-      tabIndex={0}
-      aria-label="Publishing calendar"
+      aria-busy={busy}
       onKeyDown={(event) => {
         if (
-          !event.altKey ||
-          event.ctrlKey ||
-          event.metaKey ||
-          event.shiftKey ||
-          (event.target instanceof HTMLElement &&
-            event.target.closest('input,textarea,select,[contenteditable="true"]'))
+          event.target instanceof HTMLElement &&
+          event.target.closest('input,select,textarea,[contenteditable]')
         )
           return
-        if (
-          event.key === 'ArrowLeft' ||
-          event.key === 'ArrowRight' ||
-          event.key.toLowerCase() === 't'
-        ) {
+        if (event.altKey && ['ArrowLeft', 'ArrowRight', 'Home'].includes(event.key)) {
           event.preventDefault()
           router.push(
-            weekHref(event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : null)
+            calendarHref(event.key === 'Home' ? null : event.key === 'ArrowLeft' ? -1 : 1)
           )
         }
       }}
     >
+      {picking ? (
+        <TargetDialog
+          kind={{ kind: 'repurpose', label: 'Repurpose published posts', needs: 'source' }}
+          onClose={() => setPicking(null)}
+          onCreate={(target) => {
+            const slot = picking
+            setPicking(null)
+            void draftsApi
+              .create({ kind: 'repurpose', socialSetId, target })
+              .then((draft) => reviewDraft(draft.id, slot.day, slot.time))
+              .catch((error: unknown) =>
+                toast.error(
+                  error instanceof Error ? error.message : 'The post could not be repurposed.'
+                )
+              )
+          }}
+        />
+      ) : null}
+      <Dialog
+        open={moving !== null}
+        onOpenChange={(open) => {
+          if (!open) setMoving(null)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move queued post</DialogTitle>
+            <DialogDescription>
+              Choose a new time in {timeZone}, or swap with another queued post on this account.
+            </DialogDescription>
+          </DialogHeader>
+          {moving ? (
+            <form
+              className="grid gap-3"
+              onSubmit={(event) => {
+                event.preventDefault()
+                const chosen = moving
+                setMoving(null)
+                if (chosen.swapId) {
+                  const target = posts.find((post) => post.id === chosen.swapId)
+                  if (target) swap(chosen.id, target)
+                } else void move(chosen.id, chosen.day, chosen.time)
+              }}
+            >
+              <label>
+                Day
+                <Input
+                  type="date"
+                  required
+                  value={moving.day}
+                  onChange={(event) => setMoving({ ...moving, day: event.target.value })}
+                />
+              </label>
+              <label>
+                Time
+                <Input
+                  type="time"
+                  required
+                  value={moving.time}
+                  onChange={(event) => setMoving({ ...moving, time: event.target.value })}
+                />
+              </label>
+              <label className="grid gap-1">
+                Swap with
+                <select
+                  className="rounded border bg-background p-2"
+                  value={moving.swapId}
+                  onChange={(event) => setMoving({ ...moving, swapId: event.target.value })}
+                >
+                  <option value="">Use the date and time above</option>
+                  {posts
+                    .filter(
+                      (post) =>
+                        Boolean(post.draftId) &&
+                        post.id !== moving.id &&
+                        post.status === 'SCHEDULED' &&
+                        post.channelConnectionId ===
+                          posts.find((item) => item.id === moving.id)?.channelConnectionId
+                    )
+                    .map((post) => (
+                      <option value={post.id} key={post.id}>
+                        {post.caption.slice(0, 50)} ·{' '}
+                        {new Date(post.slotAt ?? post.scheduledFor).toLocaleString(undefined, {
+                          timeZone,
+                        })}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <DialogFooter>
+                <Button disabled={busy} type="submit">
+                  {moving.swapId ? 'Confirm swap' : 'Confirm move'}
+                </Button>
+              </DialogFooter>
+            </form>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 py-2 border-b border-foreground/[0.06] px-4">
         <h2 className="text-sm font-medium text-foreground">
           {view === 'month'
-            ? readableDay(anchor ?? weekStart, { month: 'long', year: 'numeric' })
+            ? readableDay(`${(anchor ?? weekStart).slice(0, 7)}-01`, {
+                month: 'long',
+                year: 'numeric',
+              })
             : `Week of ${readableDay(weekStart, { day: 'numeric', month: 'long' })}`}
         </h2>
         <span className="text-xs text-muted-foreground">{timeZone.replaceAll('_', ' ')}</span>
-        <Link href={weekHref(0, view === 'month' ? 'week' : 'month')}>
-          {view === 'month' ? 'Week view' : 'Month view'}
-        </Link>
-        <Link href={weekHref(0, view === 'queue' ? 'week' : 'queue')}>
-          {view === 'queue' ? 'Calendar view' : 'Queue board'}
-        </Link>
-        <Link
-          href={socialSetId ? socialSetHref(socialSetId, 'scheduling') : '/workspace/social-sets'}
-        >
-          Posting settings
-        </Link>
-        <Link href={weekHref(0, view, !allSets)}>
-          {allSets ? 'Selected social set' : 'All social sets'}
-        </Link>
-        <select
-          aria-label="Filter by channel"
-          value={channelFilter}
-          onChange={(e) => setChannelFilter(e.target.value)}
-          className="rounded border bg-background p-1 text-xs"
-        >
-          <option value="all">All channels</option>
-          {[
-            ...new Set([
-              ...posts.map((p) => p.platform),
-              ...planned.flatMap((item) => item.platforms ?? []),
-              ...socialSets.flatMap((set) => set.platforms ?? []),
-            ]),
-          ]
-            .sort()
-            .map((platform) => (
-              <option key={platform} value={platform}>
-                {platform}
-              </option>
-            ))}
-        </select>
-        {allSets && (
-          <select
-            aria-label="Filter by publishing brand"
-            value={setFilter}
-            onChange={(event) => setSetFilter(event.target.value)}
-            className="rounded border bg-background p-1 text-xs"
+        <div className="ml-auto flex items-center gap-2 text-xs">
+          <Link className="text-foreground/65 hover:text-foreground" href={calendarHref(-1)}>
+            ← Previous
+          </Link>
+          <Link className="text-foreground/65 hover:text-foreground" href={calendarHref(null)}>
+            Today
+          </Link>
+          <Link className="text-foreground/65 hover:text-foreground" href={calendarHref(1)}>
+            Next →
+          </Link>
+        </div>
+      </header>
+      <nav
+        aria-label="Calendar controls"
+        className="flex flex-wrap items-center gap-3 border-b px-4 py-2 text-xs"
+      >
+        {(['week', 'month', 'queue'] as const).map((mode) => (
+          <Link
+            key={mode}
+            aria-current={view === mode ? 'page' : undefined}
+            className="capitalize aria-[current=page]:font-bold"
+            href={calendarHref(0, mode)}
           >
-            <option value="all">All brands</option>
-            {socialSets.map((set) => (
+            {mode}
+          </Link>
+        ))}
+        <select
+          aria-label="Filter by platform"
+          value={platform}
+          onChange={(event) => setFilter('platform', event.target.value)}
+        >
+          <option value="all">All platforms</option>
+          {[...new Set(posts.map((post) => post.platform))].map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+        </select>
+        <select
+          aria-label="Filter by campaign"
+          value={campaign}
+          onChange={(event) => setFilter('campaign', event.target.value)}
+        >
+          <option value="all">All campaigns and drafts</option>
+          {Array.from(
+            new Set(posts.flatMap((post) => (post.campaignId ? [post.campaignId] : [])))
+          ).map((id) => (
+            <option key={id} value={id}>
+              {posts.find((post) => post.campaignId === id)?.campaignTitle ?? 'Campaign'}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filter by status"
+          value={status}
+          onChange={(event) => setFilter('status', event.target.value)}
+        >
+          <option value="all">All statuses</option>
+          {['planned', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'FAILED', 'UNKNOWN_DELIVERY'].map(
+            (item) => (
+              <option key={item}>{item}</option>
+            )
+          )}
+        </select>
+        {workspaceScope ? (
+          <select
+            aria-label="Calendar social set"
+            value={filteredSet}
+            onChange={(event) => setFilter('calendarSet', event.target.value)}
+          >
+            <option value="all">All social sets</option>
+            {sets.map((set) => (
               <option key={set.id} value={set.id}>
                 {set.name}
               </option>
             ))}
           </select>
-        )}
-        {tags.length > 0 && (
+        ) : null}
+        {tags.length ? (
           <select
-            aria-label="Filter calendar by tag"
-            value={tagFilter}
-            onChange={(event) => setTagFilter(event.target.value)}
-            className="rounded border bg-background p-1 text-xs"
+            aria-label="Calendar tag"
+            value={tag}
+            onChange={(event) => setFilter('calendarTag', event.target.value)}
           >
             <option value="all">All tags</option>
-            {tags.map((tag) => (
-              <option key={tag.id} value={tag.id}>
-                {allSets
-                  ? `${socialSets.find((set) => set.id === tag.socialSetId)?.name ?? 'Brand'} · `
-                  : ''}
-                {tag.name}
+            {tags.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
               </option>
             ))}
           </select>
-        )}
-        <select
-          aria-label="Filter by status"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded border bg-background p-1 text-xs"
+        ) : null}
+        <Link
+          href={`/write/plan?${new URLSearchParams({ ...Object.fromEntries(params), scope: workspaceScope ? 'set' : 'workspace' })}`}
         >
-          <option value="all">All statuses</option>
-          {['PLANNED', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'FAILED', 'UNKNOWN_DELIVERY'].map(
-            (status) => (
-              <option key={status} value={status}>
-                {status.toLowerCase().replaceAll('_', ' ')}
-              </option>
-            )
-          )}
-        </select>
-        <div className="ml-auto flex items-center gap-2 text-xs">
-          <Link
-            className="text-foreground/65 hover:text-foreground"
-            href={weekHref(-1)}
-            title="Previous period (Alt+Left)"
-          >
-            ← Previous
-          </Link>
-          <Link
-            className="text-foreground/65 hover:text-foreground"
-            href={weekHref(null)}
-            title="Today (Alt+T)"
-          >
-            Today
-          </Link>
-          <Link
-            className="text-foreground/65 hover:text-foreground"
-            href={weekHref(1)}
-            title="Next period (Alt+Right)"
-          >
-            Next →
-          </Link>
-        </div>
-      </header>
+          {workspaceScope ? 'Show this social set' : 'All social sets'}
+        </Link>
+        <Link href={`/write/settings${socialSetId ? `?set=${socialSetId}` : ''}`}>
+          Schedule settings
+        </Link>
+        <span className="text-muted-foreground">Alt + ←/→: navigate · Alt + Home: today</span>
+      </nav>
       {/* Local: the site-wide GlobalDropZone would otherwise force a "copy"
           dropEffect on every dragover, which a moved card refuses. */}
       <div
-        className={cn(
-          'grid min-h-0 flex-1 divide-x divide-foreground/[0.05] overflow-auto',
-          view === 'queue' ? 'grid-flow-col auto-cols-[minmax(240px,1fr)]' : 'grid-cols-7'
-        )}
-        aria-label={view === 'queue' ? 'Weekly queue board' : 'Calendar'}
+        className="grid min-h-0 flex-1 auto-rows-max content-start grid-cols-[repeat(7,minmax(140px,1fr))] divide-x divide-foreground/[0.05] overflow-auto"
         data-local-dropzone=""
       >
         {days.map((day) => {
           const key = day
-          const dayPosts = posts.filter(
-            (post) =>
-              zonedDayKey(new Date(post.scheduledFor), timeZone) === key &&
-              (channelFilter === 'all' || post.platform === channelFilter) &&
-              (!allSets || setFilter === 'all' || post.socialSetId === setFilter) &&
-              (tagFilter === 'all' || post.tagIds.includes(tagFilter)) &&
-              (statusFilter === 'all' || post.status === statusFilter)
+          const dayPosts = visiblePosts.filter(
+            (post) => zonedDayKey(new Date(post.scheduledFor), timeZone) === key
           )
-          const dayPlanned = planned.filter(
+          const dayPlanned = (status === 'all' || status === 'planned' ? planned : []).filter(
             (item) =>
-              zonedDayKey(new Date(item.at), timeZone) === key &&
-              (channelFilter === 'all' || (item.platforms ?? []).includes(channelFilter)) &&
-              (!allSets || setFilter === 'all' || item.socialSetId === setFilter) &&
-              (tagFilter === 'all' || (item.tagIds ?? []).includes(tagFilter)) &&
-              (statusFilter === 'all' || statusFilter === 'PLANNED')
+              matches(item) &&
+              (platform === 'all' || item.platform === platform) &&
+              zonedDayKey(new Date(item.at), timeZone) === key
           )
           return (
             <section
@@ -376,30 +458,33 @@ export function DraftCalendar({
                 year: 'numeric',
               })}
               className={cn(
-                'flex min-h-64 min-w-0 flex-col gap-2 p-2',
+                'flex min-h-40 min-w-0 flex-col gap-2 p-2',
                 over === key && 'bg-sky-400/[0.06]'
               )}
               data-testid={`calendar-day-${Number(day.slice(8))}`}
+              data-day={day}
               key={key}
               onDragLeave={() => setOver(null)}
               onDragOver={(event) => {
                 if (
                   !event.dataTransfer.types.includes(CALENDAR_DRAG) &&
-                  !(canPlan && event.dataTransfer.types.includes(DRAFT_DRAG))
+                  !event.dataTransfer.types.includes(CALENDAR_DRAFT_DRAG)
                 )
                   return
                 event.preventDefault()
-                event.dataTransfer.dropEffect = event.dataTransfer.types.includes(DRAFT_DRAG)
+                event.dataTransfer.dropEffect = event.dataTransfer.types.includes(
+                  CALENDAR_DRAFT_DRAG
+                )
                   ? 'copy'
                   : 'move'
                 setOver(key)
               }}
               onDrop={(event) => {
                 setOver(null)
-                const draftId = event.dataTransfer.getData(DRAFT_DRAG)
+                const draftId = event.dataTransfer.getData(CALENDAR_DRAFT_DRAG)
                 if (draftId) {
                   event.preventDefault()
-                  void dropDraft(draftId, day)
+                  reviewDraft(draftId, day)
                   return
                 }
                 const postId = event.dataTransfer.getData(CALENDAR_DRAG)
@@ -429,39 +514,45 @@ export function DraftCalendar({
                     Plan a post
                   </Button>
                   {availableDaySlots(day, timeZone, postingSlots, [
-                    ...posts.map((post) => post.scheduledFor),
+                    ...posts.map((post) => post.slotAt ?? post.scheduledFor),
                     ...planned.map((item) => item.at),
                   ]).map((time) => (
-                    <Button
-                      className="h-auto min-h-8 whitespace-normal px-1 text-xs"
-                      key={time}
-                      disabled={creating}
-                      size="sm"
-                      variant="ghost"
-                      onDragOver={(event) => {
-                        if (
-                          (canMove && event.dataTransfer.types.includes(CALENDAR_DRAG)) ||
-                          (canPlan && event.dataTransfer.types.includes(DRAFT_DRAG))
-                        )
-                          event.preventDefault()
-                      }}
-                      onDrop={(event) => {
-                        const draftId = event.dataTransfer.getData(DRAFT_DRAG)
-                        if (draftId && canPlan) {
+                    <div className="grid gap-1" key={time}>
+                      <Button
+                        className="h-auto min-h-8 whitespace-normal px-1 text-xs"
+                        disabled={creating}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void plan(day, time)}
+                        onDragOver={(event) => {
+                          if (
+                            event.dataTransfer.types.includes(CALENDAR_DRAG) ||
+                            event.dataTransfer.types.includes(CALENDAR_DRAFT_DRAG)
+                          )
+                            event.preventDefault()
+                        }}
+                        onDrop={(event) => {
+                          const draftId = event.dataTransfer.getData(CALENDAR_DRAFT_DRAG)
+                          if (draftId) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            reviewDraft(draftId, day, time)
+                            return
+                          }
+                          const id = event.dataTransfer.getData(CALENDAR_DRAG)
+                          if (!id) return
                           event.preventDefault()
                           event.stopPropagation()
-                          void dropDraft(draftId, day, time)
-                          return
-                        }
-                        if (!canMove) return
-                        event.preventDefault()
-                        event.stopPropagation()
-                        void move(event.dataTransfer.getData(CALENDAR_DRAG), day, time)
-                      }}
-                      onClick={() => setPicking({ day, time })}
-                    >
-                      Available · {time}
-                    </Button>
+                          setOver(null)
+                          void move(id, day, time)
+                        }}
+                      >
+                        Available · {time}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setPicking({ day, time })}>
+                        Pick
+                      </Button>
+                    </div>
                   ))}
                 </div>
               ) : null}
@@ -481,28 +572,27 @@ export function DraftCalendar({
                     })}
                   </span>
                   <span className="mt-1 line-clamp-2 block text-foreground">
-                    {item.title || item.caption}
+                    {item.title && item.title !== 'Untitled draft'
+                      ? item.title
+                      : item.caption || item.title}
                   </span>
-                  {allSets && (
-                    <span className="mt-1 block text-muted-foreground">
-                      {socialSets.find((set) => set.id === item.socialSetId)?.name ??
-                        'Unassigned brand'}
-                    </span>
-                  )}
-                  {tags
-                    .filter((tag) => (item.tagIds ?? []).includes(tag.id))
-                    .map((tag) => (
-                      <span className="mr-1 text-muted-foreground" key={tag.id}>
-                        #{tag.name}
-                      </span>
-                    ))}
+                  <span className="flex flex-wrap gap-1">
+                    {tags
+                      .filter((tag) => item.tagIds?.includes(tag.id))
+                      .map((tag) => (
+                        <span className="rounded border px-1" key={tag.id}>
+                          {tag.name}
+                        </span>
+                      ))}
+                  </span>
                 </Link>
               ))}
               {dayPosts.map((post) => {
                 const channel = channelForPlatform(post.platform)
-                const movable = canMove && post.status === 'SCHEDULED'
+                const movable =
+                  !busy && canMove && Boolean(post.draftId) && post.status === 'SCHEDULED'
                 return (
-                  <div key={post.id}>
+                  <div className="grid gap-1" key={post.id}>
                     <Link
                       className={cn(
                         'block rounded-lg border p-2 text-xs',
@@ -513,22 +603,21 @@ export function DraftCalendar({
                       )}
                       data-testid="calendar-post"
                       draggable={movable}
-                      href={`/write/${post.draftId}`}
-                      key={post.id}
+                      href={
+                        post.campaignId ? `/campaigns/${post.campaignId}` : `/write/${post.draftId}`
+                      }
                       onDragOver={(event) => {
-                        if (movable && event.dataTransfer.types.includes(CALENDAR_DRAG)) {
+                        if (movable && event.dataTransfer.types.includes(CALENDAR_DRAG))
                           event.preventDefault()
-                          event.stopPropagation()
-                          event.dataTransfer.dropEffect = 'move'
-                        }
                       }}
                       onDrop={(event) => {
                         if (!movable) return
-                        const from = event.dataTransfer.getData(CALENDAR_DRAG)
-                        if (!from) return
+                        const id = event.dataTransfer.getData(CALENDAR_DRAG)
+                        if (!id) return
                         event.preventDefault()
                         event.stopPropagation()
-                        void swap(from, post.id)
+                        setOver(null)
+                        swap(id, post)
                       }}
                       onDragStart={(event) => {
                         event.dataTransfer.setData(CALENDAR_DRAG, post.id)
@@ -542,68 +631,43 @@ export function DraftCalendar({
                           minute: '2-digit',
                           timeZone,
                         })}
-                        {post.status === 'PUBLISHED' ? ' · live' : ''}
+                        {` · ${post.status === 'PUBLISHED' && post.threadProgress.posted < post.threadProgress.total ? 'partially published' : post.status.toLowerCase().replaceAll('_', ' ')}`}
                       </span>
                       <span className="mt-1 line-clamp-3 block text-foreground">
                         {post.caption}
                       </span>
-                      {allSets && (
-                        <span className="mt-1 block text-muted-foreground">
-                          {socialSets.find((set) => set.id === post.socialSetId)?.name ??
-                            'Unassigned brand'}
-                        </span>
-                      )}
-                      {tags
-                        .filter((tag) => post.tagIds.includes(tag.id))
-                        .map((tag) => (
-                          <span className="mr-1 text-muted-foreground" key={tag.id}>
-                            #{tag.name}
-                          </span>
-                        ))}
+                      <span className="text-muted-foreground">
+                        {post.campaignTitle ? `${post.campaignTitle} · ` : null}
+                        {sets.find((set) => set.id === post.socialSetId)?.name}
+                      </span>
+                      <span className="flex flex-wrap gap-1">
+                        {tags
+                          .filter((tag) => post.tagIds.includes(tag.id))
+                          .map((tag) => (
+                            <span className="rounded border px-1" key={tag.id}>
+                              {tag.name}
+                            </span>
+                          ))}
+                      </span>
                     </Link>
                     {movable ? (
-                      <div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs"
-                          onClick={() => {
-                            setEditing(post)
-                            const clock = zonedParts(new Date(post.scheduledFor), timeZone)
-                            setLocalTime(
-                              `${day}T${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`
-                            )
-                          }}
-                        >
-                          Change time
-                        </Button>
-                        <select
-                          aria-label={`Swap queue position for ${post.caption}`}
-                          value=""
-                          disabled={moving}
-                          className="w-full bg-background text-xs"
-                          onChange={(event) => {
-                            if (event.target.value) void swap(post.id, event.target.value)
-                          }}
-                        >
-                          <option value="">Swap with…</option>
-                          {posts
-                            .filter(
-                              (other) =>
-                                other.id !== post.id &&
-                                other.status === 'SCHEDULED' &&
-                                other.socialSetId === post.socialSetId
-                            )
-                            .map((other) => (
-                              <option key={other.id} value={other.id}>
-                                {other.caption.slice(0, 40)} ·{' '}
-                                {new Date(other.scheduledFor).toLocaleString(undefined, {
-                                  timeZone,
-                                })}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`Move ${post.caption.slice(0, 50)}`}
+                        onClick={() => {
+                          const at = new Date(post.slotAt ?? post.scheduledFor)
+                          const clock = zonedParts(at, timeZone)
+                          setMoving({
+                            id: post.id,
+                            day: zonedDayKey(at, timeZone),
+                            time: `${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`,
+                            swapId: '',
+                          })
+                        }}
+                      >
+                        Change time or swap
+                      </Button>
                     ) : null}
                   </div>
                 )
@@ -612,48 +676,6 @@ export function DraftCalendar({
           )
         })}
       </div>
-      {picking ? (
-        <CalendarDraftPicker
-          socialSetId={socialSetId}
-          onClose={() => setPicking(null)}
-          onChoose={(id) => reviewDraft(id, picking.day, picking.time)}
-          onNew={() => {
-            const slot = picking
-            setPicking(null)
-            void plan(slot.day, slot.time)
-          }}
-        />
-      ) : null}
-      <Dialog
-        open={Boolean(editing)}
-        onOpenChange={(open) => {
-          if (!open && !moving) setEditing(null)
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Change publication time</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm">{timeZone}</p>
-          <label className="grid gap-2">
-            Publication date and time
-            <input
-              type="datetime-local"
-              value={localTime}
-              onChange={(event) => setLocalTime(event.target.value)}
-              className="rounded border bg-background p-2"
-            />
-          </label>
-          <Button
-            disabled={moving || !localTime}
-            onClick={() => {
-              if (editing) void move(editing.id, localTime.slice(0, 10), localTime.slice(11))
-            }}
-          >
-            {moving ? 'Moving…' : 'Save time'}
-          </Button>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

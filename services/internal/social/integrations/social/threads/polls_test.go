@@ -3,11 +3,12 @@ package threads
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 )
 
 func TestPollContainerAndPublishedRecovery(t *testing.T) {
@@ -63,7 +64,7 @@ func TestPollContainerAndPublishedRecovery(t *testing.T) {
 	if err != nil || recovery.Status != "completed" || publishes != 1 || creates != 1 {
 		t.Fatal("published container was not recovered", recovery, err)
 	}
-	for _, bad := range []*integrations.PollDetails{{Options: []string{"one"}}, {Options: []string{"a", "b"}, DurationMinutes: 1440}, {Options: []string{strings.Repeat("x", 26), "b"}}} {
+	for _, bad := range []*integrations.PollDetails{{Options: []string{"one"}}, {Options: []string{"a", "b"}, DurationMinutes: 60}, {Options: []string{strings.Repeat("x", 26), "b"}}} {
 		if _, err := p.PostPending(ctx, "u", "token", []integrations.PostDetails{{Message: "Question?", Poll: bad}}, account); err == nil {
 			t.Fatal("invalid poll accepted")
 		}

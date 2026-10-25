@@ -208,7 +208,7 @@ COLLAB_SECRETS = ("COLLAB_TOKEN_SECRET", "COLLAB_SERVICE_TOKEN")
 
 
 def collaboration_enabled(secrets):
-    """Content draft co-editing (RFC 037) ships once both secrets are in Infisical."""
+    """Content draft co-editing (RFC 013) ships once both secrets are in Infisical."""
     return secrets is not None and all(secrets.get(key) for key in COLLAB_SECRETS)
 
 
@@ -253,7 +253,7 @@ def configure_collab(spec, backend, secrets, collab_tag):
     rules.insert(0, {"match": {"path": {"prefix": "/collab"}}, "component": {"name": COLLAB}})
 
 
-# The paths the MCP server and its OAuth flow serve (RFC 038).
+# The paths the MCP server and its OAuth flow serve (RFC 026).
 MCP_PATH_PREFIXES = ("/mcp", "/mcp-oauth-claude", "/mcp-oauth-chatgpt", "/mcp-oauth-dynamic", "/.well-known", "/oauth")
 
 
@@ -263,7 +263,7 @@ def is_mcp_rule(rule):
 
 
 def configure_mcp(spec, backend, web, secrets):
-    """Serve the MCP server (RFC 038) at PLATFORM_MCP_URL, or remove it.
+    """Serve the MCP server (RFC 026) at PLATFORM_MCP_URL, or remove it.
 
     OAuth discovery reads metadata from the host root, so the URL must be
     https://<host>/mcp on a host of its own. On that host only, the MCP and

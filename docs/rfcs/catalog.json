@@ -1,0 +1,325 @@
+{
+  "schemaVersion": 1,
+  "renumberedAt": "2026-10-24",
+  "groupOrder": [
+    "active",
+    "conditional",
+    "foundation",
+    "deferred",
+    "historical"
+  ],
+  "rfcs": [
+    {
+      "id": "001",
+      "legacyId": "045",
+      "category": "active",
+      "file": "001-release-readiness-pilots.md"
+    },
+    {
+      "id": "002",
+      "legacyId": "046",
+      "category": "active",
+      "file": "002-release-qualification.md"
+    },
+    {
+      "id": "003",
+      "legacyId": "047",
+      "category": "active",
+      "file": "003-claim-evidence-and-verification.md"
+    },
+    {
+      "id": "004",
+      "legacyId": "049",
+      "category": "active",
+      "file": "004-release-kits-and-readiness.md"
+    },
+    {
+      "id": "005",
+      "legacyId": "050",
+      "category": "active",
+      "file": "005-release-kit-handoffs-and-adoption.md"
+    },
+    {
+      "id": "006",
+      "legacyId": "051",
+      "category": "active",
+      "file": "006-evidence-based-material-freshness.md"
+    },
+    {
+      "id": "007",
+      "legacyId": "048",
+      "category": "conditional",
+      "file": "007-authenticated-product-capture.md"
+    },
+    {
+      "id": "008",
+      "legacyId": "036",
+      "category": "conditional",
+      "file": "008-store-provider-e2e-verification.md"
+    },
+    {
+      "id": "009",
+      "legacyId": "003",
+      "category": "foundation",
+      "file": "009-better-auth-enterprise-audit.md"
+    },
+    {
+      "id": "010",
+      "legacyId": "002",
+      "category": "foundation",
+      "file": "010-planetscale-tenant-data-model.md"
+    },
+    {
+      "id": "011",
+      "legacyId": "006",
+      "category": "foundation",
+      "file": "011-release-inputs-and-artifact-pipeline.md"
+    },
+    {
+      "id": "012",
+      "legacyId": "019",
+      "category": "foundation",
+      "file": "012-approval-workflow.md"
+    },
+    {
+      "id": "013",
+      "legacyId": "037",
+      "category": "foundation",
+      "file": "013-workspaces-and-content-drafts.md"
+    },
+    {
+      "id": "014",
+      "legacyId": "034",
+      "category": "foundation",
+      "file": "014-rest-api-scalar-reference.md"
+    },
+    {
+      "id": "015",
+      "legacyId": "005",
+      "category": "foundation",
+      "file": "015-repository-webhook-scheduler-integrations.md"
+    },
+    {
+      "id": "016",
+      "legacyId": "022",
+      "category": "foundation",
+      "file": "016-github-integration.md"
+    },
+    {
+      "id": "017",
+      "legacyId": "012",
+      "category": "foundation",
+      "file": "017-product-intelligence.md"
+    },
+    {
+      "id": "018",
+      "legacyId": "013",
+      "category": "foundation",
+      "file": "018-product-asset-map.md"
+    },
+    {
+      "id": "019",
+      "legacyId": "011",
+      "category": "foundation",
+      "file": "019-brand-profile.md"
+    },
+    {
+      "id": "020",
+      "legacyId": "010",
+      "category": "foundation",
+      "file": "020-programmable-creative-engine.md"
+    },
+    {
+      "id": "021",
+      "legacyId": "014",
+      "category": "foundation",
+      "file": "021-structured-marketing-objects.md"
+    },
+    {
+      "id": "022",
+      "legacyId": "018",
+      "category": "foundation",
+      "file": "022-campaign-workspace.md"
+    },
+    {
+      "id": "023",
+      "legacyId": "035",
+      "category": "foundation",
+      "file": "023-pricing-and-unit-economics.md"
+    },
+    {
+      "id": "024",
+      "legacyId": "043",
+      "category": "foundation",
+      "file": "024-settings-platform.md"
+    },
+    {
+      "id": "025",
+      "legacyId": "042",
+      "category": "foundation",
+      "file": "025-write-workspace.md"
+    },
+    {
+      "id": "026",
+      "legacyId": "038",
+      "category": "foundation",
+      "file": "026-mcp-and-agent-integrations.md"
+    },
+    {
+      "id": "027",
+      "legacyId": "016",
+      "category": "foundation",
+      "file": "027-ai-sdk-marketing-tools.md"
+    },
+    {
+      "id": "028",
+      "legacyId": "017",
+      "category": "foundation",
+      "file": "028-conversational-campaign-creation.md"
+    },
+    {
+      "id": "029",
+      "legacyId": "023",
+      "category": "foundation",
+      "file": "029-deployment-screenshot-automation.md"
+    },
+    {
+      "id": "030",
+      "legacyId": "020",
+      "category": "foundation",
+      "file": "030-social-publishing.md"
+    },
+    {
+      "id": "031",
+      "legacyId": "040",
+      "category": "foundation",
+      "file": "031-story-sets.md"
+    },
+    {
+      "id": "032",
+      "legacyId": "041",
+      "category": "foundation",
+      "file": "032-creative-canvas.md"
+    },
+    {
+      "id": "033",
+      "legacyId": "044",
+      "category": "foundation",
+      "file": "033-canvas-layers-and-automation.md"
+    },
+    {
+      "id": "034",
+      "legacyId": "032",
+      "category": "foundation",
+      "file": "034-background-onboarding-agent.md"
+    },
+    {
+      "id": "035",
+      "legacyId": "007",
+      "category": "foundation",
+      "file": "035-mvp-rpc-product-surface.md"
+    },
+    {
+      "id": "036",
+      "legacyId": "024",
+      "category": "deferred",
+      "file": "036-demo-video-generation.md"
+    },
+    {
+      "id": "037",
+      "legacyId": "025",
+      "category": "deferred",
+      "file": "037-content-pillars.md"
+    },
+    {
+      "id": "038",
+      "legacyId": "026",
+      "category": "deferred",
+      "file": "038-external-research-tools.md"
+    },
+    {
+      "id": "039",
+      "legacyId": "027",
+      "category": "deferred",
+      "file": "039-analytics-ingestion.md"
+    },
+    {
+      "id": "040",
+      "legacyId": "028",
+      "category": "deferred",
+      "file": "040-feedback-driven-generation.md"
+    },
+    {
+      "id": "041",
+      "legacyId": "029",
+      "category": "deferred",
+      "file": "041-recurring-campaign-generation.md"
+    },
+    {
+      "id": "042",
+      "legacyId": "039",
+      "category": "deferred",
+      "file": "042-scheduling-feature-priorities.md"
+    },
+    {
+      "id": "043",
+      "legacyId": "030",
+      "category": "deferred",
+      "file": "043-approval-policies.md"
+    },
+    {
+      "id": "044",
+      "legacyId": "031",
+      "category": "deferred",
+      "file": "044-autonomy-modes.md"
+    },
+    {
+      "id": "045",
+      "legacyId": "008",
+      "category": "deferred",
+      "file": "045-cloudflare-native-data-pipeline.md"
+    },
+    {
+      "id": "046",
+      "legacyId": "001",
+      "category": "historical",
+      "file": "046-guided-release-kit.md"
+    },
+    {
+      "id": "047",
+      "legacyId": "015",
+      "category": "historical",
+      "file": "047-feature-launch-recipe.md"
+    },
+    {
+      "id": "048",
+      "legacyId": "021",
+      "category": "historical",
+      "file": "048-core-workflows.md"
+    },
+    {
+      "id": "049",
+      "legacyId": "009",
+      "category": "historical",
+      "file": "049-marketing-platform-thesis.md"
+    },
+    {
+      "id": "050",
+      "legacyId": "004",
+      "category": "historical",
+      "file": "050-trigger-dev-background-jobs.md"
+    },
+    {
+      "id": "051",
+      "legacyId": "033",
+      "category": "historical",
+      "file": "051-workspace-migration.md"
+    },
+    {
+      "id": "052",
+      "legacyId": "000",
+      "category": "historical",
+      "file": "052-detail-audit-2026-08-26.md"
+    }
+  ]
+}

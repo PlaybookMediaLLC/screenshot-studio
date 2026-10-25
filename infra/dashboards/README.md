@@ -1,7 +1,7 @@
 # Dashboards
 
 `onboarding.json` is the onboarding agent's Grafana dashboard
-(docs/rfcs/032-background-onboarding-agent.md, Observability). Import it and
+(docs/rfcs/034-background-onboarding-agent.md, Observability). Import it and
 pick a PostgreSQL datasource that reads a replica as a read-only role. Every
 panel reads `onboarding_run` only: fast-path latency, outcome rates, pages
 and tokens per run, model and enrichment cost per run (the platform pays

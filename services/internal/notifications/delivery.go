@@ -191,7 +191,7 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 			}
 		}
 		// Shared channels receive only catalogue metadata, never restricted event
-		// content, and nothing about a private social set (RFC 043).
+		// content, and nothing about a private social set (RFC 024).
 		private, err := s.privateEvent(ctx, e)
 		if err != nil {
 			return false, err
@@ -310,7 +310,7 @@ func (s *Service) recipients(ctx context.Context, e occurrence, d activity.Defin
 		}
 	}
 	// A reply goes to the thread's participants alone; the draft's author
-	// hears about it as comment.on_your_draft (RFC 043).
+	// hears about it as comment.on_your_draft (RFC 024).
 	if d.Audience == "participants" {
 		wanted = map[string]bool{}
 		for _, id := range stringsFrom(e.payload["participantUserIds"]) {

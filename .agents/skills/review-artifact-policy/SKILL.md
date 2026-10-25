@@ -5,7 +5,7 @@ description: Review Screenshot Studio generated or edited release artifacts for 
 
 # Review Artifact Policy
 
-Read RFC 003, RFC 005, RFC 006, and RFC 007. The goal is to make a founder's
+Read RFC 009, RFC 015, RFC 011, and RFC 035. The goal is to make a founder's
 draft safer and clearer, not to approve it automatically.
 
 ## Review order

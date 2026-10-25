@@ -1,24 +1,25 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { previewExcerpt } from '@/lib/write/preview-text'
+import { xCollapsedText, previewLineLimit, previewText } from '@/lib/write/preview-layout'
 import { xLength } from '@/lib/content-drafts/x-length'
 
 test('X preview preserves full transformed URLs and emoji at the weighted cutoff', () => {
   const url = 'https://example.com/' + 'path'.repeat(200)
   const text = 'a'.repeat(250) + ' ' + url
-  assert.equal(previewExcerpt(text, 'x'), text)
+  assert.equal(xCollapsedText(text), text)
   const long = text + ' 👩🏽‍💻'.repeat(30)
-  const shown = previewExcerpt(long, 'x')
+  const shown = xCollapsedText(long)
   assert.ok(shown.includes(url))
   assert.ok(xLength(shown) <= 280)
   assert.ok(shown.endsWith('👩🏽‍💻') || shown.endsWith(' '))
   assert.ok(long.startsWith(shown))
   assert.notEqual(shown, long)
-  assert.equal(previewExcerpt('界'.repeat(141), 'x'), '界'.repeat(140))
+  assert.equal(xCollapsedText('界'.repeat(141)), '界'.repeat(140))
 })
-test('LinkedIn preview bounds explicit lines without cutting a grapheme; other channels retain text', () => {
+test('LinkedIn keeps complete text for its three rendered lines; ordinary threads stay uncollapsed', () => {
   const text = 'one\ntwo\nthree\nfour'
-  assert.equal(previewExcerpt(text, 'linkedin'), 'one\ntwo\nthree')
-  assert.equal(previewExcerpt('👩🏽‍💻'.repeat(211), 'linkedin'), '👩🏽‍💻'.repeat(210))
-  assert.equal(previewExcerpt(text, 'threads'), text)
+  assert.equal(previewLineLimit('linkedin', text), 3)
+  assert.equal(previewText(text), text)
+  assert.equal(previewLineLimit('threads', text), null)
+  assert.equal(previewText('@[Shots](urn:li:organization:123)'), 'Shots')
 })

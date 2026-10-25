@@ -33,7 +33,7 @@ import { describeStep, isRetryableStep, type StepView } from './steps'
 import { conversationTools, type TurnState } from './tools'
 
 /**
- * One durable, non-streaming conversation turn (RFC 017, rollout step 1).
+ * One durable, non-streaming conversation turn (RFC 028, rollout step 1).
  *
  * The user's message persists first. A conversation run starts, a `tool`
  * message anchors it in the conversation so a reload finds it, and the agent

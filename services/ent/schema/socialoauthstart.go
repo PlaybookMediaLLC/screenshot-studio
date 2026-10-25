@@ -29,7 +29,7 @@ func (SocialOAuthStart) Fields() []ent.Field {
 		field.String("provider").StorageKey("provider").Immutable(),
 		field.String("secret_reference").StorageKey("secretReference").Immutable().Sensitive(),
 		field.String("integration_id").StorageKey("integrationId").Optional().Nillable(),
-		// The social set the account joins when the callback completes (RFC 043).
+		// The social set the account joins when the callback completes (RFC 024).
 		field.String("social_set_id").StorageKey("socialSetId").Optional().Nillable().Immutable(),
 		field.Enum("operation").Values("CREATE_SET", "ADD_ACCOUNT", "RECONNECT").Default("ADD_ACCOUNT").Immutable(),
 		// Creation binds visibility now; the owner is the initiating user above.

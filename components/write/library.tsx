@@ -134,9 +134,9 @@ export function WriteRail() {
         </Link>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
-          href={data.activeSet ? `/write/analyze?set=${data.activeSet.id}` : '/write/analyze'}
+          href="/write/analyze"
         >
-          Analytics
+          Analyze
         </Link>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
@@ -155,6 +155,13 @@ export function WriteRail() {
         aria-label="Publishing utilities"
         className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
       >
+        <Link href={data.activeSet ? `/write?set=${data.activeSet.id}` : '/write'}>Write</Link>
+        <Link href={data.activeSet ? `/write/plan?set=${data.activeSet.id}` : '/write/plan'}>
+          Plan
+        </Link>
+        <Link href={data.activeSet ? `/write/analyze?set=${data.activeSet.id}` : '/write/analyze'}>
+          Analyze
+        </Link>
         <Link
           href={`/link-preview?returnTo=${encodeURIComponent(data.activeSet ? `/write?set=${data.activeSet.id}` : '/write')}`}
         >
@@ -338,7 +345,7 @@ function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
-          {/* Tags are an experiment (RFC 043): shown only when it is on. */}
+          {/* Tags are an experiment (RFC 024): shown only when it is on. */}
           {data.experiments.tags ? (
             <>
               <DropdownMenuSeparator />
@@ -407,7 +414,10 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
   const channels = new Set(data.activeSet?.accounts.map((account) => account.channel) ?? [])
   const kinds: NewKind[] = [
     ...(channels.has('x') ? [{ kind: 'article' as const, label: 'X Article' }] : []),
-    ...(channels.has('x') || channels.has('linkedin') || channels.has('bluesky') || channels.has('mastodon')
+    ...(channels.has('x') ||
+    channels.has('linkedin') ||
+    channels.has('bluesky') ||
+    channels.has('mastodon')
       ? [{ kind: 'quote' as const, label: 'Quote a post', needs: 'url' as const }]
       : []),
     ...(channels.has('x')
@@ -504,10 +514,10 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
 }
 
 const POST_URL =
-  /^https:\/\/(?:www\.|mobile\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:(?:share|ugcPost|activity):\d+)/
+  /^https:\/\/(?:www\.|mobile\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:(?:share|ugcPost|activity):\d+|bsky\.app\/profile\/[^/]+\/post\/[A-Za-z0-9._~:-]+)/
 
 /** Ask for the post a quote or reply answers, or the published post a draft repurposes. */
-function TargetDialog({
+export function TargetDialog({
   kind,
   onClose,
   onCreate,
@@ -531,9 +541,9 @@ function TargetDialog({
   const valid =
     kind.needs === 'source'
       ? /^https:\/\//.test(url)
-      : POST_URL.test(url.trim()) || (kind.kind === 'quote' && /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]{0,252}\/(?:@[A-Za-z0-9_.-]+\/[0-9]{1,80}|users\/[A-Za-z0-9_.-]+\/statuses\/[0-9]{1,80})$/.test(url.trim())) ||
+      : POST_URL.test(url.trim()) ||
         (kind.kind === 'quote' &&
-          /^https:\/\/bsky\.app\/profile\/[A-Za-z0-9.:-]{1,253}\/post\/[A-Za-z0-9]{1,64}$/.test(
+          /^https:\/\/[^/@:]+\/(?:@[^/]+\/|users\/[^/]+\/statuses\/|statuses\/)\d+$/.test(
             url.trim()
           ))
   return (
@@ -607,7 +617,7 @@ function DraftRow({
   selected: boolean
   selecting: boolean
 }) {
-  const { data, saved } = useWrite()
+  const { data, saved, canEdit } = useWrite()
   const hydrated = useHydrated()
   const shown = { ...draft, ...saved[draft.id] }
   const channels = [
@@ -632,7 +642,7 @@ function DraftRow({
         aria-current={active ? 'page' : undefined}
         className="block px-4 py-3 pr-10"
         href={draftHref(draft.id, data.activeSet?.id)}
-        draggable={draft.status === 'draft' && draft.queuedPosts === 0}
+        draggable={canEdit && draft.status === 'draft' && draft.queuedPosts === 0}
         onDragStart={(event) => {
           event.dataTransfer.setData('application/x-shots-library-draft', draft.id)
           event.dataTransfer.effectAllowed = 'copy'
@@ -886,6 +896,15 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
           >
             Copy internal link
           </DropdownMenuItem>
+          {draft.publishedPosts > 0 ? <DropdownMenuItem onSelect={() => void (async () => {
+            try {
+              const result = await draftsApi.posts(draft.id)
+              const urls = result.posts.filter((post) => post.status === 'PUBLISHED' && post.url).map((post) => post.url)
+              if (!urls.length) throw new Error('Published links are not available yet.')
+              await navigator.clipboard.writeText(urls.join('\n'))
+              toast.success('Published post links copied.')
+            } catch (error) { toast.error(error instanceof Error ? error.message : 'The links could not be copied.') }
+          })()}>Copy published links</DropdownMenuItem> : null}
           {canEdit ? (
             <DropdownMenuItem onSelect={() => setConfirm('share')}>
               Share & copy public link…
@@ -903,7 +922,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                         baseVersion: current.version,
                         status: 'draft',
                       })
-                    }, 'Restored to drafts.')
+                    }, 'Restored from archive.')
                   }
                 >
                   Restore draft

@@ -10,7 +10,7 @@ import (
 	"entgo.io/ent/schema/index"
 )
 
-// WebhookSubscription is a workspace's outbound endpoint (RFC 043): the
+// WebhookSubscription is a workspace's outbound endpoint (RFC 024): the
 // events it receives and its signing secret, encrypted at rest.
 type WebhookSubscription struct{ ent.Schema }
 

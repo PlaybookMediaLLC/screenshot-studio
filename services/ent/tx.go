@@ -16,6 +16,12 @@ type Tx struct {
 	AccountDeletionRequest *AccountDeletionRequestClient
 	// AgentAuthorization is the client for interacting with the AgentAuthorization builders.
 	AgentAuthorization *AgentAuthorizationClient
+	// AnalyticsAccount is the client for interacting with the AnalyticsAccount builders.
+	AnalyticsAccount *AnalyticsAccountClient
+	// AnalyticsPost is the client for interacting with the AnalyticsPost builders.
+	AnalyticsPost *AnalyticsPostClient
+	// AnalyticsSnapshot is the client for interacting with the AnalyticsSnapshot builders.
+	AnalyticsSnapshot *AnalyticsSnapshotClient
 	// Apikey is the client for interacting with the Apikey builders.
 	Apikey *ApikeyClient
 	// Approval is the client for interacting with the Approval builders.
@@ -40,6 +46,8 @@ type Tx struct {
 	BrandKit *BrandKitClient
 	// BrandProfile is the client for interacting with the BrandProfile builders.
 	BrandProfile *BrandProfileClient
+	// CalendarMutation is the client for interacting with the CalendarMutation builders.
+	CalendarMutation *CalendarMutationClient
 	// Campaign is the client for interacting with the Campaign builders.
 	Campaign *CampaignClient
 	// CampaignAsset is the client for interacting with the CampaignAsset builders.
@@ -110,6 +118,14 @@ type Tx struct {
 	OutboxEvent *OutboxEventClient
 	// PageKnowledge is the client for interacting with the PageKnowledge builders.
 	PageKnowledge *PageKnowledgeClient
+	// PlatformAutoDMCampaign is the client for interacting with the PlatformAutoDMCampaign builders.
+	PlatformAutoDMCampaign *PlatformAutoDMCampaignClient
+	// PlatformAutoDMDelivery is the client for interacting with the PlatformAutoDMDelivery builders.
+	PlatformAutoDMDelivery *PlatformAutoDMDeliveryClient
+	// PlatformAutoDMOptOut is the client for interacting with the PlatformAutoDMOptOut builders.
+	PlatformAutoDMOptOut *PlatformAutoDMOptOutClient
+	// PlatformAutoDMRecipient is the client for interacting with the PlatformAutoDMRecipient builders.
+	PlatformAutoDMRecipient *PlatformAutoDMRecipientClient
 	// PlatformCreativeSet is the client for interacting with the PlatformCreativeSet builders.
 	PlatformCreativeSet *PlatformCreativeSetClient
 	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
@@ -134,6 +150,8 @@ type Tx struct {
 	PlatformSlackPacing *PlatformSlackPacingClient
 	// PlatformSlackPersonalConnection is the client for interacting with the PlatformSlackPersonalConnection builders.
 	PlatformSlackPersonalConnection *PlatformSlackPersonalConnectionClient
+	// PlatformSocialMention is the client for interacting with the PlatformSocialMention builders.
+	PlatformSocialMention *PlatformSocialMentionClient
 	// PlatformSocialObservation is the client for interacting with the PlatformSocialObservation builders.
 	PlatformSocialObservation *PlatformSocialObservationClient
 	// PlatformWorkspaceCreation is the client for interacting with the PlatformWorkspaceCreation builders.
@@ -351,6 +369,9 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.AccountDeletionRequest = NewAccountDeletionRequestClient(tx.config)
 	tx.AgentAuthorization = NewAgentAuthorizationClient(tx.config)
+	tx.AnalyticsAccount = NewAnalyticsAccountClient(tx.config)
+	tx.AnalyticsPost = NewAnalyticsPostClient(tx.config)
+	tx.AnalyticsSnapshot = NewAnalyticsSnapshotClient(tx.config)
 	tx.Apikey = NewApikeyClient(tx.config)
 	tx.Approval = NewApprovalClient(tx.config)
 	tx.Asset = NewAssetClient(tx.config)
@@ -363,6 +384,7 @@ func (tx *Tx) init() {
 	tx.BillingEntitlementEvent = NewBillingEntitlementEventClient(tx.config)
 	tx.BrandKit = NewBrandKitClient(tx.config)
 	tx.BrandProfile = NewBrandProfileClient(tx.config)
+	tx.CalendarMutation = NewCalendarMutationClient(tx.config)
 	tx.Campaign = NewCampaignClient(tx.config)
 	tx.CampaignAsset = NewCampaignAssetClient(tx.config)
 	tx.CampaignPlan = NewCampaignPlanClient(tx.config)
@@ -398,6 +420,10 @@ func (tx *Tx) init() {
 	tx.OrganizationEnterpriseSettings = NewOrganizationEnterpriseSettingsClient(tx.config)
 	tx.OutboxEvent = NewOutboxEventClient(tx.config)
 	tx.PageKnowledge = NewPageKnowledgeClient(tx.config)
+	tx.PlatformAutoDMCampaign = NewPlatformAutoDMCampaignClient(tx.config)
+	tx.PlatformAutoDMDelivery = NewPlatformAutoDMDeliveryClient(tx.config)
+	tx.PlatformAutoDMOptOut = NewPlatformAutoDMOptOutClient(tx.config)
+	tx.PlatformAutoDMRecipient = NewPlatformAutoDMRecipientClient(tx.config)
 	tx.PlatformCreativeSet = NewPlatformCreativeSetClient(tx.config)
 	tx.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(tx.config)
 	tx.PlatformDraftImport = NewPlatformDraftImportClient(tx.config)
@@ -410,6 +436,7 @@ func (tx *Tx) init() {
 	tx.PlatformSlackInstallation = NewPlatformSlackInstallationClient(tx.config)
 	tx.PlatformSlackPacing = NewPlatformSlackPacingClient(tx.config)
 	tx.PlatformSlackPersonalConnection = NewPlatformSlackPersonalConnectionClient(tx.config)
+	tx.PlatformSocialMention = NewPlatformSocialMentionClient(tx.config)
 	tx.PlatformSocialObservation = NewPlatformSocialObservationClient(tx.config)
 	tx.PlatformWorkspaceCreation = NewPlatformWorkspaceCreationClient(tx.config)
 	tx.PostAutomationRun = NewPostAutomationRunClient(tx.config)

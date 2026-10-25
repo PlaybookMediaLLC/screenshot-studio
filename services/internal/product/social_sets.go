@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"regexp"
 	"sort"
 	"strings"
@@ -30,7 +29,7 @@ import (
 	"github.com/lucsky/cuid"
 )
 
-// Social sets (RFC 043) are a workspace's publishing identities. A set is
+// Social sets (RFC 024) are a workspace's publishing identities. A set is
 // shared with the workspace or private to its owner; every read below filters
 // by what the actor may see, so a private set is invisible rather than
 // forbidden to everyone else. Mutations need a signed-in person.
@@ -61,10 +60,12 @@ const (
 
 // SocialAccount is one connected account as a set shows it.
 type SocialAccount struct {
-	AvatarURL   *string   `json:"avatarUrl"`
-	CreatedAt   time.Time `json:"createdAt"`
-	DisplayName *string   `json:"displayName"`
-	Handle      *string   `json:"handle"`
+	MastodonQuotes *bool                      `json:"mastodonQuotes"`
+	PollLimits     *socialidentity.PollLimits `json:"pollLimits"`
+	AvatarURL      *string                    `json:"avatarUrl"`
+	CreatedAt      time.Time                  `json:"createdAt"`
+	DisplayName    *string                    `json:"displayName"`
+	Handle         *string                    `json:"handle"`
 	// Health is connected, unverified, reconnect_required, expired, revoked, removed or permission_required.
 	Health      string  `json:"health"`
 	ID          string  `json:"id"`
@@ -72,11 +73,10 @@ type SocialAccount struct {
 	SocialSetID *string `json:"socialSetId"`
 	// Premium is retained for display compatibility; explicit capabilities
 	// govern text length and Articles independently.
-	Premium       bool                    `json:"premium"`
-	XCaptionLimit *int                    `json:"xCaptionLimit"`
-	XArticles     *bool                   `json:"xArticles"`
-	NativeQuotes  bool                    `json:"nativeQuotes"`
-	PollLimits    *postoptions.PollLimits `json:"pollLimits,omitempty"`
+	Premium       bool  `json:"premium"`
+	XCaptionLimit *int  `json:"xCaptionLimit"`
+	XArticles     *bool `json:"xArticles"`
+	XQuotes       bool  `json:"xQuotes"`
 }
 
 // WritingAssistantRecord is a set's assistant with its derived status:
@@ -223,7 +223,7 @@ func visibleSocialSet(ctx context.Context, client *ent.Client, actor Actor, id s
 }
 
 // defaultSocialSet is the workspace's oldest shared set. A workspace created
-// after the RFC 043 migration gets one on first use, from the same rule the
+// after the RFC 024 migration gets one on first use, from the same rule the
 // migration applied: its name, its time zone and its saved posting slots.
 func (c *Configuration) defaultSocialSet(ctx context.Context, organizationID string) (*ent.SocialSet, error) {
 	find := func(client *ent.Client) (*ent.SocialSet, error) {
@@ -384,6 +384,9 @@ func socialAccount(connection *ent.ChannelConnection, health string) SocialAccou
 
 // workspaceAIEnabled reads the workspace AI switch.
 func (c *Configuration) workspaceAIEnabled(ctx context.Context, organizationID string) bool {
+	if c.requireWorkspaceFeature(ctx, organizationID, "workspace:paid") != nil {
+		return false
+	}
 	settings, err := c.client.WorkspaceSettings.Get(ctx, organizationID)
 	return err != nil || settings.AiAgentEnabled
 }
@@ -434,11 +437,11 @@ func (c *Configuration) socialSetRecords(ctx context.Context, actor Actor, sets 
 	accounts := map[string][]SocialAccount{}
 	for _, connection := range connections {
 		account := socialAccount(connection, health[connection.ID])
-		if (connection.Platform == "x" || connection.Platform == "mastodon" || connection.Platform == "mastodon-custom") && account.Health == AccountConnected {
+		if (connection.Platform == "x" || connection.Platform == "mastodon-custom") && account.Health == AccountConnected {
 			standing := c.accountStanding(ctx, connection)
-			account.Premium, account.XCaptionLimit, account.XArticles = standing.Premium, standing.XCaptionLimit, standing.XArticles
-			account.PollLimits = standing.PollLimits
-			account.NativeQuotes = standing.NativeQuotes
+			account.Premium, account.XCaptionLimit, account.XArticles, account.PollLimits = standing.Premium, standing.XCaptionLimit, standing.XArticles, standing.PollLimits
+			account.MastodonQuotes = standing.MastodonQuotes
+			account.XQuotes = standing.XQuotes
 		}
 		accounts[*connection.SocialSetID] = append(accounts[*connection.SocialSetID], account)
 	}
@@ -762,6 +765,11 @@ func (c *Configuration) updateSocialSet(ctx context.Context, actor Actor, id str
 		}
 		update.SetTimeZone(*input.TimeZone)
 		changed = append(changed, "timeZone")
+	}
+	if input.PostingSlots != nil || (input.NaturalPostingTimes != nil && *input.NaturalPostingTimes) || input.EngagementDefaults != nil {
+		if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+			return nil, err
+		}
 	}
 	if input.PostingSlots != nil {
 		slots, err := queueSlots(*input.PostingSlots)

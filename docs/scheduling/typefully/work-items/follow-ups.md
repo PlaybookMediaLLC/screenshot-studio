@@ -34,34 +34,14 @@ Unknown delivery is not automatically retried. A failed extra cannot downgrade a
 
 Persist action kind, due time, attempts, cancellation and confirmed/failed/unknown outcome. Native X quote access remains gated by verified API eligibility.
 
-## WI-FOLLOW-2: Preserve direct-message permission boundary
+## WI-FOLLOW-2: Consent-bound direct-message delivery, disabled by default
 
-**Gap:** Later: the specific product decision or missing provider contract is recorded below.
+**Source:** TF-043. **Classification:** Partial. **Priority:** Reopened. **Size:** M.
 
-**Priority:** Reopened expansion. **Size:** M; live provider activation remains separately gated.
+Current `develop` adds `services/internal/autodm` and the X direct-message adapter, superseding the earlier unimplemented status. The ledger tracks consent, opt-out, unique delivery attempts and uncertain outcomes. `20261102100000_platform_auto_dm.sql` is additive. Ordinary reply/repost grants confer no direct-message permission.
 
-**Source:** TF-043. [Source requirements](../changelog-features.md).
+**Dependencies:** Accepted consent and abuse policy, verified X DM grants and explicit `PLATFORM_X_AUTO_DM_DELIVERY_ENABLED` activation. Live delivery remains disabled. No composer or agent action may implicitly enable the adapter.
 
-**Dependencies:** Explicit DM product/security decision and required X permissions.
+**Acceptance and failure:** Default-off and missing-grant requests never mutate the provider. Consent and opt-outs govern recipient eligibility; duplicate events cannot send twice. A timeout/ambiguous response records an uncertain result and cannot automatically resend. Definite pre-send rejection stays distinct from a successful or unknown send.
 
-**Affected code and current evidence:** `docs/rfcs/039-scheduling-feature-priorities.md`; `lib/write/automation.ts`.
-
-### Implementation gap and disposition
-
-Later: auto-DMs remain outside the approved follow-up scope. The assignment preserves this permission boundary; repost/comment grants do not imply permission to message followers.
-
-### Acceptance criteria
-
-Keep DM actions absent from the composer, API and worker action inventory until the decision and provider grants are accepted. Future implementation must define consent, recipient eligibility, idempotency and recovery before activation.
-
-### Failure behavior
-
-Reject unknown action kinds rather than treating them as an approved reply or repost.
-
-### Verification
-
-`TypeScript and Go action-enum/validation tests`; `no external DM is sent.`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
-
-### Observability and activation
-
-Deferred with named dependency; not represented as a completed feature.
+**Verification:** `services/internal/autodm/autodm_test.go`, `ledger_integration_test.go` and `services/internal/social/integrations/social/x/direct_message_test.go` execute ledger, grant, native protocol and uncertain-delivery boundaries. Local HTTP fixtures do not certify live DM delivery, consent policy or provider approval. Existing ledger status and attempt records provide observability without exposing recipient message text in logs.

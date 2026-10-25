@@ -2,8 +2,9 @@ package product
 
 import (
 	"errors"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"testing"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
 func TestPersonalAccentPersistsWithoutChangingAnotherMember(t *testing.T) {

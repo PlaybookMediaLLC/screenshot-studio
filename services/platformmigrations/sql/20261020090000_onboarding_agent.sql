@@ -1,4 +1,4 @@
--- The background onboarding agent (docs/rfcs/032-background-onboarding-agent.md):
+-- The background onboarding agent (docs/rfcs/034-background-onboarding-agent.md):
 -- a run row mirrored from its Temporal workflow, the crawled pages, the ideal
 -- customer profile, and cached enrichment results. Every row is workspace-scoped.
 CREATE TABLE "onboarding_run" (

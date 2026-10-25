@@ -7,14 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
-	managedslack "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/slack"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
+	managedslack "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/slack"
+
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/articlebody"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
@@ -94,6 +96,16 @@ func (p *Publisher) Publish(ctx context.Context, input socialapi.PublishInput) (
 // publication, refusing a credential that is not the workspace's or has lapsed.
 func (p *Publisher) account(ctx context.Context, organizationID, destinationID, platform, secretReference string,
 	providerSettings map[string]any) (*socialent.Integration, poster, json.RawMessage, error) {
+	return p.resolveAccount(ctx, organizationID, destinationID, platform, secretReference, providerSettings, true)
+}
+
+// analyticsAccount shares credential/tenant checks without applying the narrower publishing rollout gate.
+func (p *Publisher) analyticsAccount(ctx context.Context, organizationID, destinationID, platform, secretReference string) (*socialent.Integration, poster, json.RawMessage, error) {
+	return p.resolveAccount(ctx, organizationID, destinationID, platform, secretReference, nil, false)
+}
+
+func (p *Publisher) resolveAccount(ctx context.Context, organizationID, destinationID, platform, secretReference string,
+	providerSettings map[string]any, publication bool) (*socialent.Integration, poster, json.RawMessage, error) {
 	if p.bindings == nil || p.integrations == nil || p.signer == nil || p.resolve == nil {
 		return nil, nil, nil, socialapi.NewError(http.StatusServiceUnavailable, false, "direct publisher is not configured")
 	}
@@ -116,7 +128,7 @@ func (p *Publisher) account(ctx context.Context, organizationID, destinationID, 
 		return nil, nil, nil, socialapi.NewError(http.StatusConflict, false, "reconnect this account to verify its identity, publishing permissions and limits")
 	}
 	provider := p.resolve(platform)
-	if provider == nil || !directPlatformAllowed(platform) {
+	if provider == nil || (publication && !directPlatformAllowed(platform)) {
 		return nil, nil, nil, socialapi.NewError(http.StatusBadRequest, false, "social provider is unsupported")
 	}
 	if providerSettings == nil {
@@ -167,8 +179,8 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 	if err != nil {
 		return socialapi.Receipt{}, err
 	}
-	// A content draft post without an image publishes as text (RFC 037); a
-	// LinkedIn document goes out as the post's one media (RFC 042).
+	// A content draft post without an image publishes as text (RFC 013); a
+	// LinkedIn document goes out as the post's one media (RFC 025).
 	assets := input.Media()
 	if input.Document != nil {
 		assets = []publishing.MediaAsset{*input.Document}
@@ -189,8 +201,23 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 	if err != nil {
 		return socialapi.Receipt{}, err
 	}
+	message := input.Caption
+	if input.Options != nil && input.Options.ArticleHTML != "" {
+		signed := map[string]string{}
+		for i, asset := range assets {
+			if i < len(media) {
+				signed[asset.AssetID] = media[i].Path
+			}
+		}
+		message, err = articlebody.Render(input.Options.ArticleHTML, signed)
+		if err != nil {
+			return socialapi.Receipt{}, socialapi.NewError(http.StatusBadRequest, false, err.Error())
+		}
+		// Images are now in the article body; do not append them a second time.
+		media = nil
+	}
 	details := []integrations.PostDetails{{
-		ID: input.PostID, Message: input.Caption, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
+		ID: input.PostID, Message: message, Settings: settings, Media: media, Poll: pollFor(input.Poll, input.Options),
 	}}
 	var response []integrations.PostResponse
 	if input.ReplyTo != "" {
@@ -234,14 +261,15 @@ func (p *Publisher) publicationAccount(ctx context.Context, input socialapi.Publ
 var metricNames = map[string]string{
 	"impressions": "impressions", "likes": "likes", "retweets": "reposts", "reposts": "reposts",
 	"replies": "replies", "comments": "replies", "quotes": "quotes", "bookmarks": "bookmarks",
-	"shares": "reposts", "reactions": "likes", "views": "impressions",
+	"shares": "reposts", "reactions": "likes", "views": "views",
+	"profile clicks": "profileClicks", "profile_clicks": "profileClicks", "url clicks": "linkClicks", "link clicks": "linkClicks", "url_link_clicks": "linkClicks",
 }
 
 // PostMetrics reads a live post's engagement through its provider; a
 // provider without post analytics has none.
 func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destinationID, platform, secretReference,
 	remotePostID string) (postoptions.Metrics, error) {
-	account, provider, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
+	account, provider, _, err := p.analyticsAccount(ctx, organizationID, destinationID, platform, secretReference)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +289,9 @@ func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destination
 		}
 		var total float64
 		if _, err := fmt.Sscan(fmt.Sprint(item.Data[len(item.Data)-1].Total), &total); err == nil {
-			metrics[name] += total
+			if _, exists := metrics[name]; !exists {
+				metrics[name] = total
+			}
 		}
 	}
 	if len(metrics) == 0 {
@@ -277,8 +307,8 @@ type autoActor interface {
 }
 
 // AutoAct runs a live post's follow-ups that are due: a repost and a plug
-// reply once it has enough likes, and a quote (the text with a link to the
-// post). One the provider cannot do reports done, so it is not tried again.
+// reply once it has enough likes, and a native quote. Provider errors must not
+// be mistaken for a completed quote.
 func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput) (socialapi.AutoActionResult, error) {
 	result := socialapi.AutoActionResult{Plugged: !input.Plug, Quoted: !input.Quote, Reposted: !input.Repost}
 	account, provider, settings, err := p.account(ctx, input.OrganizationID, input.DestinationID, input.Platform,
@@ -309,18 +339,18 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 		}
 	}
 	if input.Quote {
-		if input.Platform != "x" {
-			return result, socialapi.ErrUnsupported
-		}
-		settings, err = postSettings("x", nil, &postoptions.PublishOptions{QuoteRemoteID: input.RemotePostID}, "")
+		settings, err = nativeQuoteSettings(input.Platform, settings, input.RemotePostID)
 		if err != nil {
 			return result, err
 		}
-		_, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
+		posted, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
 			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText), Settings: settings,
 		}}, account)
 		if err != nil {
 			return result, err
+		}
+		if firstPostID(posted) == "" {
+			return result, temporalx.UnknownDelivery(input.Platform, "The provider returned no quote receipt. Reconcile before resending.")
 		}
 		result.Quoted = true
 	}
@@ -368,7 +398,7 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 		if err == nil {
 			var response []integrations.PostResponse
 			response, err = commenter.Comment(ctx, account.InternalID, postID, last, account.Token, []integrations.PostDetails{{
-				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: replySettings, Media: media,
+				ID: fmt.Sprintf("%s-reply-%d", input.PostID, index+1), Message: reply.Caption, Settings: replySettings, Media: media, Poll: pollFor(reply.Poll, reply.Options),
 			}}, account)
 			if err == nil && (len(response) == 0 || response[0].PostID == "") {
 				err = errors.New("provider returned no reply receipt")
@@ -379,6 +409,7 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 					progress.Quotes = append(progress.Quotes, postoptions.QuoteReceipt{PostID: last, State: response[0].QuoteState})
 				}
 				progress.Posted, progress.LastReplyID = index+1, last
+				progress.Receipts = append(progress.Receipts, postoptions.ThreadReceipt{RemoteID: last, Position: index + 1, PublishedAt: p.currentTime()})
 				continue
 			}
 		}

@@ -41,7 +41,7 @@ import { offsetLabel } from '@/lib/write/zoned-time'
 import { useWrite, type WriteSet } from '../write-context'
 
 /**
- * X follow-ups (RFC 042), set per draft on its X version: Auto-RT reposts
+ * X follow-ups (RFC 025), set per draft on its X version: Auto-RT reposts
  * at set times and can remove each repost later; Auto-Plug replies once
  * when the post reaches a like or repost count; Auto-DM is shown off, with
  * the reason. Nothing here runs until the post is live.
@@ -208,7 +208,7 @@ function Row({
 }
 
 /**
- * Save a plug as the set's engagement default for new drafts (RFC 043),
+ * Save a plug as the set's engagement default for new drafts (RFC 024),
  * keeping its auto-repost. Timed reposts are the draft's own.
  */
 async function savePlugDefault(

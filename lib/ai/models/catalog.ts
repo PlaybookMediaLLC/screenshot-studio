@@ -18,7 +18,7 @@
  * - `nano` — trivial classification where latency dominates quality.
  * - `drafting` — customer-facing marketing prose (launch copy, posts).
  */
-export const MODEL_ROLES = ['fast', 'deep', 'nano', 'drafting'] as const
+export const MODEL_ROLES = ['fast', 'deep', 'nano', 'drafting', 'transcription'] as const
 
 /**
  * A model role identifier. Derived from {@link MODEL_ROLES} so the list stays
@@ -32,6 +32,8 @@ export type ModelRole = (typeof MODEL_ROLES)[number]
  * Plain constants applied at the read site, so they cannot be skipped.
  */
 export const DEFAULT_MODEL_IDS: Record<ModelRole, string> = {
+  // Audio input is required. The general writing models only accept text/images.
+  transcription: 'google/gemini-2.5-flash',
   deep: 'anthropic/claude-opus-5.5',
   drafting: 'anthropic/claude-sonnet-5.5',
   fast: 'anthropic/claude-haiku-4.5',
@@ -46,6 +48,7 @@ export const DEFAULT_MODEL_IDS: Record<ModelRole, string> = {
  * normal way is to edit {@link DEFAULT_MODEL_IDS}.
  */
 export const MODEL_ENV_KEYS: Record<ModelRole, string> = {
+  transcription: 'PLATFORM_AI_MODEL_TRANSCRIPTION',
   fast: 'PLATFORM_AI_MODEL_FAST',
   deep: 'PLATFORM_AI_MODEL_DEEP',
   nano: 'PLATFORM_AI_MODEL_NANO',

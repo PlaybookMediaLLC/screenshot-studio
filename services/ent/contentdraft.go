@@ -72,6 +72,8 @@ type ContentDraft struct {
 	Article *draftdoc.Article `json:"article,omitempty"`
 	// Scratchpad holds the value of the "scratchpad" field.
 	Scratchpad string `json:"scratchpad,omitempty"`
+	// SuppressSlackOnPublish holds the value of the "suppress_slack_on_publish" field.
+	SuppressSlackOnPublish bool `json:"suppress_slack_on_publish,omitempty"`
 	// TagIds holds the value of the "tag_ids" field.
 	TagIds []string `json:"tag_ids,omitempty"`
 	// PinnedAt holds the value of the "pinned_at" field.
@@ -100,7 +102,7 @@ func (*ContentDraft) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case contentdraft.FieldBody, contentdraft.FieldAssetIds, contentdraft.FieldChannelConnectionIds, contentdraft.FieldDiscussions, contentdraft.FieldChannelText, contentdraft.FieldGuestComments, contentdraft.FieldEngagement, contentdraft.FieldTarget, contentdraft.FieldPlatformVersions, contentdraft.FieldArticle, contentdraft.FieldTagIds, contentdraft.FieldCollabState:
 			values[i] = new([]byte)
-		case contentdraft.FieldNaturalPostingTime:
+		case contentdraft.FieldNaturalPostingTime, contentdraft.FieldSuppressSlackOnPublish:
 			values[i] = new(sql.NullBool)
 		case contentdraft.FieldApprovedVersion, contentdraft.FieldVersion:
 			values[i] = new(sql.NullInt64)
@@ -312,6 +314,12 @@ func (_m *ContentDraft) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Scratchpad = value.String
 			}
+		case contentdraft.FieldSuppressSlackOnPublish:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field suppress_slack_on_publish", values[i])
+			} else if value.Valid {
+				_m.SuppressSlackOnPublish = value.Bool
+			}
 		case contentdraft.FieldTagIds:
 			if value, ok := values[i].(*[]byte); !ok {
 				return fmt.Errorf("unexpected type %T for field tag_ids", values[i])
@@ -500,6 +508,9 @@ func (_m *ContentDraft) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("scratchpad=")
 	builder.WriteString(_m.Scratchpad)
+	builder.WriteString(", ")
+	builder.WriteString("suppress_slack_on_publish=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SuppressSlackOnPublish))
 	builder.WriteString(", ")
 	builder.WriteString("tag_ids=")
 	builder.WriteString(fmt.Sprintf("%v", _m.TagIds))

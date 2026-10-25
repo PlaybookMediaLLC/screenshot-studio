@@ -30,6 +30,8 @@ type PlatformNotificationPolicy struct {
 	SlackChannelID string `json:"slack_channel_id,omitempty"`
 	// SlackChannelName holds the value of the "slack_channel_name" field.
 	SlackChannelName string `json:"slack_channel_name,omitempty"`
+	// SocialSetSlackChannels holds the value of the "social_set_slack_channels" field.
+	SocialSetSlackChannels map[string]map[string]string `json:"social_set_slack_channels,omitempty"`
 	// EnabledAt holds the value of the "enabled_at" field.
 	EnabledAt time.Time `json:"enabled_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -42,7 +44,7 @@ func (*PlatformNotificationPolicy) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case platformnotificationpolicy.FieldEvents, platformnotificationpolicy.FieldAvailability:
+		case platformnotificationpolicy.FieldEvents, platformnotificationpolicy.FieldAvailability, platformnotificationpolicy.FieldSocialSetSlackChannels:
 			values[i] = new([]byte)
 		case platformnotificationpolicy.FieldGeneration:
 			values[i] = new(sql.NullInt64)
@@ -111,6 +113,14 @@ func (_m *PlatformNotificationPolicy) assignValues(columns []string, values []an
 			} else if value.Valid {
 				_m.SlackChannelName = value.String
 			}
+		case platformnotificationpolicy.FieldSocialSetSlackChannels:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field social_set_slack_channels", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &_m.SocialSetSlackChannels); err != nil {
+					return fmt.Errorf("unmarshal field social_set_slack_channels: %w", err)
+				}
+			}
 		case platformnotificationpolicy.FieldEnabledAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field enabled_at", values[i])
@@ -176,6 +186,9 @@ func (_m *PlatformNotificationPolicy) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("slack_channel_name=")
 	builder.WriteString(_m.SlackChannelName)
+	builder.WriteString(", ")
+	builder.WriteString("social_set_slack_channels=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SocialSetSlackChannels))
 	builder.WriteString(", ")
 	builder.WriteString("enabled_at=")
 	builder.WriteString(_m.EnabledAt.Format(time.ANSIC))

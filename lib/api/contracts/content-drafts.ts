@@ -69,6 +69,7 @@ export const contentDraftSchema = z
      */
     engagement: draftEngagementSchema,
     naturalPostingTime: z.boolean().default(false),
+    suppressSlackOnPublish: z.boolean().optional(),
     /** A calendar placement without scheduling, as an ISO 8601 instant. */
     plannedFor: timestampSchema.nullable().default(null),
     primaryPlatform: z.string().nullable().default(null),
@@ -95,6 +96,7 @@ export const contentDraftFieldsSchema = draftWriteInputSchema.extend({
  * takes the set's default platforms.
  */
 export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
+  importKey: z.string().min(16).max(128).optional(),
   kind: draftKindSchema.optional(),
   /** The platform the body is written for; the set's primary platform when omitted. */
   primaryPlatform: platformSchema.optional(),
@@ -274,6 +276,7 @@ export const contentDraftPostSchema = z.object({
   /** A thread: its reply count and how many went out. */
   replies: z.number().int(),
   threadProgress: z.object({
+    quotes: z.array(z.object({ postId: z.string(), state: z.string() })).optional(),
     lastReplyId: z.string().optional(),
     posted: z.number().int(),
     total: z.number().int(),
@@ -312,6 +315,8 @@ export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
     .optional(),
   /** The queue's next free slot instead of `scheduledFor`; the backend reserves it. */
   queue: z.boolean().optional(),
+  /** A previewed queue slot; a changed queue is a conflict instead of a silent move. */
+  expectedQueueSlot: z.iso.datetime().optional(),
   /** Overrides the draft's natural posting time for this schedule (±4 minutes). */
   naturalPostingTime: z.boolean().optional(),
   scheduledFor: z.coerce

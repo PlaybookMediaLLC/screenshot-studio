@@ -132,6 +132,20 @@ func (_c *ScheduledPostCreate) SetMetrics(v postoptions.Metrics) *ScheduledPostC
 	return _c
 }
 
+// SetPublishedAt sets the "published_at" field.
+func (_c *ScheduledPostCreate) SetPublishedAt(v time.Time) *ScheduledPostCreate {
+	_c.mutation.SetPublishedAt(v)
+	return _c
+}
+
+// SetNillablePublishedAt sets the "published_at" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillablePublishedAt(v *time.Time) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetPublishedAt(*v)
+	}
+	return _c
+}
+
 // SetMetricsAt sets the "metrics_at" field.
 func (_c *ScheduledPostCreate) SetMetricsAt(v time.Time) *ScheduledPostCreate {
 	_c.mutation.SetMetricsAt(v)
@@ -531,6 +545,10 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.Metrics(); ok {
 		_spec.SetField(scheduledpost.FieldMetrics, field.TypeJSON, value)
 		_node.Metrics = value
+	}
+	if value, ok := _c.mutation.PublishedAt(); ok {
+		_spec.SetField(scheduledpost.FieldPublishedAt, field.TypeTime, value)
+		_node.PublishedAt = &value
 	}
 	if value, ok := _c.mutation.MetricsAt(); ok {
 		_spec.SetField(scheduledpost.FieldMetricsAt, field.TypeTime, value)

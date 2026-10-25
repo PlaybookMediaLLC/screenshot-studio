@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -106,8 +107,49 @@ func TestContentDraftPlatform(t *testing.T) {
 		}
 	})
 
+	t.Run("batch preview does not mutate and changed queue times are rejected", func(t *testing.T) {
+		draft := newDraft("Bulk preview")
+		rival := newDraft("Takes previewed slot")
+		t.Cleanup(func() {
+			exec(`DELETE FROM scheduled_post WHERE "contentDraftId" IN ($1,$2)`, draft.ID, rival.ID)
+			exec(`DELETE FROM content_draft WHERE id IN ($1,$2)`, draft.ID, rival.ID)
+		})
+		times, err := repo.PreviewDraftBatchTimes(ctx, owner, DraftBatchTimesInput{Count: 2, Mode: "queue"})
+		if err != nil || len(times) != 2 || !times[1].After(times[0]) {
+			t.Fatalf("times %v: %v", times, err)
+		}
+		input := ScheduleContentDraftInput{Queue: true, ExpectedQueueSlot: &times[0], Version: draft.Version, Targets: []ContentDraftScheduleTarget{{Caption: "Bulk preview", ChannelConnectionID: connection.ID}}}
+		if err := repo.ValidateContentDraftSchedule(ctx, owner, draft.ID, input); err != nil {
+			t.Fatal(err)
+		}
+		posts, err := repo.ListContentDraftPosts(ctx, owner, draft.ID)
+		if err != nil || len(posts) != 0 {
+			t.Fatal("preflight created posts", err)
+		}
+		if _, err := schedule(rival, times[0]); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, input); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatal("changed queue silently moved batch", err)
+		}
+		posts, _ = repo.ListContentDraftPosts(ctx, owner, draft.ID)
+		if len(posts) != 0 {
+			t.Fatal("conflicting row was scheduled")
+		}
+		input.ExpectedQueueSlot = &times[1]
+		result, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, input)
+		if err != nil || len(result.Posts) != 1 {
+			t.Fatal("remaining slot failed", err)
+		}
+		replay, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, input)
+		if err != nil || replay.Posts[0].ID != result.Posts[0].ID {
+			t.Fatal("batch retry duplicated post", err)
+		}
+	})
+
 	t.Run("a queued post moves without another charge", func(t *testing.T) {
-		result, err := schedule(newDraft("Move me"), at)
+		draft := newDraft("Move me")
+		result, err := schedule(draft, at)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -126,9 +168,51 @@ func TestContentDraftPlatform(t *testing.T) {
 		if _, err := repo.MoveContentDraftPost(ctx, owner, result.Posts[0].ID, later); !errors.Is(err, publishing.ErrConflict) {
 			t.Fatalf("moving a cancelled post err=%v", err)
 		}
+		// Calendar tag attribution follows the visible draft, not unrelated workspace tags.
+		if err := db.Client.ContentDraft.UpdateOneID(draft.ID).SetTagIds([]string{"calendar-tag"}).Exec(ctx); err != nil {
+			t.Fatal(err)
+		}
 		calendar, err := repo.ListContentDraftPostsBetween(ctx, owner, at, at.Add(24*time.Hour), "")
 		if err != nil || len(calendar) != 1 || calendar[0].DraftTitle != "Move me" {
 			t.Fatalf("calendar=%+v err=%v", calendar, err)
+		}
+		if len(calendar[0].TagIDs) != 1 || calendar[0].TagIDs[0] != "calendar-tag" {
+			t.Fatalf("calendar tags=%v", calendar[0].TagIDs)
+		}
+	})
+
+	t.Run("concurrent calendar moves replace a queued post once", func(t *testing.T) {
+		draft := newDraft("Concurrent move")
+		result, err := schedule(draft, at)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		results := make(chan error, 8)
+		for i := 0; i < 8; i++ {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				<-start
+				_, err := repo.MoveContentDraftPost(ctx, owner, result.Posts[0].ID, at.Add(time.Duration(i+1)*time.Hour))
+				results <- err
+			}(i)
+		}
+		close(start)
+		wg.Wait()
+		close(results)
+		wins := 0
+		for err := range results {
+			if err == nil {
+				wins++
+			} else if !errors.Is(err, publishing.ErrConflict) {
+				t.Fatal(err)
+			}
+		}
+		count, err := db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draft.ID), scheduledpost.StatusEQ(scheduledpost.StatusSCHEDULED)).Count(ctx)
+		if err != nil || wins != 1 || count != 1 {
+			t.Fatalf("wins=%d queued=%d err=%v", wins, count, err)
 		}
 	})
 
@@ -189,6 +273,41 @@ func TestContentDraftPlatform(t *testing.T) {
 		}
 	})
 
+	t.Run("published reading uses confirmed immutable thread and revokes", func(t *testing.T) {
+		draft := newDraft("Private next revision")
+		shared, err := repo.ShareContentDraft(ctx, owner, draft.ID, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		post, err := db.Client.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(org).SetContentDraftID(draft.ID).SetChannelConnectionID(connection.ID).SetScheduledFor(time.Now()).SetPublishedAt(time.Now()).SetStatus(scheduledpost.StatusPUBLISHED).SetCaption("Published root").SetRemotePostID("123").SetIdempotencyKey("unroll:" + draft.ID).SetReplies([]thread.Reply{{Caption: "Confirmed reply"}, {Caption: "Unsent private reply"}}).SetThreadProgress(postoptions.ThreadProgress{Posted: 1, Total: 2, LastReplyID: "456"}).Save(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { exec(`DELETE FROM scheduled_post WHERE id=$1`, post.ID) })
+		view, err := repo.GetSharedContentDraft(ctx, *shared.ShareToken)
+		if err != nil || !view.Published || view.PlainText != "Published root\n\nConfirmed reply" || len(view.Body) != 0 || view.PublishedURL == nil {
+			t.Fatalf("unsafe published reading: %+v %v", view, err)
+		}
+		if view.Title != "Published root" {
+			t.Fatal("later draft title leaked", view.Title)
+		}
+		resumed, err := db.Client.ScheduledPost.Create().SetID(cuid.New()).SetOrganizationID(org).SetContentDraftID(draft.ID).SetChannelConnectionID(connection.ID).SetScheduledFor(time.Now()).SetPublishedAt(time.Now()).SetStatus(scheduledpost.StatusPUBLISHED).SetCaption("Resumed reply").SetRemotePostID("789").SetReplyTo("456").SetIdempotencyKey("unroll-resumed:" + draft.ID).Save(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { exec(`DELETE FROM scheduled_post WHERE id=$1`, resumed.ID) })
+		view, err = repo.GetSharedContentDraft(ctx, *shared.ShareToken)
+		if err != nil || view.PlainText != "Published root\n\nConfirmed reply\n\nResumed reply" {
+			t.Fatalf("confirmed continuation missing: %+v %v", view, err)
+		}
+		if _, err := repo.ShareContentDraft(ctx, owner, draft.ID, false); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.GetSharedContentDraft(ctx, *shared.ShareToken); !errors.Is(err, publishing.ErrNotFound) {
+			t.Fatal("revoked published thread accessible", err)
+		}
+	})
+
 	t.Run("revisions keep the draft as it was", func(t *testing.T) {
 		draft := newDraft("First words")
 		title := "Second words"
@@ -235,4 +354,85 @@ func TestContentDraftPlatform(t *testing.T) {
 			t.Fatalf("best=%+v err=%v", best, err)
 		}
 	})
+	t.Run("best-time suggestions never borrow private set engagement", func(t *testing.T) {
+		private, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Private metrics", Visibility: "PRIVATE"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		privateDraft, err := repo.CreateContentDraft(ctx, owner, ContentDraftInput{Title: "Private engagement source", SocialSetID: private.ID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i := 0; i < 5; i++ {
+			id := cuid.New()
+			_, err := db.Client.ScheduledPost.Create().SetID(id).SetOrganizationID(org).SetContentDraftID(privateDraft.ID).SetChannelConnectionID(connection.ID).SetSocialSetID(private.ID).SetScheduledFor(time.Now().Add(-time.Hour)).SetPublishedAt(time.Now().Add(-time.Hour)).SetStatus(scheduledpost.StatusPUBLISHED).SetCaption("private").SetIdempotencyKey(id).SetMetrics(postoptions.Metrics{"likes": 900}).SetMetricsAt(time.Now()).Save(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		defaults, err := repo.BestPostingTimes(ctx, owner, "")
+		if err != nil || len(defaults) == 0 || defaults[0].Score != nil || defaults[0].SamplePosts != 0 || !strings.Contains(defaults[0].Reason, "insufficient history") {
+			t.Fatalf("private engagement leaked into default set: %v %v", defaults, err)
+		}
+		personal, err := repo.BestPostingTimes(ctx, owner, private.ID)
+		if err != nil || len(personal) == 0 || personal[0].Score == nil || *personal[0].Score != 900 || personal[0].SamplePosts != 5 || !strings.Contains(personal[0].Reason, "most engagement") {
+			t.Fatalf("private set's own history unavailable: %v %v", personal, err)
+		}
+	})
+
+	t.Run("queue swap is atomic and concurrent replay cannot duplicate", func(t *testing.T) {
+		first, err := schedule(newDraft("Swap first"), at.Add(72*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := schedule(newDraft("Swap second"), at.Add(73*time.Hour))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var wg sync.WaitGroup
+		outcomes := make(chan error, 6)
+		for range 6 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, err := repo.SwapContentDraftPosts(ctx, owner, first.Posts[0].ID, second.Posts[0].ID)
+				outcomes <- err
+			}()
+		}
+		wg.Wait()
+		close(outcomes)
+		success := 0
+		for err := range outcomes {
+			if err == nil {
+				success++
+			} else if !errors.Is(err, publishing.ErrConflict) {
+				t.Fatal(err)
+			}
+		}
+		if success != 1 {
+			t.Fatalf("swap winners %d", success)
+		}
+		for _, pair := range []struct {
+			draft string
+			at    time.Time
+		}{{first.Draft.ID, second.Posts[0].ScheduledFor}, {second.Draft.ID, first.Posts[0].ScheduledFor}} {
+			posts, err := repo.ListContentDraftPosts(ctx, owner, pair.draft)
+			if err != nil {
+				t.Fatal(err)
+			}
+			active := 0
+			for _, post := range posts {
+				if post.Status == "SCHEDULED" {
+					active++
+					if !post.ScheduledFor.Equal(pair.at) {
+						t.Fatalf("wrong swapped time: %v", post.ScheduledFor)
+					}
+				}
+			}
+			if active != 1 {
+				t.Fatalf("active copies %d", active)
+			}
+		}
+	})
+
 }

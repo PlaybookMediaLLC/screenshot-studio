@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { apiKeyScopePermissions } from '@/lib/auth/api-key-scopes'
+import { permissionsForApiKeyScopes } from '@/lib/auth/api-key-scopes'
 import { auth } from '@/lib/auth/server'
 import { backendSDK, serviceBackend, withDates } from '@/lib/backend/sdk'
 import {
@@ -23,14 +23,6 @@ function agentClientOf(metadata: unknown): string | null {
     // Metadata Better Auth wrote for other keys is not ours to read.
   }
   return null
-}
-
-function getPermissions(scopes: readonly (keyof typeof apiKeyScopePermissions)[]) {
-  return scopes.reduce<Record<string, string[]>>((permissions, scope) => {
-    const [resource, actions] = Object.entries(apiKeyScopePermissions[scope])[0] ?? []
-    if (resource && actions) permissions[resource] = actions
-    return permissions
-  }, {})
 }
 
 export const apiKeyRouter = router({
@@ -66,7 +58,7 @@ export const apiKeyRouter = router({
           expiresIn: input.expiresInDays ? input.expiresInDays * dayInSeconds : null,
           name: input.name,
           organizationId: ctx.access.organizationId,
-          permissions: getPermissions(input.scopes),
+          permissions: permissionsForApiKeyScopes(input.scopes),
           userId: ctx.access.principal.userId,
         },
       })

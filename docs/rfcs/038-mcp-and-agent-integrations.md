@@ -1,6 +1,6 @@
 # RFC 038: MCP Server and Agent Integrations
 
-> **Roadmap disposition (2026-10-23):** Reuse the Go MCP implementation and backend authority. New agent breadth is limited to the active release-kit workflow.
+> **Roadmap disposition (2026-10-24):** Reuse the Go MCP implementation and backend authority. The Typefully assignment reopens scoped draft authoring, comments, queue configuration and mention lookup, while preserving human approval and draft publication.
 > See the [current execution order](README.md). Older decision text is
 > historical wherever it conflicts with that order or the audited architecture.
 
@@ -11,6 +11,32 @@
 **Depends on:** RFC 003, RFC 016, RFC 019, RFC 020, RFC 034, RFC 035
 
 ## Decision
+
+### Authorized expansion, 2026-10-24
+
+The Typefully implementation assignment authorizes the existing REST/domain operations
+to be exposed through the existing Go server. The current inventory has 34 tools;
+`lib/agents/mcp-clients.ts` and the Go tool table remain executable inventories.
+
+- `draft:write` creates, edits, duplicates, deletes and tentatively plans permitted
+  drafts. A stable import receipt deduplicates creation; optimistic versions protect edits.
+- The separate opt-in `draft:comment` scope permits comments, replies, resolution and
+  removal of the key's own contributions. The author is the API key, never a person.
+  Comments preserve approval of unchanged publication content.
+- The separate opt-in `queue:write` scope updates a shared set's time zone, weekly slots
+  and natural-time preference with a version check. It cannot rename a set, move existing
+  scheduled posts, grant approval or publish a draft.
+- `artifact:read` permits canonical comment, queue, calendar and mention reads. Private
+  social sets remain session-only. Every write rechecks current membership/key status,
+  workspace entitlement and tenant ownership in the canonical product service.
+- Content-draft approval, rejection, requesting changes and scheduling/publish-now remain
+  human-only. Existing approved campaign scheduling under `post:schedule` is unchanged.
+- Outbound webhook administration remains owner/admin session-only. The private Zapier
+  package uses signed static hooks configured by that person; it does not gain webhook
+  administration through a draft key.
+
+Local protocol, database and browser verification is documented in the work items.
+Directory approval for Claude, Raycast and Zapier is not implied by local packaging.
 
 Shots gives AI agents its workspace operations through the MCP server that
 already runs in the Go social backend

@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"slices"
+	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
@@ -92,8 +93,20 @@ func emitDraftEvent(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraft, ki
 		webhooks.Resource{ID: draft.ID, Type: "draft"}, data))
 }
 
-// emitDraftChanges emits what an update changed: status, tags, planning.
+// emitDraftChanges emits redacted content changes separately from status, tags and planning.
 func emitDraftChanges(ctx context.Context, tx *ent.Tx, before, after *ent.ContentDraft) error {
+	metadata := draftChangeMetadata(before, after)
+	changed := []string{}
+	for _, field := range metadata["changed"].([]string) {
+		if !strings.HasPrefix(field, "status:") {
+			changed = append(changed, field)
+		}
+	}
+	if len(changed) > 0 {
+		if err := emitDraftEvent(ctx, tx, after, webhooks.DraftUpdated, map[string]any{"changed": changed}); err != nil {
+			return err
+		}
+	}
 	if before.Status != after.Status {
 		if err := emitDraftEvent(ctx, tx, after, webhooks.DraftStatusChanged,
 			map[string]any{"previousStatus": string(before.Status), "status": string(after.Status)}); err != nil {

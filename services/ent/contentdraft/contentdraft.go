@@ -68,6 +68,8 @@ const (
 	FieldArticle = "article"
 	// FieldScratchpad holds the string denoting the scratchpad field in the database.
 	FieldScratchpad = "scratchpad"
+	// FieldSuppressSlackOnPublish holds the string denoting the suppress_slack_on_publish field in the database.
+	FieldSuppressSlackOnPublish = "suppressSlackOnPublish"
 	// FieldTagIds holds the string denoting the tag_ids field in the database.
 	FieldTagIds = "tagIds"
 	// FieldPinnedAt holds the string denoting the pinned_at field in the database.
@@ -119,6 +121,7 @@ var Columns = []string{
 	FieldPlatformVersions,
 	FieldArticle,
 	FieldScratchpad,
+	FieldSuppressSlackOnPublish,
 	FieldTagIds,
 	FieldPinnedAt,
 	FieldPlanTimeZone,
@@ -157,6 +160,8 @@ var (
 	DefaultPlatformVersions draftdoc.PlatformVersions
 	// DefaultScratchpad holds the default value on creation for the "scratchpad" field.
 	DefaultScratchpad string
+	// DefaultSuppressSlackOnPublish holds the default value on creation for the "suppress_slack_on_publish" field.
+	DefaultSuppressSlackOnPublish bool
 	// DefaultTagIds holds the default value on creation for the "tag_ids" field.
 	DefaultTagIds []string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -337,6 +342,11 @@ func ByKind(opts ...sql.OrderTermOption) OrderOption {
 // ByScratchpad orders the results by the scratchpad field.
 func ByScratchpad(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldScratchpad, opts...).ToFunc()
+}
+
+// BySuppressSlackOnPublish orders the results by the suppress_slack_on_publish field.
+func BySuppressSlackOnPublish(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSuppressSlackOnPublish, opts...).ToFunc()
 }
 
 // ByPinnedAt orders the results by the pinned_at field.

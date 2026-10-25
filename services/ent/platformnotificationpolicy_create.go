@@ -88,6 +88,12 @@ func (_c *PlatformNotificationPolicyCreate) SetNillableSlackChannelName(v *strin
 	return _c
 }
 
+// SetSocialSetSlackChannels sets the "social_set_slack_channels" field.
+func (_c *PlatformNotificationPolicyCreate) SetSocialSetSlackChannels(v map[string]map[string]string) *PlatformNotificationPolicyCreate {
+	_c.mutation.SetSocialSetSlackChannels(v)
+	return _c
+}
+
 // SetEnabledAt sets the "enabled_at" field.
 func (_c *PlatformNotificationPolicyCreate) SetEnabledAt(v time.Time) *PlatformNotificationPolicyCreate {
 	_c.mutation.SetEnabledAt(v)
@@ -181,6 +187,10 @@ func (_c *PlatformNotificationPolicyCreate) defaults() {
 		v := platformnotificationpolicy.DefaultSlackChannelName
 		_c.mutation.SetSlackChannelName(v)
 	}
+	if _, ok := _c.mutation.SocialSetSlackChannels(); !ok {
+		v := platformnotificationpolicy.DefaultSocialSetSlackChannels
+		_c.mutation.SetSocialSetSlackChannels(v)
+	}
 	if _, ok := _c.mutation.EnabledAt(); !ok {
 		v := platformnotificationpolicy.DefaultEnabledAt()
 		_c.mutation.SetEnabledAt(v)
@@ -210,6 +220,9 @@ func (_c *PlatformNotificationPolicyCreate) check() error {
 	}
 	if _, ok := _c.mutation.SlackChannelName(); !ok {
 		return &ValidationError{Name: "slack_channel_name", err: errors.New(`ent: missing required field "PlatformNotificationPolicy.slack_channel_name"`)}
+	}
+	if _, ok := _c.mutation.SocialSetSlackChannels(); !ok {
+		return &ValidationError{Name: "social_set_slack_channels", err: errors.New(`ent: missing required field "PlatformNotificationPolicy.social_set_slack_channels"`)}
 	}
 	if _, ok := _c.mutation.EnabledAt(); !ok {
 		return &ValidationError{Name: "enabled_at", err: errors.New(`ent: missing required field "PlatformNotificationPolicy.enabled_at"`)}
@@ -275,6 +288,10 @@ func (_c *PlatformNotificationPolicyCreate) createSpec() (*PlatformNotificationP
 	if value, ok := _c.mutation.SlackChannelName(); ok {
 		_spec.SetField(platformnotificationpolicy.FieldSlackChannelName, field.TypeString, value)
 		_node.SlackChannelName = value
+	}
+	if value, ok := _c.mutation.SocialSetSlackChannels(); ok {
+		_spec.SetField(platformnotificationpolicy.FieldSocialSetSlackChannels, field.TypeJSON, value)
+		_node.SocialSetSlackChannels = value
 	}
 	if value, ok := _c.mutation.EnabledAt(); ok {
 		_spec.SetField(platformnotificationpolicy.FieldEnabledAt, field.TypeTime, value)

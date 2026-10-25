@@ -145,6 +145,9 @@ func pollDetails(poll *postoptions.Poll) *integrations.PollDetails {
 // publicationOutcome maps a provider failure: reconnect, or an outcome the
 // remote account must be checked for before any retry.
 func publicationOutcome(err error) error {
+	if temporalx.FailureType(err) == temporalx.TypePublicationRejected {
+		return socialapi.NewError(http.StatusBadRequest, false, "The platform rejected the publication. Review its text, media and publishing configuration before retrying.")
+	}
 	if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeDisconnect {
 		return socialapi.NewError(http.StatusConflict, false, "social credentials must be reconnected")
 	}
@@ -210,6 +213,9 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 		return socialapi.Receipt{}, socialapi.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
 	progress := p.postReplies(ctx, provider, account, input, response[0].PostID)
+	if response[0].QuoteState != "" {
+		progress.Quotes = append(progress.Quotes, postoptions.QuoteReceipt{PostID: response[0].PostID, State: response[0].QuoteState})
+	}
 	return socialapi.Receipt{PostID: response[0].PostID, Thread: progress}, nil
 }
 
@@ -241,7 +247,7 @@ func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destination
 	}
 	reader, ok := provider.(integrations.PostAnalytics)
 	if !ok {
-		return postoptions.Metrics{}, nil
+		return nil, postoptions.ErrMetricsUnavailable
 	}
 	series, err := reader.PostAnalytics(ctx, account.InternalID, account.Token, remotePostID, 0)
 	if err != nil {
@@ -257,6 +263,9 @@ func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destination
 		if _, err := fmt.Sscan(fmt.Sprint(item.Data[len(item.Data)-1].Total), &total); err == nil {
 			metrics[name] += total
 		}
+	}
+	if len(metrics) == 0 {
+		return nil, postoptions.ErrMetricsUnavailable
 	}
 	return metrics, nil
 }
@@ -300,18 +309,20 @@ func (p *Publisher) AutoAct(ctx context.Context, input socialapi.AutoActionInput
 		}
 	}
 	if input.Quote {
-		link := input.PostURL
-		if link == "" && input.Platform == "x" {
-			link = "https://x.com/i/status/" + input.RemotePostID
+		if input.Platform != "x" {
+			return result, socialapi.ErrUnsupported
+		}
+		settings, err = postSettings("x", nil, &postoptions.PublishOptions{QuoteRemoteID: input.RemotePostID}, "")
+		if err != nil {
+			return result, err
 		}
 		_, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
-			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText + " " + link), Settings: settings,
+			ID: input.RemotePostID + "-quote", Message: strings.TrimSpace(input.QuoteText), Settings: settings,
 		}}, account)
-		// Quoting once is the point: a failed quote is not retried into a duplicate.
-		result.Quoted = true
 		if err != nil {
-			slog.ErrorContext(ctx, "quote post failed", "post", input.RemotePostID, "error", err)
+			return result, err
 		}
+		result.Quoted = true
 	}
 	return result, nil
 }
@@ -364,6 +375,9 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 			}
 			if err == nil {
 				last = response[0].PostID
+				if response[0].QuoteState != "" {
+					progress.Quotes = append(progress.Quotes, postoptions.QuoteReceipt{PostID: last, State: response[0].QuoteState})
+				}
 				progress.Posted, progress.LastReplyID = index+1, last
 				continue
 			}

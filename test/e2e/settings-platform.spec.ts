@@ -149,7 +149,9 @@ test('social sets keep their own names, schedules and settings beside the compos
 }) => {
   await withDraftWorkspace(identity, page, async () => {
     await page.goto('/workspace/social-sets')
-    await expect(page.getByRole('heading', { exact: true, level: 2, name: 'Brands' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { exact: true, level: 2, name: 'Publishing brands' })
+    ).toBeVisible()
 
     // Two sets may share a name; each is its own by ID.
     const ids: string[] = []

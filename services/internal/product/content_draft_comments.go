@@ -17,14 +17,21 @@ import (
 // ContentDraftCommentInput changes comments only; author, timestamps and content
 // nodes come from the server. BaseVersion makes a replay a conflict, not a second
 // comment. Clients reconcile uncertain outcomes by reading the draft.
+type DraftCommentAnchor struct {
+	Platform string `json:"platform"`
+	PostID   string `json:"postId"`
+	Quote    string `json:"quote,omitempty"`
+}
+
 type ContentDraftCommentInput struct {
-	Action         string   `json:"action"`
-	BaseVersion    int      `json:"baseVersion"`
-	CommentID      string   `json:"commentId,omitempty"`
-	ThreadID       string   `json:"threadId,omitempty"`
-	Text           string   `json:"text,omitempty"`
-	MentionUserIDs []string `json:"mentionUserIds,omitempty"`
-	Resolved       *bool    `json:"resolved,omitempty"`
+	Anchor         *DraftCommentAnchor `json:"anchor,omitempty"`
+	Action         string              `json:"action"`
+	BaseVersion    int                 `json:"baseVersion"`
+	CommentID      string              `json:"commentId,omitempty"`
+	ThreadID       string              `json:"threadId,omitempty"`
+	Text           string              `json:"text,omitempty"`
+	MentionUserIDs []string            `json:"mentionUserIds,omitempty"`
+	Resolved       *bool               `json:"resolved,omitempty"`
 }
 
 var draftCommentID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
@@ -35,6 +42,9 @@ func validateDraftComment(input ContentDraftCommentInput) error {
 	}
 	if input.ThreadID != "" && !draftCommentID.MatchString(input.ThreadID) {
 		return invalid("Invalid discussion ID.")
+	}
+	if input.Anchor != nil && (input.Action != "add" || input.ThreadID != "" || !draftCommentID.MatchString(input.Anchor.PostID) || utf8.RuneCountInString(input.Anchor.Quote) > 5000) {
+		return invalid("Anchor only a new discussion to a valid post or text span.")
 	}
 	switch input.Action {
 	case "add", "edit":
@@ -48,6 +58,10 @@ func validateDraftComment(input ContentDraftCommentInput) error {
 		if !draftCommentID.MatchString(input.CommentID) || input.ThreadID == "" || input.Text != "" || len(input.MentionUserIDs) != 0 || input.Resolved != nil {
 			return invalid("Choose the comment to delete.")
 		}
+	case "delete_thread":
+		if input.ThreadID == "" || input.CommentID != "" || input.Text != "" || len(input.MentionUserIDs) != 0 || input.Resolved != nil {
+			return invalid("Choose the discussion to delete.")
+		}
 	case "resolve":
 		if input.ThreadID == "" || input.Resolved == nil || input.CommentID != "" || input.Text != "" || len(input.MentionUserIDs) != 0 {
 			return invalid("Choose the discussion and its resolved state.")
@@ -58,14 +72,34 @@ func validateDraftComment(input ContentDraftCommentInput) error {
 	return nil
 }
 
-// MutateContentDraftComment allows every current human member to comment on a
-// visible draft without gaining document, publication or collaboration writes.
+// commentAuthorID keeps an API key's comment identity distinct from every human.
+// It never changes Actor.UserID, which also controls private-set visibility.
+func commentAuthorID(actor Actor) string {
+	if actor.Kind == "api_key" {
+		return "api-key:" + actor.KeyID
+	}
+	return actor.UserID
+}
+
+func (c *Configuration) authorizeDraftComments(ctx context.Context, actor Actor) error {
+	if actor.Kind == "api_key" {
+		if actor.KeyID == "" || actor.UserID != "" {
+			return publishing.ErrForbidden
+		}
+		if err := c.auth.AuthorizeAPIKeyScope(ctx, actor.OrganizationID, actor.KeyID, "draft:comment"); err != nil {
+			return err
+		}
+	} else if !actor.IsSession() {
+		return publishing.ErrForbidden
+	}
+	return c.authorizeContentDrafts(ctx, actor, false)
+}
+
+// MutateContentDraftComment allows current members and explicitly scoped keys to
+// comment without gaining document, publication or collaboration writes.
 // The draft lock and version compare preserve simultaneous editor/comment saves.
 func (c *Configuration) MutateContentDraftComment(ctx context.Context, actor Actor, id string, input ContentDraftCommentInput) (*ContentDraftRecord, error) {
-	if !actor.IsSession() {
-		return nil, publishing.ErrForbidden
-	}
-	if err := c.authorizeContentDrafts(ctx, actor, false); err != nil {
+	if err := c.authorizeDraftComments(ctx, actor); err != nil {
 		return nil, err
 	}
 	if err := validateDraftComment(input); err != nil {
@@ -78,20 +112,34 @@ func (c *Configuration) MutateContentDraftComment(ctx context.Context, actor Act
 	defer tx.Rollback()
 	// Hold the authority rows until commitment: removal, session revocation and
 	// workspace deletion cannot race past the final membership check.
-	for _, query := range []struct {
+	locks := []struct {
 		sql  string
 		args []any
 	}{
 		{`SELECT id FROM organization WHERE id=$1 FOR SHARE`, []any{actor.OrganizationID}},
-		{`SELECT id FROM member WHERE "organizationId"=$1 AND "userId"=$2 FOR SHARE`, []any{actor.OrganizationID, actor.UserID}},
-		{`SELECT id FROM session WHERE id=$1 FOR SHARE`, []any{actor.SessionID}},
+
 		{`SELECT "organizationId" FROM workspace_entitlement WHERE "organizationId"=$1 FOR SHARE`, []any{actor.OrganizationID}},
-	} {
+	}
+	if actor.IsSession() {
+		locks = append(locks, struct {
+			sql  string
+			args []any
+		}{`SELECT id FROM member WHERE "organizationId"=$1 AND "userId"=$2 FOR SHARE`, []any{actor.OrganizationID, actor.UserID}}, struct {
+			sql  string
+			args []any
+		}{`SELECT id FROM session WHERE id=$1 FOR SHARE`, []any{actor.SessionID}})
+	} else {
+		locks = append(locks, struct {
+			sql  string
+			args []any
+		}{`SELECT id FROM apikey WHERE id=$1 AND "referenceId"=$2 FOR SHARE`, []any{actor.KeyID, actor.OrganizationID}})
+	}
+	for _, query := range locks {
 		if _, err = tx.PlatformExec(ctx, query.sql, query.args...); err != nil {
 			return nil, err
 		}
 	}
-	if err = NewConfiguration(tx.Client()).authorizeContentDrafts(ctx, actor, false); err != nil {
+	if err = NewConfiguration(tx.Client()).authorizeDraftComments(ctx, actor); err != nil {
 		return nil, err
 	}
 	if _, err = tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, id, actor.OrganizationID); err != nil {
@@ -122,13 +170,31 @@ func (c *Configuration) MutateContentDraftComment(ctx context.Context, actor Act
 			return nil, publishing.ErrConflict
 		}
 	}
-	role, err := memberRole(ctx, tx.Client(), actor.OrganizationID, actor.UserID)
+	role := ""
+	if actor.IsSession() {
+		role, err = memberRole(ctx, tx.Client(), actor.OrganizationID, actor.UserID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	anchorText, err := draftCommentAnchorText(draft, input.Anchor)
 	if err != nil {
 		return nil, err
 	}
 	next, err := applyDraftComment(ctx, tx, actor, draft.Discussions, role, input)
 	if err != nil {
 		return nil, err
+	}
+	if input.Anchor != nil {
+		for _, raw := range next["threads"].([]any) {
+			thread := raw.(map[string]any)
+			if thread["id"] == input.CommentID {
+				thread["scope"], thread["platform"], thread["postId"], thread["documentContent"] = "post", input.Anchor.Platform, input.Anchor.PostID, anchorText
+				if input.Anchor.Quote != "" {
+					thread["scope"] = "text"
+				}
+			}
+		}
 	}
 	if _, err = contentDraftDiscussions(next); err != nil {
 		return nil, err
@@ -200,7 +266,7 @@ func applyDraftComment(ctx context.Context, tx *ent.Tx, actor Actor, stored map[
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	if input.Action == "add" && input.ThreadID == "" {
-		thread = map[string]any{"id": input.CommentID, "userId": actor.UserID, "createdAt": now, "isResolved": false, "scope": "draft", "comments": []any{}}
+		thread = map[string]any{"id": input.CommentID, "userId": commentAuthorID(actor), "createdAt": now, "isResolved": false, "scope": "draft", "comments": []any{}}
 		threads = append(threads, thread)
 		threadIndex = len(threads) - 1
 	}
@@ -208,6 +274,21 @@ func applyDraftComment(ctx context.Context, tx *ent.Tx, actor Actor, stored map[
 		return nil, publishing.ErrNotFound
 	}
 	comments, _ := thread["comments"].([]any)
+	if input.Action == "delete_thread" {
+		admin := actor.IsSession() && (role == "owner" || role == "admin")
+		if thread["userId"] != commentAuthorID(actor) && !admin {
+			return nil, publishing.ErrForbidden
+		}
+		if actor.Kind == "api_key" {
+			for _, raw := range comments {
+				if raw.(map[string]any)["userId"] != commentAuthorID(actor) {
+					return nil, publishing.ErrForbidden
+				}
+			}
+		}
+		next["threads"] = append(threads[:threadIndex], threads[threadIndex+1:]...)
+		return next, nil
+	}
 	if input.Action == "resolve" {
 		thread["isResolved"] = *input.Resolved
 	} else {
@@ -232,7 +313,7 @@ func applyDraftComment(ctx context.Context, tx *ent.Tx, actor Actor, stored map[
 			rich = []any{map[string]any{"type": "p", "children": children}}
 		}
 		if input.Action == "add" {
-			comments = append(comments, map[string]any{"id": input.CommentID, "userId": actor.UserID, "createdAt": now, "contentRich": rich, "isEdited": false})
+			comments = append(comments, map[string]any{"id": input.CommentID, "userId": commentAuthorID(actor), "createdAt": now, "contentRich": rich, "isEdited": false})
 		} else {
 			found := false
 			for i, value := range comments {
@@ -244,7 +325,7 @@ func applyDraftComment(ctx context.Context, tx *ent.Tx, actor Actor, stored map[
 					continue
 				}
 				found = true
-				if comment["userId"] != actor.UserID && !(input.Action == "delete" && (role == "owner" || role == "admin")) {
+				if comment["userId"] != commentAuthorID(actor) && !(input.Action == "delete" && (role == "owner" || role == "admin")) {
 					return nil, publishing.ErrForbidden
 				}
 				if input.Action == "delete" {
@@ -265,4 +346,126 @@ func applyDraftComment(ctx context.Context, tx *ent.Tx, actor Actor, stored map[
 	}
 	next["threads"] = threads
 	return next, nil
+}
+
+// draftCommentAnchorText validates a stable post identity and captures its text.
+// A quote must identify one exact span. It never mutates the approved document.
+func draftCommentAnchorText(draft *ent.ContentDraft, anchor *DraftCommentAnchor) (string, error) {
+	if anchor == nil {
+		return "", nil
+	}
+	body := draft.Body
+	if anchor.Platform != draftPrimary(draft) {
+		found := false
+		for _, version := range draft.PlatformVersions.Versions {
+			if version.Channel == anchor.Platform {
+				found = true
+				if version.Mode == "manual" {
+					body = version.Body
+				}
+			}
+		}
+		if !found {
+			return "", invalid("Choose an existing platform version.")
+		}
+	}
+	text := []string{}
+	found, inPost := false, false
+	var nodeText func(any) string
+	nodeText = func(value any) string {
+		switch node := value.(type) {
+		case map[string]any:
+			if text, ok := node["text"].(string); ok {
+				return text
+			}
+			if node["type"] == "mention" {
+				if text, ok := node["value"].(string); ok {
+					return "@" + text
+				}
+			}
+			return nodeText(node["children"])
+		case []any:
+			result := ""
+			for _, child := range node {
+				result += nodeText(child)
+			}
+			return result
+		}
+		return ""
+	}
+	for _, raw := range body {
+		node, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if node["type"] == "post_break" {
+			inPost = node["id"] == anchor.PostID
+			if inPost {
+				found = true
+			}
+		} else if inPost {
+			text = append(text, nodeText(raw))
+		}
+	}
+	if !found {
+		return "", invalid("The post no longer exists; reload the draft.")
+	}
+	whole := strings.Join(text, "\n")
+	if anchor.Quote != "" {
+		if strings.Count(whole, anchor.Quote) != 1 {
+			return "", invalid("The quoted span must appear exactly once in the selected post.")
+		}
+		return anchor.Quote, nil
+	}
+	// Whole-post discussions need no unbounded copy of a long article.
+	if runes := []rune(whole); len(runes) > 5000 {
+		whole = string(runes[:5000])
+	}
+	return whole, nil
+}
+
+// ContentDraftCommentList is the existing discussion document, optionally filtered.
+type ContentDraftCommentList struct {
+	ID          string         `json:"id"`
+	Version     int            `json:"version"`
+	Discussions map[string]any `json:"discussions"`
+}
+
+// ListContentDraftComments reuses draft visibility; filters never reveal another set.
+func (c *Configuration) ListContentDraftComments(ctx context.Context, actor Actor, id, status, platform string) (*ContentDraftCommentList, error) {
+	if status != "" && status != "all" && status != "open" && status != "resolved" {
+		return nil, invalid("Choose open, resolved, or all discussions.")
+	}
+	if platform != "" && draftPlatformChannels[platform] == "" {
+		return nil, invalid("Choose a supported platform.")
+	}
+	if actor.Kind == "api_key" {
+		if err := c.auth.AuthorizeAPIKeyScope(ctx, actor.OrganizationID, actor.KeyID, "artifact:read"); err != nil {
+			return nil, err
+		}
+	}
+	draft, err := c.GetContentDraft(ctx, actor, id)
+	if err != nil {
+		return nil, err
+	}
+	threads := []any{}
+	if all, ok := draft.Discussions["threads"].([]any); ok {
+		for _, raw := range all {
+			thread, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			resolved, _ := thread["isResolved"].(bool)
+			channel, _ := thread["platform"].(string)
+			if status == "open" && resolved || status == "resolved" && !resolved || platform != "" && channel != "" && channel != platform {
+				continue
+			}
+			threads = append(threads, thread)
+		}
+	}
+	users := draft.Discussions["users"]
+	if users == nil {
+		users = map[string]any{}
+	}
+	return &ContentDraftCommentList{ID: draft.ID, Version: draft.Version, Discussions: map[string]any{"threads": threads, "users": users}}, nil
 }

@@ -2,6 +2,7 @@ package tenantpublishing
 
 import (
 	"context"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"strings"
 
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
@@ -91,12 +92,15 @@ func (p *Publisher) Automate(ctx context.Context, input socialapi.AutomationInpu
 		id, err := replies.ReplyTo(ctx, account, post, input.Text)
 		return socialapi.AutomationResult{Done: err == nil, RemoteID: id}, err
 	case "quote":
-		link := ""
-		if input.Platform == "x" {
-			link = "https://x.com/i/status/" + post
+		if input.Platform != "x" {
+			return socialapi.AutomationResult{}, socialapi.ErrUnsupported
+		}
+		settings, err = postSettings("x", nil, &postoptions.PublishOptions{QuoteRemoteID: post}, "")
+		if err != nil {
+			return socialapi.AutomationResult{}, err
 		}
 		posted, err := provider.Post(ctx, account.InternalID, account.Token, []integrations.PostDetails{{
-			ID: post + "-quote", Message: strings.TrimSpace(input.Text + " " + link), Settings: settings,
+			ID: post + "-quote", Message: strings.TrimSpace(input.Text), Settings: settings,
 		}}, account)
 		if err != nil {
 			return socialapi.AutomationResult{}, err

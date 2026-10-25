@@ -78,16 +78,16 @@ func TestInvalidXPollStopsBeforeAnyMutation(t *testing.T) {
 				pending.Settings = pendingSettings{PostType: ptr("article"), ArticleTitle: ptr("Title"), ArticleStatus: ptr("published")}
 			}
 			_, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{post}, publishingAccount())
-			if temporalx.FailureType(err) != temporalx.TypeBadBody {
+			if temporalx.FailureType(err) != temporalx.TypePublicationRejected {
 				t.Fatalf("prepare: %v", err)
 			}
 			_, err = New().FinalizePost(context.Background(), "a:b", marshal(pending), publishingAccount())
-			if temporalx.FailureType(err) != temporalx.TypeBadBody {
+			if temporalx.FailureType(err) != temporalx.TypePublicationRejected {
 				t.Fatalf("finalize: %v", err)
 			}
 			if !tc.article {
 				_, err = New().Comment(context.Background(), "1", "42", "", "a:b", []integrations.PostDetails{post}, publishingAccount())
-				if temporalx.FailureType(err) != temporalx.TypeBadBody {
+				if temporalx.FailureType(err) != temporalx.TypePublicationRejected {
 					t.Fatalf("reply: %v", err)
 				}
 			}
@@ -107,11 +107,11 @@ func TestXPollRejectsInvalidUTF8BeforeSerialization(t *testing.T) {
 	defer done()
 	post := integrations.PostDetails{ID: "p", Message: "Choose", Poll: &integrations.PollDetails{Options: []string{string([]byte{0xff}), "B"}, DurationMinutes: 5}}
 	_, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{post}, publishingAccount())
-	if temporalx.FailureType(err) != temporalx.TypeBadBody {
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected {
 		t.Fatalf("prepare: %v", err)
 	}
 	_, err = New().Comment(context.Background(), "1", "42", "", "a:b", []integrations.PostDetails{post}, publishingAccount())
-	if temporalx.FailureType(err) != temporalx.TypeBadBody || len(*calls) != 2 {
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected || len(*calls) != 2 {
 		t.Fatalf("reply: %v calls=%d", err, len(*calls))
 	}
 }

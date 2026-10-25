@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
 import {
   contentDraftIdSchema,
@@ -52,9 +53,27 @@ export const updateContentDraftSettingsContract = defineContract({
 
 /** `GET /api/v1/content-draft-queue/best-times` */
 export const bestPostingTimesContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
+  docs: workspaceDocs({
+    operationId: 'bestPostingTimes',
+    description:
+      "Suggests times from this social set's stored engagement, or explicitly labelled default times when there is insufficient history.",
+    extensions: { 'x-shots-entitlement': { feature: 'content:drafts' } },
+    responses: { '200': 'The authorized result.', '404': 'The social set is unavailable.' },
+    tag: 'Workspace',
+  }),
   method: 'GET',
   name: 'content-drafts.best-times',
-  output: z.object({ items: z.array(z.object({ at: timestampSchema, reason: z.string() })) }),
+  output: z.object({
+    items: z.array(
+      z.object({
+        at: timestampSchema,
+        reason: z.string(),
+        score: z.number().nonnegative().optional(),
+        samplePosts: z.number().int().nonnegative().default(0),
+      })
+    ),
+  }),
   path: '/api/v1/content-draft-queue/best-times',
   /** One social set's times and engagement; the workspace's default set when omitted. */
   query: z.object({ socialSetId: contentDraftIdSchema.optional() }),
@@ -63,12 +82,22 @@ export const bestPostingTimesContract = defineContract({
 
 /** A draft post on the calendar or in the queue. */
 export const calendarPostSchema = contentDraftPostSchema.extend({
+  tagIds: z.array(z.string()).default([]),
   draftId: z.string(),
   draftTitle: z.string(),
 })
 
 /** `GET /api/v1/content-draft-posts?from&to` */
 export const listCalendarPostsContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
+  docs: workspaceDocs({
+    operationId: 'listCalendarPosts',
+    description:
+      'Lists visible draft deliveries in a window of at most 100 days (maximum 500 rows). Includes scheduled, publishing, published, failed and unknown outcomes; private sets remain hidden from API keys.',
+    extensions: { 'x-shots-entitlement': { feature: 'content:drafts' } },
+    responses: { '200': 'The authorized result.', '404': 'The social set is unavailable.' },
+    tag: 'Workspace',
+  }),
   method: 'GET',
   name: 'content-drafts.calendar',
   output: z.object({ items: z.array(calendarPostSchema) }),
@@ -206,6 +235,9 @@ export const draftLinkCardContract = defineContract({
 
 /** A guest's view of a shared draft. */
 export const sharedContentDraftSchema = z.object({
+  imageAssetId: z.string().nullable().optional(),
+  published: z.boolean().optional(),
+  publishedUrl: z.string().url().nullable().optional(),
   body: plateValueSchema,
   guestComments: z.array(
     z.object({ createdAt: timestampSchema, name: z.string(), text: z.string() })
@@ -228,4 +260,24 @@ export const addGuestCommentContract = defineContract({
   path: '/api/drafts/shared/{token}/comments',
   status: 201,
   summary: 'Leave a comment on a shared draft',
+})
+
+/** `POST /api/v1/content-draft-posts/swap`; session publishers only. */
+export const swapDraftPostsContract = defineContract({
+  method: 'POST',
+  name: 'content-drafts.swap-posts',
+  path: '/api/v1/content-draft-posts/swap',
+  body: z.strictObject({ first: z.string().min(1).max(128), second: z.string().min(1).max(128) }),
+  output: z.object({ swapped: z.literal(true) }),
+  summary: 'Exchange two future queue positions atomically',
+})
+
+/** GET /api/drafts/shared/{token}/image: revocable preview of the first shared image. */
+export const sharedDraftImageContract = defineContract({
+  method: 'GET',
+  name: 'content-drafts.shared-image',
+  path: '/api/drafts/shared/{token}/image',
+  params: z.object({ token: z.string().min(20).max(64) }),
+  output: z.unknown(),
+  summary: 'Read a shared draft preview image',
 })

@@ -4,8 +4,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import type { z } from 'zod'
-import { userPreferencesSchema, type userPreferencesUpdateSchema } from '@/lib/api/contracts/settings-platform'
+import {
+  userPreferencesSchema,
+  type userPreferencesUpdateSchema,
+} from '@/lib/api/contracts/settings-platform'
 import { installDebugErrorHandlers } from '@/lib/debug-log'
+import { accentForeground } from '@/lib/settings/accent'
 import { NAVIGATION_COOKIE } from '@/lib/settings/appearance'
 import { settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
 
@@ -61,6 +65,29 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     if (savedTheme) setTheme(savedTheme)
   }, [savedTheme, setTheme])
 
+  const accent = preferences?.accentColor
+  useEffect(() => {
+    if (!accent) return
+    const style = document.documentElement.style
+    const variables = {
+      '--primary': accent,
+      '--primary-foreground': accentForeground(accent),
+      '--ring': accent,
+      '--sidebar-primary': accent,
+      '--sidebar-primary-foreground': accentForeground(accent),
+    }
+    const previous = Object.fromEntries(
+      Object.keys(variables).map((name) => [name, style.getPropertyValue(name)])
+    )
+    for (const [name, value] of Object.entries(variables)) style.setProperty(name, value)
+    return () => {
+      for (const [name, value] of Object.entries(previous)) {
+        if (value) style.setProperty(name, value)
+        else style.removeProperty(name)
+      }
+    }
+  }, [accent])
+
   const savedNavigation = query.data?.navigation
   useEffect(() => {
     if (savedNavigation) rememberNavigation(savedNavigation)
@@ -74,13 +101,16 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       if (!previous) return { error: 'Your preferences are still loading.', ok: false }
       const optimistic: Preferences = {
         ...previous,
+        ...(update.accentColor === undefined ? {} : { accentColor: update.accentColor }),
         ...(update.theme ? { theme: update.theme } : {}),
         ...(update.navigation ? { navigation: update.navigation } : {}),
         ...(update.weekStart ? { weekStart: update.weekStart } : {}),
         ...(update.textDirection ? { textDirection: update.textDirection } : {}),
         ...(update.showScrollbars === undefined ? {} : { showScrollbars: update.showScrollbars }),
         ...(update.developerMode === undefined ? {} : { developerMode: update.developerMode }),
-        ...(update.emailNotifications === undefined ? {} : { emailNotifications: update.emailNotifications }),
+        ...(update.emailNotifications === undefined
+          ? {}
+          : { emailNotifications: update.emailNotifications }),
         ...(update.timeZone === undefined ? {} : { timeZone: update.timeZone || null }),
       }
       setPending(optimistic)
@@ -105,7 +135,13 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   )
 
   return (
-    <PreferencesContext value={{ preferences, save, status: query.isError ? 'error' : preferences ? 'ready' : 'loading' }}>
+    <PreferencesContext
+      value={{
+        preferences,
+        save,
+        status: query.isError ? 'error' : preferences ? 'ready' : 'loading',
+      }}
+    >
       {children}
     </PreferencesContext>
   )

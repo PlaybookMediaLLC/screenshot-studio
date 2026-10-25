@@ -180,3 +180,124 @@ test('mentions serialize the way each platform reads them', () => {
   )
   assert.equal(buildPublication(mentioned, x).target.caption, 'Thanks Acme Corp!')
 })
+
+test('Mastodon polls require instance limits and preserve exact native choices', () => {
+  const body = [
+    brk({
+      id: 'poll',
+      poll: {
+        durationMinutes: 6,
+        multiple: true,
+        options: [' A ', '界'.repeat(40), 'C', 'D', 'E'],
+      },
+    }),
+    p('Choose'),
+  ]
+  const account = { channel: 'mastodon' as const, connectionId: 'cmastodon01' }
+  assert.ok(buildPublication(draft({ body }), account).problems.length)
+  const standing = {
+    pollLimits: {
+      max_options: 5,
+      max_characters_per_option: 40,
+      min_expiration: 300,
+      max_expiration: 3600,
+    },
+  }
+  const publication = buildPublication(draft({ body }), { ...account, standing })
+  assert.deepEqual(publication.problems, [])
+  assert.equal(publication.target.poll?.multiple, true)
+  assert.equal(publication.target.poll?.options[0], ' A ')
+  const stricter = { pollLimits: { ...standing.pollLimits, max_options: 4 } }
+  assert.ok(
+    buildPublication(draft({ body }), { ...account, standing: stricter }).problems.some((p) =>
+      p.includes('2 to 4')
+    )
+  )
+})
+
+test('X polls accept any documented minute duration without trimming choices', () => {
+  const body = [
+    brk({ id: 'poll', poll: { durationMinutes: 6, options: [' A ', 'B'] } }),
+    p('Choose'),
+  ]
+  const publication = buildPublication(draft({ body }), x)
+  assert.deepEqual(publication.problems, [])
+  assert.equal(publication.target.poll?.options[0], ' A ')
+})
+
+test('Threads polls use native options and provider-controlled duration', () => {
+  const poll = { options: [' Choice ', 'Second'], durationMinutes: 0 }
+  const result = buildPublication(draft({ body: [brk({ poll }), p('Choose?')] }), {
+    channel: 'threads',
+    connectionId: 'threads',
+  })
+  assert.deepEqual(result.problems, [])
+  assert.deepEqual(result.target.poll, { options: poll.options, durationMinutes: 0 })
+  const wrong = buildPublication(
+    draft({ body: [brk({ poll: { ...poll, durationMinutes: 1440 } }), p('Choose?')] }),
+    { channel: 'threads', connectionId: 'threads' }
+  )
+  assert.ok(wrong.problems.some((message) => message.includes('poll lengths')))
+})
+
+test('native Bluesky and verified Mastodon quote finishers retain channel settings', () => {
+  for (const channel of ['bluesky', 'mastodon'] as const) {
+    const data = draft({ body: [p('Root'), brk({ quoteFirstPost: true }), p('Finisher')] })
+    const result = buildPublication(data, {
+      channel,
+      connectionId: 'cquote001',
+      standing: { nativeQuotes: true },
+    })
+    assert.deepEqual(result.problems, [])
+    assert.equal(result.target.replies?.[0].options?.quoteFirstPost, true)
+    if (channel === 'mastodon')
+      assert.match(
+        buildPublication(data, { channel, connectionId: 'cquote001' }).problems.join(),
+        /native quote/
+      )
+  }
+})
+
+test('X photo tags survive publication and require photos', () => {
+  const result = buildPublication(draft({ body: [brk({ photoTagIds: ['123'] }), p('Caption')] }), x)
+  assert.deepEqual(result.target.options?.photoTagIds, ['123'])
+  assert.match(result.problems.join(), /attached photo/)
+  const linkedinResult = buildPublication(
+    draft({ body: [brk({ photoTagIds: ['123'] }), p('Caption')] }),
+    linkedin
+  )
+  assert.equal(linkedinResult.target.options?.photoTagIds, undefined)
+})
+
+test('preview media kinds follow the selected channel version without borrowing primary attachments', () => {
+  const primary = [p('Primary'), { type: 'img', assetId: 'cimage000001', children: [{ text: '' }] }]
+  let versions = forkVersion(readVersions(undefined), 'linkedin', primary, 1, false)
+  versions = {
+    ...versions,
+    versions: versions.versions.map((v) => ({
+      ...v,
+      body: [p('Manual'), { type: 'video', assetId: 'cvideo000001', children: [{ text: '' }] }],
+    })),
+  }
+  assert.deepEqual(
+    buildPublication(draft({ body: primary, platformVersions: versions }), x).mediaTypes,
+    { cimage000001: 'image' }
+  )
+  assert.deepEqual(
+    buildPublication(draft({ body: primary, platformVersions: versions }), linkedin).mediaTypes,
+    { cvideo000001: 'video' }
+  )
+})
+
+test('synced Bluesky and Instagram versions cannot silently discard a primary poll', () => {
+  const source = draft({
+    body: [brk({ poll: { options: ['A', 'B'], durationMinutes: 0 } }), p('Choose a direction')],
+  })
+  for (const channel of ['bluesky', 'instagram'] as const) {
+    assert.ok(
+      buildPublication(source, { channel, connectionId: 'cunsupported00001' }).problems.some(
+        (problem) => problem.includes('cannot carry a poll')
+      )
+    )
+  }
+})

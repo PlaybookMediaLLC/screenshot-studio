@@ -41,6 +41,8 @@ type ScheduledPost struct {
 	RemotePostID *string `json:"remote_post_id,omitempty"`
 	// Metrics holds the value of the "metrics" field.
 	Metrics postoptions.Metrics `json:"metrics,omitempty"`
+	// PublishedAt holds the value of the "published_at" field.
+	PublishedAt *time.Time `json:"published_at,omitempty"`
 	// MetricsAt holds the value of the "metrics_at" field.
 	MetricsAt *time.Time `json:"metrics_at,omitempty"`
 	// AutoActions holds the value of the "auto_actions" field.
@@ -123,7 +125,7 @@ func (*ScheduledPost) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullInt64)
 		case scheduledpost.FieldID, scheduledpost.FieldOrganizationID, scheduledpost.FieldVariantID, scheduledpost.FieldContentDraftID, scheduledpost.FieldAssetID, scheduledpost.FieldReplyTo, scheduledpost.FieldRemotePostID, scheduledpost.FieldChannelConnectionID, scheduledpost.FieldStatus, scheduledpost.FieldCaption, scheduledpost.FieldIdempotencyKey, scheduledpost.FieldTriggerRunID, scheduledpost.FieldSocialSetID, scheduledpost.FieldScheduleMode, scheduledpost.FieldScheduleTimeZone:
 			values[i] = new(sql.NullString)
-		case scheduledpost.FieldMetricsAt, scheduledpost.FieldScheduledFor, scheduledpost.FieldSlotAt, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
+		case scheduledpost.FieldPublishedAt, scheduledpost.FieldMetricsAt, scheduledpost.FieldScheduledFor, scheduledpost.FieldSlotAt, scheduledpost.FieldCreatedAt, scheduledpost.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -218,6 +220,13 @@ func (_m *ScheduledPost) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &_m.Metrics); err != nil {
 					return fmt.Errorf("unmarshal field metrics: %w", err)
 				}
+			}
+		case scheduledpost.FieldPublishedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field published_at", values[i])
+			} else if value.Valid {
+				_m.PublishedAt = new(time.Time)
+				*_m.PublishedAt = value.Time
 			}
 		case scheduledpost.FieldMetricsAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -419,6 +428,11 @@ func (_m *ScheduledPost) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("metrics=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Metrics))
+	builder.WriteString(", ")
+	if v := _m.PublishedAt; v != nil {
+		builder.WriteString("published_at=")
+		builder.WriteString(v.Format(time.ANSIC))
+	}
 	builder.WriteString(", ")
 	if v := _m.MetricsAt; v != nil {
 		builder.WriteString("metrics_at=")

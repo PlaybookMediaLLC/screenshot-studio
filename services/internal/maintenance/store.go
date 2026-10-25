@@ -26,7 +26,12 @@ type ProductEvents interface {
 	HandleOutboxEvent(ctx context.Context, eventID, organizationID, eventType, aggregateID string) (bool, error)
 }
 
+type SocialAnalyticsCollector interface {
+	CollectSocialAnalytics(context.Context) (int, error)
+}
+
 type Store struct {
+	Analytics   SocialAnalyticsCollector
 	Activity    *notifications.Service
 	DB          *sql.DB
 	RetentionDB *sql.DB
@@ -55,6 +60,12 @@ func (s *Store) Run(ctx context.Context, job string) (int, error) {
 		"notifications":     s.Notifications,
 		"account-deletions": s.AccountDeletions,
 		"webhooks":          s.DeliverWebhooks,
+		"social-analytics": func(ctx context.Context) (int, error) {
+			if s.Analytics == nil {
+				return 0, nil
+			}
+			return s.Analytics.CollectSocialAnalytics(ctx)
+		},
 	}
 	handler, ok := handlers[job]
 	if !ok {

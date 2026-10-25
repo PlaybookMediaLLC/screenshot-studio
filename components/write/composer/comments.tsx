@@ -9,10 +9,11 @@ import { LocalTime } from '@/components/drafts/local-time'
 import type { DraftWire } from '@/lib/content-drafts/client'
 import { readDiscussions } from '@/lib/content-drafts/discussions'
 import type { PlateBody, PlatformVersions } from '@/lib/write/document'
+import { commentAnchorExists } from '@/lib/write/comment-anchors'
 import { commentThreads } from '@/lib/write/versions'
 import { useKeys } from '../shortcuts'
 
-type Thread = TDiscussion
+type Thread = TDiscussion & {scope?: 'draft'|'post'|'text';platform?: string;postId?:string}
 
 /** A comment's text from its rich content. */
 function commentText(value: unknown): string {
@@ -65,6 +66,10 @@ export function CommentsPanel({
     ...commentThreads(primary),
     ...versions.versions.flatMap((version) => commentThreads(version.body)),
   ])
+  for (const thread of threads) {
+    if (commentAnchorExists(thread, primary, versions, draft.primaryPlatform ?? 'x')) anchored.add(thread.id)
+  }
+  const names = {...Object.fromEntries(Object.entries(readDiscussions(draft.discussions).users).map(([id, person]) => [id,person.name])),...users}
   const reopen = (id: string) => {
     if (!editor) return
     const current = editor.getOption(discussionPlugin, 'discussions') ?? []
@@ -97,7 +102,7 @@ export function CommentsPanel({
         actionLabel="Resolve"
         threads={open}
         title="Open"
-        users={users}
+        users={names}
       />
       <ThreadList
         anchored={anchored}
@@ -105,7 +110,7 @@ export function CommentsPanel({
         actionLabel="Reopen"
         threads={resolved}
         title="Resolved"
-        users={users}
+        users={names}
       />
       {draft.guestComments.length > 0 ? (
         <section>

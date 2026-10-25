@@ -275,7 +275,7 @@ func TestAutoRepostPlug(t *testing.T) {
 	}
 }
 
-func TestImagesRemainUnchangedAndOversizeRejected(t *testing.T) {
+func TestImagesPreserveOriginalAndResizeToVerifiedLimit(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
 	r := rand.New(rand.NewPCG(1, 2))
 	for i := range img.Pix {
@@ -300,7 +300,19 @@ func TestImagesRemainUnchangedAndOversizeRejected(t *testing.T) {
 	}
 	limit := int64(2048)
 	caps.BlobUploadLimit = &limit
+	images, err = prepareImages(context.Background(), media, caps)
+	if err != nil || len(images) != 1 {
+		t.Fatalf("resize failed: %v", err)
+	}
+	if len(images[0].data) > 2048 || images[0].width >= 100 || images[0].height >= 50 {
+		t.Fatal("verified blob limit was not applied")
+	}
+	original, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(original, buf.Bytes()) {
+		t.Fatal("workspace original changed")
+	}
+	limit = 512
 	if _, err := prepareImages(context.Background(), media, caps); temporalx.FailureType(err) != temporalx.TypeBadBody {
-		t.Fatalf("oversized image was not rejected: %v", err)
+		t.Fatalf("unusable limit accepted: %v", err)
 	}
 }

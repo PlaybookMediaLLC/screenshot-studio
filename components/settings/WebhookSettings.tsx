@@ -20,6 +20,7 @@ const WEBHOOKS_KEY = ['webhooks'] as const
 
 /** The events a webhook can receive, as the settings page names them. */
 const EVENT_LABELS: Record<WebhookEvent, { description: string; label: string }> = {
+  'draft.updated': { description: 'Draft content, title, destinations, or publishing options change.', label: 'Draft Updated' },
   'draft.created': { description: 'A new draft is created.', label: 'Draft Created' },
   'draft.deleted': { description: 'A draft is permanently deleted.', label: 'Draft Deleted' },
   'draft.planned': { description: 'A draft is planned on the calendar.', label: 'Draft Planned' },
@@ -30,6 +31,7 @@ const EVENT_LABELS: Record<WebhookEvent, { description: string; label: string }>
 }
 
 const ERROR_LABELS: Record<string, string> = {
+  resource_private: 'The social set is private or unavailable; nothing was sent.',
   blocked_destination: 'The address resolved to a private network and was not called.',
   connection: 'The connection failed.',
   dns: 'The host name did not resolve.',

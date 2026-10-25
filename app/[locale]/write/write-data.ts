@@ -79,7 +79,9 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
     listPlannedContentDrafts(tenant, now, horizon, activeSet?.id),
     activeSet && experiments.tags ? listDraftTags(tenant, activeSet.id) : Promise.resolve([]),
   ])
-  const library = [...page.pinned, ...page.items].map((draft) => libraryDraft(contentDraftSchema.parse(draft)))
+  const library = [...page.pinned, ...page.items].map((draft) =>
+    libraryDraft(contentDraftSchema.parse(draft))
+  )
   const queue = [
     ...posts
       .filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
@@ -102,6 +104,7 @@ export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<str
   ].sort((a, b) => a.at.localeCompare(b.at))
   return {
     activeSet: activeSet ?? null,
+    importStorageScope: `${tenant.organizationId}:${tenant.principal.kind === 'session' ? tenant.principal.userId : 'key'}`,
     experiments,
     library,
     hasMore: page.nextCursor !== null,

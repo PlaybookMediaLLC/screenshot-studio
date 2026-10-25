@@ -25,6 +25,8 @@ const (
 	FieldSlackChannelID = "slack_channel_id"
 	// FieldSlackChannelName holds the string denoting the slack_channel_name field in the database.
 	FieldSlackChannelName = "slack_channel_name"
+	// FieldSocialSetSlackChannels holds the string denoting the social_set_slack_channels field in the database.
+	FieldSocialSetSlackChannels = "social_set_slack_channels"
 	// FieldEnabledAt holds the string denoting the enabled_at field in the database.
 	FieldEnabledAt = "enabled_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -42,6 +44,7 @@ var Columns = []string{
 	FieldSlackConnectionID,
 	FieldSlackChannelID,
 	FieldSlackChannelName,
+	FieldSocialSetSlackChannels,
 	FieldEnabledAt,
 	FieldUpdatedAt,
 }
@@ -69,6 +72,8 @@ var (
 	DefaultSlackChannelID string
 	// DefaultSlackChannelName holds the default value on creation for the "slack_channel_name" field.
 	DefaultSlackChannelName string
+	// DefaultSocialSetSlackChannels holds the default value on creation for the "social_set_slack_channels" field.
+	DefaultSocialSetSlackChannels map[string]map[string]string
 	// DefaultEnabledAt holds the default value on creation for the "enabled_at" field.
 	DefaultEnabledAt func() time.Time
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.

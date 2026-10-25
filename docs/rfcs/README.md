@@ -2,6 +2,12 @@
 
 **Updated:** 2026-10-23, after the [release-readiness codebase audit](../release-readiness-audit-2026-10-23.md).
 
+**Assignment amendment (2026-10-24):** The Typefully backlog implementation explicitly
+reopens RFC 039 expansion and the scoped draft integrations in RFC 038. This amendment
+does not replace release readiness or authorize API-key draft publishing/autonomous
+approval. [Work-item coverage](../scheduling/typefully/work-items/coverage.md) tracks
+implementation, verification and provider gates separately.
+
 This is the authoritative order for new product work toward the
 [Shots north star](../../vision.md): meaningful releases become accurate,
 approved communications that reach and are used by their intended audiences.
@@ -112,7 +118,7 @@ These are maintained and extended only as needed by the active sequence.
 | [034 — REST and Scalar](034-rest-api-scalar-reference.md) | Versioned API, OpenAPI and client present | Extend existing contracts for new resources. |
 | [035 — Pricing and unit economics](035-pricing-and-unit-economics.md) | Paid subscription gates and metering present | Maintain pricing; validate pilot packaging and service cost in 045. |
 | [037 — Workspaces and content drafts](037-workspaces-and-content-drafts.md) | npm workspaces, Plate editor, drafts and collaboration present | Reuse document editing and revisions for role artifacts. |
-| [038 — MCP and agents](038-mcp-and-agent-integrations.md) | Go MCP server, tools and OAuth implementation present | Keep parity with backend authority; expose kit operations only as needed. |
+| [038 — MCP and agents](038-mcp-and-agent-integrations.md) | Existing Go server extended with scoped draft tools | Authoring, comments and queue configuration reopened; preserve human approval/publication. |
 | [040 — Story Sets](040-story-sets.md) | Revisioned composition and delivery implementation present; pilot validation pending | Reuse visuals; broader creative expansion deferred. |
 | [041 — Creative Canvas](041-creative-canvas.md) | Implementation present; earlier RFC reports local-only validation | Maintain existing surface; no new canvas scope on the critical path. |
 | [042 — Write workspace](042-write-workspace.md) | Draft/write/publish implementation present with coverage matrix | Reuse authoring; social feature parity deferred. |
@@ -143,7 +149,7 @@ Existing implementation within these areas still receives necessary fixes.
 | [029 — Recurring campaigns](029-recurring-campaign-generation.md) | Proposed weekly planner; event workflows are a distinct existing capability | No weekly post quota or autonomous calendar commitment. |
 | [030 — Approval policies](030-approval-policies.md) | Generic automatic-approval proposal | New release facts and kit delivery retain explicit human decisions. |
 | [031 — Autonomy modes](031-autonomy-modes.md) | Generic autopilot proposal | Automate evidence preparation and bounded handoffs first. |
-| [039 — Scheduling priorities](039-scheduling-feature-priorities.md) | Some related Write/settings work exists; priority order superseded | Network parity, bulk social scheduling and social dashboards are not the current critical path. |
+| [039 — Scheduling priorities](039-scheduling-feature-priorities.md) | Reopened by the 2026-10-24 assignment; verification in progress | Implement authorized Typefully work items alongside release readiness; retain provider and publication gates. |
 
 ### Historical or superseded
 

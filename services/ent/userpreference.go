@@ -20,6 +20,8 @@ type UserPreference struct {
 	ID string `json:"id,omitempty"`
 	// TimeZone holds the value of the "time_zone" field.
 	TimeZone *string `json:"time_zone,omitempty"`
+	// AccentColor holds the value of the "accent_color" field.
+	AccentColor string `json:"accent_color,omitempty"`
 	// Theme holds the value of the "theme" field.
 	Theme userpreference.Theme `json:"theme,omitempty"`
 	// Navigation holds the value of the "navigation" field.
@@ -56,7 +58,7 @@ func (*UserPreference) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case userpreference.FieldVersion:
 			values[i] = new(sql.NullInt64)
-		case userpreference.FieldID, userpreference.FieldTimeZone, userpreference.FieldTheme, userpreference.FieldNavigation, userpreference.FieldWeekStart, userpreference.FieldTextDirection:
+		case userpreference.FieldID, userpreference.FieldTimeZone, userpreference.FieldAccentColor, userpreference.FieldTheme, userpreference.FieldNavigation, userpreference.FieldWeekStart, userpreference.FieldTextDirection:
 			values[i] = new(sql.NullString)
 		case userpreference.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -87,6 +89,12 @@ func (_m *UserPreference) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.TimeZone = new(string)
 				*_m.TimeZone = value.String
+			}
+		case userpreference.FieldAccentColor:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field accent_color", values[i])
+			} else if value.Valid {
+				_m.AccentColor = value.String
 			}
 		case userpreference.FieldTheme:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -198,6 +206,9 @@ func (_m *UserPreference) String() string {
 		builder.WriteString("time_zone=")
 		builder.WriteString(*v)
 	}
+	builder.WriteString(", ")
+	builder.WriteString("accent_color=")
+	builder.WriteString(_m.AccentColor)
 	builder.WriteString(", ")
 	builder.WriteString("theme=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Theme))

@@ -3,6 +3,7 @@ package product
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"net/url"
 	"regexp"
 	"slices"
@@ -35,7 +36,7 @@ var (
 	draftKindChannels = map[string][]string{
 		"standard": {"x", "linkedin", "instagram", "threads", "bluesky", "mastodon"},
 		"reply":    {"x"},
-		"quote":    {"x", "linkedin"},
+		"quote":    {"x", "linkedin", "bluesky", "mastodon"},
 		// A repurposed draft is a new post made from a published one.
 		"repurpose": {"x", "linkedin", "instagram", "threads", "bluesky", "mastodon"},
 		"article":   {"x"},
@@ -104,6 +105,14 @@ func draftTarget(kind string, target *draftdoc.Target) (*draftdoc.Target, error)
 			return &clean, nil
 		}
 	}
+	if kind == "quote" && postoptions.MastodonQuoteURL.MatchString(clean.URL) {
+		clean.Platform, clean.RemoteID = "mastodon", clean.URL
+		return &clean, nil
+	}
+	if kind == "quote" && postoptions.BlueskyQuoteURL.MatchString(clean.URL) {
+		clean.Platform, clean.RemoteID = "bluesky", clean.URL
+		return &clean, nil
+	}
 	if kind == "repurpose" {
 		// A repurposed post may come from anywhere; it is only a reference.
 		if parsed, err := url.Parse(clean.URL); err != nil || parsed.Scheme != "https" || parsed.Host == "" {
@@ -111,7 +120,7 @@ func draftTarget(kind string, target *draftdoc.Target) (*draftdoc.Target, error)
 		}
 		return &clean, nil
 	}
-	return nil, invalid("Use the URL of an X post (x.com/…/status/…) or a LinkedIn post.")
+	return nil, invalid("Use the URL of an X post (x.com/…/status/…) a LinkedIn post, a Bluesky post, or a Mastodon post.")
 }
 
 // draftTargetChannel checks a reply or quote target suits the draft's channel:

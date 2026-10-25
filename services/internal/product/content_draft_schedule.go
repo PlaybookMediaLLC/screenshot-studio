@@ -84,6 +84,7 @@ const contentDraftReplyLimit = 24
 // the backend reserves. NaturalPostingTime overrides the draft's own choice
 // for this schedule.
 type ScheduleContentDraftInput struct {
+	ExpectedQueueSlot  *time.Time                   `json:"expectedQueueSlot"`
 	NaturalPostingTime *bool                        `json:"naturalPostingTime"`
 	Queue              bool                         `json:"queue"`
 	ScheduledFor       time.Time                    `json:"scheduledFor"`
@@ -112,9 +113,11 @@ func naturalOffset(draftID string, version int, base time.Time) int {
 // AccountStanding is a display projection of verified connection capabilities.
 // Scheduling independently rechecks the current proof in its transaction.
 type AccountStanding struct {
-	Premium       bool  `json:"premium"`
-	XCaptionLimit *int  `json:"xCaptionLimit"`
-	XArticles     *bool `json:"xArticles"`
+	Premium       bool                    `json:"premium"`
+	XCaptionLimit *int                    `json:"xCaptionLimit"`
+	XArticles     *bool                   `json:"xArticles"`
+	NativeQuotes  bool                    `json:"nativeQuotes"`
+	PollLimits    *postoptions.PollLimits `json:"pollLimits,omitempty"`
 }
 
 // AccountStandingReader reads an account's standing from its platform
@@ -320,7 +323,23 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 			}
 			media++
 		}
-		if err := checkPoll(channel, target.Poll, target.Options, media); err != nil {
+		needsNativeQuote := target.Options != nil && target.Options.QuoteRemoteID != ""
+		for _, reply := range target.Replies {
+			if reply.Options != nil && reply.Options.QuoteFirstPost {
+				needsNativeQuote = true
+			}
+		}
+		if channel == "mastodon" && needsNativeQuote && !c.accountStanding(ctx, connection).NativeQuotes {
+			return nil, nil, conflict("Reconnect Mastodon on a server with native quotes (API version 7 or newer) and grant search access.")
+		}
+		var pollErr error
+		if channel == "mastodon" && target.Poll != nil {
+			standing := c.accountStanding(ctx, connection)
+			pollErr = standing.PollLimits.Validate(target.Poll, media)
+		} else {
+			pollErr = checkPoll(channel, target.Poll, target.Options, media)
+		}
+		if err := pollErr; err != nil {
 			return nil, nil, err
 		}
 		if err := checkDraftExtras(channel, target); err != nil {
@@ -757,6 +776,9 @@ func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, dra
 		slot, err := nextFreeSlot(ctx, tx.Client(), set, now)
 		if err != nil {
 			return placement, err
+		}
+		if input.ExpectedQueueSlot != nil && !slot.Equal(*input.ExpectedQueueSlot) {
+			return placement, conflict("The queue changed after preview. Preview the remaining drafts again.")
 		}
 		placement.base, placement.mode = slot, scheduledpost.ScheduleModeQueue
 	}

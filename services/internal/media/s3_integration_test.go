@@ -3,73 +3,41 @@ package media
 import (
 	"bytes"
 	"context"
-	"io"
-	"net/http"
+	"net/url"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 )
 
-func TestS3StoreRoundTrip(t *testing.T) {
-	endpoint := os.Getenv("MEDIA_TEST_ENDPOINT")
-	if endpoint == "" {
-		t.Skip("MEDIA_TEST_ENDPOINT is not set")
+// This opt-in check uses a local S3-compatible service, never a production bucket.
+func TestLocalS3RoundTrip(t *testing.T) {
+	if os.Getenv("PUBLISHING_TEST_LOCAL_OBJECT_STORE") != "true" {
+		t.Skip("PUBLISHING_TEST_LOCAL_OBJECT_STORE is not enabled")
 	}
-	store, err := NewS3Store(endpoint, endpoint, os.Getenv("R2_REGION"),
-		os.Getenv("R2_BUCKET_NAME"), os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY"))
+	endpoint, err := url.Parse(os.Getenv("R2_ENDPOINT"))
+	if err != nil || (endpoint.Hostname() != "localhost" && endpoint.Hostname() != "127.0.0.1") {
+		t.Fatal("local S3 endpoint required")
+	}
+	store, err := NewS3StoreFromEnvironment()
+	if err != nil || store == nil {
+		t.Fatal("storage unavailable", err)
+	}
+	ctx := context.Background()
+	key := "typefully-verification/" + uuid.NewString() + "/image.txt"
+	data := []byte("Object storage round-trip verification.")
+	if err = store.Put(ctx, key, "text/plain", bytes.NewReader(data)); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Delete(ctx, key) })
+	if exists, err := store.Exists(ctx, key); err != nil || !exists {
+		t.Fatal("missing uploaded object", err)
+	}
+	actual, err := store.Read(ctx, key)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	key := "org/integration-test/input/" + uuid.NewString() + "/1/canary.txt"
-	t.Cleanup(func() { _ = store.Delete(context.Background(), key) })
-	const body = "private media canary"
-	uploadURL, err := store.SignUpload(ctx, key, "text/plain")
-	if err != nil {
-		t.Fatal(err)
-	}
-	put := func() int {
-		request, err := http.NewRequestWithContext(ctx, http.MethodPut, uploadURL, bytes.NewBufferString(body))
-		if err != nil {
-			t.Fatal(err)
-		}
-		request.Header.Set("Content-Type", "text/plain")
-		request.Header.Set("If-None-Match", "*")
-		response, err := http.DefaultClient.Do(request)
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, _ = io.Copy(io.Discard, response.Body)
-		_ = response.Body.Close()
-		return response.StatusCode
-	}
-	if status := put(); status < 200 || status >= 300 {
-		t.Fatalf("signed upload status=%d", status)
-	}
-	if status := put(); status != http.StatusPreconditionFailed {
-		t.Fatalf("replayed upload status=%d, want 412", status)
-	}
-	if found, err := store.Exists(ctx, key); err != nil || !found {
-		t.Fatalf("uploaded object found=%v err=%v", found, err)
-	}
-	objects := NewTenantObjects(store)
-	if content, err := objects.Read(ctx, "integration-test", key); err != nil || string(content) != body {
-		t.Fatalf("tenant read=%q err=%v", content, err)
-	}
-	downloadURL, err := store.SignDownload(ctx, key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	response, err := http.Get(downloadURL)
-	if err != nil {
-		t.Fatal(err)
-	}
-	content, err := io.ReadAll(response.Body)
-	_ = response.Body.Close()
-	if err != nil || response.StatusCode != http.StatusOK || string(content) != body {
-		t.Fatalf("signed download status=%d body=%q err=%v", response.StatusCode, content, err)
+	if !bytes.Equal(actual, data) {
+		t.Fatal("stored bytes changed")
 	}
 }

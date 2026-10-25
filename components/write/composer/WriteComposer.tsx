@@ -57,10 +57,13 @@ import { platformEditorServices } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { engagementAutomation } from '@/lib/write/automation'
 import { CAPABILITIES } from '@/lib/write/capabilities'
+import { nativePostURL } from '@/lib/write/post-url'
+import { createWritingDraft } from '../pending-draft'
 import { writeApi } from '@/lib/write/client'
 import {
   type DraftChannel,
   type PlateBody,
+  type PostPoll,
   primaryChannel,
   type VersionOptions,
 } from '@/lib/write/document'
@@ -88,8 +91,11 @@ import { PropertiesPanel } from './properties'
 import { PublishReview, ScheduleDialog, type ScheduleContext } from './schedule'
 import { BackupsBrowser, ShareDialog } from './share-backups'
 import { AssistantPanel } from './assistant'
+import { MediaTools } from './media-tools'
 import { DescribeImages } from './describe-images'
 import { RefineButton } from './refine'
+import { CopyPollDialog } from './copy-poll'
+import { PasteThreadDialog } from './paste-thread'
 import { MentionPicker, SocialMentionPlugin } from './social-mention'
 import { type SaveState, useDraftDocument } from './useDraftDocument'
 import { VersionOptionsBar } from './version-options'
@@ -104,7 +110,18 @@ const DraftEditor = dynamic(() => import('@/components/drafts/DraftEditor'), {
 type Panel = 'properties' | 'preview' | 'comments' | 'assistant'
 
 /** The dialogs the composer opens. */
-type Dialog = 'schedule' | 'queue' | 'publish' | 'manage' | 'share' | 'backups' | 'compare' | null
+type Dialog =
+  | 'schedule'
+  | 'queue'
+  | 'publish'
+  | 'manage'
+  | 'share'
+  | 'backups'
+  | 'compare'
+  | 'paste'
+  | 'media'
+  | 'copy-poll'
+  | null
 
 /** A handful of emoji, one click from the post; the system picker has the rest. */
 const EMOJI = [
@@ -233,19 +250,43 @@ export function WriteComposer({
       : null
   })
   const [dialog, setDialog] = React.useState<Dialog>(() =>
-    params.get('panel') === 'backups'
-      ? 'backups'
-      : params.get('panel') === 'schedule'
-        ? 'schedule'
-        : params.has('connected')
-          ? 'manage'
-          : null
+    params.has('attach')
+      ? 'media'
+      : params.get('panel') === 'backups'
+        ? 'backups'
+        : params.get('panel') === 'schedule'
+          ? 'schedule'
+          : params.has('connected')
+            ? 'manage'
+            : null
   )
+  const [pastedPost, setPastedPost] = React.useState<ReturnType<typeof nativePostURL>>(null)
+  const [quotingPastedPost, setQuotingPastedPost] = React.useState(false)
   const [focus, setFocus] = React.useState(false)
   const [compact, setCompact] = React.useState(false)
+  const [panelWidth, setPanelWidth] = React.useState(320)
+  const [panelMaximum, setPanelMaximum] = React.useState(640)
+  const composerArea = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    const area = composerArea.current
+    if (!area) return
+    const observer = new ResizeObserver(([entry]) => {
+      const maximum = Math.max(280, Math.min(640, Math.floor(entry.contentRect.width - 360)))
+      setPanelMaximum(maximum)
+      setPanelWidth((width) => Math.min(width, maximum))
+    })
+    observer.observe(area)
+    return () => observer.disconnect()
+  }, [])
+  const resizingPanel = React.useRef<{ x: number; width: number } | null>(null)
   const shareButton = React.useRef<HTMLButtonElement>(null)
   const [posts, setPosts] = React.useState(initialPosts)
   const editor = React.useRef<PlateEditor | null>(null)
+  const editorChannel = React.useRef<DraftChannel | null>(null)
+  const [copiedPoll, setCopiedPoll] = React.useState<{
+    channel: DraftChannel
+    poll: PostPoll
+  } | null>(null)
   const [editorInstance, setEditorInstance] = React.useState<PlateEditor | null>(null)
   const primary = document.primaryPlatform
   const accounts = set?.accounts ?? []
@@ -288,7 +329,12 @@ export function WriteComposer({
         {
           channel: account.channel,
           connectionId: account.id,
-          standing: { maxWeightedCharacters: account.xCaptionLimit, articles: account.xArticles },
+          standing: {
+            maxWeightedCharacters: account.xCaptionLimit,
+            articles: account.xArticles,
+            pollLimits: account.pollLimits,
+            nativeQuotes: account.nativeQuotes,
+          },
         },
         pendingBlocks
       ),
@@ -527,7 +573,14 @@ export function WriteComposer({
         }: {
           number: number
           settings: Parameters<typeof PostSettingsTools>[0]['settings']
-        }) => <PostSettingsTools channel={active} number={number} settings={settings} />
+        }) => (
+          <PostSettingsTools
+            limits={accounts.find((item) => item.channel === active)?.pollLimits}
+            channel={active}
+            number={number}
+            settings={settings}
+          />
+        )
       : undefined,
     readOnly: !canEdit,
     services,
@@ -611,7 +664,11 @@ export function WriteComposer({
             ? 'Planned'
             : null
   return (
-    <div className={cn('flex min-h-full', compact && 'write-compact')} data-testid="write-composer">
+    <div
+      ref={composerArea}
+      className={cn('flex min-h-full', compact && 'write-compact')}
+      data-testid="write-composer"
+    >
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-white/[0.06] bg-[#111111]/90 px-3 py-2 backdrop-blur">
           <DraftsDrawerButton />
@@ -793,6 +850,29 @@ export function WriteComposer({
                 <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('share')}>
                   Share…
                 </DropdownMenuItem>
+                {canEdit && activePublication.settings[0]?.poll ? (
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setCopiedPoll({
+                        channel: active,
+                        poll: structuredClone(activePublication.settings[0].poll!),
+                      })
+                      setDialog('copy-poll')
+                    }}
+                  >
+                    Copy poll to channel…
+                  </DropdownMenuItem>
+                ) : null}
+                {canEdit && editorInstance ? (
+                  <DropdownMenuItem onSelect={() => setDialog('media')}>
+                    Manage media…
+                  </DropdownMenuItem>
+                ) : null}
+                {canEdit && CAPABILITIES[active].thread ? (
+                  <DropdownMenuItem onSelect={() => setDialog('paste')}>
+                    Paste as thread…
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem onSelect={() => setDialog('backups')}>
                   View automatic backups
                 </DropdownMenuItem>
@@ -865,6 +945,52 @@ export function WriteComposer({
           versions={document.versions}
         />
         <TargetBanner draft={server} />
+        {canEdit && pastedPost && server.kind === 'standard' ? (
+          <div
+            role="status"
+            className="flex flex-wrap items-center gap-2 border-b px-4 py-3 text-sm"
+          >
+            <span>
+              {CAPABILITIES[pastedPost.channel].label} post detected. Start a native quote in a new
+              draft?
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={quotingPastedPost}
+              onClick={async () => {
+                setQuotingPastedPost(true)
+                try {
+                  await createWritingDraft(
+                    {
+                      kind: 'quote',
+                      target: { url: pastedPost.url },
+                      primaryPlatform: pastedPost.channel,
+                      socialSetId: server.socialSetId ?? undefined,
+                      channelConnectionIds: accounts
+                        .filter((account) => account.channel === pastedPost.channel)
+                        .map((account) => account.id),
+                    },
+                    (id) => router.push(`/write/${id}`),
+                    flush
+                  )
+                } finally {
+                  setQuotingPastedPost(false)
+                }
+              }}
+            >
+              Create native quote draft
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={quotingPastedPost}
+              onClick={() => setPastedPost(null)}
+            >
+              Keep as link
+            </Button>
+          </div>
+        ) : null}
         <VersionOptionsBar
           channel={active}
           onApplyFinisher={
@@ -886,7 +1012,23 @@ export function WriteComposer({
               : undefined
           }
         />
-        <div className="relative flex-1" data-testid="composer-body" ref={bodyArea}>
+        {canEdit && activePublication.serialized.posts.every((post) => !post.caption.trim()) ? (
+          <Button
+            variant="ghost"
+            className="mx-6 mt-3 self-start text-sm"
+            onClick={() => togglePanel('assistant')}
+          >
+            Find a writing prompt
+          </Button>
+        ) : null}
+        <div
+          className="relative flex-1"
+          data-testid="composer-body"
+          ref={bodyArea}
+          onPasteCapture={(event) => {
+            if (canEdit) setPastedPost(nativePostURL(event.clipboardData.getData('text/plain')))
+          }}
+        >
           {active === primary ? (
             <DraftEditor
               {...editorProps}
@@ -898,6 +1040,7 @@ export function WriteComposer({
               onDiscussionsChange={onDiscussionsChange}
               onEditor={(next) => {
                 editor.current = next
+                editorChannel.current = active
                 setEditorInstance(next)
               }}
               toolbarExtras={
@@ -939,6 +1082,8 @@ export function WriteComposer({
                 onDiscussionsChange={() => undefined}
                 onEditor={(next) => {
                   editor.current = next
+                  editorChannel.current = active
+                  setEditorInstance(next)
                 }}
                 toolbarExtras={
                   <ToolbarExtras
@@ -1025,8 +1170,56 @@ export function WriteComposer({
       {panel && !focus && !narrow && !params.has('settings') ? (
         <aside
           aria-label={PANEL_TITLES[panel]}
-          className="w-80 shrink-0 overflow-y-auto border-l border-white/[0.06]"
+          className="relative max-w-[55vw] shrink-0 overflow-y-auto border-l border-white/[0.06]"
+          style={{ width: panelWidth }}
         >
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize side panel"
+            aria-valuemin={280}
+            aria-valuemax={panelMaximum}
+            aria-valuenow={panelWidth}
+            tabIndex={0}
+            className="absolute bottom-0 left-0 top-0 z-10 w-2 cursor-col-resize touch-none hover:bg-sky-500/30 focus-visible:bg-sky-500/40"
+            onPointerDown={(event) => {
+              event.preventDefault()
+              resizingPanel.current = { x: event.clientX, width: panelWidth }
+              event.currentTarget.setPointerCapture(event.pointerId)
+            }}
+            onPointerMove={(event) => {
+              const drag = resizingPanel.current
+              if (drag)
+                setPanelWidth(
+                  Math.max(
+                    280,
+                    Math.min(panelMaximum, Math.round(drag.width + drag.x - event.clientX))
+                  )
+                )
+            }}
+            onPointerUp={(event) => {
+              resizingPanel.current = null
+              event.currentTarget.releasePointerCapture(event.pointerId)
+            }}
+            onPointerCancel={() => {
+              resizingPanel.current = null
+            }}
+            onKeyDown={(event) => {
+              if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+                event.preventDefault()
+                setPanelWidth((width) =>
+                  event.key === 'Home'
+                    ? 280
+                    : event.key === 'End'
+                      ? panelMaximum
+                      : Math.max(
+                          280,
+                          Math.min(panelMaximum, width + (event.key === 'ArrowLeft' ? 20 : -20))
+                        )
+                )
+              }
+            }}
+          />
           <PanelHeader onClose={() => setPanel(null)} title={PANEL_TITLES[panel]} />
           {panelContent}
         </aside>
@@ -1106,6 +1299,13 @@ export function WriteComposer({
       ) : null}
       {dialog === 'share' ? (
         <ShareDialog
+          onInsertLink={
+            CAPABILITIES[active].thread
+              ? (link) => {
+                  if (editor.current) appendPost(editor.current, `Read the thread: ${link}`)
+                }
+              : undefined
+          }
           canEdit={canEdit}
           draft={server}
           onClose={() => {
@@ -1113,6 +1313,63 @@ export function WriteComposer({
             requestAnimationFrame(() => shareButton.current?.focus())
           }}
           onDraft={setServer}
+        />
+      ) : null}
+      {dialog === 'copy-poll' && copiedPoll ? (
+        <CopyPollDialog
+          source={copiedPoll.channel}
+          poll={copiedPoll.poll}
+          destinations={accounts.map((account) => ({
+            channel: account.channel,
+            limits: account.pollLimits,
+          }))}
+          onClose={() => setDialog(null)}
+          onPrepare={(target) => {
+            if (target !== primary && versionFor(document.versions, target).mode !== 'manual')
+              update((current) => ({
+                versions: forkVersion(
+                  current.versions,
+                  target,
+                  current.value as PlateBody,
+                  server.version,
+                  Boolean(CAPABILITIES[target].thread)
+                ),
+              }))
+            setTab(target)
+          }}
+          onCopy={(target, poll) => {
+            const current = editor.current
+            const index = current?.children.findIndex((node) => node.type === 'post_break') ?? -1
+            if (!current || editorChannel.current !== target || index < 0) {
+              toast.info('Wait for the destination editor to load, then copy the poll.')
+              return false
+            }
+            current.tf.setNodes({ poll: structuredClone(poll) }, { at: [index] })
+            toast.success('Poll copied. Review the destination before scheduling.')
+            return true
+          }}
+        />
+      ) : null}
+      {dialog === 'media' && editorInstance && services.uploadFile ? (
+        <MediaTools
+          editor={editorInstance}
+          uploadFile={services.uploadFile}
+          draftId={initial.id}
+          returnedAsset={params.get('attach') ?? undefined}
+          onClose={() => {
+            setDialog(null)
+            const url = new URL(window.location.href)
+            url.searchParams.delete('attach')
+            window.history.replaceState(null, '', url)
+          }}
+        />
+      ) : null}
+      {dialog === 'paste' ? (
+        <PasteThreadDialog
+          channel={active}
+          editor={editor}
+          limit={activePublication.serialized.limit}
+          onClose={() => setDialog(null)}
         />
       ) : null}
       {dialog === 'backups' ? (
@@ -1271,7 +1528,11 @@ function ToolbarExtras({
         ALT
       </Button>
       {describing && editor.current ? (
-        <DescribeImages editor={editor.current} onClose={() => setDescribing(false)} />
+        <DescribeImages
+          aiEnabled={aiEnabled}
+          editor={editor.current}
+          onClose={() => setDescribing(false)}
+        />
       ) : null}
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>

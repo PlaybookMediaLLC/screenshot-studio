@@ -17,6 +17,9 @@ import type { Publication } from '@/lib/write/publication'
 import { cn } from '@/lib/utils'
 import type { ComposerAccount } from './platforms'
 import { PdfCarousel } from './pdf-carousel'
+import { PreviewViewport } from './preview-viewport'
+import { PreviewLinkCard } from './preview-link-card'
+import { previewExcerpt } from '@/lib/write/preview-text'
 
 /** Devices the mobile preview lays out for, at their CSS viewport sizes. */
 const DEVICES = [
@@ -28,9 +31,6 @@ const DEVICES = [
   { height: 780, label: 'Samsung Galaxy S25', width: 360 },
   { height: 915, label: 'Google Pixel 10', width: 412 },
 ] as const
-
-/** Where a platform cuts a long post with "more": X shows 280 before "Show more"; LinkedIn about 210. */
-const CUTOFFS: Partial<Record<DraftChannel, number>> = { linkedin: 210, x: 280 }
 
 /** One destination's preview: its account and its publication. */
 export type PreviewItem = { account: ComposerAccount; publication: Publication }
@@ -98,20 +98,13 @@ export function PreviewPanel({
           </SelectContent>
         </Select>
       </div>
-      <div
-        className={cn(
-          'mx-auto w-full overflow-y-auto rounded-2xl border border-white/10 bg-black',
-          size ? 'shadow-2xl' : ''
-        )}
-        data-testid={`preview-${item.account.channel}`}
-        style={size ? { height: Math.min(size.height, 720), width: size.width } : undefined}
-      >
+      <PreviewViewport size={size} testId={`preview-${item.account.channel}`}>
         {item.account.channel === 'linkedin' ? (
           <LinkedInPost item={item} target={target} />
         ) : (
           <ThreadPreview item={item} target={target} />
         )}
-      </div>
+      </PreviewViewport>
       {item.publication.problems.length > 0 ? (
         <ul className="grid gap-0.5" role="alert">
           {item.publication.problems.map((problem) => (
@@ -155,20 +148,25 @@ function Avatar({ account, size = 'size-10' }: { account: ComposerAccount; size?
 /** Text cut where the platform shows "more", with the rest one tap away. */
 function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
   const [open, setOpen] = React.useState(false)
-  const cutoff = CUTOFFS[channel]
-  const lines = text.split('\n')
-  const long =
-    cutoff !== undefined &&
-    ([...text].length > cutoff || (channel === 'linkedin' && lines.length > 3))
-  const shown =
-    !long || open
-      ? text
-      : channel === 'linkedin'
-        ? lines.slice(0, 3).join('\n').slice(0, cutoff)
-        : [...text].slice(0, cutoff).join('')
+  const excerpt = previewExcerpt(text, channel)
+  const textRef = React.useRef<HTMLSpanElement>(null)
+  const [clipped, setClipped] = React.useState(false)
+  React.useEffect(() => {
+    const element = textRef.current
+    if (!element || channel !== 'linkedin' || open) return
+    const observer = new ResizeObserver(() =>
+      setClipped(element.scrollHeight > element.clientHeight + 1)
+    )
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [channel, open, text])
+  const long = excerpt !== text || clipped
+  const shown = open ? text : excerpt
   return (
     <p className="whitespace-pre-wrap break-words text-[15px] leading-snug text-neutral-100">
-      <Mentions channel={channel} text={shown} />
+      <span ref={textRef} className={channel === 'linkedin' && !open ? 'line-clamp-3' : undefined}>
+        <Mentions channel={channel} text={shown} />
+      </span>
       {long && !open ? (
         <>
           {channel === 'linkedin' ? '… ' : ' '}
@@ -213,7 +211,15 @@ function Mentions({ channel, text }: { channel: DraftChannel; text: string }) {
 }
 
 /** A post's images in the platform's grid. */
-function Media({ assetIds, channel }: { assetIds: string[]; channel: DraftChannel }) {
+function Media({
+  assetIds,
+  channel,
+  types,
+}: {
+  assetIds: string[]
+  channel: DraftChannel
+  types: Publication['mediaTypes']
+}) {
   const shown = assetIds.slice(0, CAPABILITIES[channel].media.imageLimit)
   if (shown.length === 0) return null
   return (
@@ -223,15 +229,27 @@ function Media({ assetIds, channel }: { assetIds: string[]; channel: DraftChanne
         shown.length > 1 && 'grid-cols-2'
       )}
     >
-      {shown.map((assetId) => (
-        // biome-ignore lint/performance/noImgElement: signed asset redirects
-        <img
-          alt=""
-          className="aspect-video w-full bg-white/5 object-cover"
-          key={assetId}
-          src={assetContentUrl(assetId)}
-        />
-      ))}
+      {shown.map((assetId) =>
+        types[assetId] === 'video' ? (
+          <video
+            key={assetId}
+            aria-label="Video attachment"
+            controls
+            playsInline
+            preload="metadata"
+            className="aspect-video w-full bg-black object-contain"
+            src={assetContentUrl(assetId)}
+          />
+        ) : (
+          // biome-ignore lint/performance/noImgElement: signed asset redirects
+          <img
+            alt=""
+            className="aspect-video w-full bg-white/5 object-cover"
+            key={assetId}
+            src={assetContentUrl(assetId)}
+          />
+        )
+      )}
     </div>
   )
 }
@@ -261,10 +279,12 @@ function Poll({
         </span>
       ))}
       <p className="text-[11px] text-neutral-400">
-        {poll.durationMinutes >= 1_440
-          ? `${poll.durationMinutes / 1_440} day${poll.durationMinutes === 1_440 ? '' : 's'}`
-          : `${poll.durationMinutes} minutes`}{' '}
-        left
+        {poll.durationMinutes === 0
+          ? 'Duration set by the platform'
+          : poll.durationMinutes >= 1_440
+            ? `${poll.durationMinutes / 1_440} day${poll.durationMinutes === 1_440 ? '' : 's'}`
+            : `${poll.durationMinutes} minutes`}{' '}
+        {poll.durationMinutes > 0 ? 'left' : ''}
       </p>
     </div>
   )
@@ -294,6 +314,19 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
   const posts = publication.serialized.posts
   return (
     <div className="p-3">
+      {publication.target.options?.articleTitle ? (
+        <header className="mb-3">
+          <p className="text-xs text-neutral-400">Article</p>
+          <h3 className="text-lg font-semibold">{publication.target.options.articleTitle}</h3>
+          {publication.target.options.articleCoverAssetId && (
+            <Media
+              assetIds={[publication.target.options.articleCoverAssetId]}
+              channel={channel}
+              types={{}}
+            />
+          )}
+        </header>
+      ) : null}
       {target?.kind === 'reply' ? (
         <p className="mb-2 text-xs text-neutral-400">Replying to {target.author ?? target.url}</p>
       ) : null}
@@ -319,11 +352,24 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
                 <span className="ml-1 text-neutral-400">· now</span>
               </p>
               <Truncated channel={channel} text={post.caption} />
-              <Media assetIds={post.assetIds} channel={channel} />
+              {post.assetIds.length === 0 &&
+                !publication.target.poll &&
+                target?.kind !== 'quote' && <PreviewLinkCard text={post.caption} />}
+              <Media assetIds={post.assetIds} channel={channel} types={publication.mediaTypes} />
               {index === 0 && publication.target.poll ? (
                 <Poll channel={channel} poll={publication.target.poll} />
               ) : null}
-              {index === 0 && target?.kind === 'quote' ? <TargetCard target={target} /> : null}
+              {index === 0 && target?.kind === 'quote' ? (
+                <>
+                  <TargetCard target={target} />
+                  {channel === 'mastodon' ? (
+                    <p className="mt-2 text-xs text-neutral-400">
+                      Mastodon checks quote permission at publishing. Remote approval can remain
+                      pending; open the published post to check it.
+                    </p>
+                  ) : null}
+                </>
+              ) : null}
               {settings.quoteFirstPost ? (
                 <div className="mt-2 rounded-xl border border-dashed border-white/15 p-2 text-xs text-neutral-400">
                   Quotes the first post once it is live
@@ -370,8 +416,14 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
       </header>
       <div className="mt-2">
         <Truncated channel="linkedin" text={post?.caption ?? ''} />
+        {!post?.assetIds.length &&
+          !options?.documentAssetId &&
+          !publication.target.poll &&
+          !target && <PreviewLinkCard text={post?.caption ?? ''} />}
       </div>
-      {post ? <Media assetIds={post.assetIds} channel="linkedin" /> : null}
+      {post ? (
+        <Media assetIds={post.assetIds} channel="linkedin" types={publication.mediaTypes} />
+      ) : null}
       {publication.target.poll ? (
         <Poll channel="linkedin" poll={publication.target.poll} question={options?.pollQuestion} />
       ) : null}

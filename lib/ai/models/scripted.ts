@@ -862,6 +862,10 @@ function scriptCopySuggestions(text: string, system: string) {
 export function createScriptedModel(modelId: string): LanguageModelV4 {
   return new MockLanguageModelV4({
     doGenerate: async (options) => {
+      // Credential-free E2E protocol fixture, not an audio recognition model.
+      if (systemText(options).startsWith('Transcribe this voice memo faithfully')) {
+        return respond([{type:'text',text:'Today we shipped a small improvement. Check the measured results before adding numbers.'}])
+      }
       const names = toolNames(options)
       const { calls, results, text } = readPrompt(options)
       const submit = SUBMIT_TOOLS.find((name) => names.includes(name))

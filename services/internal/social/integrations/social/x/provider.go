@@ -419,57 +419,54 @@ func (p *Provider) loadAllTweets(ctx context.Context, c *client, id, until, sinc
 
 const dayjsZ = "2006-01-02T15:04:05-07:00"
 
-func (p *Provider) Analytics(ctx context.Context, id, accessToken string, date int) ([]integrations.AnalyticsData, error) {
+// Analytics reads observed follower totals and cumulative engagement on the latest
+// 100 original posts in the requested window, including posts made outside Shots.
+// It never manufactures a starting zero or a percentage change.
+func (p *Provider) Analytics(ctx context.Context, id, accessToken string, days int) ([]integrations.AnalyticsData, error) {
 	out := []integrations.AnalyticsData{}
 	if os.Getenv("DISABLE_X_ANALYTICS") != "" {
 		return out, nil
 	}
-	now := time.Now()
-	until := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999e6, now.Location())
-	since := now.AddDate(0, 0, -min(date, 100))
+	now := time.Now().UTC()
 	c := newClient(accessToken)
-
-	all, err := p.loadAllTweets(ctx, c, id, until.Format(dayjsZ), since.Format(dayjsZ), "")
-	if err != nil {
-		log.Println(err)
-		return out, nil
+	var account struct {
+		Data *struct {
+			PublicMetrics map[string]*int64 `json:"public_metrics"`
+		} `json:"data"`
 	}
-	seen := map[string]bool{}
-	ids := []string{}
-	for _, t := range all {
-		if !seen[t.ID] {
-			seen[t.ID] = true
-			ids = append(ids, t.ID)
+	if err := c.get(ctx, v2("users/"+id), url.Values{"user.fields": {"public_metrics"}}, &account); err != nil {
+		return nil, err
+	}
+	if account.Data != nil {
+		if count := account.Data.PublicMetrics["followers_count"]; count != nil {
+			out = append(out, integrations.AnalyticsData{Label: "Followers", Data: []integrations.AnalyticsItem{{Total: strconv.FormatInt(*count, 10), Date: now.Format(time.DateOnly)}}})
 		}
 	}
-	if len(ids) == 0 {
-		return out, nil
-	}
-	var data struct {
+	var timeline struct {
 		Data []tweet `json:"data"`
 	}
-	if err := c.get(ctx, v2("tweets"), url.Values{"ids": {strings.Join(ids, ",")}, "tweet.fields": {"public_metrics"}}, &data); err != nil {
-		log.Println(err)
-		return out, nil
+	query := url.Values{"tweet.fields": {"public_metrics"}, "exclude": {"replies,retweets"}, "max_results": {"100"}, "start_time": {now.AddDate(0, 0, -max(1, min(days, 100))).Format(time.RFC3339)}}
+	if err := c.get(ctx, v2("users/"+id+"/tweets"), query, &timeline); err != nil {
+		return nil, err
 	}
-	keys := []string{"impression_count", "bookmark_count", "like_count", "quote_count", "reply_count", "retweet_count"}
 	totals := map[string]int64{}
-	for _, t := range data.Data {
-		for _, k := range keys {
-			if v := t.PublicMetrics[k]; v != nil {
-				totals[k] += *v
+	seen := map[string]bool{}
+	for _, post := range timeline.Data {
+		if seen[post.ID] {
+			continue
+		}
+		seen[post.ID] = true
+		for metric, value := range post.PublicMetrics {
+			if value != nil {
+				totals[metric] += *value
 			}
 		}
 	}
-	for _, k := range keys {
-		out = append(out, integrations.AnalyticsData{
-			Label:            strings.ToUpper(strings.Replace(strings.Replace(k, "_count", "", 1), "_", " ", 1)),
-			PercentageChange: 5,
-			Data: []integrations.AnalyticsItem{
-				{Total: "0", Date: since.Format("2006-01-02")},
-				{Total: strconv.FormatInt(totals[k], 10), Date: until.Format("2006-01-02")},
-			},
-		})
+	for _, metric := range []string{"impression_count", "bookmark_count", "like_count", "quote_count", "reply_count", "retweet_count"} {
+		if total, known := totals[metric]; known {
+			label := strings.ToUpper(strings.ReplaceAll(strings.TrimSuffix(metric, "_count"), "_", " ")) + " (latest 100 original posts, " + strconv.Itoa(max(1, min(days, 100))) + "-day window)"
+			out = append(out, integrations.AnalyticsData{Label: label, Data: []integrations.AnalyticsItem{{Total: strconv.FormatInt(total, 10), Date: now.Format(time.DateOnly)}}})
+		}
 	}
 	return out, nil
 }
@@ -486,8 +483,7 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 		Data *tweet `json:"data"`
 	}
 	if err := c.get(ctx, v2("tweets/"+postID), url.Values{"tweet.fields": {"public_metrics,created_at"}}, &res); err != nil {
-		log.Println("Error fetching X post analytics:", err)
-		return out, nil
+		return nil, err
 	}
 	if res.Data == nil || res.Data.PublicMetrics == nil {
 		return out, nil

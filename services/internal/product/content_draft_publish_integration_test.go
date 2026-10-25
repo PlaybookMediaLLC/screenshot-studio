@@ -328,7 +328,7 @@ func TestWritePublishing(t *testing.T) {
 			mime  string
 			bytes int
 		}{
-			"png": {"image/png", 5_000_000}, "oversized": {"image/png", 5_000_001},
+			"png": {"image/png", 5_000_000}, "oversized": {"image/png", 20_000_001},
 			"gif": {"image/gif", 15_000_000}, "video": {"video/mp4", 1_000}, "pdf": {"application/pdf", 100},
 		}
 		for name, info := range assets {

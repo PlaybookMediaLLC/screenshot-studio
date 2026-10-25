@@ -41,8 +41,10 @@ func TestPreferenceCeilingAndRestrictedChannels(t *testing.T) {
 	}
 	for _, d := range activity.Catalogue {
 		p := defaultPolicy()
-		if !p.Events[d.ID].InApp || p.Events[d.ID].Slack {
-			t.Fatalf("unsafe default for %s", d.ID)
+		// Publish success is on after a user connects a verified destination;
+		// every other shared-channel event still requires explicit opt-in.
+		if !p.Events[d.ID].InApp || p.Events[d.ID].Slack != (d.ID == "post.published") {
+			t.Fatalf("unexpected default for %s", d.ID)
 		}
 		p.Availability = &Channels{}
 		if enabled(p, defaultPreferences(), d, "in_app") || enabled(p, defaultPreferences(), d, "email") {

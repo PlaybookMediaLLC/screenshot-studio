@@ -246,7 +246,7 @@ func TestInvalidMediaSelectionMakesNoProviderMutation(t *testing.T) {
 		{name: "GIF with image", files: [][]byte{gifFixture(t, 2), pngBytes()}},
 		{name: "video with image", files: [][]byte{videoFixture(t, 0), pngBytes()}},
 		{name: "invalid second file", files: [][]byte{pngBytes(), []byte("not an image")}},
-		{name: "oversized actual PNG", files: [][]byte{append(pngBytes(), make([]byte, 5000001)...)}},
+		{name: "oversized actual PNG", files: [][]byte{append(pngBytes(), make([]byte, 20000001)...)}},
 		{name: "truncated PNG", files: [][]byte{pngBytes()[:len(pngBytes())-1]}},
 		{name: "bad PNG CRC", files: [][]byte{append(append([]byte(nil), pngBytes()[:len(pngBytes())-1]...), 0)}},
 		{name: "GIF Article", files: [][]byte{gifFixture(t, 2)}, article: true},
@@ -276,7 +276,7 @@ func TestInvalidMediaSelectionMakesNoProviderMutation(t *testing.T) {
 				post.Settings = marshal(XDto{PostType: ptr("article"), ArticleTitle: ptr("Title"), ArticleStatus: ptr("draft")})
 			}
 			_, err := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{post}, publishingAccount())
-			if temporalx.FailureType(err) != temporalx.TypeBadBody || mutations.Load() != 0 || len(*calls) != 1 {
+			if temporalx.FailureType(err) != temporalx.TypePublicationRejected || mutations.Load() != 0 || len(*calls) != 1 {
 				t.Fatalf("invalid media was uploaded: %v calls=%d", err, len(*calls))
 			}
 			if files, _ := filepath.Glob(filepath.Join(temp, "shots-x-media-*")); len(files) != 0 {
@@ -381,7 +381,7 @@ func TestPendingMediaNeedsFactsAndCurrentVideoAllowance(t *testing.T) {
 		tc.Message = "hi"
 		tc.Attempting = true
 		tc.Confirmed = true
-		if _, err := New().FinalizePost(context.Background(), "a:b", marshal(tc), publishingAccount()); temporalx.FailureType(err) != temporalx.TypeBadBody {
+		if _, err := New().FinalizePost(context.Background(), "a:b", marshal(tc), publishingAccount()); temporalx.FailureType(err) != temporalx.TypePublicationRejected {
 			t.Fatalf("pending bypass: %v", err)
 		}
 	}
@@ -527,4 +527,29 @@ func FuzzInspectMP4(f *testing.F) {
 		}
 		_, _ = inspectMP4(context.Background(), file, int64(len(data)))
 	})
+}
+
+func TestOversizeStaticImageIsResizedWithoutChangingSource(t *testing.T) {
+	source := append(pngBytes(), make([]byte, 5000001)...)
+	path := t.TempDir() + "/large.png"
+	if err := os.WriteFile(path, source, 0600); err != nil {
+		t.Fatal(err)
+	}
+	caps := socialidentity.XVerifiedAccountLimits("read-write", ptr("None"))
+	staged, err := stageMedia(context.Background(), path, caps, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer staged.close()
+	uploaded, err := os.ReadFile(staged.file.Name())
+	if err != nil || len(uploaded) == 0 || int64(len(uploaded)) > caps.ImageMaxBytes || staged.facts.Bytes != int64(len(uploaded)) {
+		t.Fatalf("invalid resized image: %+v %v", staged.facts, err)
+	}
+	if _, _, err := image.Decode(bytes.NewReader(uploaded)); err != nil {
+		t.Fatal(err)
+	}
+	original, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(original, source) {
+		t.Fatal("workspace original was changed")
+	}
 }

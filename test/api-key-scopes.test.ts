@@ -8,9 +8,11 @@ test('organization API keys expose only intake, artifact, draft, onboarding, and
   assert.deepEqual(apiKeyScopes, [
     'artifact:read',
     'asset:write',
+    'draft:comment',
     'draft:write',
     'onboarding:run',
     'post:schedule',
+    'queue:write',
     'release:create',
     'source:write',
     'upload:sign',

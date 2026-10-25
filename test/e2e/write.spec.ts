@@ -295,15 +295,46 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     )
     await snap(page, 'write-publish-review')
 
-    // Publish now: the social API mock refuses posts, so both destinations fail.
+    // These connections have no live credentials. The direct publisher may
+    // report a definite refusal or an uncertain HTTP outcome. Unknown delivery
+    // must remain non-retryable until a person reconciles it; the discovery mock
+    // does not intercept native LinkedIn publishing.
     await publish.getByRole('button', { name: 'Publish now' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     await expect
-      .poll(async () => (await draftPosts(draftId)).map((post) => post.status).sort(), {
-        timeout: 180_000,
-      })
-      .toEqual(['FAILED', 'FAILED'])
+      .poll(
+        async () => {
+          const posts = await draftPosts(draftId)
+          return (
+            posts.length === 2 &&
+            posts.every((post) => ['FAILED', 'UNKNOWN_DELIVERY'].includes(post.status))
+          )
+        },
+        { timeout: 180_000 }
+      )
+      .toBe(true)
     await page.reload()
+    const unknown = page
+      .getByTestId('draft-post')
+      .filter({ hasText: 'The platform did not confirm' })
+    while (await unknown.count()) {
+      await expect(
+        unknown.first().getByRole('button', { name: 'Retry this destination' })
+      ).toHaveCount(0)
+      await unknown.first().getByRole('button', { name: 'I checked the account…' }).click()
+      const remaining = (await unknown.count()) - 1
+      await page.getByRole('button', { name: 'It is not there', exact: true }).click()
+      await expect
+        .poll(
+          async () =>
+            (await draftPosts(draftId)).filter((post) => post.status === 'UNKNOWN_DELIVERY').length
+        )
+        .toBe(remaining)
+      await page.reload()
+    }
+    await expect
+      .poll(async () => (await draftPosts(draftId)).map((post) => post.status).sort())
+      .toEqual(['FAILED', 'FAILED'])
     const failed = page.getByTestId('draft-post').filter({ hasText: 'did not publish' })
     await expect(failed).toHaveCount(2, { timeout: 60_000 })
     await snap(page, 'write-failed-destinations')

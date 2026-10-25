@@ -19,6 +19,9 @@ export const isoInstantSchema = z.string()
 /** Light, dark, or the operating system's choice. */
 export const themeSchema = z.enum(['light', 'dark', 'system'])
 
+/** An optional personal accent; empty uses the standard palette. */
+export const accentColorSchema = z.union([z.literal(''), z.string().regex(/^#[0-9a-fA-F]{6}$/)])
+
 /** How the desktop navigation shows. */
 export const navigationLayoutSchema = z.enum(['compact', 'dynamic', 'expanded'])
 
@@ -31,6 +34,7 @@ export const textDirectionSchema = z.enum(['ltr', 'rtl'])
 /** A person's preferences. */
 export const userPreferencesSchema = mirrors<UserPreferences>()(
   z.object({
+    accentColor: accentColorSchema,
     developerMode: z.boolean(),
     dismissedTips: z.array(z.string()),
     emailNotifications: z.boolean(),
@@ -55,6 +59,7 @@ export const helpTipIdSchema = z
 /** A preferences save: only the fields set change. */
 export const userPreferencesUpdateSchema = z
   .object({
+    accentColor: accentColorSchema.optional(),
     baseVersion: z.number().int().min(1).optional(),
     developerMode: z.boolean().optional(),
     dismissTip: helpTipIdSchema.optional(),

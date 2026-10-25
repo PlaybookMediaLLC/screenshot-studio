@@ -39,3 +39,20 @@ test('comment commands keep explicit mention identities and thread targets', () 
     { action: 'resolve', baseVersion: 2, threadId: 'thread-1', resolved: false }
   )
 })
+
+test('post and text anchors remain on their original post after content changes', async () => {
+  const { commentAnchorExists } = await import('../lib/write/comment-anchors')
+  const { importedBody } = await import('../lib/write/import-text')
+  const body = importedBody(['Evidence here', 'Evidence elsewhere'])
+  const versions = { schemaVersion: 1 as const, versions: [] }
+  const postId = body[0].id
+  const anchor = { scope: 'text', platform: 'x', postId, documentContent: 'Evidence here' }
+  assert.equal(commentAnchorExists(anchor, body, versions, 'x'), true)
+  assert.equal(commentAnchorExists({ ...anchor, postId: 'deleted' }, body, versions, 'x'), false)
+  assert.equal(
+    commentAnchorExists({ ...anchor, documentContent: 'Evidence elsewhere' }, body, versions, 'x'),
+    false
+  )
+  assert.equal(commentAnchorExists({ ...anchor, scope: 'post' }, body, versions, 'x'), true)
+  assert.equal(commentAnchorExists({ ...anchor, platform: 'linkedin' }, body, versions, 'x'), false)
+})

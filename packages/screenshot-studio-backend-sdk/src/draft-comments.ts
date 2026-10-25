@@ -14,6 +14,7 @@ export const draftCommentInputSchema = z.discriminatedUnion('action', [
     baseVersion,
     commentId,
     threadId: commentId.optional(),
+    anchor: z.strictObject({platform: z.enum(['x','linkedin','threads','mastodon','bluesky','instagram']), postId: commentId, quote: z.string().min(1).max(5000).optional()}).optional(),
     ...content,
   }),
   z.strictObject({
@@ -23,6 +24,7 @@ export const draftCommentInputSchema = z.discriminatedUnion('action', [
     threadId: commentId,
     ...content,
   }),
+  z.strictObject({ action: z.literal('delete_thread'), baseVersion, threadId: commentId }),
   z.strictObject({ action: z.literal('delete'), baseVersion, commentId, threadId: commentId }),
   z.strictObject({
     action: z.literal('resolve'),

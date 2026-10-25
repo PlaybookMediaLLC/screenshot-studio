@@ -92,6 +92,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/social-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List your social sets
+         * @description Lists workspace-visible social sets and their connected identities, posting schedule, and defaults. Private member sets are excluded for API keys.
+         */
+        get: operations["listSocialSets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update future queue slots
+         * @description Changes weekly posting slots, time zone, or natural-time variation for a workspace-visible social set. Requires its current baseVersion; concurrent or repeated writes return 409. Only future slot suggestions change. Existing scheduled and planned times, approval requirements, and connected identities remain unchanged. API keys require the separate queue:write scope; draft:write does not imply it. Private social sets remain unavailable to keys.
+         */
+        patch: operations["updateSocialSetQueue"];
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}/mentions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Look up a mention with the set's own account: an X user by exact username, or a LinkedIn company page by the name in its address
+         * @description Looks up an exact X username or LinkedIn company vanity name/URL using the selected social set’s connected account. Returns provider-authoritative identifiers for structured mentions. Does not search LinkedIn people or publish anything. API keys cannot access private sets. Provider permission failures and rate limits are returned without inventing results.
+         */
+        get: operations["lookupSocialSetMentions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/social-sets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a social set
+         * @description Reads one visible social set including its posting schedule. Reading never changes approval or publishing permissions.
+         */
+        get: operations["getSocialSet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-draft-queue/best-times": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Suggest the next times to post
+         * @description Suggests times from this social set's stored engagement, or explicitly labelled default times when there is insufficient history.
+         */
+        get: operations["bestPostingTimes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/content-draft-posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List draft posts due between two times
+         * @description Lists visible draft deliveries in a window of at most 100 days (maximum 500 rows). Includes scheduled, publishing, published, failed and unknown outcomes; private sets remain hidden from API keys.
+         */
+        get: operations["listCalendarPosts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/social-instances/mastodon": {
         parameters: {
             query?: never;
@@ -1111,11 +1231,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * List draft discussion threads
+         * @description Lists existing discussion threads and authoritative author names. Filter by open/resolved status and platform. Whole-draft discussions apply to every platform. Private social sets remain unavailable to API keys.
+         */
+        get: operations["listDraftComments"];
         put?: never;
         /**
          * Comment on an authorized draft
-         * @description Adds, replies, edits, deletes or resolves a comment on a visible draft. Every active member may comment; only its author may edit a comment, while owners/admins may also delete comments. Author identities and timestamps are server-owned. All changes require baseVersion. A repeated or stale action returns 409 without another mutation: read the draft to reconcile an uncertain outcome before submitting a new action. Comment-only changes preserve current approval and never change publication content. API keys are refused.
+         * @description Adds, replies, edits, deletes or resolves a comment on a visible draft. Every active member may comment; only its author may edit a comment, while owners/admins may also delete comments. Author identities and timestamps are server-owned. A new thread may include anchor {platform, postId, quote?}; quote must match exactly once in the selected post. Omit quote to discuss the whole post. delete_thread removes a discussion; a key may only delete its own thread if all replies also belong to that key. All changes require baseVersion. A repeated or stale action returns 409 without another mutation: read the draft to reconcile an uncertain outcome before submitting a new action. Comment-only changes preserve current approval and never change publication content. API keys need the separate draft:comment scope and are attributed to their key, never a human. Private social sets remain unavailable to keys.
          */
         post: operations["mutateDraftComment"];
         delete?: never;
@@ -1745,6 +1869,7 @@ export interface components {
                 };
                 /** @default false */
                 naturalPostingTime: boolean;
+                suppressSlackOnPublish?: boolean;
                 /** @default null */
                 plannedFor: string | null;
                 /** @default null */
@@ -1894,6 +2019,7 @@ export interface components {
                 };
                 /** @default false */
                 naturalPostingTime: boolean;
+                suppressSlackOnPublish?: boolean;
                 /** @default null */
                 plannedFor: string | null;
                 /** @default null */
@@ -2066,6 +2192,7 @@ export interface components {
             };
             plainText?: string;
             title?: string;
+            importKey?: string;
             /** @enum {string} */
             kind?: "standard" | "reply" | "quote" | "repurpose" | "article";
             /** @enum {string} */
@@ -2135,6 +2262,7 @@ export interface components {
             };
             /** @default false */
             naturalPostingTime: boolean;
+            suppressSlackOnPublish?: boolean;
             /** @default null */
             plannedFor: string | null;
             /** @default null */
@@ -2330,6 +2458,10 @@ export interface components {
                 url: string | null;
                 replies: number;
                 threadProgress: {
+                    quotes?: {
+                        postId: string;
+                        state: string;
+                    }[];
                     lastReplyId?: string;
                     posted: number;
                     total: number;
@@ -2421,6 +2553,7 @@ export interface components {
                 };
                 /** @default false */
                 naturalPostingTime: boolean;
+                suppressSlackOnPublish?: boolean;
                 /** @default null */
                 plannedFor: string | null;
                 /** @default null */
@@ -2642,6 +2775,12 @@ export interface components {
             baseVersion: number;
             commentId: string;
             threadId?: string;
+            anchor?: {
+                /** @enum {string} */
+                platform: "x" | "linkedin" | "threads" | "mastodon" | "bluesky" | "instagram";
+                postId: string;
+                quote?: string;
+            };
             text: string;
             mentionUserIds?: string[];
         } | {
@@ -2652,6 +2791,11 @@ export interface components {
             threadId: string;
             text: string;
             mentionUserIds?: string[];
+        } | {
+            /** @constant */
+            action: "delete_thread";
+            baseVersion: number;
+            threadId: string;
         } | {
             /** @constant */
             action: "delete";
@@ -2676,6 +2820,13 @@ export interface components {
             reviewStatus: "none" | "pending" | "approved" | "changes_requested";
             reviewNote: string | null;
             reviewedByUserId: string | null;
+        };
+        DraftCommentList: {
+            id: string;
+            version: number;
+            discussions: {
+                [key: string]: unknown;
+            };
         };
         /** @description Every failing request returns this envelope. `code` is stable and safe to branch on; `error` and `message` carry the same human-readable text. */
         Error: {
@@ -3167,6 +3318,711 @@ export interface operations {
             };
             /** @description The upstream host refused the request. */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listSocialSets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authorized result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            accounts: {
+                                avatarUrl: string | null;
+                                /** Format: date-time */
+                                createdAt: string;
+                                displayName: string | null;
+                                handle: string | null;
+                                /** @enum {string} */
+                                health: "connected" | "unverified" | "reconnect_required" | "expired" | "revoked" | "removed" | "permission_required";
+                                id: string;
+                                platform: string;
+                                premium: boolean;
+                                xCaptionLimit?: (280 | 25000) | null;
+                                xArticles?: boolean | null;
+                                nativeQuotes?: boolean;
+                                pollLimits?: {
+                                    max_options: number;
+                                    max_characters_per_option: number;
+                                    min_expiration: number;
+                                    max_expiration: number;
+                                } | null;
+                                socialSetId: string | null;
+                            }[];
+                            color: string;
+                            createdAt: string;
+                            defaultPlatforms: string[];
+                            engagementDefaults: {
+                                autoPlug: {
+                                    atLikes: number;
+                                    enabled: boolean;
+                                    text?: string;
+                                };
+                                autoRepost: {
+                                    atLikes: number;
+                                    enabled: boolean;
+                                    text?: string;
+                                };
+                            };
+                            id: string;
+                            isOwner: boolean;
+                            name: string;
+                            naturalPostingTimes: boolean;
+                            needsAttention: boolean;
+                            ownerUserId: string | null;
+                            postingSlots: {
+                                time: string;
+                                weekday: number;
+                            }[];
+                            primaryPlatform: string | null;
+                            publicProfile: boolean;
+                            publicSlug: string;
+                            timeZone: string;
+                            updatedAt: string;
+                            version: number;
+                            /** @enum {string} */
+                            visibility: "WORKSPACE" | "PRIVATE";
+                            weeklySlotCount: number;
+                            writingAssistant: {
+                                configuredAt: string | null;
+                                sampleCount: number;
+                                /** @enum {string} */
+                                status: "not_configured" | "in_progress" | "configured" | "disabled" | "attention";
+                                styleGuide: {
+                                    audience: string;
+                                    endings: string[];
+                                    formatting: string;
+                                    openings: string[];
+                                    platformGuidance: {
+                                        [key: string]: string;
+                                    };
+                                    prohibitedPhrases: string[];
+                                    terminology: string[];
+                                    tone: string;
+                                };
+                            };
+                        }[];
+                        orphaned: {
+                            accountCount: number;
+                            id: string;
+                            name: string;
+                        }[];
+                        unassigned: {
+                            avatarUrl: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            displayName: string | null;
+                            handle: string | null;
+                            /** @enum {string} */
+                            health: "connected" | "unverified" | "reconnect_required" | "expired" | "revoked" | "removed" | "permission_required";
+                            id: string;
+                            platform: string;
+                            premium: boolean;
+                            xCaptionLimit?: (280 | 25000) | null;
+                            xArticles?: boolean | null;
+                            nativeQuotes?: boolean;
+                            pollLimits?: {
+                                max_options: number;
+                                max_characters_per_option: number;
+                                min_expiration: number;
+                                max_expiration: number;
+                            } | null;
+                            socialSetId: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The social set is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateSocialSetQueue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    baseVersion: number;
+                    postingSlots?: {
+                        time: string;
+                        weekday: number;
+                    }[];
+                    timeZone?: string;
+                    naturalPostingTimes?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated social set. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accounts: {
+                            avatarUrl: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            displayName: string | null;
+                            handle: string | null;
+                            /** @enum {string} */
+                            health: "connected" | "unverified" | "reconnect_required" | "expired" | "revoked" | "removed" | "permission_required";
+                            id: string;
+                            platform: string;
+                            premium: boolean;
+                            xCaptionLimit?: (280 | 25000) | null;
+                            xArticles?: boolean | null;
+                            nativeQuotes?: boolean;
+                            pollLimits?: {
+                                max_options: number;
+                                max_characters_per_option: number;
+                                min_expiration: number;
+                                max_expiration: number;
+                            } | null;
+                            socialSetId: string | null;
+                        }[];
+                        color: string;
+                        createdAt: string;
+                        defaultPlatforms: string[];
+                        engagementDefaults: {
+                            autoPlug: {
+                                atLikes: number;
+                                enabled: boolean;
+                                text?: string;
+                            };
+                            autoRepost: {
+                                atLikes: number;
+                                enabled: boolean;
+                                text?: string;
+                            };
+                        };
+                        id: string;
+                        isOwner: boolean;
+                        name: string;
+                        naturalPostingTimes: boolean;
+                        needsAttention: boolean;
+                        ownerUserId: string | null;
+                        postingSlots: {
+                            time: string;
+                            weekday: number;
+                        }[];
+                        primaryPlatform: string | null;
+                        publicProfile: boolean;
+                        publicSlug: string;
+                        timeZone: string;
+                        updatedAt: string;
+                        version: number;
+                        /** @enum {string} */
+                        visibility: "WORKSPACE" | "PRIVATE";
+                        weeklySlotCount: number;
+                        writingAssistant: {
+                            configuredAt: string | null;
+                            sampleCount: number;
+                            /** @enum {string} */
+                            status: "not_configured" | "in_progress" | "configured" | "disabled" | "attention";
+                            styleGuide: {
+                                audience: string;
+                                endings: string[];
+                                formatting: string;
+                                openings: string[];
+                                platformGuidance: {
+                                    [key: string]: string;
+                                };
+                                prohibitedPhrases: string[];
+                                terminology: string[];
+                                tone: string;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Social set unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Reload the set and reconcile its changed version. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    lookupSocialSetMentions: {
+        parameters: {
+            query: {
+                channel: "x" | "linkedin";
+                q: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matched provider identities. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            handle?: string;
+                            image?: string;
+                            /** @enum {string} */
+                            kind: "person" | "organization";
+                            label: string;
+                            providerId: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Social set unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Connect a compatible account first. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getSocialSet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authorized result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accounts: {
+                            avatarUrl: string | null;
+                            /** Format: date-time */
+                            createdAt: string;
+                            displayName: string | null;
+                            handle: string | null;
+                            /** @enum {string} */
+                            health: "connected" | "unverified" | "reconnect_required" | "expired" | "revoked" | "removed" | "permission_required";
+                            id: string;
+                            platform: string;
+                            premium: boolean;
+                            xCaptionLimit?: (280 | 25000) | null;
+                            xArticles?: boolean | null;
+                            nativeQuotes?: boolean;
+                            pollLimits?: {
+                                max_options: number;
+                                max_characters_per_option: number;
+                                min_expiration: number;
+                                max_expiration: number;
+                            } | null;
+                            socialSetId: string | null;
+                        }[];
+                        color: string;
+                        createdAt: string;
+                        defaultPlatforms: string[];
+                        engagementDefaults: {
+                            autoPlug: {
+                                atLikes: number;
+                                enabled: boolean;
+                                text?: string;
+                            };
+                            autoRepost: {
+                                atLikes: number;
+                                enabled: boolean;
+                                text?: string;
+                            };
+                        };
+                        id: string;
+                        isOwner: boolean;
+                        name: string;
+                        naturalPostingTimes: boolean;
+                        needsAttention: boolean;
+                        ownerUserId: string | null;
+                        postingSlots: {
+                            time: string;
+                            weekday: number;
+                        }[];
+                        primaryPlatform: string | null;
+                        publicProfile: boolean;
+                        publicSlug: string;
+                        timeZone: string;
+                        updatedAt: string;
+                        version: number;
+                        /** @enum {string} */
+                        visibility: "WORKSPACE" | "PRIVATE";
+                        weeklySlotCount: number;
+                        writingAssistant: {
+                            configuredAt: string | null;
+                            sampleCount: number;
+                            /** @enum {string} */
+                            status: "not_configured" | "in_progress" | "configured" | "disabled" | "attention";
+                            styleGuide: {
+                                audience: string;
+                                endings: string[];
+                                formatting: string;
+                                openings: string[];
+                                platformGuidance: {
+                                    [key: string]: string;
+                                };
+                                prohibitedPhrases: string[];
+                                terminology: string[];
+                                tone: string;
+                            };
+                        };
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The social set is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    bestPostingTimes: {
+        parameters: {
+            query?: {
+                socialSetId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authorized result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            at: string;
+                            reason: string;
+                            score?: number;
+                            /** @default 0 */
+                            samplePosts: number;
+                        }[];
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The social set is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listCalendarPosts: {
+        parameters: {
+            query: {
+                from: unknown;
+                socialSetId?: string;
+                to: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The authorized result. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            caption: string;
+                            channelConnectionId: string;
+                            createdAt: string;
+                            id: string;
+                            platform: string;
+                            scheduledFor: string;
+                            /** @enum {string} */
+                            status: "DRAFT" | "SCHEDULED" | "PROCESSING" | "PUBLISHED" | "FAILED" | "CANCELLED" | "UNKNOWN_DELIVERY";
+                            metrics: {
+                                [key: string]: number;
+                            } | null;
+                            metricsAt: string | null;
+                            url: string | null;
+                            replies: number;
+                            threadProgress: {
+                                quotes?: {
+                                    postId: string;
+                                    state: string;
+                                }[];
+                                lastReplyId?: string;
+                                posted: number;
+                                total: number;
+                            };
+                            /** @default [] */
+                            automations: {
+                                attempts: number;
+                                dueAt: string;
+                                failureCode: string | null;
+                                key: string;
+                                /** @enum {string} */
+                                kind: "first_comment" | "retweet" | "unretweet" | "plug" | "repost_at_likes" | "quote";
+                                remoteId: string | null;
+                                /** @enum {string} */
+                                status: "pending" | "done" | "failed" | "skipped" | "cancelled" | "expired";
+                                updatedAt: string;
+                            }[];
+                            /** @default null */
+                            naturalOffsetSeconds: number | null;
+                            /** @default null */
+                            scheduleMode: ("queue" | "explicit") | null;
+                            /** @default null */
+                            scheduleTimeZone: string | null;
+                            /** @default null */
+                            slotAt: string | null;
+                            /** @default null */
+                            socialSetId: string | null;
+                            /** @default [] */
+                            tagIds: string[];
+                            draftId: string;
+                            draftTitle: string;
+                        }[];
+                    };
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The social set is unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5915,6 +6771,7 @@ export interface operations {
                     pinned?: boolean;
                     removeTagIds?: string[];
                     scratchpad?: string;
+                    suppressSlackOnPublish?: boolean;
                 };
             };
         };
@@ -7805,6 +8662,67 @@ export interface operations {
             };
         };
     };
+    listDraftComments: {
+        parameters: {
+            query?: {
+                status?: "all" | "open" | "resolved";
+                platform?: "x" | "linkedin" | "threads" | "bluesky" | "mastodon" | "instagram";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The filtered discussion document and its current version. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftCommentList"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Draft unavailable. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     mutateDraftComment: {
         parameters: {
             query?: never;
@@ -7838,7 +8756,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description A signed-in workspace session is required. */
+            /** @description Authentication is required. */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -7847,7 +8765,7 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            /** @description The API key lacks the required workspace scope. */
             403: {
                 headers: {
                     [name: string]: unknown;

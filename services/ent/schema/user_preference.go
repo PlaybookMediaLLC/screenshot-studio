@@ -22,6 +22,7 @@ func (UserPreference) Fields() []ent.Field {
 		field.String("id").StorageKey("userId").Immutable(),
 		// The display time zone; empty follows the browser.
 		field.String("time_zone").StorageKey("timeZone").Optional().Nillable(),
+		field.String("accent_color").StorageKey("accentColor").Default(""),
 		field.Enum("theme").StorageKey("theme").Values("light", "dark", "system").Default("dark"),
 		field.Enum("navigation").StorageKey("navigation").Values("compact", "dynamic", "expanded").Default("compact"),
 		field.Enum("week_start").StorageKey("weekStart").Values("monday", "sunday").Default("monday"),

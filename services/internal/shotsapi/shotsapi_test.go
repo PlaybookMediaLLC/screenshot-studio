@@ -2,6 +2,7 @@ package shotsapi
 
 import (
 	"encoding/json"
+	"github.com/google/jsonschema-go/jsonschema"
 	"reflect"
 	"strings"
 	"testing"
@@ -82,5 +83,39 @@ func TestTheEmbeddedDocumentHasTheAgentOperations(t *testing.T) {
 	}
 	if camelCase("Idempotency-Key") != "idempotencyKey" || camelCase("X-Request-Id") != "xRequestId" {
 		t.Fatal("header arguments are not camelCase")
+	}
+}
+
+func TestCommentUnionPreservesActionValidation(t *testing.T) {
+	operation, err := Lookup("mutateDraftComment")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(operation.InputSchema)
+	var schema jsonschema.Schema
+	if err = json.Unmarshal(raw, &schema); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := schema.Resolve(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sample := range []struct {
+		raw   string
+		valid bool
+	}{
+		{`{"id":"contentdraft1234","action":"add","baseVersion":1,"commentId":"c1","text":"Review"}`, true},
+		{`{"id":"contentdraft1234","action":"resolve","baseVersion":2,"threadId":"c1","resolved":true}`, true},
+		{`{"id":"contentdraft1234","action":"delete_thread","baseVersion":2,"threadId":"c1"}`, true},
+		{`{"id":"contentdraft1234","action":"delete","baseVersion":2,"threadId":"c1","commentId":"c1","text":"Not allowed"}`, false},
+		{`{"id":"contentdraft1234","action":"add","baseVersion":1,"commentId":"c1","text":"Review","userId":"human"}`, false},
+		{`{"action":"add","baseVersion":1,"commentId":"c1","text":"Missing path parameter"}`, false},
+		{`{"id":"contentdraft1234","action":"resolve","baseVersion":2,"threadId":"c1"}`, false},
+	} {
+		var value any
+		_ = json.Unmarshal([]byte(sample.raw), &value)
+		if err = resolved.Validate(value); (err == nil) != sample.valid {
+			t.Fatalf("valid=%v err=%v %s", sample.valid, err, sample.raw)
+		}
 	}
 }

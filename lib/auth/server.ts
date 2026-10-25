@@ -26,6 +26,8 @@ import { betterAuthOrganizationRoles } from './permissions'
 const google = getSocialProviderCredentials('GOOGLE')
 const github = getSocialProviderCredentials('GITHUB')
 const microsoft = getSocialProviderCredentials('MICROSOFT')
+const linkedin = getSocialProviderCredentials('LINKEDIN')
+const twitter = getSocialProviderCredentials('TWITTER')
 const infrastructure = getBetterAuthInfrastructure()
 const requireEmailVerification =
   process.env.NODE_ENV === 'production' && process.env.AUTH_REQUIRE_EMAIL_VERIFICATION !== 'false'
@@ -37,6 +39,23 @@ const socialProviders = {
   ...(google ? { google } : {}),
   ...(github ? { github } : {}),
   ...(microsoft ? { microsoft } : {}),
+  ...(linkedin ? { linkedin } : {}),
+  ...(twitter
+    ? {
+        twitter: {
+          ...twitter,
+          mapProfileToUser: (profile: { data: { email?: string } }) => {
+            // The upstream provider falls back to a username if email access is absent.
+            // A username is not a sign-in address and must never enter account linking.
+            if (!profile.data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.data.email))
+              throw new Error(
+                'X did not provide a confirmed email address. Use another sign-in method.'
+              )
+            return { email: profile.data.email }
+          },
+        },
+      }
+    : {}),
 }
 
 export const auth = betterAuth({

@@ -34,11 +34,13 @@ import { draftHref, useWrite } from '../write-context'
  */
 export function ShareDialog({
   canEdit,
+  onInsertLink,
   draft,
   onClose,
   onDraft,
 }: {
   canEdit: boolean
+  onInsertLink?: (link: string) => void
   draft: DraftWire
   onClose: () => void
   onDraft: (draft: DraftWire) => void
@@ -106,7 +108,8 @@ export function ShareDialog({
             <span>
               Public link
               <span className="block text-[11px] text-neutral-400">
-                Anyone with the link can read this draft and comment, without signing in.
+                Anyone with the link can read and comment. After publication it shows the delivered
+                thread, including confirmed replies.
               </span>
             </span>
             <Switch
@@ -139,6 +142,17 @@ export function ShareDialog({
             </p>
           )}
         </div>
+        {publicLink && canEdit && onInsertLink && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              onInsertLink(publicLink)
+              onClose()
+            }}
+          >
+            Add reading link to thread
+          </Button>
+        )}
         <DialogFooter>
           <Button onClick={onClose} type="button">
             Done

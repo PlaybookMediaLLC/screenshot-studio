@@ -56,8 +56,9 @@ func (f *fakeSigner) SignDelivery(_ context.Context, organizationID, key string)
 }
 
 type fakePoster struct {
-	calls int
-	media int
+	quoteState string
+	calls      int
+	media      int
 	// replies records each reply as "message>answers", in order.
 	replies          []string
 	poll             *integrations.PollDetails
@@ -89,7 +90,7 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if f.afterPost != nil {
 		f.afterPost()
 	}
-	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status}}, nil
+	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status, QuoteState: f.quoteState}}, nil
 }
 
 func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ string, posts []integrations.PostDetails, _ *socialent.Integration) ([]integrations.PostResponse, error) {
@@ -101,7 +102,26 @@ func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ stri
 	if f.afterReply != nil {
 		f.afterReply()
 	}
-	return []integrations.PostResponse{{PostID: fmt.Sprintf("reply-%d", len(f.replies))}}, nil
+	return []integrations.PostResponse{{PostID: fmt.Sprintf("reply-%d", len(f.replies)), QuoteState: f.quoteState}}, nil
+}
+
+func TestNativeQuoteReceiptsPreservePublishedRootAndReplies(t *testing.T) {
+	for _, replies := range []int{0, 1} {
+		p, _, poster, input := directFixture()
+		poster.quoteState = "pending"
+		if replies > 0 {
+			input.Replies = []publishing.PublishReply{{Caption: "Finisher"}}
+		}
+		result, err := p.PublishThread(context.Background(), input)
+		if err != nil || result.PostID != "remote-post-1" || result.Thread.Posted != replies || len(result.Thread.Quotes) != replies+1 || poster.calls != 1 {
+			t.Fatalf("published outcome lost: %#v %v", result, err)
+		}
+		for _, quote := range result.Thread.Quotes {
+			if quote.PostID == "" || quote.State != "pending" {
+				t.Fatal(quote)
+			}
+		}
+	}
 }
 
 func directFixture() (*Publisher, *fakeSigner, *fakePoster, socialapi.PublishInput) {
@@ -280,5 +300,23 @@ func TestLegacyAutoActPreservesUnknownDelivery(t *testing.T) {
 	result, err := p.AutoAct(context.Background(), socialapi.AutoActionInput{OrganizationID: input.OrganizationID, DestinationID: input.DestinationID, Platform: input.Platform, SecretReference: input.SecretReference, RemotePostID: "42", Plug: true, PlugAtLikes: 1, PlugText: "reply", Quote: true, QuoteText: "later"})
 	if temporalx.FailureType(err) != temporalx.TypeUnknownDelivery || result.Plugged || provider.calls != 0 {
 		t.Fatalf("uncertainty swallowed or later mutation sent: %+v %v calls=%d", result, err, provider.calls)
+	}
+}
+
+func TestDirectPublisherPreservesDefiniteRejection(t *testing.T) {
+	p, _, poster, input := directFixture()
+	poster.err = temporalx.PublicationRejected("x", "invalid poll")
+	_, err := p.Publish(context.Background(), input)
+	var providerErr *socialapi.Error
+	if !errors.As(err, &providerErr) || providerErr.UnknownDelivery || providerErr.Status != 400 || poster.calls != 1 {
+		t.Fatalf("known rejection became unknown: %v", err)
+	}
+}
+
+func TestLegacyBadBodyCannotProveRejectedDelivery(t *testing.T) {
+	err := publicationOutcome(temporalx.BadBody("linkedin", "{}", "{}", "may already be published"))
+	var providerErr *socialapi.Error
+	if !errors.As(err, &providerErr) || !providerErr.UnknownDelivery {
+		t.Fatalf("unsafe retry enabled: %v", err)
 	}
 }

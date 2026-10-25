@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"maps"
+	"slices"
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
@@ -30,6 +31,30 @@ func postSettings(platform string, base map[string]any, options *postoptions.Pub
 		switch platform {
 		case "x":
 			xSettings(settings, *options, rootID)
+		case "bluesky":
+			target := options.QuoteRemoteID
+			if options.QuoteFirstPost && rootID != "" {
+				target = rootID
+			}
+			if strings.HasPrefix(target, "at://") {
+				parts := strings.Split(strings.TrimPrefix(target, "at://"), "/")
+				if len(parts) == 3 && parts[1] == "app.bsky.feed.post" {
+					target = "https://bsky.app/profile/" + parts[0] + "/post/" + parts[2]
+				}
+			}
+			if target != "" {
+				settings["quote_url"] = target
+			}
+		case "mastodon", "mastodon-custom":
+			if options.QuoteFirstPost && rootID != "" {
+				settings["quote_status_id"] = rootID
+			} else if options.QuoteRemoteID != "" {
+				if strings.HasPrefix(options.QuoteRemoteID, "https://") {
+					settings["quote_url"] = options.QuoteRemoteID
+				} else {
+					settings["quote_status_id"] = options.QuoteRemoteID
+				}
+			}
 		case "linkedin":
 			if options.Visibility != "" {
 				settings["visibility"] = options.Visibility
@@ -52,6 +77,9 @@ func postSettings(platform string, base map[string]any, options *postoptions.Pub
 }
 
 func xSettings(settings map[string]any, options postoptions.PublishOptions, rootID string) {
+	if len(options.PhotoTagIDs) > 0 {
+		settings["tagged_user_ids"] = options.PhotoTagIDs
+	}
 	if options.ReplySettings != "" {
 		settings["who_can_reply_post"] = options.ReplySettings
 	}
@@ -104,6 +132,7 @@ func pollFor(poll *postoptions.Poll, options *postoptions.PublishOptions) *integ
 		return nil
 	}
 	details.DurationMinutes = poll.DurationMinutes
+	details.Multiple = poll.Multiple
 	if options != nil {
 		details.Question = strings.TrimSpace(options.PollQuestion)
 	}
@@ -113,6 +142,29 @@ func pollFor(poll *postoptions.Poll, options *postoptions.PublishOptions) *integ
 // AccountStanding projects verified account capabilities. Editable settings
 // and workspace plans never establish account-specific publishing access.
 func (p *Publisher) AccountStanding(ctx context.Context, organizationID, destinationID, platform, secretReference string) (product.AccountStanding, error) {
+	if platform == "mastodon" || platform == "mastodon-custom" {
+		account, provider, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
+		if err != nil {
+			return product.AccountStanding{}, err
+		}
+		reader, ok := provider.(interface {
+			PollLimits(context.Context, *socialent.Integration) (*postoptions.PollLimits, error)
+		})
+		if !ok {
+			return product.AccountStanding{}, nil
+		}
+		limits, err := reader.PollLimits(ctx, account)
+		if err != nil {
+			return product.AccountStanding{}, err
+		}
+		nativeQuotes := false
+		if reader, ok := provider.(interface {
+			QuoteSupport(context.Context, *socialent.Integration) (bool, error)
+		}); ok && slices.Contains(account.VerifiedScopes, "read:search") {
+			nativeQuotes, _ = reader.QuoteSupport(ctx, account)
+		}
+		return product.AccountStanding{PollLimits: limits, NativeQuotes: nativeQuotes}, nil
+	}
 	if platform != "x" {
 		return product.AccountStanding{}, nil
 	}

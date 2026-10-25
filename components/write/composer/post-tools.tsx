@@ -16,7 +16,12 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META } from '@/components/drafts/channel-meta'
 import { postRanges, setPostSettings } from '@/components/drafts/thread'
-import { CAPABILITIES, pollProblems } from '@/lib/write/capabilities'
+import {
+  CAPABILITIES,
+  pollProblems,
+  pollRules,
+  type AccountStanding,
+} from '@/lib/write/capabilities'
 import {
   type DraftChannel,
   type PostPoll,
@@ -36,6 +41,7 @@ const REPLY_LABELS: Record<PostSettings['replySettings'] & string, string> = {
 
 /** A duration in minutes as a person reads it. */
 function durationLabel(minutes: number): string {
+  if (minutes === 0) return 'Provider default'
   if (minutes < 60) return `${minutes} minutes`
   if (minutes < 1_440) return `${minutes / 60} hour${minutes === 60 ? '' : 's'}`
   const days = minutes / 1_440
@@ -50,9 +56,11 @@ function durationLabel(minutes: number): string {
  */
 export function PostSettingsTools({
   channel,
+  limits,
   number,
   settings,
 }: {
+  limits?: AccountStanding['pollLimits']
   channel: DraftChannel
   number: number
   settings: PostSettings
@@ -72,8 +80,23 @@ export function PostSettingsTools({
       />
     )
   }
-  if (capabilities.poll && number === 1) {
-    tools.push(<PollTool channel={channel} key="poll" set={set} settings={settings} />)
+  if (number > 1 && (channel === 'bluesky' || channel === 'mastodon'))
+    tools.push(
+      <Button
+        key="quote"
+        size="sm"
+        variant="ghost"
+        type="button"
+        aria-pressed={Boolean(settings.quoteFirstPost)}
+        onClick={() => set({ quoteFirstPost: !settings.quoteFirstPost || undefined })}
+      >
+        Quote first post
+      </Button>
+    )
+  if (number === 1) {
+    tools.push(
+      <PollTool limits={limits} channel={channel} key="poll" set={set} settings={settings} />
+    )
   }
   return <>{tools}</>
 }
@@ -85,6 +108,7 @@ function AudienceTools({
   set,
   settings,
 }: {
+  limits?: AccountStanding['pollLimits']
   channel: DraftChannel
   number: number
   set: (change: Partial<PostSettings>) => void
@@ -196,6 +220,7 @@ function AudienceTools({
             </Label>
           </fieldset>
         ) : null}
+        {channel === 'x' ? <PhotoTagTool settings={settings} set={set} /> : null}
         {channel === 'x' && number > 1 ? (
           <Label className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-sm">
             <span>
@@ -219,15 +244,24 @@ function AudienceTools({
 /** A poll on the first post, with the platform's own rules. */
 function PollTool({
   channel,
+  limits,
   set,
   settings,
 }: {
+  limits?: AccountStanding['pollLimits']
   channel: DraftChannel
   set: (change: Partial<PostSettings>) => void
   settings: PostSettings
 }) {
-  const rules = CAPABILITIES[channel].poll
-  if (!rules) return null
+  const rules = pollRules(channel, limits)
+  if (!rules)
+    return (
+      <span className="text-xs text-muted-foreground">
+        {channel === 'mastodon'
+          ? 'Poll limits unavailable — try again later'
+          : `${CHANNEL_META[channel].label}: polls unavailable`}
+      </span>
+    )
   const poll = settings.poll
   return (
     <Popover>
@@ -249,6 +283,7 @@ function PollTool({
       <PopoverContent align="end" className="w-80 p-3">
         {poll ? (
           <PollEditor
+            limits={limits}
             channel={channel}
             onChange={(next) => set({ poll: next ?? undefined })}
             poll={poll}
@@ -290,18 +325,27 @@ function PollTool({
 /** A poll's fields, validated by the platform's own rules as they are typed. */
 export function PollEditor({
   channel,
+  limits,
   media = 0,
   onChange,
   poll,
 }: {
+  limits?: AccountStanding['pollLimits']
   channel: DraftChannel
   media?: number
   onChange: (poll: PostPoll | null) => void
   poll: PostPoll
 }) {
-  const rules = CAPABILITIES[channel].poll
-  if (!rules) return null
-  const problems = pollProblems(channel, poll, media)
+  const rules = pollRules(channel, limits)
+  if (!rules)
+    return (
+      <span className="text-xs text-muted-foreground">
+        {channel === 'mastodon'
+          ? 'Poll limits unavailable — try again later'
+          : `${CHANNEL_META[channel].label}: polls unavailable`}
+      </span>
+    )
+  const problems = pollProblems(channel, poll, media, limits)
   return (
     <div className="grid gap-2 text-sm" data-testid={`poll-editor-${channel}`}>
       {rules.question === 'field' ? (
@@ -372,8 +416,30 @@ export function PollEditor({
           + Add option
         </Button>
       ) : null}
+      {channel === 'mastodon' ? (
+        <Label className="flex items-center gap-2">
+          <Switch
+            checked={poll.multiple ?? false}
+            onCheckedChange={(multiple) => onChange({ ...poll, multiple })}
+          />
+          Allow multiple choices
+        </Label>
+      ) : null}
+      {rules.durationRange ? (
+        <Label className="grid gap-1 text-xs">
+          Duration in minutes
+          <Input
+            type="number"
+            aria-label="Poll duration in minutes"
+            min={rules.durationRange.min}
+            max={rules.durationRange.max}
+            value={poll.durationMinutes}
+            onChange={(event) => onChange({ ...poll, durationMinutes: Number(event.target.value) })}
+          />
+        </Label>
+      ) : null}
       <Label className="grid gap-1 text-xs text-neutral-400">
-        Duration
+        Duration presets
         <Select
           onValueChange={(value) => onChange({ ...poll, durationMinutes: Number(value) })}
           value={String(poll.durationMinutes)}
@@ -407,6 +473,57 @@ export function PollEditor({
         variant="ghost"
       >
         Remove poll
+      </Button>
+    </div>
+  )
+}
+
+function PhotoTagTool({
+  settings,
+  set,
+}: {
+  settings: PostSettings
+  set: (change: Partial<PostSettings>) => void
+}) {
+  const [input, setInput] = React.useState((settings.photoTagIds ?? []).join(', '))
+  const [error, setError] = React.useState('')
+  return (
+    <div className="grid gap-2 border-t border-white/[0.06] pt-3">
+      <Label htmlFor="photo-tag-ids">Photo tags</Label>
+      <Input
+        id="photo-tag-ids"
+        placeholder="X user IDs, separated by commas"
+        value={input}
+        onChange={(event) => setInput(event.target.value)}
+      />
+      <p className="text-xs text-neutral-400">
+        Tag up to ten accounts in attached photos. X respects each account’s photo-tagging
+        permissions; a tag may be omitted by X.
+      </p>
+      {error ? (
+        <p role="alert" className="text-xs text-red-400">
+          {error}
+        </p>
+      ) : null}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          const ids = input.split(/[\s,]+/).filter(Boolean)
+          if (
+            ids.length > 10 ||
+            ids.some((id) => !/^[0-9]{1,19}$/.test(id)) ||
+            new Set(ids).size !== ids.length
+          ) {
+            setError('Enter up to ten distinct numeric X user IDs.')
+            return
+          }
+          set({ photoTagIds: ids.length ? ids : undefined })
+          setError('')
+        }}
+      >
+        Apply photo tags
       </Button>
     </div>
   )

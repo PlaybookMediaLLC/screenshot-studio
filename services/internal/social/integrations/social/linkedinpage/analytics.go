@@ -77,6 +77,9 @@ func newSeries(labels ...string) *series {
 }
 
 func (s *series) push(label string, total json.Number, date string) {
+	if total == "" {
+		return
+	}
 	s.data[label] = append(s.data[label], integrations.AnalyticsItem{Total: total.String(), Date: date})
 }
 
@@ -136,7 +139,7 @@ func (p *Provider) Analytics(ctx context.Context, id, accessToken string, days i
 			analytics.push("Comments", s.CommentCount, date)
 		}
 	}
-	return analytics.result(5, false), nil
+	return analytics.result(0, true), nil
 }
 
 // orZero is `value || 0`.
@@ -181,13 +184,13 @@ func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken
 		}
 		found = true
 		date := current.TimeRange.day()
-		analytics.push("Impressions", orZero(s.ImpressionCount), date)
-		analytics.push("Unique Impressions", orZero(s.UniqueImpressionsCount), date)
-		analytics.push("Clicks", orZero(s.ClickCount), date)
-		analytics.push("Likes", orZero(s.LikeCount), date)
-		analytics.push("Comments", orZero(s.CommentCount), date)
-		analytics.push("Shares", orZero(s.ShareCount), date)
-		analytics.push("Engagement", orZero(s.Engagement), date)
+		analytics.push("Impressions", s.ImpressionCount, date)
+		analytics.push("Unique Impressions", s.UniqueImpressionsCount, date)
+		analytics.push("Clicks", s.ClickCount, date)
+		analytics.push("Likes", s.LikeCount, date)
+		analytics.push("Comments", s.CommentCount, date)
+		analytics.push("Shares", s.ShareCount, date)
+		analytics.push("Engagement", s.Engagement, date)
 	}
 
 	// No time series data but social actions: a single data point for today.
@@ -200,8 +203,8 @@ func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken
 		if socialActions.CommentsSummary != nil {
 			comments = socialActions.CommentsSummary.TotalFirstLevelComments
 		}
-		analytics.push("Likes", orZero(likes), today)
-		analytics.push("Comments", orZero(comments), today)
+		analytics.push("Likes", likes, today)
+		analytics.push("Comments", comments, today)
 	}
 	return analytics.result(0, true), nil
 }

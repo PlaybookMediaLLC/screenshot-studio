@@ -43,6 +43,7 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.String("remote_post_id").StorageKey("remotePostId").Optional().Nillable(),
 		// Engagement, as last read from the platform.
 		field.JSON("metrics", postoptions.Metrics{}).StorageKey("metrics").Optional(),
+		field.Time("published_at").StorageKey("publishedAt").Optional().Nillable(),
 		field.Time("metrics_at").StorageKey("metricsAt").Optional().Nillable(),
 		// Follow-ups once the post is live (X: repost, plug, quote).
 		field.JSON("auto_actions", postoptions.AutoActions{}).StorageKey("autoActions").Optional().Immutable(),

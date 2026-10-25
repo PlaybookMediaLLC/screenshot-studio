@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { Group, Section } from '@/components/platform-ui'
 import { EmailSwitch, SocialSetNotifications } from '@/components/settings/NotificationExtras'
+import { SocialSetSlackDestinations } from '@/components/settings/SocialSetSlackDestinations'
 import { NotificationPreferenceTable } from '@/components/settings/NotificationPreferenceTable'
 import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
 import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
@@ -469,6 +470,7 @@ function SettingsForm({
                           slackConnectionId,
                           slackChannelId: '',
                           slackChannelName: '',
+                          socialSetSlackChannels: {},
                         }))
                       }
                     >
@@ -521,6 +523,12 @@ function SettingsForm({
                       Loading Slack channels…
                     </p>
                   ) : null}
+                  <SocialSetSlackDestinations
+                    policy={policy}
+                    channels={channels.data ?? []}
+                    disabled={!!busy || !policy.slackConnectionId || channels.isPending}
+                    onChange={setPolicy}
+                  />
                   {channels.error ? (
                     <p role="alert" className="text-sm text-destructive">
                       {channels.error.message}
@@ -581,7 +589,7 @@ function SettingsForm({
           <div hidden={panel !== 'policy'}>
             <Section
               title="Workspace policy"
-              description="Owners and administrators choose which categories each channel can deliver. New email categories and Slack streams start disabled."
+              description="Owners and administrators choose which categories each channel can deliver. Email categories start disabled. New workspace policies enable published-post Slack notices when Slack is connected."
             >
               <fieldset className="mb-4 flex flex-wrap gap-5" disabled={!!busy}>
                 <legend className="mb-3 text-sm font-medium">Available channels</legend>

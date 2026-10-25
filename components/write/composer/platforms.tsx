@@ -386,6 +386,9 @@ export function SyncedVersion({
           </Button>
         ) : null}
       </div>
+      {(channel === 'bluesky' || channel === 'instagram') && (
+        <p className="mb-3 text-xs text-neutral-400">{CHANNEL_META[channel].label}: polls unavailable</p>
+      )}
       {posts.length === 0 ? <p className="text-sm text-neutral-400">Nothing written yet.</p> : null}
       {posts.map((post, index) => (
         <article

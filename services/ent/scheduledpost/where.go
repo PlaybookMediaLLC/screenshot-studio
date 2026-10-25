@@ -95,6 +95,11 @@ func RemotePostID(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldRemotePostID, v))
 }
 
+// PublishedAt applies equality check predicate on the "published_at" field. It's identical to PublishedAtEQ.
+func PublishedAt(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldPublishedAt, v))
+}
+
 // MetricsAt applies equality check predicate on the "metrics_at" field. It's identical to MetricsAtEQ.
 func MetricsAt(v time.Time) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldMetricsAt, v))
@@ -633,6 +638,56 @@ func MetricsIsNil() predicate.ScheduledPost {
 // MetricsNotNil applies the NotNil predicate on the "metrics" field.
 func MetricsNotNil() predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldNotNull(FieldMetrics))
+}
+
+// PublishedAtEQ applies the EQ predicate on the "published_at" field.
+func PublishedAtEQ(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldPublishedAt, v))
+}
+
+// PublishedAtNEQ applies the NEQ predicate on the "published_at" field.
+func PublishedAtNEQ(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldPublishedAt, v))
+}
+
+// PublishedAtIn applies the In predicate on the "published_at" field.
+func PublishedAtIn(vs ...time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldPublishedAt, vs...))
+}
+
+// PublishedAtNotIn applies the NotIn predicate on the "published_at" field.
+func PublishedAtNotIn(vs ...time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldPublishedAt, vs...))
+}
+
+// PublishedAtGT applies the GT predicate on the "published_at" field.
+func PublishedAtGT(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldPublishedAt, v))
+}
+
+// PublishedAtGTE applies the GTE predicate on the "published_at" field.
+func PublishedAtGTE(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldPublishedAt, v))
+}
+
+// PublishedAtLT applies the LT predicate on the "published_at" field.
+func PublishedAtLT(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldPublishedAt, v))
+}
+
+// PublishedAtLTE applies the LTE predicate on the "published_at" field.
+func PublishedAtLTE(v time.Time) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldPublishedAt, v))
+}
+
+// PublishedAtIsNil applies the IsNil predicate on the "published_at" field.
+func PublishedAtIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldPublishedAt))
+}
+
+// PublishedAtNotNil applies the NotNil predicate on the "published_at" field.
+func PublishedAtNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldPublishedAt))
 }
 
 // MetricsAtEQ applies the EQ predicate on the "metrics_at" field.

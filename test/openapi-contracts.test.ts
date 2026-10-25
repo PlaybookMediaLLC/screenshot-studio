@@ -15,6 +15,8 @@ import * as canvases from '@/lib/api/contracts/canvases'
 import * as contentDrafts from '@/lib/api/contracts/content-drafts'
 import * as contentDraftPlatform from '@/lib/api/contracts/content-draft-platform'
 import * as writeAi from '@/lib/api/contracts/write-ai'
+import * as draftBatch from '@/lib/api/contracts/draft-batch'
+import * as socialAnalytics from '@/lib/api/contracts/social-analytics'
 import * as draftComments from '@/lib/api/contracts/draft-comments'
 import * as draftTags from '@/lib/api/contracts/draft-tags'
 import * as integrations from '@/lib/api/contracts/integrations'
@@ -33,6 +35,7 @@ import * as socialConnections from '@/lib/api/contracts/social-connections'
 import * as socialAvailability from '@/lib/api/contracts/social-availability'
 import * as socialInstances from '@/lib/api/contracts/social-instances'
 import * as socialSets from '@/lib/api/contracts/social-sets'
+import * as socialSetQueue from '@/lib/api/contracts/social-set-queue'
 import * as sourceApps from '@/lib/api/contracts/source-apps'
 import * as storePublishing from '@/lib/api/contracts/store-publishing'
 import * as storeScreenshots from '@/lib/api/contracts/store-screenshots'
@@ -59,6 +62,8 @@ const contracts = new Map<string, RouteContract>(
     contentDrafts,
     draftTags,
     draftComments,
+    draftBatch,
+    socialAnalytics,
     integrations,
     internal,
     linkPreview,
@@ -75,6 +80,7 @@ const contracts = new Map<string, RouteContract>(
     socialAvailability,
     socialInstances,
     socialSets,
+    socialSetQueue,
     sourceApps,
     storePublishing,
     storeScreenshots,

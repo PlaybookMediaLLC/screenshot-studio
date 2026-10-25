@@ -93,7 +93,7 @@ export function VersionOptionsBar({
       </Button>
     )
   }
-  if (channel === 'x' && onApplyFinisher && setId) {
+  if (CAPABILITIES[channel].thread && onApplyFinisher && setId) {
     tools.push(
       <Button
         className={button}
@@ -182,7 +182,12 @@ export function VersionOptionsBar({
         />
       ) : null}
       {dialog === 'finisher' && setId && onApplyFinisher ? (
-        <FinisherDialog onApply={onApplyFinisher} onClose={() => setDialog(null)} setId={setId} />
+        <FinisherDialog
+          quoteSupported={['x', 'bluesky', 'mastodon'].includes(channel)}
+          onApply={onApplyFinisher}
+          onClose={() => setDialog(null)}
+          setId={setId}
+        />
       ) : null}
       {dialog === 'community' ? (
         <CommunityDialog
@@ -327,10 +332,12 @@ export function NumberingDialog({
  * to that post only after it is live.
  */
 export function FinisherDialog({
+  quoteSupported = true,
   onApply,
   onClose,
   setId,
 }: {
+  quoteSupported?: boolean
   onApply: (text: string, quoteFirstPost: boolean) => void
   onClose: () => void
   setId: string
@@ -420,6 +427,7 @@ export function FinisherDialog({
               </span>
               <Switch
                 aria-label="Quote the first post"
+                disabled={!quoteSupported}
                 checked={editing.quoteFirstPost}
                 onCheckedChange={(checked) =>
                   setEditing({ ...editing, quoteFirstPost: checked === true })
@@ -463,6 +471,12 @@ export function FinisherDialog({
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <Button
                       onClick={() => {
+                        if (item.quoteFirstPost && !quoteSupported) {
+                          toast.error(
+                            'This channel does not support native quotes. Edit the finisher and turn quoting off.'
+                          )
+                          return
+                        }
                         onApply(item.text, item.quoteFirstPost)
                         onClose()
                       }}
@@ -495,7 +509,7 @@ export function FinisherDialog({
             </ul>
             <DialogFooter>
               <Button
-                onClick={() => setEditing({ name: '', quoteFirstPost: true, text: '' })}
+                onClick={() => setEditing({ name: '', quoteFirstPost: quoteSupported, text: '' })}
                 type="button"
                 variant="outline"
               >

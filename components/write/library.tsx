@@ -1,5 +1,8 @@
 'use client'
 
+import { BulkImportDialog } from './bulk-import'
+import { BulkScheduleDialog } from './bulk-schedule'
+
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
@@ -96,6 +99,7 @@ export function WriteRail() {
   const [selected, setSelected] = React.useState<string[]>([])
   const [lastClicked, setLastClicked] = React.useState<string | null>(null)
   const [managingTags, setManagingTags] = React.useState(false)
+  const [importing, setImporting] = React.useState(false)
   const tab = data.query.tab
   const select = (id: string, range: boolean) => {
     setSelected((current) => {
@@ -130,11 +134,23 @@ export function WriteRail() {
         </Link>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
+          href={data.activeSet ? `/write/analyze?set=${data.activeSet.id}` : '/write/analyze'}
+        >
+          Analytics
+        </Link>
+        <Link
+          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
           href={data.activeSet ? `/write/settings?set=${data.activeSet.id}` : '/write/settings'}
         >
           Settings
         </Link>
       </div>
+      {canEdit && (
+        <Button className="mx-3" variant="ghost" size="sm" onClick={() => setImporting(true)}>
+          Bulk import
+        </Button>
+      )}
+      {importing && <BulkImportDialog onClose={() => setImporting(false)} />}
       <nav
         aria-label="Publishing utilities"
         className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
@@ -391,7 +407,7 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
   const channels = new Set(data.activeSet?.accounts.map((account) => account.channel) ?? [])
   const kinds: NewKind[] = [
     ...(channels.has('x') ? [{ kind: 'article' as const, label: 'X Article' }] : []),
-    ...(channels.has('x') || channels.has('linkedin')
+    ...(channels.has('x') || channels.has('linkedin') || channels.has('bluesky') || channels.has('mastodon')
       ? [{ kind: 'quote' as const, label: 'Quote a post', needs: 'url' as const }]
       : []),
     ...(channels.has('x')
@@ -512,7 +528,14 @@ function TargetDialog({
       .then((body: { items: { id: string; title: string }[] }) => setPosted(body.items))
       .catch(() => setPosted([]))
   }, [data.activeSet, kind.needs])
-  const valid = kind.needs === 'source' ? /^https:\/\//.test(url) : POST_URL.test(url.trim())
+  const valid =
+    kind.needs === 'source'
+      ? /^https:\/\//.test(url)
+      : POST_URL.test(url.trim()) || (kind.kind === 'quote' && /^https:\/\/[A-Za-z0-9][A-Za-z0-9.-]{0,252}\/(?:@[A-Za-z0-9_.-]+\/[0-9]{1,80}|users\/[A-Za-z0-9_.-]+\/statuses\/[0-9]{1,80})$/.test(url.trim())) ||
+        (kind.kind === 'quote' &&
+          /^https:\/\/bsky\.app\/profile\/[A-Za-z0-9.:-]{1,253}\/post\/[A-Za-z0-9]{1,64}$/.test(
+            url.trim()
+          ))
   return (
     <Dialog onOpenChange={(open) => !open && onClose()} open>
       <DialogContent className="max-w-md">
@@ -609,6 +632,11 @@ function DraftRow({
         aria-current={active ? 'page' : undefined}
         className="block px-4 py-3 pr-10"
         href={draftHref(draft.id, data.activeSet?.id)}
+        draggable={draft.status === 'draft' && draft.queuedPosts === 0}
+        onDragStart={(event) => {
+          event.dataTransfer.setData('application/x-shots-library-draft', draft.id)
+          event.dataTransfer.effectAllowed = 'copy'
+        }}
         onClick={(event) => {
           if (event.shiftKey || selecting) {
             event.preventDefault()
@@ -1004,7 +1032,8 @@ function CopyDialog({
 /** Actions on several selected drafts. */
 function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] }) {
   const router = useWriteRouter()
-  const { activeId, beforeLeaveRef, data, hideDraft } = useWrite()
+  const { activeId, beforeLeaveRef, data, hideDraft, canPublish } = useWrite()
+  const [scheduling, setScheduling] = React.useState(false)
   const [confirm, setConfirm] = React.useState(false)
   const [progress, setProgress] = React.useState<number | null>(null)
   const run = async (label: string, work: (id: string) => Promise<unknown>) => {
@@ -1046,6 +1075,14 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
       role="toolbar"
       aria-label="Selected drafts"
     >
+      {scheduling && (
+        <BulkScheduleDialog selected={selected} onClose={() => setScheduling(false)} />
+      )}
+      {canPublish && (
+        <Button size="sm" variant="ghost" onClick={() => setScheduling(true)}>
+          Schedule
+        </Button>
+      )}
       <span className="mr-auto text-sky-200">
         {progress === null
           ? `${selected.length} selected`

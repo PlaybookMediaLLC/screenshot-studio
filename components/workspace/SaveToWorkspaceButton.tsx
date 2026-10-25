@@ -31,9 +31,16 @@ export interface SaveToWorkspaceButtonProps {
 
 type SaveState = 'idle' | 'saving' | 'saved'
 
-export function SaveToWorkspaceButton({ createExport, disabled, fileName }: SaveToWorkspaceButtonProps) {
+export function SaveToWorkspaceButton({
+  createExport,
+  disabled,
+  fileName,
+}: SaveToWorkspaceButtonProps) {
   const trpcClient = useTRPCClient()
   const { data: session, isPending } = useHydratedSession()
+  const [draftExport, setDraftExport] = React.useState<{ draft: string; assetId: string } | null>(
+    null
+  )
   const [state, setState] = React.useState<SaveState>('idle')
 
   // Render nothing while the session loads or if it has lapsed; the
@@ -55,6 +62,9 @@ export function SaveToWorkspaceButton({ createExport, disabled, fileName }: Save
       })
 
       setState('saved')
+      const draft = new URLSearchParams(window.location.search).get('fromDraft')
+      if (draft && /^[a-z0-9_-]{1,128}$/i.test(draft) && blob.type.startsWith('image/'))
+        setDraftExport({ draft, assetId })
       toast.success('Saved to workspace', {
         action: {
           label: 'View assets',
@@ -81,13 +91,23 @@ export function SaveToWorkspaceButton({ createExport, disabled, fileName }: Save
   }
 
   return (
-    <Button
-      disabled={disabled || state === 'saving'}
-      onClick={handleSave}
-      type="button"
-      variant="outline"
-    >
-      {state === 'saving' ? 'Saving…' : state === 'saved' ? 'Saved' : 'Save to workspace'}
-    </Button>
+    <>
+      <Button
+        disabled={disabled || state === 'saving'}
+        onClick={handleSave}
+        type="button"
+        variant="outline"
+      >
+        {state === 'saving' ? 'Saving…' : state === 'saved' ? 'Saved' : 'Save to workspace'}
+      </Button>
+      {draftExport && (
+        <a
+          className="text-sm underline"
+          href={`/write/${encodeURIComponent(draftExport.draft)}?attach=${encodeURIComponent(draftExport.assetId)}`}
+        >
+          Review export in draft
+        </a>
+      )}
+    </>
   )
 }

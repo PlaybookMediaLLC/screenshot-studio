@@ -27,6 +27,8 @@ const PROVIDER_LABELS: Record<SocialProvider, string> = {
   github: 'GitHub',
   google: 'Google',
   microsoft: 'Microsoft',
+  linkedin: 'LinkedIn',
+  twitter: 'X',
 }
 
 type AuthFormProps = {

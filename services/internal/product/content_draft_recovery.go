@@ -148,7 +148,7 @@ func (c *Configuration) ReconcileContentDraftPost(ctx context.Context, actor Act
 	action := "post.reconciled_not_live"
 	if input.Live {
 		action = "post.reconciled_live"
-		update.SetStatus(scheduledpost.StatusPUBLISHED)
+		update.SetStatus(scheduledpost.StatusPUBLISHED).SetPublishedAt(time.Now().UTC())
 		remote := ""
 		switch platform := post.Edges.ChannelConnection.Platform; {
 		case input.URL == "":

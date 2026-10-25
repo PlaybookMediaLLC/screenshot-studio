@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"regexp"
 	"sort"
 	"strings"
@@ -71,9 +72,11 @@ type SocialAccount struct {
 	SocialSetID *string `json:"socialSetId"`
 	// Premium is retained for display compatibility; explicit capabilities
 	// govern text length and Articles independently.
-	Premium       bool  `json:"premium"`
-	XCaptionLimit *int  `json:"xCaptionLimit"`
-	XArticles     *bool `json:"xArticles"`
+	Premium       bool                    `json:"premium"`
+	XCaptionLimit *int                    `json:"xCaptionLimit"`
+	XArticles     *bool                   `json:"xArticles"`
+	NativeQuotes  bool                    `json:"nativeQuotes"`
+	PollLimits    *postoptions.PollLimits `json:"pollLimits,omitempty"`
 }
 
 // WritingAssistantRecord is a set's assistant with its derived status:
@@ -431,9 +434,11 @@ func (c *Configuration) socialSetRecords(ctx context.Context, actor Actor, sets 
 	accounts := map[string][]SocialAccount{}
 	for _, connection := range connections {
 		account := socialAccount(connection, health[connection.ID])
-		if connection.Platform == "x" && account.Health == AccountConnected {
+		if (connection.Platform == "x" || connection.Platform == "mastodon" || connection.Platform == "mastodon-custom") && account.Health == AccountConnected {
 			standing := c.accountStanding(ctx, connection)
 			account.Premium, account.XCaptionLimit, account.XArticles = standing.Premium, standing.XCaptionLimit, standing.XArticles
+			account.PollLimits = standing.PollLimits
+			account.NativeQuotes = standing.NativeQuotes
 		}
 		accounts[*connection.SocialSetID] = append(accounts[*connection.SocialSetID], account)
 	}
@@ -699,10 +704,20 @@ func validEngagement(engagement schema.Engagement) (schema.Engagement, error) {
 	return engagement, nil
 }
 
-// UpdateSocialSet saves the fields input sets. Publishers, admins and owners
-// may change a set they can see; the write is guarded by its version.
+// UpdateSocialSet saves the fields input sets. Admins and owners may change a
+// set they can see; the write is guarded by its version.
 func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id string, input SocialSetUpdate) (*SocialSetRecord, error) {
-	if err := c.authorizeSocialSetManage(ctx, actor); err != nil {
+	return c.updateSocialSet(ctx, actor, id, input, false)
+}
+
+func (c *Configuration) updateSocialSet(ctx context.Context, actor Actor, id string, input SocialSetUpdate, queueOnly bool) (*SocialSetRecord, error) {
+	authorize := func(config *Configuration) error {
+		if queueOnly {
+			return config.authorizeSocialSetQueue(ctx, actor)
+		}
+		return config.authorizeSocialSetManage(ctx, actor)
+	}
+	if err := authorize(c); err != nil {
 		return nil, err
 	}
 	if input.BaseVersion < 1 {
@@ -713,6 +728,12 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := lockSocialSetAuthority(ctx, tx, actor, id); err != nil {
+		return nil, err
+	}
+	if err := authorize(NewConfiguration(tx.Client())); err != nil {
+		return nil, err
+	}
 	set, err := visibleSocialSet(ctx, tx.Client(), actor, id)
 	if err != nil {
 		return nil, err
@@ -783,10 +804,12 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		first := defaults[0]
 		primary = &first
 	}
-	if primary == nil {
-		update.ClearPrimaryPlatform()
-	} else {
-		update.SetPrimaryPlatform(*primary)
+	if !queueOnly {
+		if primary == nil {
+			update.ClearPrimaryPlatform()
+		} else {
+			update.SetPrimaryPlatform(*primary)
+		}
 	}
 	if input.EngagementDefaults != nil {
 		engagement, err := validEngagement(*input.EngagementDefaults)

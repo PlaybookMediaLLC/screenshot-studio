@@ -82,11 +82,14 @@ export const metadata: Metadata = {
 }
 
 type EditorPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
   params: Promise<{ locale: string }>
 }
 
-export default async function EditorPage({ params }: EditorPageProps) {
+export default async function EditorPage({ params, searchParams }: EditorPageProps) {
   const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
+  const query = await searchParams
+  if (typeof query.new === 'string') redirect(getLocalizedPath(locale, `/write?${new URLSearchParams({new: query.new})}`))
   const access = await getPageAccess(requestHeaders)
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))

@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
 	"time"
 
 	entsql "entgo.io/ent/dialect/sql"
@@ -64,7 +65,17 @@ func checkBlueskyTarget(ctx context.Context, tx *ent.Tx, connection *ent.Channel
 				return invalid("Select distinct uploaded files from this workspace.")
 			}
 			for _, row := range rows {
-				media = append(media, socialidentity.BlueskyMedia{MIME: row.MediaType, Bytes: int64(row.Bytes)})
+				size := int64(row.Bytes)
+				if mediaresize.Static(row.MediaType) && size <= mediaresize.MaxSourceBytes {
+					limit := caps.ImageMaxBytes
+					if caps.BlobUploadLimit != nil {
+						limit = min(limit, *caps.BlobUploadLimit)
+					}
+					if limit >= 1024 {
+						size = min(size, limit)
+					}
+				}
+				media = append(media, socialidentity.BlueskyMedia{MIME: row.MediaType, Bytes: size})
 			}
 		}
 		if err := socialidentity.CheckBlueskyMedia(*caps, media); err != nil {

@@ -31,9 +31,11 @@ func newFakeInstance(t *testing.T) *fakeInstance {
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		switch {
+		case r.URL.Path == "/api/v2/instance":
+			_, _ = w.Write([]byte(`{"configuration":{"polls":{"max_options":5,"max_characters_per_option":40,"min_expiration":300,"max_expiration":3600}}}`))
 		case r.URL.Path == "/oauth/token":
 			_ = r.ParseMultipartForm(1 << 20)
-			if r.FormValue("code") != "good" || r.FormValue("grant_type") != "authorization_code" || r.FormValue("scope") != "write:statuses profile write:media" {
+			if r.FormValue("code") != "good" || r.FormValue("grant_type") != "authorization_code" || r.FormValue("scope") != "write:statuses profile write:media read:search read:statuses" {
 				w.WriteHeader(400)
 				return
 			}
@@ -88,7 +90,7 @@ func newFakeInstance(t *testing.T) *fakeInstance {
 			}
 			f.statuses = append(f.statuses, r.Header.Clone())
 			f.forms = append(f.forms, r.MultipartForm.Value)
-			_, _ = w.Write([]byte(`{"id":"s1"}`))
+			_, _ = w.Write([]byte(`{"id":"123"}`))
 		default:
 			w.WriteHeader(404)
 		}
@@ -106,7 +108,7 @@ func TestGenerateAuthURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "https://example.social/oauth/authorize?client_id=cid&response_type=code&redirect_uri=https%3A%2F%2Fapp.example.com%2Fintegrations%2Fsocial%2Fmastodon&scope=write:statuses+profile+write:media&state=" + res.State
+	want := "https://example.social/oauth/authorize?client_id=cid&response_type=code&redirect_uri=https%3A%2F%2Fapp.example.com%2Fintegrations%2Fsocial%2Fmastodon&scope=write:statuses+profile+write:media+read:search+read:statuses&state=" + res.State
 	if res.URL != want || len(res.State) != 6 || len(res.CodeVerifier) != 10 {
 		t.Fatalf("got %+v", res)
 	}
@@ -136,7 +138,7 @@ func TestDynamicPostWaitsForMediaThenPublishes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res[0].PostID != "s1" || res[0].ReleaseURL != f.URL+"/statuses/s1" || res[0].Status != "completed" {
+	if res[0].PostID != "123" || res[0].ReleaseURL != f.URL+"/statuses/123" || res[0].Status != "completed" {
 		t.Fatalf("unexpected %+v", res[0])
 	}
 	if f.mediaPolls != 2 || len(f.statuses) != 1 {
@@ -166,5 +168,40 @@ func TestCheckAndFinalizeErrors(t *testing.T) {
 	_, err = p.FinalizePost(ctx, "tok", pending, nil)
 	if temporalx.FailureType(err) != temporalx.TypeRefreshToken || temporalx.FailureMessage(err) != "Your login is currently disabled" {
 		t.Fatalf("want refresh_token, got %v", err)
+	}
+}
+
+func TestPollUsesInstanceLimitsAndPersistsThroughPending(t *testing.T) {
+	f := newFakeInstance(t)
+	p := New()
+	poll := &integrations.PollDetails{Options: []string{" A ", strings.Repeat("界", 40), "C", "D", "E"}, DurationMinutes: 6, Multiple: true}
+	posts := []integrations.PostDetails{{ID: "poll-post", Message: "Choose", Poll: poll}}
+	pending, err := p.DynamicPostPending(context.Background(), "account", "tok", f.URL, posts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw := pending[0].PendingData
+	for i := 0; i < 2; i++ {
+		if _, err = p.FinalizePost(context.Background(), "tok", raw, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if f.forms[0]["poll[expires_in]"][0] != "360" || f.forms[0]["poll[multiple]"][0] != "true" || len(f.forms[0]["poll[options][]"]) != 5 || f.forms[0]["poll[options][]"][0] != " A " {
+		t.Fatalf("poll form: %#v", f.forms[0])
+	}
+	if f.statuses[0].Get("Idempotency-Key") == "" || f.statuses[0].Get("Idempotency-Key") != f.statuses[1].Get("Idempotency-Key") {
+		t.Fatal("retry changed idempotency key")
+	}
+	poll.Options = append(poll.Options, "too many")
+	if _, err = p.DynamicPostPending(context.Background(), "account", "tok", f.URL, posts); err == nil {
+		t.Fatal("instance option limit ignored")
+	}
+	poll.Options = poll.Options[:2]
+	posts[0].Media = []integrations.MediaContent{{Path: f.URL + "/files/pic.png"}}
+	if _, err = p.DynamicPostPending(context.Background(), "account", "tok", f.URL, posts); err == nil {
+		t.Fatal("poll/media combination accepted")
+	}
+	if len(f.statuses) != 2 {
+		t.Fatal("invalid poll sent a status")
 	}
 }

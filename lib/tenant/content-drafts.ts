@@ -120,7 +120,7 @@ export async function listContentDraftPosts(context: TenantContext, id: string) 
  * before anything is queued. Go resolves the time and checks every payload
  * again.
  */
-export async function scheduleContentDraft(
+export async function prepareContentDraftSchedule(
   context: OrganizationAccess,
   id: string,
   input: {
@@ -134,6 +134,7 @@ export async function scheduleContentDraft(
     publishNow?: boolean
     /** When set, the set's next free queue slot, reserved by the backend. */
     queue?: boolean
+    expectedQueueSlot?: string
     /** Overrides the draft's natural posting time for this schedule. */
     naturalPostingTime?: boolean
     scheduledFor?: Date
@@ -171,6 +172,8 @@ export async function scheduleContentDraft(
         standing: {
           maxWeightedCharacters: accounts.get(channelConnectionId)?.xCaptionLimit,
           articles: accounts.get(channelConnectionId)?.xArticles,
+          pollLimits: accounts.get(channelConnectionId)?.pollLimits,
+          nativeQuotes: accounts.get(channelConnectionId)?.nativeQuotes,
         },
       },
       input.blockImages
@@ -185,7 +188,8 @@ export async function scheduleContentDraft(
       ...(!target.poll && legacy?.poll ? { poll: legacy.poll } : {}),
     }
   })
-  const result = await backendSDK(context).scheduleContentDraft(id, {
+  return {
+    expectedQueueSlot: input.expectedQueueSlot,
     disambiguation: input.disambiguation,
     localTime: input.localTime,
     naturalPostingTime: input.naturalPostingTime,
@@ -195,7 +199,18 @@ export async function scheduleContentDraft(
     targets,
     timeZone: input.timeZone,
     version: input.version,
-  })
+  }
+}
+
+/** Schedule using the same preparation as a batch preflight. */
+export async function scheduleContentDraft(
+  context: OrganizationAccess,
+  id: string,
+  input: Parameters<typeof prepareContentDraftSchedule>[2]
+) {
+  const prepared = await prepareContentDraftSchedule(context, id, input)
+  if (!prepared) return null
+  const result = await backendSDK(context).scheduleContentDraft(id, prepared)
   return {
     created: result.created,
     draft: readDraft(result.draft),

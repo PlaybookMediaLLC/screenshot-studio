@@ -46,7 +46,15 @@ function draftImages(editor: PlateEditor): DraftImage[] {
  * image and posted with it wherever it goes. X takes up to 1,000
  * characters. Kept on the image node too, so the draft shows it.
  */
-export function DescribeImages({ editor, onClose }: { editor: PlateEditor; onClose: () => void }) {
+export function DescribeImages({
+  editor,
+  onClose,
+  aiEnabled,
+}: {
+  editor: PlateEditor
+  onClose: () => void
+  aiEnabled: boolean
+}) {
   const [images] = React.useState(() => draftImages(editor))
   const [alts, setAlts] = React.useState(() => images.map((image) => image.alt))
   const [busy, setBusy] = React.useState(false)
@@ -60,12 +68,31 @@ export function DescribeImages({ editor, onClose }: { editor: PlateEditor; onClo
           body: { altText: alt },
           method: 'PUT',
         })
-        editor.tf.setNodes({ alt }, { at: image.path })
+        // A collaborator may have moved the image while this dialog was open.
+        for (const current of draftImages(editor).filter(
+          (node) => node.assetId === image.assetId
+        )) {
+          editor.tf.setNodes({ alt }, { at: current.path })
+        }
       }
       toast.success('Image descriptions saved. They are posted with the images.')
       onClose()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The descriptions did not save.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const suggest = async (index: number) => {
+    setBusy(true)
+    try {
+      const { altText } = await call<{ altText: string }>(
+        `/api/v1/assets/${encodeURIComponent(images[index].assetId)}/describe`,
+        { method: 'POST' }
+      )
+      setAlts((current) => current.map((alt, at) => (at === index ? altText : alt)))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The image could not be described.')
     } finally {
       setBusy(false)
     }
@@ -106,10 +133,27 @@ export function DescribeImages({ editor, onClose }: { editor: PlateEditor; onClo
                     value={alts[index]}
                   />
                   <span>{alts[index].length} / 1000</span>
+                  {aiEnabled && (
+                    <Button
+                      disabled={busy}
+                      onClick={() => void suggest(index)}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                    >
+                      Suggest with AI
+                    </Button>
+                  )}
                 </label>
               </li>
             ))}
           </ul>
+        )}
+        {aiEnabled && (
+          <p className="text-xs text-muted-foreground">
+            AI suggestions use workspace credits. Review and edit the description before saving.
+            Animated images use their first frame.
+          </p>
         )}
         <DialogFooter>
           <Button onClick={onClose} type="button" variant="outline">

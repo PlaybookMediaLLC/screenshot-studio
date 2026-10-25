@@ -93,3 +93,23 @@ func must(raw json.RawMessage, err error) json.RawMessage {
 	}
 	return raw
 }
+
+func TestNativeFinisherTargetsUsePublishedRoot(t *testing.T) {
+	for _, tc := range []struct{ platform, root, field, want string }{
+		{"bluesky", "at://did:plc:alice/app.bsky.feed.post/3kroot", "quote_url", "https://bsky.app/profile/did:plc:alice/post/3kroot"},
+		{"mastodon", "123", "quote_status_id", "123"},
+		{"mastodon-custom", "456", "quote_status_id", "456"},
+	} {
+		raw, err := postSettings(tc.platform, nil, &postoptions.PublishOptions{QuoteFirstPost: true}, tc.root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var settings map[string]any
+		if err := json.Unmarshal(raw, &settings); err != nil {
+			t.Fatal(err)
+		}
+		if settings[tc.field] != tc.want {
+			t.Fatal(settings)
+		}
+	}
+}

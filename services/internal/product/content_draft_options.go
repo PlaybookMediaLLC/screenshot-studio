@@ -38,7 +38,7 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 		return nil
 	}
 	o := *options
-	xOnly := o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.QuoteFirstPost ||
+	xOnly := len(o.PhotoTagIDs) > 0 || o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" ||
 		o.ArticleTitle != "" || o.ArticleCoverAssetID != ""
 	linkedInOnly := o.Visibility != "" || o.FirstComment != "" || o.DocumentAssetID != "" || o.PollQuestion != ""
 	switch {
@@ -46,8 +46,11 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 		return invalid("Reply settings, labels, communities and articles are X settings.")
 	case linkedInOnly && channel != "linkedin":
 		return invalid("Visibility, first comments, documents and poll questions are LinkedIn settings here.")
-	case o.QuoteRemoteID != "" && channel != "x" && channel != "linkedin":
-		return invalid("Quotes are for X and LinkedIn posts.")
+	case o.QuoteRemoteID != "" && channel != "x" && channel != "linkedin" && channel != "bluesky" && channel != "mastodon":
+		return invalid("Quotes are for X, LinkedIn, Bluesky and verified Mastodon servers.")
+	}
+	if err := postoptions.CheckPhotoTags(o.PhotoTagIDs); err != nil {
+		return invalid(err.Error())
 	}
 	if o.ReplySettings != "" && !slices.Contains(xReplySettings, o.ReplySettings) {
 		return invalid("Replies are open to everyone, or limited to following, mentionedUsers, subscribers or verified.")
@@ -56,12 +59,21 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 		return invalid("A community is an X community's numeric id, set on the first post.")
 	}
 	if o.QuoteRemoteID != "" {
+		if channel == "mastodon" && !postoptions.MastodonQuoteURL.MatchString(o.QuoteRemoteID) {
+			return invalid("Use a native Mastodon post URL.")
+		}
+		if channel == "bluesky" && !postoptions.BlueskyQuoteURL.MatchString(o.QuoteRemoteID) {
+			return invalid("Use a native Bluesky post URL.")
+		}
 		if !first || o.QuoteFirstPost {
 			return invalid("Only the first post quotes another post; a later post may quote the first.")
 		}
 		if channel == "x" && !numericID.MatchString(o.QuoteRemoteID) || channel == "linkedin" && !linkedInPostID.MatchString(o.QuoteRemoteID) {
 			return invalid("The quoted post's id is not valid for " + channel + ".")
 		}
+	}
+	if o.QuoteFirstPost && channel != "x" && channel != "bluesky" && channel != "mastodon" {
+		return invalid("Native quote finishers are supported on X, Bluesky and verified Mastodon servers.")
 	}
 	if o.QuoteFirstPost && first {
 		return invalid("The first post cannot quote itself.")
@@ -87,11 +99,14 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 // LinkedIn asks its own question of 140 characters, with 2 to 4 options of 30
 // characters, open 1, 3, 7 or 14 days. Neither takes media beside a poll.
 func checkPoll(channel string, poll *postoptions.Poll, options *postoptions.PublishOptions, media int) error {
-	if poll == nil || len(poll.Options) == 0 {
+	if poll == nil {
 		if options != nil && options.PollQuestion != "" {
 			return invalid("A poll question needs the poll's options.")
 		}
 		return nil
+	}
+	if poll.Multiple {
+		return invalid("Multiple-choice polls are supported only on Mastodon.")
 	}
 	if len(poll.Options) < 2 || len(poll.Options) > 4 {
 		return invalid("A poll has 2 to 4 choices.")
@@ -103,6 +118,11 @@ func checkPoll(channel string, poll *postoptions.Poll, options *postoptions.Publ
 	switch channel {
 	case "x":
 		if err := socialidentity.CheckXPoll(poll.Options, poll.DurationMinutes, media, false); err != nil {
+			return invalid(err.Error())
+		}
+		return nil
+	case "threads":
+		if err := postoptions.CheckThreadsPoll(poll.Options, poll.DurationMinutes, media, poll.Multiple); err != nil {
 			return invalid(err.Error())
 		}
 		return nil
@@ -119,7 +139,7 @@ func checkPoll(channel string, poll *postoptions.Poll, options *postoptions.Publ
 			return invalid("A LinkedIn poll stays open 1 day, 3 days, 1 week or 2 weeks.")
 		}
 	default:
-		return invalid("Polls are for X and LinkedIn posts.")
+		return invalid("Polls are supported on X, LinkedIn, Threads and verified Mastodon instances.")
 	}
 	for _, option := range poll.Options {
 		if strings.TrimSpace(option) == "" || utf8.RuneCountInString(option) > optionLimit {

@@ -353,7 +353,7 @@ func TestEveryToolIsTenantIsolated(t *testing.T) {
 	session := f.session("a")
 
 	listed, err := session.ListTools(f.ctx, nil)
-	if err != nil || len(listed.Tools) != 13 {
+	if err != nil || len(listed.Tools) != 23 {
 		t.Fatalf("tools/list: %d %v", len(listed.Tools), err)
 	}
 
@@ -532,8 +532,7 @@ func TestScopesLimitTheToolList(t *testing.T) {
 		names = append(names, tool.Name)
 	}
 	// The SDK lists tools by name.
-	want := []string{"captureScreenshot", "createAssetDownloadUrl", "getCampaign", "listApprovals", "listCampaigns", "listReleases",
-		"listScheduledPosts"}
+	want := []string{"bestPostingTimes", "captureScreenshot", "createAssetDownloadUrl", "getCampaign", "getContentDraft", "getSocialSet", "listApprovals", "listCalendarPosts", "listCampaigns", "listContentDraftActivity", "listContentDraftPosts", "listContentDrafts", "listDraftComments", "listReleases", "listScheduledPosts", "listSocialSets", "lookupSocialSetMentions"}
 	if !slices.Equal(names, want) {
 		t.Fatalf("read-only key tools=%v", names)
 	}
@@ -667,5 +666,166 @@ func TestSchedulingToolsTakeOnlyApprovedContent(t *testing.T) {
 	body, isError = f.call(session, "cancelScheduledPost", map[string]any{"scheduledPostId": created["id"]})
 	if isError || body["scheduledPost"].(map[string]any)["status"] != "CANCELLED" {
 		t.Fatalf("cancelScheduledPost: %v", body)
+	}
+}
+
+func TestDraftToolsShareRESTAuthority(t *testing.T) {
+	f := newFixture(t)
+	f.key("a-draft", "a", `{"artifact":["read"],"draft":["write"]}`, true)
+	session := f.session("a-draft")
+	body, failed := f.call(session, "createContentDraft", map[string]any{"title": "Agent draft", "plainText": "Human review required"})
+	if failed {
+		t.Fatalf("create: %v", body)
+	}
+	id, ok := body["id"].(string)
+	if !ok {
+		t.Fatalf("missing draft: %v", body)
+	}
+	foreign, failed := f.call(f.session("b"), "getContentDraft", map[string]any{"id": id})
+	refusedWith(t, "getContentDraft", foreign, failed, "not_found")
+	body, failed = f.call(session, "updateContentDraft", map[string]any{"id": id, "baseVersion": 1, "title": "Edited by agent"})
+	if failed {
+		t.Fatalf("update: %v", body)
+	}
+	_, failed = f.call(session, "updateContentDraft", map[string]any{"id": id, "baseVersion": 1, "title": "Stale"})
+	if !failed {
+		t.Fatal("stale version accepted")
+	}
+	body, failed = f.call(session, "planContentDraft", map[string]any{"id": id, "plannedFor": time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339), "timeZone": "UTC"})
+	if failed {
+		t.Fatalf("plan: %v", body)
+	}
+	body, failed = f.call(session, "listContentDraftPosts", map[string]any{"id": id})
+	if failed || len(ids(body["posts"], "id")) != 0 {
+		t.Fatalf("planning published: %v", body)
+	}
+	list, err := session.ListTools(f.ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range list.Tools {
+		if tool.Name == "scheduleContentDraft" || tool.Name == "reviewContentDraft" {
+			t.Fatal("agent approval/publication exposed")
+		}
+	}
+}
+
+func TestDraftQueueAndSetsKeepPrivateScope(t *testing.T) {
+	f := newFixture(t)
+	session := f.session("a-read")
+	publicID, privateID := cuid.New(), cuid.New()
+	ownerID := "private-owner-" + f.id
+	f.exec(`INSERT INTO "user" (id,name,email,"emailVerified","createdAt","updatedAt") VALUES ($1,'Private owner',$2,true,now(),now())`, ownerID, ownerID+"@example.test")
+	t.Cleanup(func() {
+		f.exec(`DELETE FROM social_set WHERE id=$1`, privateID)
+		f.exec(`DELETE FROM "user" WHERE id=$1`, ownerID)
+	})
+	f.exec(`INSERT INTO social_set (id,"organizationId",name,visibility,"publicSlug","ownerUserId","createdAt","updatedAt") VALUES ($1,$2,'Public','WORKSPACE',$1,NULL,now(),now()),($3,$2,'Private','PRIVATE',$3,$4,now(),now())`, publicID, f.orgs["a"], privateID, ownerID)
+	body, isError := f.call(session, "listSocialSets", map[string]any{})
+	if isError {
+		t.Fatal(body)
+	}
+	raw, _ := json.Marshal(body)
+	if !strings.Contains(string(raw), publicID) || strings.Contains(string(raw), privateID) {
+		t.Fatal("set visibility", string(raw))
+	}
+	for _, id := range []string{privateID, cuid.New()} {
+		body, isError = f.call(session, "getSocialSet", map[string]any{"id": id})
+		if !isError {
+			t.Fatal("private or foreign set read", body)
+		}
+		body, isError = f.call(session, "listCalendarPosts", map[string]any{"socialSetId": id, "from": time.Now().UTC().Format(time.RFC3339), "to": time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339)})
+		if !isError {
+			t.Fatal("private queue read", body)
+		}
+	}
+	foreign, denied := f.call(f.session("b"), "getSocialSet", map[string]any{"id": publicID})
+	if !denied {
+		t.Fatal("foreign set read", foreign)
+	}
+	body, isError = f.call(session, "getSocialSet", map[string]any{"id": publicID})
+	if isError || body["id"] != publicID {
+		t.Fatal(body)
+	}
+	body, isError = f.call(session, "listCalendarPosts", map[string]any{"socialSetId": publicID, "from": time.Now().UTC().Format(time.RFC3339), "to": time.Now().Add(101 * 24 * time.Hour).UTC().Format(time.RFC3339)})
+	if !isError {
+		t.Fatal("unbounded queue range", body)
+	}
+}
+
+func TestQueueToolRequiresExplicitScopeAndRejectsIdentityFields(t *testing.T) {
+	f := newFixture(t)
+	f.key("queue", "a", `{"artifact":["read"],"queue":["write"]}`, true)
+	setID := cuid.New()
+	f.exec(`INSERT INTO social_set(id,"organizationId",name,visibility,"publicSlug","createdAt","updatedAt") VALUES($1,$2,'Queue','WORKSPACE',$1,now(),now())`, setID, f.orgs["a"])
+	session := f.session("queue")
+	input := map[string]any{"id": setID, "baseVersion": 1, "postingSlots": []any{map[string]any{"weekday": 1, "time": "09:15"}}, "naturalPostingTimes": true}
+	body, failed := f.call(session, "updateSocialSetQueue", input)
+	if failed || body["naturalPostingTimes"] != true || body["version"] != float64(2) {
+		t.Fatal(body)
+	}
+	body, failed = f.call(session, "updateSocialSetQueue", input)
+	refusedWith(t, "updateSocialSetQueue", body, failed, "conflict")
+	input["baseVersion"] = 2
+	input["name"] = "Cannot rename"
+	if result, err := session.CallTool(f.ctx, &sdk.CallToolParams{Name: "updateSocialSetQueue", Arguments: input}); err == nil && !result.IsError {
+		t.Fatal("queue tool accepted identity field")
+	}
+	listed, err := f.session("a-read").ListTools(f.ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range listed.Tools {
+		if tool.Name == "updateSocialSetQueue" {
+			t.Fatal("read key gained queue writes")
+		}
+	}
+}
+
+func TestDraftCommentToolsRequireSeparateScope(t *testing.T) {
+	f := newFixture(t)
+	f.key("writer", "a", `{"artifact":["read"],"draft":["write"]}`, true)
+	session := f.session("writer")
+	draft, failed := f.call(session, "createContentDraft", map[string]any{"title": "Reviewable", "plainText": "Keep publishing human"})
+	if failed {
+		t.Fatal(draft)
+	}
+	args := map[string]any{"id": draft["id"], "action": "add", "baseVersion": draft["version"], "commentId": "agent-review", "text": "Please verify the claim."}
+	tools, err := session.ListTools(f.ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range tools.Tools {
+		if tool.Name == "mutateDraftComment" {
+			t.Fatal("comment scope was implicitly granted")
+		}
+	}
+	f.key("commenter", "a", `{"artifact":["read"],"draft":["comment"]}`, true)
+	commenter := f.session("commenter")
+	body, failed := f.call(commenter, "mutateDraftComment", args)
+	if failed {
+		t.Fatal(body)
+	}
+	if body["plainText"] != nil || body["body"] != nil {
+		t.Fatal("comment result leaked unrelated fields", body)
+	}
+	body, failed = f.call(commenter, "listDraftComments", map[string]any{"id": draft["id"], "status": "open"})
+	if failed {
+		t.Fatal(body)
+	}
+	discussions := body["discussions"].(map[string]any)
+	if len(discussions["threads"].([]any)) != 1 {
+		t.Fatal("MCP comment did not persist", body)
+	}
+	body, failed = f.call(commenter, "mutateDraftComment", args)
+	refusedWith(t, "uncertain replay", body, failed, "conflict")
+	tools, err = commenter.ListTools(f.ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range tools.Tools {
+		if tool.Name == "updateContentDraft" || tool.Name == "scheduleContentDraft" || tool.Name == "reviewContentDraft" {
+			t.Fatal("commenter acquired content or publishing authority")
+		}
 	}
 }

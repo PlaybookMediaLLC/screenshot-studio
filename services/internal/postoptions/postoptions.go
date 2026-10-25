@@ -19,8 +19,8 @@ type AutoActions struct {
 	PlugAtLikes int    `json:"plugAtLikes,omitempty"`
 	PlugText    string `json:"plugText,omitempty"`
 	PlugMetric  string `json:"plugMetric,omitempty"`
-	// QuoteAfterHours posts QuoteText with a link to the post this many hours
-	// after it went out, which X shows as a quote.
+	// QuoteAfterHours publishes a native quote after this many hours.
+	// It requires the same verified provider eligibility as an ordinary quote.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
 	// Retweets repost the post at each rule's time (RFC 042), and
@@ -70,6 +70,7 @@ func (r RetweetRule) When(publishedAt time.Time) (time.Time, error) {
 
 // Poll is a question's choices and how long it stays open.
 type Poll struct {
+	Multiple        bool     `json:"multiple,omitempty"`
 	DurationMinutes int      `json:"durationMinutes"`
 	Options         []string `json:"options"`
 }
@@ -77,9 +78,17 @@ type Poll struct {
 // ThreadProgress is how much of a thread is live: the replies posted, of
 // how many, and the last live reply a resumed thread answers.
 type ThreadProgress struct {
-	LastReplyID string `json:"lastReplyId,omitempty"`
-	Posted      int    `json:"posted"`
-	Total       int    `json:"total"`
+	Quotes      []QuoteReceipt `json:"quotes,omitempty"`
+	LastReplyID string         `json:"lastReplyId,omitempty"`
+	Posted      int            `json:"posted"`
+	Total       int            `json:"total"`
+}
+
+// QuoteReceipt preserves the server's quote approval state at publication.
+// A published status can exist while its native quote awaits federation approval.
+type QuoteReceipt struct {
+	PostID string `json:"postId"`
+	State  string `json:"state"`
 }
 
 // Metrics are a live post's engagement counts by name (likes, reposts,
@@ -91,6 +100,8 @@ type Metrics map[string]float64
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.
 type PublishOptions struct {
+	// X: up to ten numeric user IDs tagged in attached photos.
+	PhotoTagIDs []string `json:"photoTagIds,omitempty"`
 	// X: who can reply (following, mentionedUsers, subscribers, verified);
 	// empty is everyone. Replies never change who can see the post.
 	ReplySettings string `json:"replySettings,omitempty"`
@@ -119,7 +130,9 @@ type PublishOptions struct {
 }
 
 // Empty reports whether no option is set.
-func (o PublishOptions) Empty() bool { return o == PublishOptions{} }
+func (o PublishOptions) Empty() bool {
+	return len(o.PhotoTagIDs) == 0 && o.ReplySettings == "" && !o.MadeWithAI && !o.PaidPartnership && o.CommunityID == "" && !o.ShareWithFollowers && o.QuoteRemoteID == "" && !o.QuoteFirstPost && o.ArticleTitle == "" && o.ArticleCoverAssetID == "" && o.Visibility == "" && o.FirstComment == "" && o.DocumentAssetID == "" && o.DocumentTitle == "" && o.PollQuestion == ""
+}
 
 // LivePostURL is a live post's address on its platform, where one can be
 // built from its id.

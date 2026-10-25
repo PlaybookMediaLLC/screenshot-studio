@@ -1,5 +1,7 @@
 # Typefully backlog triage
 
+> Historical baseline from October 19, 2026. This table is preserved for traceability. The reopened assignment revalidates each row in [coverage.md](coverage.md); do not use these old Exists/Missing labels as current completion claims.
+
 This file applies Step 1 (status) and Step 2 (epic) of the [method](README.md) to all 109 entries in the [backlog](../changelog-features.md).
 
 - **Checked against:** `main` at `f4c9b830`, on 2026-10-19.

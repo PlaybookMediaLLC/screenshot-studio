@@ -74,13 +74,13 @@ func TestToolsMirrorTheirOpenAPIOperations(t *testing.T) {
 			t.Errorf("%s readOnlyHint=%v", tool.spec.Name, tool.spec.Annotations.ReadOnlyHint)
 		}
 		destructive := *tool.spec.Annotations.DestructiveHint
-		if destructive != (operation.Method == http.MethodDelete || tool.spec.Name == "cancelScheduledPost") {
+		if destructive != (operation.Method == http.MethodDelete || tool.spec.Name == "cancelScheduledPost" || tool.spec.Name == "mutateDraftComment") {
 			t.Errorf("%s destructiveHint=%v", tool.spec.Name, destructive)
 		}
 	}
 	want := []string{"listReleases", "createRelease", "createAssetUploadUrl", "completeAssetUpload", "createAssetDownloadUrl",
 		"deleteAsset", "captureScreenshot", "listCampaigns", "getCampaign", "createCampaign", "listApprovals", "requestCampaignReview",
-		"scheduleCampaignPost", "listScheduledPosts", "createScheduledPost", "cancelScheduledPost"}
+		"scheduleCampaignPost", "listScheduledPosts", "createScheduledPost", "cancelScheduledPost", "listSocialSets", "getSocialSet", "updateSocialSetQueue", "lookupSocialSetMentions", "listCalendarPosts", "bestPostingTimes", "listContentDrafts", "getContentDraft", "createContentDraft", "updateContentDraft", "deleteContentDraft", "listContentDraftPosts", "planContentDraft", "duplicateContentDraft", "updateContentDraftProperties", "listContentDraftActivity", "listDraftComments", "mutateDraftComment"}
 	if !slices.Equal(names, want) {
 		t.Fatalf("tools=%v", names)
 	}
@@ -97,7 +97,7 @@ func TestToolsMirrorTheirOpenAPIOperations(t *testing.T) {
 		}
 	}
 	// Approving stays human-only (RFC 019).
-	for _, absent := range []string{"decideCampaignApproval", "transitionCampaign"} {
+	for _, absent := range []string{"decideCampaignApproval", "transitionCampaign", "scheduleContentDraft", "reviewContentDraft"} {
 		if slices.Contains(names, absent) {
 			t.Fatalf("%s must not be an agent tool", absent)
 		}

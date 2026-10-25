@@ -23,6 +23,7 @@ export const draftPropertiesInputSchema = z.strictObject({
   pinned: z.boolean().optional(),
   removeTagIds: z.array(contentDraftIdSchema).max(20).optional(),
   scratchpad: z.string().max(20_000).optional(),
+  suppressSlackOnPublish: z.boolean().optional(),
 })
 
 /** `PATCH /api/v1/content-drafts/{id}/properties` */

@@ -395,6 +395,20 @@ func (_u *ContentDraftUpdate) SetNillableScratchpad(v *string) *ContentDraftUpda
 	return _u
 }
 
+// SetSuppressSlackOnPublish sets the "suppress_slack_on_publish" field.
+func (_u *ContentDraftUpdate) SetSuppressSlackOnPublish(v bool) *ContentDraftUpdate {
+	_u.mutation.SetSuppressSlackOnPublish(v)
+	return _u
+}
+
+// SetNillableSuppressSlackOnPublish sets the "suppress_slack_on_publish" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableSuppressSlackOnPublish(v *bool) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetSuppressSlackOnPublish(*v)
+	}
+	return _u
+}
+
 // SetTagIds sets the "tag_ids" field.
 func (_u *ContentDraftUpdate) SetTagIds(v []string) *ContentDraftUpdate {
 	_u.mutation.SetTagIds(v)
@@ -697,6 +711,9 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if value, ok := _u.mutation.Scratchpad(); ok {
 		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.SuppressSlackOnPublish(); ok {
+		_spec.SetField(contentdraft.FieldSuppressSlackOnPublish, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.TagIds(); ok {
 		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)
@@ -1126,6 +1143,20 @@ func (_u *ContentDraftUpdateOne) SetNillableScratchpad(v *string) *ContentDraftU
 	return _u
 }
 
+// SetSuppressSlackOnPublish sets the "suppress_slack_on_publish" field.
+func (_u *ContentDraftUpdateOne) SetSuppressSlackOnPublish(v bool) *ContentDraftUpdateOne {
+	_u.mutation.SetSuppressSlackOnPublish(v)
+	return _u
+}
+
+// SetNillableSuppressSlackOnPublish sets the "suppress_slack_on_publish" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableSuppressSlackOnPublish(v *bool) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetSuppressSlackOnPublish(*v)
+	}
+	return _u
+}
+
 // SetTagIds sets the "tag_ids" field.
 func (_u *ContentDraftUpdateOne) SetTagIds(v []string) *ContentDraftUpdateOne {
 	_u.mutation.SetTagIds(v)
@@ -1458,6 +1489,9 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 	}
 	if value, ok := _u.mutation.Scratchpad(); ok {
 		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.SuppressSlackOnPublish(); ok {
+		_spec.SetField(contentdraft.FieldSuppressSlackOnPublish, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.TagIds(); ok {
 		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)

@@ -13,6 +13,10 @@ const authEnvironmentSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   MICROSOFT_CLIENT_ID: z.string().min(1).optional(),
   MICROSOFT_CLIENT_SECRET: z.string().min(1).optional(),
+  PLATFORM_AUTH_LINKEDIN_CLIENT_ID: z.string().min(1).optional(),
+  PLATFORM_AUTH_LINKEDIN_CLIENT_SECRET: z.string().min(1).optional(),
+  PLATFORM_AUTH_TWITTER_CLIENT_ID: z.string().min(1).optional(),
+  PLATFORM_AUTH_TWITTER_CLIENT_SECRET: z.string().min(1).optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 })
 
@@ -37,6 +41,10 @@ export function getAuthEnvironment() {
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     MICROSOFT_CLIENT_ID: process.env.MICROSOFT_CLIENT_ID,
     MICROSOFT_CLIENT_SECRET: process.env.MICROSOFT_CLIENT_SECRET,
+    PLATFORM_AUTH_LINKEDIN_CLIENT_ID: process.env.PLATFORM_AUTH_LINKEDIN_CLIENT_ID,
+    PLATFORM_AUTH_LINKEDIN_CLIENT_SECRET: process.env.PLATFORM_AUTH_LINKEDIN_CLIENT_SECRET,
+    PLATFORM_AUTH_TWITTER_CLIENT_ID: process.env.PLATFORM_AUTH_TWITTER_CLIENT_ID,
+    PLATFORM_AUTH_TWITTER_CLIENT_SECRET: process.env.PLATFORM_AUTH_TWITTER_CLIENT_SECRET,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   })
 }
@@ -61,11 +69,15 @@ export function getTrustedOrigins(): string[] {
 }
 
 export function getSocialProviderCredentials(
-  provider: 'GITHUB' | 'GOOGLE' | 'MICROSOFT'
+  provider: 'GITHUB' | 'GOOGLE' | 'MICROSOFT' | 'LINKEDIN' | 'TWITTER'
 ): SocialProviderCredentials | undefined {
   const environment = getAuthEnvironment()
-  const clientId = environment[`${provider}_CLIENT_ID`]
-  const clientSecret = environment[`${provider}_CLIENT_SECRET`]
+  const prefix =
+    provider === 'LINKEDIN' || provider === 'TWITTER'
+      ? (`PLATFORM_AUTH_${provider}` as const)
+      : provider
+  const clientId = environment[`${prefix}_CLIENT_ID`]
+  const clientSecret = environment[`${prefix}_CLIENT_SECRET`]
   return clientId && clientSecret ? { clientId, clientSecret } : undefined
 }
 

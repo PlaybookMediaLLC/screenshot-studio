@@ -299,18 +299,26 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
     <div
       className={cn('group/post flex items-start gap-2 rounded-lg', over && 'bg-sky-400/[0.06]')}
       data-post-number={number}
+      data-local-dropzone="true"
       onDragLeave={() => setOver(false)}
       onDragOver={(event) => {
-        if (!event.dataTransfer.types.includes(POST_DRAG)) return
+        if (readOnly || !event.dataTransfer.types.includes(POST_DRAG)) return
         event.preventDefault()
+        event.stopPropagation()
         setOver(true)
       }}
       onDrop={(event) => {
-        const from = Number(event.dataTransfer.getData(POST_DRAG))
         setOver(false)
-        if (!from) return
+        if (readOnly || !event.dataTransfer.types.includes(POST_DRAG)) return
         event.preventDefault()
-        movePost(editor, from, number)
+        event.stopPropagation()
+        try {
+          const source = JSON.parse(event.dataTransfer.getData(POST_DRAG)) as {editorId?:string;postId?:string}
+          if (source.editorId !== editor.id || !source.postId) return
+          // Resolve the stable post identity after any collaborative edits during the drag.
+          const from = postRanges(editor.children).findIndex(([start]) => editor.children[start].id === source.postId) + 1
+          if (from) movePost(editor, from, number)
+        } catch { /* Ignore a malformed or foreign drag. */ }
       }}
     >
       <div className="min-w-0 flex-1">{header(number)}</div>
@@ -351,9 +359,13 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
                 className={cn(button, 'cursor-grab')}
                 draggable
                 onDragStart={(event) => {
-                  event.dataTransfer.setData(POST_DRAG, String(number))
+                  // Plate's window drag backend otherwise cancels this local gesture.
+                  event.stopPropagation()
+                  const index = breakIndex(editor.children, number)
+                  event.dataTransfer.setData(POST_DRAG, JSON.stringify({editorId:editor.id,postId:editor.children[index]?.id}))
                   event.dataTransfer.effectAllowed = 'move'
                 }}
+                onDragEnd={(event) => event.stopPropagation()}
                 role="img"
               >
                 ⠿

@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { socialSetHref } from '@/components/workspace/settings-sections'
 import { call } from '@/lib/content-drafts/client'
+import { WRITING_PROMPTS } from '@/lib/write/prompt-library'
 import { assistPosts } from '@/lib/write/refine-actions'
+import { VoiceMemo } from './voice-memo'
 import type { DraftChannel } from '@/lib/write/document'
 import { useWrite, type WriteSet } from '../write-context'
 
@@ -20,6 +22,10 @@ const STARTERS = [
   'How could the ending get more replies?',
   'What is unclear or too long here?',
   'Adapt this for LinkedIn.',
+  'Continue this unfinished thought using only the facts in this draft.',
+  'Give constructive feedback on clarity, evidence, and audience fit. Do not rewrite yet.',
+  'Suggest a concise call to action that follows naturally from this draft.',
+  'Suggest two relevant emoji and explain where each fits.',
 ]
 
 /**
@@ -101,6 +107,37 @@ export function AssistantPanel({
         Workspace defaults → Social-set overrides → Your instructions for this draft. Prohibited
         terms always apply.
       </p>
+      <label className="grid gap-1 text-xs">
+        Prompt library
+        <select
+          aria-label="Prompt library"
+          className="rounded border bg-background p-2"
+          value=""
+          onChange={(event) => setMessage(event.target.value)}
+        >
+          <option value="">Choose an instruction…</option>
+          {STARTERS.map((starter) => (
+            <option key={starter} value={starter}>
+              {starter}
+            </option>
+          ))}
+        </select>
+      </label>
+      <details className="rounded-lg border border-white/[0.06] p-3">
+        <summary className="cursor-pointer">Writing prompts and examples</summary>
+        <p className="my-2 text-xs text-neutral-400">Examples show a structure. Use your own facts and experience.</p>
+        <ul className="grid gap-3">
+          {WRITING_PROMPTS.map((prompt) => (
+            <li key={prompt.id}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMessage(prompt.instruction)}>{prompt.title}</Button>
+              <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-400">{prompt.example}</p>
+            </li>
+          ))}
+        </ul>
+      </details>
+      {turns.length === 0 ? (
+        <VoiceMemo draftId={draftId} channel={channel} onUse={setMessage} />
+      ) : null}
       {turns.length === 0 ? (
         <div className="grid gap-1.5">
           {STARTERS.map((starter) => (

@@ -6,6 +6,7 @@ import {
   type SerializedPost,
   serializeDraft,
 } from '@/lib/content-drafts/serialize'
+import { previewMediaTypes } from '@/lib/write/preview-media'
 import { engagementAutomation } from '@/lib/write/automation'
 import {
   type AccountStanding,
@@ -36,6 +37,10 @@ import { bodyFor, groupSettings, versionFor } from '@/lib/write/versions'
 
 /** A post's settings as the backend stores them on a scheduled post. */
 export const publishOptionsSchema = z.object({
+  photoTagIds: z
+    .array(z.string().regex(/^[0-9]{1,19}$/))
+    .max(10)
+    .optional(),
   articleCoverAssetId: z.string().optional(),
   articleTitle: z.string().optional(),
   communityId: z.string().optional(),
@@ -63,7 +68,7 @@ export type PublicationTarget = {
   options?: PublishOptions
   /** X follow-ups once live (Auto-RT, Auto-Plug). */
   autoActions?: Automation
-  poll?: { durationMinutes: number; options: string[] }
+  poll?: { durationMinutes: number; options: string[]; multiple?: boolean }
   replies?: { assetIds: string[]; caption: string; options?: PublishOptions }[]
   replyTo?: string
 }
@@ -88,6 +93,8 @@ export type PublicationAccount = {
 
 /** A destination's publication: what it sends, how it previews, and what blocks it. */
 export type Publication = {
+  /** Preview-only kinds; the backend checks actual uploaded MIME before publication. */
+  mediaTypes: Record<string, 'image' | 'video'>
   /** Blocking problems: nothing can be scheduled while any remain. */
   problems: string[]
   /** Each post's settings, by its index in `serialized.posts`. */
@@ -115,7 +122,9 @@ function postOptions(
     if (settings.disclosures?.madeWithAi) options.madeWithAi = true
     if (settings.disclosures?.paidPartnership) options.paidPartnership = true
   }
-  if (channel === 'x' && settings.quoteFirstPost && !first) options.quoteFirstPost = true
+  if (channel === 'x' && settings.photoTagIds?.length) options.photoTagIds = settings.photoTagIds
+  if (['x', 'bluesky', 'mastodon'].includes(channel) && settings.quoteFirstPost && !first)
+    options.quoteFirstPost = true
   return options
 }
 
@@ -154,17 +163,22 @@ function firstPoll(
   channel: DraftChannel,
   settings: PostSettings | undefined,
   first: SerializedPost | undefined,
-  media: number
+  media: number,
+  limits?: AccountStanding['pollLimits']
 ): { poll?: PublicationTarget['poll']; problems: string[]; question?: string } {
   const poll = settings?.poll
   if (!poll) return { problems: [] }
-  const problems = pollProblems(channel, poll, media)
-  if (channel === 'x' && !first?.caption.trim())
-    problems.push('An X poll asks the post’s text: write the question.')
+  const problems = pollProblems(channel, poll, media, limits)
+  if (
+    (channel === 'x' || channel === 'mastodon' || channel === 'threads') &&
+    !first?.caption.trim()
+  )
+    problems.push('This poll asks the post’s text: write the question.')
   return {
     poll: {
       durationMinutes: poll.durationMinutes,
-      options: poll.options.map((option) => option.trim()),
+      options: poll.options,
+      ...(poll.multiple ? { multiple: true } : {}),
     },
     problems,
     question: CAPABILITIES[channel].poll?.question === 'field' ? poll.question?.trim() : undefined,
@@ -190,9 +204,19 @@ export function buildPublication(
   const settings = serialized.posts.map((post) => groups[post.group] ?? {})
   const [first, ...rest] = serialized.posts
   const problems = [...serialized.errors]
+  if (channel === 'x')
+    settings.forEach((setting, index) => {
+      if (setting.photoTagIds?.length && (article || !serialized.posts[index]?.images))
+        problems.push('Photo tagging needs an attached photo on a regular X post.')
+      if (setting.photoTagIds && new Set(setting.photoTagIds).size !== setting.photoTagIds.length)
+        problems.push('Use distinct photo tag IDs.')
+    })
   const availability = kindAvailability(channel, draft.kind, account.standing)
   if (!availability.available) problems.push(availability.reason)
-  if (channel === 'x' && settings.some((setting, index) => index > 0 && setting.quoteFirstPost)) {
+  if (
+    ['x', 'bluesky', 'mastodon'].includes(channel) &&
+    settings.some((setting, index) => index > 0 && setting.quoteFirstPost)
+  ) {
     const quote = kindAvailability(channel, 'quote', account.standing)
     if (!quote.available) problems.push(quote.reason)
   }
@@ -201,7 +225,13 @@ export function buildPublication(
   if (documentMedia && (first?.images ?? 0) > 0) {
     problems.push('A LinkedIn document goes alone: remove the images or the document.')
   }
-  const poll = firstPoll(channel, settings[0], first, (first?.images ?? 0) + documentMedia)
+  const poll = firstPoll(
+    channel,
+    settings[0],
+    first,
+    (first?.images ?? 0) + documentMedia,
+    account.standing?.pollLimits
+  )
   problems.push(...poll.problems)
 
   const firstOptions: PublishOptions = { ...postOptions(channel, settings[0] ?? {}, true) }
@@ -263,5 +293,11 @@ export function buildPublication(
         }
       : {}),
   }
-  return { problems: [...new Set(problems)], serialized, settings, target }
+  return {
+    mediaTypes: previewMediaTypes(body),
+    problems: [...new Set(problems)],
+    serialized,
+    settings,
+    target,
+  }
 }

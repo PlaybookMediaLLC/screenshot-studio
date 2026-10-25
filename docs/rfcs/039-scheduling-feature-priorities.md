@@ -1,11 +1,11 @@
 # RFC 039: Scheduling Feature Priorities
 
-> **Roadmap disposition (2026-10-23):** Deferred expansion; the priority order below is superseded by release readiness. Maintain existing scheduling behavior.
+> **Roadmap disposition (2026-10-24):** The Typefully backlog assignment explicitly reopens scheduling, bulk authoring and social analytics expansion. Preserve release-readiness workflows and the existing publishing authority.
 > See the [current execution order](README.md). Older decision text is
 > historical wherever it conflicts with that order or the audited architecture.
 
-**Status:** Deferred; original priority order superseded
-**Status note (2026-10-23):** Broader network parity, bulk social scheduling and social analytics are deferred. Maintain the existing Write and settings implementation; prioritize approved release kits.
+**Status:** Reopened; implementation and verification in progress
+**Status note (2026-10-24):** The assignment supersedes the October 23 expansion deferral. The [work-item coverage](../scheduling/typefully/work-items/coverage.md) records actual completion and external blockers. Historical Later/Skip boundaries remain explicit; API-key draft publication and autonomous approval remain forbidden.
 **Date:** 2026-10-19  
 **Owners:** Product Engineering  
 **Depends on:** RFC 009, RFC 020, RFC 027, RFC 035, RFC 037

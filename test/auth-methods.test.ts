@@ -8,6 +8,10 @@ import {
 
 const AUTH_KEYS = [
   'AUTH_ENABLE_PASSWORD',
+  'PLATFORM_AUTH_LINKEDIN_CLIENT_ID',
+  'PLATFORM_AUTH_LINKEDIN_CLIENT_SECRET',
+  'PLATFORM_AUTH_TWITTER_CLIENT_ID',
+  'PLATFORM_AUTH_TWITTER_CLIENT_SECRET',
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
   'GITHUB_CLIENT_ID',
@@ -68,4 +72,14 @@ test('disabling passwords without an OAuth provider is rejected as a lockout', (
 test('password auth alone satisfies the sign-in requirement', () => {
   clearAuthEnvironment()
   assert.doesNotThrow(() => assertSignInMethodAvailable())
+})
+
+test('LinkedIn and X sign-in use separate complete app credentials', () => {
+  clearAuthEnvironment()
+  process.env.PLATFORM_AUTH_LINKEDIN_CLIENT_ID = 'fixture'
+  assert.deepEqual(getEnabledSocialProviders(), [])
+  process.env.PLATFORM_AUTH_LINKEDIN_CLIENT_SECRET = 'fixture'
+  process.env.PLATFORM_AUTH_TWITTER_CLIENT_ID = 'fixture'
+  process.env.PLATFORM_AUTH_TWITTER_CLIENT_SECRET = 'fixture'
+  assert.deepEqual(getEnabledSocialProviders(), ['linkedin', 'twitter'])
 })

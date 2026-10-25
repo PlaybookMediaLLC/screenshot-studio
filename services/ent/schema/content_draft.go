@@ -66,6 +66,8 @@ func (ContentDraft) Fields() []ent.Field {
 		field.JSON("article", &draftdoc.Article{}).StorageKey("article").Optional(),
 		// Internal: never part of a post.
 		field.String("scratchpad").StorageKey("scratchpad").Default(""),
+		// A delivery preference, never approval or publication content.
+		field.Bool("suppress_slack_on_publish").StorageKey("suppressSlackOnPublish").Default(false),
 		// Tags of the draft's set (content_draft_tag), by id.
 		field.JSON("tag_ids", []string{}).StorageKey("tagIds").Default([]string{}),
 		field.Time("pinned_at").StorageKey("pinnedAt").Optional().Nillable(),

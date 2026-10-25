@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # The collaboration server (RFC 013). Build from the repository root:
 #   docker build --file packages/collab-server/Dockerfile .
-FROM node:22-bookworm-slim AS dependencies
+FROM node:22.23.4-bookworm-slim AS dependencies
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY packages/screenshot-studio-backend-sdk/package.json ./packages/screenshot-s
 COPY packages/shots-api-client/package.json ./packages/shots-api-client/
 RUN --mount=type=cache,target=/root/.npm npm ci --workspace @shots/collab-server --omit=dev --ignore-scripts --no-audit
 
-FROM node:22-bookworm-slim
+FROM node:22.23.4-bookworm-slim
 
 ENV NODE_ENV=production \
     PORT=1234

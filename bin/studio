@@ -352,6 +352,7 @@ run_e2e() {
       NEXT_PUBLIC_APP_URL="${app_url%/}" \
       SOCIAL_API_URL="${E2E_SOCIAL_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
       PLATFORM_SOCIAL_BLUESKY_ENABLED=true \
+      PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED=true \
       SCREENSHOT_API_URL="http://screenshot-mock:5678" \
       SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" \
       OPENROUTER_API_KEY="e2e-openrouter" \

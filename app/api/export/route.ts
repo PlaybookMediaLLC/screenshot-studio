@@ -5,6 +5,7 @@ import { exportRequestSchema, type ExportRequest } from '@/lib/api/schemas'
 import { QUALITY_PRESETS } from '@/lib/export/types'
 import { apiError, methodNotAllowed } from '@/lib/api/errors'
 import { requirePaidAccess } from '@/lib/api/require-account'
+import { readBoundedBody, RequestBodyTooLargeError } from '@/lib/security/request-body'
 
 type ExportResult = {
   buffer: Buffer
@@ -20,7 +21,7 @@ function getMimeType(format: ExportRequest['format']): string {
 }
 
 async function encodeImage(input: ExportRequest, buffer: Buffer): Promise<Buffer> {
-  const image = sharp(buffer)
+  const image = sharp(buffer, { limitInputPixels: 64_000_000 })
   const quality = QUALITY_PRESETS[input.qualityPreset]
 
   if (input.format === 'jpeg') {
@@ -62,6 +63,16 @@ function invalidContentTypeResponse(request: NextRequest): NextResponse | null {
   )
 }
 
+async function readExportInput(request: NextRequest): Promise<ExportRequest> {
+  const bytes = await readBoundedBody(request)
+  const formData = await new Request(request, { body: new Uint8Array(bytes) }).formData()
+  return exportRequestSchema.parse({
+    format: formData.get('format'),
+    image: formData.get('image'),
+    qualityPreset: formData.get('qualityPreset'),
+  })
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const denied = await requirePaidAccess(request)
   if (denied) return denied
@@ -70,12 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (contentTypeResponse) return contentTypeResponse
 
   try {
-    const formData = await request.formData()
-    const input = exportRequestSchema.parse({
-      format: formData.get('format'),
-      image: formData.get('image'),
-      qualityPreset: formData.get('qualityPreset'),
-    })
+    const input = await readExportInput(request)
     const result = await exportImage(input)
     return new NextResponse(new Uint8Array(result.buffer), {
       headers: {
@@ -84,6 +90,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     })
   } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return apiError(413, 'invalid_request', error.message, 'Upload an image under 32 MB.')
+    }
     console.error('Export API error:', error)
     if (isInvalidRequest(error)) {
       return apiError(
@@ -97,7 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return apiError(
       500,
       'internal_error',
-      error instanceof Error ? error.message : 'Failed to process image',
+      'Failed to process image',
       'Check that the uploaded file is a decodable PNG, JPEG, or WebP image, then retry.'
     )
   }

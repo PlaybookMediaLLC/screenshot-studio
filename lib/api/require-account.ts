@@ -6,6 +6,7 @@ import { apiError } from '@/lib/api/errors'
 import { AuthorizationError } from '@/lib/auth/access'
 import { requireTenantAccess } from '@/lib/tenant/access'
 import { WorkspaceEntitlementError } from '@/lib/tenant/entitlements'
+import { isCrossOriginCookieMutation } from '@/lib/security/request-origin'
 
 /**
  * Refuses a request without a paying workspace behind it. Editor utilities
@@ -15,6 +16,14 @@ import { WorkspaceEntitlementError } from '@/lib/tenant/entitlements'
  * error response to send, or null to continue.
  */
 export async function requirePaidAccess(request: Request): Promise<NextResponse | null> {
+  if (isCrossOriginCookieMutation(request)) {
+    return apiError(
+      403,
+      'forbidden',
+      'Cross-origin cookie-authenticated writes are not allowed.',
+      'Submit this request from the application or use an authenticated API client.'
+    )
+  }
   try {
     await requireTenantAccess(request.headers, editorUtilityAccess)
     return null

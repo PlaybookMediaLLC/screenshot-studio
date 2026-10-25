@@ -16,10 +16,11 @@ async function openPdf(url: string): Promise<Loaded> {
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url
   ).toString()
-  const document = await pdfjs.getDocument({ url }).promise
+  const loading = pdfjs.getDocument({ url })
+  const document = await loading.promise
   return {
     count: document.numPages,
-    destroy: () => document.destroy(),
+    destroy: () => loading.destroy(),
     render: (page, canvas) => {
       let cancelled = false
       let task: ReturnType<Awaited<ReturnType<typeof document.getPage>>['render']> | undefined

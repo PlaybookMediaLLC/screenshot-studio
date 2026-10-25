@@ -1,5 +1,5 @@
 import path from 'node:path'
-import sharp from 'sharp'
+import sharp, { type OverlayOptions } from 'sharp'
 import { getMockupDefinition } from '@/lib/constants/mockups'
 
 /**
@@ -134,7 +134,7 @@ export async function composeProductShot(
   const margin = Math.round(Math.min(width, height) * 0.07)
   const textWidth = width - margin * 2
 
-  const layers: sharp.OverlayOptions[] = []
+  const layers: OverlayOptions[] = []
   let textBottom = margin
   if (input.headline) {
     const headline = await renderText(input.headline, {

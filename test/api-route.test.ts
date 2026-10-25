@@ -42,6 +42,25 @@ function post(body: unknown, headers: Record<string, string> = {}) {
 
 const context = { params: Promise.resolve({ listId: 'list_1' }) }
 
+test('cross-origin cookie writes cannot reach authentication or the mutation handler', async (t) => {
+  captureLogs(t)
+  const auth = t.mock.fn(allow)
+  const handler = t.mock.fn(async () => ({ createdAt: new Date(), id: 'x' }))
+  const response = await route(itemContract, { auth, handler })(
+    post(
+      { count: 1 },
+      {
+        cookie: 'better-auth.session_token=test',
+        origin: 'https://attacker.example',
+      }
+    ),
+    context
+  )
+  assert.equal(response.status, 403)
+  assert.equal(auth.mock.callCount(), 0)
+  assert.equal(handler.mock.callCount(), 0)
+})
+
 function captureLogs(t: test.TestContext) {
   const info = t.mock.method(console, 'info', () => undefined)
   const error = t.mock.method(console, 'error', () => undefined)

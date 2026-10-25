@@ -64,7 +64,7 @@ export const platformErrorBodySchema = z
 export type PlatformErrorBody = z.infer<typeof platformErrorBodySchema>
 
 /** HTTP error statuses with a specific platform code and hint. */
-export const httpErrorStatusSchema = z.literal([400, 401, 403, 404, 409, 422, 429, 500, 503])
+export const httpErrorStatusSchema = z.literal([400, 401, 403, 404, 409, 413, 422, 429, 500, 503])
 
 /** One of {@link httpErrorStatusSchema}. */
 export type HttpErrorStatus = z.infer<typeof httpErrorStatusSchema>
@@ -90,6 +90,10 @@ export const failureDetailsSchema = apiFailureSchema.pick({ code: true, hint: tr
 export type FailureDetails = z.infer<typeof failureDetailsSchema>
 
 const statusDetails: Record<HttpErrorStatus, FailureDetails> = {
+  413: {
+    code: 'invalid_request',
+    hint: 'Reduce the request size or upload media through the signed asset upload endpoint.',
+  },
   400: {
     code: 'invalid_request',
     hint: 'Check the request body, query parameters, and path values against the OpenAPI schema.',
@@ -115,6 +119,7 @@ const statusDetails: Record<HttpErrorStatus, FailureDetails> = {
 
 /** Domain errors whose own `status` and `message` are safe to return to callers. */
 export const statusErrorNameSchema = z.enum([
+  'RequestBodyTooLargeError',
   'AnnouncementError',
   'AuthorizationError',
   'BackendSDKError',

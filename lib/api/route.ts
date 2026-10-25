@@ -10,6 +10,8 @@ import {
   toErrorBody,
 } from '@/lib/api/platform-errors'
 import { getRequestId, platformHeaders } from '@/lib/api/request-context'
+import { isCrossOriginCookieMutation } from '@/lib/security/request-origin'
+import { readBoundedText } from '@/lib/security/request-body'
 
 /**
  * `route()` runs every platform API request through one fixed pipeline:
@@ -163,7 +165,8 @@ function logFailure(route: string, requestId: string, detail: unknown): Response
 
 async function readBody(contract: RouteContract, request: NextRequest): Promise<unknown> {
   if (contract.body === noInputSchema) return undefined
-  return contract.bodyFormat === bodyFormatSchema.enum.text ? request.text() : request.json()
+  const text = await readBoundedText(request, contract.maxBodyBytes)
+  return contract.bodyFormat === bodyFormatSchema.enum.text ? text : JSON.parse(text)
 }
 
 async function readRaw(
@@ -239,6 +242,14 @@ async function runRoute(
   params: RouteParams
 ): Promise<Outcome> {
   const requestId = getRequestId(request.headers)
+  if (isCrossOriginCookieMutation(request)) {
+    return {
+      access: undefined,
+      response: failureResponse(
+        failureForStatus(403, 'Cross-origin cookie-authenticated writes are not allowed.')
+      ),
+    }
+  }
   if (contract.shell && request.headers.has(platformHeaders['x-api-key'])) {
     const message = 'Shell endpoints require a signed-in user session, not an API key.'
     return { access: undefined, response: failureResponse(failureForStatus(403, message)) }

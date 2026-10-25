@@ -241,4 +241,66 @@ export const MCP_TOOLS: { name: string; scope: string; summary: string }[] = [
     scope: 'post:schedule',
     summary: 'Cancel a scheduled post (asks to confirm)',
   },
+  { name: 'listSocialSets', scope: 'artifact:read', summary: 'List visible social sets' },
+  {
+    name: 'getSocialSet',
+    scope: 'artifact:read',
+    summary: 'Read a social set and its queue settings',
+  },
+  {name:'updateSocialSetQueue',scope:'queue:write',summary:'Change future posting-slot defaults; never moves or publishes existing posts.'},
+  {name:'lookupSocialSetMentions',scope:'artifact:read',summary:'Look up an X username or LinkedIn company with a visible set’s account.'},
+  {
+    name: 'listCalendarPosts',
+    scope: 'artifact:read',
+    summary: 'Read visible deliveries in a bounded date range',
+  },
+  {
+    name: 'bestPostingTimes',
+    scope: 'artifact:read',
+    summary: 'Suggest posting times for one social set',
+  },
+  {
+    name: 'listContentDrafts',
+    scope: 'artifact:read',
+    summary: 'Find drafts by text, set, and status',
+  },
+  {
+    name: 'getContentDraft',
+    scope: 'artifact:read',
+    summary: 'Read an editable draft and its version',
+  },
+  { name: 'createContentDraft', scope: 'draft:write', summary: 'Create a draft for human review' },
+  {
+    name: 'updateContentDraft',
+    scope: 'draft:write',
+    summary: 'Update a draft using its current version',
+  },
+  {
+    name: 'deleteContentDraft',
+    scope: 'draft:write',
+    summary: 'Delete an unscheduled draft (asks to confirm)',
+  },
+  {
+    name: 'listContentDraftPosts',
+    scope: 'artifact:read',
+    summary: 'Inspect draft delivery outcomes',
+  },
+  {
+    name: 'planContentDraft',
+    scope: 'draft:write',
+    summary: 'Set a planning date; does not schedule or publish',
+  },
+  { name: 'duplicateContentDraft', scope: 'draft:write', summary: 'Copy a draft for repurposing' },
+  {
+    name: 'updateContentDraftProperties',
+    scope: 'draft:write',
+    summary: 'Change draft tags, pin, or scratchpad',
+  },
+  {
+    name: 'listContentDraftActivity',
+    scope: 'artifact:read',
+    summary: 'Read draft activity without private comment text',
+  },
+  {name:'listDraftComments',scope:'artifact:read',summary:'Read filtered draft discussion threads.'},
+  {name:'mutateDraftComment',scope:'draft:comment',summary:'Comment as the key, reply, edit your own comments, resolve or delete authorized discussions.'},
 ]

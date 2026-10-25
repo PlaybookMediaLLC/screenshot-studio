@@ -293,7 +293,7 @@ func TestFinalizeTweetError(t *testing.T) {
 	defer done()
 	pending := marshal(pendingData{Message: "hi", Attempting: true, Confirmed: true})
 	_, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount())
-	if temporalx.FailureType(err) != temporalx.TypeBadBody ||
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected ||
 		temporalx.FailureMessage(err) != "There is a problem posting, please edit your post and check character count and media attachments" {
 		t.Fatalf("err = %v", err)
 	}

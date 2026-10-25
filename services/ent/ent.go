@@ -71,6 +71,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformdraftimport"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
@@ -81,6 +82,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialmention"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialobservation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
@@ -242,6 +244,7 @@ func checkColumn(t, c string) error {
 			platformautodmrecipient.Table:         platformautodmrecipient.ValidColumn,
 			platformcreativeset.Table:             platformcreativeset.ValidColumn,
 			platformcreativesetversion.Table:      platformcreativesetversion.ValidColumn,
+			platformdraftimport.Table:             platformdraftimport.ValidColumn,
 			platformnotificationdelivery.Table:    platformnotificationdelivery.ValidColumn,
 			platformnotificationinbox.Table:       platformnotificationinbox.ValidColumn,
 			platformnotificationpolicy.Table:      platformnotificationpolicy.ValidColumn,
@@ -252,6 +255,7 @@ func checkColumn(t, c string) error {
 			platformslackpacing.Table:             platformslackpacing.ValidColumn,
 			platformslackpersonalconnection.Table: platformslackpersonalconnection.ValidColumn,
 			platformsocialmention.Table:           platformsocialmention.ValidColumn,
+			platformsocialobservation.Table:       platformsocialobservation.ValidColumn,
 			platformworkspacecreation.Table:       platformworkspacecreation.ValidColumn,
 			postautomationrun.Table:               postautomationrun.ValidColumn,
 			productprofile.Table:                  productprofile.ValidColumn,

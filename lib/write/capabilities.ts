@@ -191,7 +191,7 @@ export const CAPABILITIES: Record<DraftChannel, PlatformCapabilities> = {
   threads: {
     ...simple('Threads', 500, 10, true),
     poll: {
-      durationsMinutes: [1440],
+      durationsMinutes: [0],
       minOptions: 2,
       maxOptions: 4,
       maxOptionLength: 25,
@@ -289,6 +289,8 @@ export function pollProblems(
         : `${CAPABILITIES[channel].label} posts cannot carry a poll.`,
     ]
   const problems: string[] = []
+  if (rules.question === 'post-text' && poll.question)
+    problems.push('This poll uses the post text as its question.')
   if (poll.multiple && channel !== 'mastodon')
     problems.push('Multiple-choice polls are supported only on Mastodon.')
   const options = poll.options.map((option) => option.trim())
@@ -312,12 +314,13 @@ export function pollProblems(
   if (poll.options.some((option) => [...option].length > rules.maxOptionLength)) {
     problems.push(`Keep each option to ${rules.maxOptionLength} characters.`)
   }
+  // Older Threads drafts stored the provider's one-day default as 1440.
+  const duration = channel === 'threads' && poll.durationMinutes === 1440 ? 0 : poll.durationMinutes
   const validDuration =
-    Number.isInteger(poll.durationMinutes) &&
+    Number.isInteger(duration) &&
     (rules.durationRange
-      ? poll.durationMinutes >= rules.durationRange.min &&
-        poll.durationMinutes <= rules.durationRange.max
-      : rules.durationsMinutes.includes(poll.durationMinutes))
+      ? duration >= rules.durationRange.min && duration <= rules.durationRange.max
+      : rules.durationsMinutes.includes(duration))
   if (!validDuration) {
     problems.push(`Pick one of ${CAPABILITIES[channel].label}'s poll lengths.`)
   }
@@ -329,6 +332,7 @@ export function pollProblems(
 
 /** Use the authenticated server's observed poll configuration; unknown limits stay unavailable. */
 export function pollRules(channel: DraftChannel, standing?: AccountStanding): PollRules | null {
+  if (channel === 'x') return { ...X.poll!, durationRange: { min: 5, max: 10_080 } }
   if (channel !== 'mastodon') return CAPABILITIES[channel].poll
   const limits = standing?.pollLimits
   if (!limits) return null

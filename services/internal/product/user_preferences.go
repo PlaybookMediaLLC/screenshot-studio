@@ -21,6 +21,7 @@ const maxDismissedTips = 100
 
 // UserPreferences is a person's preferences as the API returns them.
 type UserPreferences struct {
+	AccentColor        string          `json:"accentColor"`
 	DeveloperMode      bool            `json:"developerMode"`
 	DismissedTips      []string        `json:"dismissedTips"`
 	EmailNotifications bool            `json:"emailNotifications"`
@@ -39,6 +40,7 @@ type UserPreferences struct {
 // UserPreferencesUpdate changes the fields it sets. BaseVersion, when set,
 // refuses the save if the preferences changed since that version.
 type UserPreferencesUpdate struct {
+	AccentColor        *string `json:"accentColor"`
 	BaseVersion        *int    `json:"baseVersion"`
 	DeveloperMode      *bool   `json:"developerMode"`
 	EmailNotifications *bool   `json:"emailNotifications"`
@@ -75,7 +77,7 @@ func userPreferencesRecord(row *ent.UserPreference) UserPreferences {
 		return defaultUserPreferences()
 	}
 	updated := row.UpdatedAt
-	return UserPreferences{DeveloperMode: row.DeveloperMode, DismissedTips: nonNilStrings(row.DismissedTips),
+	return UserPreferences{AccentColor: row.AccentColor, DeveloperMode: row.DeveloperMode, DismissedTips: nonNilStrings(row.DismissedTips),
 		EmailNotifications: row.EmailNotifications, Experiments: nonNilFlags(row.Experiments),
 		Navigation: string(row.Navigation), ShowScrollbars: row.ShowScrollbars, TextDirection: string(row.TextDirection),
 		Theme: string(row.Theme), TimeZone: row.TimeZone, UpdatedAt: &updated, Version: row.Version,
@@ -136,6 +138,13 @@ func oneOf(value string, allowed ...string) bool {
 
 // applyPreferenceUpdate validates input and applies it to current.
 func (c *Configuration) applyPreferenceUpdate(ctx context.Context, actor Actor, current *UserPreferences, input UserPreferencesUpdate) error {
+	if input.AccentColor != nil {
+		color := strings.ToLower(*input.AccentColor)
+		if color != "" && !regexp.MustCompile(`^#[0-9a-f]{6}$`).MatchString(color) {
+			return invalid("Accent color must be a six-digit hex color, or empty for the default.")
+		}
+		current.AccentColor = color
+	}
 	if input.Theme != nil {
 		if !oneOf(*input.Theme, "light", "dark", "system") {
 			return invalid("Theme is light, dark or system.")
@@ -232,7 +241,7 @@ func (c *Configuration) UpdateUserPreferences(ctx context.Context, actor Actor, 
 		}
 		if row == nil {
 			created, err := c.client.UserPreference.Create().SetID(actor.UserID).SetNillableTimeZone(current.TimeZone).
-				SetTheme(userpreference.Theme(current.Theme)).SetNavigation(userpreference.Navigation(current.Navigation)).
+				SetAccentColor(current.AccentColor).SetTheme(userpreference.Theme(current.Theme)).SetNavigation(userpreference.Navigation(current.Navigation)).
 				SetWeekStart(userpreference.WeekStart(current.WeekStart)).
 				SetTextDirection(userpreference.TextDirection(current.TextDirection)).
 				SetShowScrollbars(current.ShowScrollbars).SetDeveloperMode(current.DeveloperMode).
@@ -249,7 +258,7 @@ func (c *Configuration) UpdateUserPreferences(ctx context.Context, actor Actor, 
 			return &result, nil
 		}
 		update := c.client.UserPreference.Update().Where(userpreference.ID(actor.UserID), userpreference.Version(current.Version)).
-			SetTheme(userpreference.Theme(current.Theme)).SetNavigation(userpreference.Navigation(current.Navigation)).
+			SetAccentColor(current.AccentColor).SetTheme(userpreference.Theme(current.Theme)).SetNavigation(userpreference.Navigation(current.Navigation)).
 			SetWeekStart(userpreference.WeekStart(current.WeekStart)).
 			SetTextDirection(userpreference.TextDirection(current.TextDirection)).
 			SetShowScrollbars(current.ShowScrollbars).SetDeveloperMode(current.DeveloperMode).

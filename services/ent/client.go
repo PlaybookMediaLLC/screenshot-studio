@@ -74,6 +74,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformdraftimport"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
@@ -84,6 +85,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialmention"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialobservation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
@@ -250,6 +252,8 @@ type Client struct {
 	PlatformCreativeSet *PlatformCreativeSetClient
 	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
 	PlatformCreativeSetVersion *PlatformCreativeSetVersionClient
+	// PlatformDraftImport is the client for interacting with the PlatformDraftImport builders.
+	PlatformDraftImport *PlatformDraftImportClient
 	// PlatformNotificationDelivery is the client for interacting with the PlatformNotificationDelivery builders.
 	PlatformNotificationDelivery *PlatformNotificationDeliveryClient
 	// PlatformNotificationInbox is the client for interacting with the PlatformNotificationInbox builders.
@@ -270,6 +274,8 @@ type Client struct {
 	PlatformSlackPersonalConnection *PlatformSlackPersonalConnectionClient
 	// PlatformSocialMention is the client for interacting with the PlatformSocialMention builders.
 	PlatformSocialMention *PlatformSocialMentionClient
+	// PlatformSocialObservation is the client for interacting with the PlatformSocialObservation builders.
+	PlatformSocialObservation *PlatformSocialObservationClient
 	// PlatformWorkspaceCreation is the client for interacting with the PlatformWorkspaceCreation builders.
 	PlatformWorkspaceCreation *PlatformWorkspaceCreationClient
 	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
@@ -422,6 +428,7 @@ func (c *Client) init() {
 	c.PlatformAutoDMRecipient = NewPlatformAutoDMRecipientClient(c.config)
 	c.PlatformCreativeSet = NewPlatformCreativeSetClient(c.config)
 	c.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(c.config)
+	c.PlatformDraftImport = NewPlatformDraftImportClient(c.config)
 	c.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(c.config)
 	c.PlatformNotificationInbox = NewPlatformNotificationInboxClient(c.config)
 	c.PlatformNotificationPolicy = NewPlatformNotificationPolicyClient(c.config)
@@ -432,6 +439,7 @@ func (c *Client) init() {
 	c.PlatformSlackPacing = NewPlatformSlackPacingClient(c.config)
 	c.PlatformSlackPersonalConnection = NewPlatformSlackPersonalConnectionClient(c.config)
 	c.PlatformSocialMention = NewPlatformSocialMentionClient(c.config)
+	c.PlatformSocialObservation = NewPlatformSocialObservationClient(c.config)
 	c.PlatformWorkspaceCreation = NewPlatformWorkspaceCreationClient(c.config)
 	c.PostAutomationRun = NewPostAutomationRunClient(c.config)
 	c.ProductProfile = NewProductProfileClient(c.config)
@@ -624,6 +632,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlatformAutoDMRecipient:         NewPlatformAutoDMRecipientClient(cfg),
 		PlatformCreativeSet:             NewPlatformCreativeSetClient(cfg),
 		PlatformCreativeSetVersion:      NewPlatformCreativeSetVersionClient(cfg),
+		PlatformDraftImport:             NewPlatformDraftImportClient(cfg),
 		PlatformNotificationDelivery:    NewPlatformNotificationDeliveryClient(cfg),
 		PlatformNotificationInbox:       NewPlatformNotificationInboxClient(cfg),
 		PlatformNotificationPolicy:      NewPlatformNotificationPolicyClient(cfg),
@@ -634,6 +643,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PlatformSlackPacing:             NewPlatformSlackPacingClient(cfg),
 		PlatformSlackPersonalConnection: NewPlatformSlackPersonalConnectionClient(cfg),
 		PlatformSocialMention:           NewPlatformSocialMentionClient(cfg),
+		PlatformSocialObservation:       NewPlatformSocialObservationClient(cfg),
 		PlatformWorkspaceCreation:       NewPlatformWorkspaceCreationClient(cfg),
 		PostAutomationRun:               NewPostAutomationRunClient(cfg),
 		ProductProfile:                  NewProductProfileClient(cfg),
@@ -753,6 +763,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlatformAutoDMRecipient:         NewPlatformAutoDMRecipientClient(cfg),
 		PlatformCreativeSet:             NewPlatformCreativeSetClient(cfg),
 		PlatformCreativeSetVersion:      NewPlatformCreativeSetVersionClient(cfg),
+		PlatformDraftImport:             NewPlatformDraftImportClient(cfg),
 		PlatformNotificationDelivery:    NewPlatformNotificationDeliveryClient(cfg),
 		PlatformNotificationInbox:       NewPlatformNotificationInboxClient(cfg),
 		PlatformNotificationPolicy:      NewPlatformNotificationPolicyClient(cfg),
@@ -763,6 +774,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PlatformSlackPacing:             NewPlatformSlackPacingClient(cfg),
 		PlatformSlackPersonalConnection: NewPlatformSlackPersonalConnectionClient(cfg),
 		PlatformSocialMention:           NewPlatformSocialMentionClient(cfg),
+		PlatformSocialObservation:       NewPlatformSocialObservationClient(cfg),
 		PlatformWorkspaceCreation:       NewPlatformWorkspaceCreationClient(cfg),
 		PostAutomationRun:               NewPostAutomationRunClient(cfg),
 		ProductProfile:                  NewProductProfileClient(cfg),
@@ -849,19 +861,20 @@ func (c *Client) Use(hooks ...Hook) {
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
 		c.OutboxEvent, c.PageKnowledge, c.PlatformAutoDMCampaign,
 		c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut, c.PlatformAutoDMRecipient,
-		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformCreativeSet, c.PlatformCreativeSetVersion, c.PlatformDraftImport,
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
 		c.PlatformSlackInstallation, c.PlatformSlackPacing,
 		c.PlatformSlackPersonalConnection, c.PlatformSocialMention,
-		c.PlatformWorkspaceCreation, c.PostAutomationRun, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
-		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
-		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet,
-		c.SocialSetWritingSample, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.PlatformSocialObservation, c.PlatformWorkspaceCreation, c.PostAutomationRun,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
+		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
 		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
@@ -892,19 +905,20 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
 		c.OutboxEvent, c.PageKnowledge, c.PlatformAutoDMCampaign,
 		c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut, c.PlatformAutoDMRecipient,
-		c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformCreativeSet, c.PlatformCreativeSetVersion, c.PlatformDraftImport,
 		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
 		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
 		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
 		c.PlatformSlackInstallation, c.PlatformSlackPacing,
 		c.PlatformSlackPersonalConnection, c.PlatformSocialMention,
-		c.PlatformWorkspaceCreation, c.PostAutomationRun, c.ProductProfile,
-		c.ProductSurface, c.Project, c.ProjectVersion, c.PublicationAttempt, c.Release,
-		c.ReleaseAutomation, c.ReleaseAutomationExecutor, c.ReleaseAutomationNode,
-		c.ReleaseAutomationRun, c.ReleaseAutomationVersion, c.ReleaseDocument,
-		c.ReleaseSourceEvent, c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache,
-		c.Session, c.ShareLink, c.SocialOAuthStart, c.SocialSet,
-		c.SocialSetWritingSample, c.SocialTenantBinding, c.SourceApp, c.SourceChange,
+		c.PlatformSocialObservation, c.PlatformWorkspaceCreation, c.PostAutomationRun,
+		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
+		c.PublicationAttempt, c.Release, c.ReleaseAutomation,
+		c.ReleaseAutomationExecutor, c.ReleaseAutomationNode, c.ReleaseAutomationRun,
+		c.ReleaseAutomationVersion, c.ReleaseDocument, c.ReleaseSourceEvent,
+		c.ReleaseSpec, c.ScheduledPost, c.ScreenshotCache, c.Session, c.ShareLink,
+		c.SocialOAuthStart, c.SocialSet, c.SocialSetWritingSample,
+		c.SocialTenantBinding, c.SourceApp, c.SourceChange,
 		c.StorePublishingCredential, c.StoreReview, c.StoreReviewComment,
 		c.SupportAccessGrant, c.SurfaceCapture, c.User, c.UserPreference,
 		c.WebhookDelivery, c.WebhookDeliveryAttempt, c.WebhookSubscription,
@@ -1036,6 +1050,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlatformCreativeSet.mutate(ctx, m)
 	case *PlatformCreativeSetVersionMutation:
 		return c.PlatformCreativeSetVersion.mutate(ctx, m)
+	case *PlatformDraftImportMutation:
+		return c.PlatformDraftImport.mutate(ctx, m)
 	case *PlatformNotificationDeliveryMutation:
 		return c.PlatformNotificationDelivery.mutate(ctx, m)
 	case *PlatformNotificationInboxMutation:
@@ -1056,6 +1072,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PlatformSlackPersonalConnection.mutate(ctx, m)
 	case *PlatformSocialMentionMutation:
 		return c.PlatformSocialMention.mutate(ctx, m)
+	case *PlatformSocialObservationMutation:
+		return c.PlatformSocialObservation.mutate(ctx, m)
 	case *PlatformWorkspaceCreationMutation:
 		return c.PlatformWorkspaceCreation.mutate(ctx, m)
 	case *PostAutomationRunMutation:
@@ -9070,6 +9088,139 @@ func (c *PlatformCreativeSetVersionClient) mutate(ctx context.Context, m *Platfo
 	}
 }
 
+// PlatformDraftImportClient is a client for the PlatformDraftImport schema.
+type PlatformDraftImportClient struct {
+	config
+}
+
+// NewPlatformDraftImportClient returns a client for the PlatformDraftImport from the given config.
+func NewPlatformDraftImportClient(c config) *PlatformDraftImportClient {
+	return &PlatformDraftImportClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformdraftimport.Hooks(f(g(h())))`.
+func (c *PlatformDraftImportClient) Use(hooks ...Hook) {
+	c.hooks.PlatformDraftImport = append(c.hooks.PlatformDraftImport, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformdraftimport.Intercept(f(g(h())))`.
+func (c *PlatformDraftImportClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformDraftImport = append(c.inters.PlatformDraftImport, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformDraftImport entity.
+func (c *PlatformDraftImportClient) Create() *PlatformDraftImportCreate {
+	mutation := newPlatformDraftImportMutation(c.config, OpCreate)
+	return &PlatformDraftImportCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformDraftImport entities.
+func (c *PlatformDraftImportClient) CreateBulk(builders ...*PlatformDraftImportCreate) *PlatformDraftImportCreateBulk {
+	return &PlatformDraftImportCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformDraftImportClient) MapCreateBulk(slice any, setFunc func(*PlatformDraftImportCreate, int)) *PlatformDraftImportCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformDraftImportCreateBulk{err: fmt.Errorf("calling to PlatformDraftImportClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformDraftImportCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformDraftImportCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformDraftImport.
+func (c *PlatformDraftImportClient) Update() *PlatformDraftImportUpdate {
+	mutation := newPlatformDraftImportMutation(c.config, OpUpdate)
+	return &PlatformDraftImportUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformDraftImportClient) UpdateOne(_m *PlatformDraftImport) *PlatformDraftImportUpdateOne {
+	mutation := newPlatformDraftImportMutation(c.config, OpUpdateOne, withPlatformDraftImport(_m))
+	return &PlatformDraftImportUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformDraftImportClient) UpdateOneID(id string) *PlatformDraftImportUpdateOne {
+	mutation := newPlatformDraftImportMutation(c.config, OpUpdateOne, withPlatformDraftImportID(id))
+	return &PlatformDraftImportUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformDraftImport.
+func (c *PlatformDraftImportClient) Delete() *PlatformDraftImportDelete {
+	mutation := newPlatformDraftImportMutation(c.config, OpDelete)
+	return &PlatformDraftImportDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformDraftImportClient) DeleteOne(_m *PlatformDraftImport) *PlatformDraftImportDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformDraftImportClient) DeleteOneID(id string) *PlatformDraftImportDeleteOne {
+	builder := c.Delete().Where(platformdraftimport.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformDraftImportDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformDraftImport.
+func (c *PlatformDraftImportClient) Query() *PlatformDraftImportQuery {
+	return &PlatformDraftImportQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformDraftImport},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformDraftImport entity by its id.
+func (c *PlatformDraftImportClient) Get(ctx context.Context, id string) (*PlatformDraftImport, error) {
+	return c.Query().Where(platformdraftimport.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformDraftImportClient) GetX(ctx context.Context, id string) *PlatformDraftImport {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformDraftImportClient) Hooks() []Hook {
+	return c.hooks.PlatformDraftImport
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformDraftImportClient) Interceptors() []Interceptor {
+	return c.inters.PlatformDraftImport
+}
+
+func (c *PlatformDraftImportClient) mutate(ctx context.Context, m *PlatformDraftImportMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformDraftImportCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformDraftImportUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformDraftImportUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformDraftImportDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformDraftImport mutation op: %q", m.Op())
+	}
+}
+
 // PlatformNotificationDeliveryClient is a client for the PlatformNotificationDelivery schema.
 type PlatformNotificationDeliveryClient struct {
 	config
@@ -10397,6 +10548,139 @@ func (c *PlatformSocialMentionClient) mutate(ctx context.Context, m *PlatformSoc
 		return (&PlatformSocialMentionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown PlatformSocialMention mutation op: %q", m.Op())
+	}
+}
+
+// PlatformSocialObservationClient is a client for the PlatformSocialObservation schema.
+type PlatformSocialObservationClient struct {
+	config
+}
+
+// NewPlatformSocialObservationClient returns a client for the PlatformSocialObservation from the given config.
+func NewPlatformSocialObservationClient(c config) *PlatformSocialObservationClient {
+	return &PlatformSocialObservationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `platformsocialobservation.Hooks(f(g(h())))`.
+func (c *PlatformSocialObservationClient) Use(hooks ...Hook) {
+	c.hooks.PlatformSocialObservation = append(c.hooks.PlatformSocialObservation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `platformsocialobservation.Intercept(f(g(h())))`.
+func (c *PlatformSocialObservationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PlatformSocialObservation = append(c.inters.PlatformSocialObservation, interceptors...)
+}
+
+// Create returns a builder for creating a PlatformSocialObservation entity.
+func (c *PlatformSocialObservationClient) Create() *PlatformSocialObservationCreate {
+	mutation := newPlatformSocialObservationMutation(c.config, OpCreate)
+	return &PlatformSocialObservationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PlatformSocialObservation entities.
+func (c *PlatformSocialObservationClient) CreateBulk(builders ...*PlatformSocialObservationCreate) *PlatformSocialObservationCreateBulk {
+	return &PlatformSocialObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PlatformSocialObservationClient) MapCreateBulk(slice any, setFunc func(*PlatformSocialObservationCreate, int)) *PlatformSocialObservationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PlatformSocialObservationCreateBulk{err: fmt.Errorf("calling to PlatformSocialObservationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PlatformSocialObservationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PlatformSocialObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PlatformSocialObservation.
+func (c *PlatformSocialObservationClient) Update() *PlatformSocialObservationUpdate {
+	mutation := newPlatformSocialObservationMutation(c.config, OpUpdate)
+	return &PlatformSocialObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PlatformSocialObservationClient) UpdateOne(_m *PlatformSocialObservation) *PlatformSocialObservationUpdateOne {
+	mutation := newPlatformSocialObservationMutation(c.config, OpUpdateOne, withPlatformSocialObservation(_m))
+	return &PlatformSocialObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PlatformSocialObservationClient) UpdateOneID(id string) *PlatformSocialObservationUpdateOne {
+	mutation := newPlatformSocialObservationMutation(c.config, OpUpdateOne, withPlatformSocialObservationID(id))
+	return &PlatformSocialObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PlatformSocialObservation.
+func (c *PlatformSocialObservationClient) Delete() *PlatformSocialObservationDelete {
+	mutation := newPlatformSocialObservationMutation(c.config, OpDelete)
+	return &PlatformSocialObservationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PlatformSocialObservationClient) DeleteOne(_m *PlatformSocialObservation) *PlatformSocialObservationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PlatformSocialObservationClient) DeleteOneID(id string) *PlatformSocialObservationDeleteOne {
+	builder := c.Delete().Where(platformsocialobservation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PlatformSocialObservationDeleteOne{builder}
+}
+
+// Query returns a query builder for PlatformSocialObservation.
+func (c *PlatformSocialObservationClient) Query() *PlatformSocialObservationQuery {
+	return &PlatformSocialObservationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePlatformSocialObservation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PlatformSocialObservation entity by its id.
+func (c *PlatformSocialObservationClient) Get(ctx context.Context, id string) (*PlatformSocialObservation, error) {
+	return c.Query().Where(platformsocialobservation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PlatformSocialObservationClient) GetX(ctx context.Context, id string) *PlatformSocialObservation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PlatformSocialObservationClient) Hooks() []Hook {
+	return c.hooks.PlatformSocialObservation
+}
+
+// Interceptors returns the client interceptors.
+func (c *PlatformSocialObservationClient) Interceptors() []Interceptor {
+	return c.inters.PlatformSocialObservation
+}
+
+func (c *PlatformSocialObservationClient) mutate(ctx context.Context, m *PlatformSocialObservationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PlatformSocialObservationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PlatformSocialObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PlatformSocialObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PlatformSocialObservationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PlatformSocialObservation mutation op: %q", m.Op())
 	}
 }
 
@@ -15918,22 +16202,22 @@ type (
 		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
 		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
 		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
-		PlatformCreativeSetVersion, PlatformNotificationDelivery,
+		PlatformCreativeSetVersion, PlatformDraftImport, PlatformNotificationDelivery,
 		PlatformNotificationInbox, PlatformNotificationPolicy,
 		PlatformNotificationPreference, PlatformNotificationSeenAction,
 		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformSocialMention,
-		PlatformWorkspaceCreation, PostAutomationRun, ProductProfile, ProductSurface,
-		Project, ProjectVersion, PublicationAttempt, Release, ReleaseAutomation,
-		ReleaseAutomationExecutor, ReleaseAutomationNode, ReleaseAutomationRun,
-		ReleaseAutomationVersion, ReleaseDocument, ReleaseSourceEvent, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
-		SocialSet, SocialSetWritingSample, SocialTenantBinding, SourceApp,
-		SourceChange, StorePublishingCredential, StoreReview, StoreReviewComment,
-		SupportAccessGrant, SurfaceCapture, User, UserPreference, WebhookDelivery,
-		WebhookDeliveryAttempt, WebhookSubscription, WorkspaceCreditGrant,
-		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Hook
+		PlatformSocialObservation, PlatformWorkspaceCreation, PostAutomationRun,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
+		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
+		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Hook
 	}
 	inters struct {
 		AccountDeletionRequest, AgentAuthorization, AnalyticsAccount, AnalyticsPost,
@@ -15950,21 +16234,21 @@ type (
 		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
 		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
 		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
-		PlatformCreativeSetVersion, PlatformNotificationDelivery,
+		PlatformCreativeSetVersion, PlatformDraftImport, PlatformNotificationDelivery,
 		PlatformNotificationInbox, PlatformNotificationPolicy,
 		PlatformNotificationPreference, PlatformNotificationSeenAction,
 		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformSocialMention,
-		PlatformWorkspaceCreation, PostAutomationRun, ProductProfile, ProductSurface,
-		Project, ProjectVersion, PublicationAttempt, Release, ReleaseAutomation,
-		ReleaseAutomationExecutor, ReleaseAutomationNode, ReleaseAutomationRun,
-		ReleaseAutomationVersion, ReleaseDocument, ReleaseSourceEvent, ReleaseSpec,
-		ScheduledPost, ScreenshotCache, Session, ShareLink, SocialOAuthStart,
-		SocialSet, SocialSetWritingSample, SocialTenantBinding, SourceApp,
-		SourceChange, StorePublishingCredential, StoreReview, StoreReviewComment,
-		SupportAccessGrant, SurfaceCapture, User, UserPreference, WebhookDelivery,
-		WebhookDeliveryAttempt, WebhookSubscription, WorkspaceCreditGrant,
-		WorkspaceDeletion, WorkspaceEntitlement, WorkspaceGitHubInstallation,
-		WorkspaceSettings []ent.Interceptor
+		PlatformSocialObservation, PlatformWorkspaceCreation, PostAutomationRun,
+		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
+		Release, ReleaseAutomation, ReleaseAutomationExecutor, ReleaseAutomationNode,
+		ReleaseAutomationRun, ReleaseAutomationVersion, ReleaseDocument,
+		ReleaseSourceEvent, ReleaseSpec, ScheduledPost, ScreenshotCache, Session,
+		ShareLink, SocialOAuthStart, SocialSet, SocialSetWritingSample,
+		SocialTenantBinding, SourceApp, SourceChange, StorePublishingCredential,
+		StoreReview, StoreReviewComment, SupportAccessGrant, SurfaceCapture, User,
+		UserPreference, WebhookDelivery, WebhookDeliveryAttempt, WebhookSubscription,
+		WorkspaceCreditGrant, WorkspaceDeletion, WorkspaceEntitlement,
+		WorkspaceGitHubInstallation, WorkspaceSettings []ent.Interceptor
 	}
 )

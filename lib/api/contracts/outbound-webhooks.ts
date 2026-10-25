@@ -12,6 +12,7 @@ import { isoInstantSchema } from '@/lib/api/contracts/settings-platform'
 /** A webhook event a subscription can choose. */
 export const webhookEventSchema = z.enum([
   'draft.created',
+  'draft.updated',
   'draft.published',
   'draft.scheduled',
   'draft.planned',
@@ -55,7 +56,7 @@ export const listWebhooksContract = defineContract({
 export const createWebhookContract = defineContract({
   body: z
     .object({
-      events: z.array(webhookEventSchema).min(1).max(7),
+      events: z.array(webhookEventSchema).min(1).max(8),
       name: z.string().trim().min(1).max(80),
       url: z.url({ protocol: /^https$/ }).max(2_048),
     })
@@ -73,7 +74,7 @@ export const updateWebhookContract = defineContract({
   body: z
     .object({
       enabled: z.boolean().optional(),
-      events: z.array(webhookEventSchema).min(1).max(7).optional(),
+      events: z.array(webhookEventSchema).min(1).max(8).optional(),
       name: z.string().trim().min(1).max(80).optional(),
       url: z
         .url({ protocol: /^https$/ })

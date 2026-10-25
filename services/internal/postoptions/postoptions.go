@@ -5,10 +5,11 @@ package postoptions
 
 import (
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // AutoActions are what happens after a post is live, on channels that
@@ -87,10 +88,17 @@ type ThreadReceipt struct {
 }
 
 type ThreadProgress struct {
+	Quotes      []QuoteReceipt  `json:"quotes,omitempty"`
 	Receipts    []ThreadReceipt `json:"receipts,omitempty"`
 	LastReplyID string          `json:"lastReplyId,omitempty"`
 	Posted      int             `json:"posted"`
 	Total       int             `json:"total"`
+}
+
+// QuoteReceipt preserves the native quote approval state of a published status.
+type QuoteReceipt struct {
+	PostID string `json:"postId"`
+	State  string `json:"state"`
 }
 
 // Metrics are a live post's engagement counts by name (likes, reposts,
@@ -102,6 +110,8 @@ type Metrics map[string]float64
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.
 type PublishOptions struct {
+	// X: up to ten numeric user IDs tagged in attached photos.
+	PhotoTagIDs   []string     `json:"photoTagIds,omitempty"`
 	LinkPreview   *LinkPreview `json:"linkPreview,omitempty"`
 	TaggedUserIDs []string     `json:"taggedUserIds,omitempty"`
 	// X: who can reply (following, mentionedUsers, subscribers, verified);
@@ -134,7 +144,7 @@ type PublishOptions struct {
 
 // Empty reports whether no option is set.
 func (o PublishOptions) Empty() bool {
-	return len(o.TaggedUserIDs) == 0 && func() bool { o.TaggedUserIDs = nil; return reflect.DeepEqual(o, PublishOptions{}) }()
+	return len(o.PhotoTagIDs) == 0 && len(o.TaggedUserIDs) == 0 && func() bool { o.TaggedUserIDs = nil; o.PhotoTagIDs = nil; return reflect.DeepEqual(o, PublishOptions{}) }()
 }
 
 // LivePostURL is a live post's address on its platform, where one can be

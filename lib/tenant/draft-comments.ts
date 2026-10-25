@@ -1,11 +1,13 @@
 import 'server-only'
-import type { OrganizationAccess } from '@/lib/auth/access'
+import type { TenantContext } from '@/lib/auth/access'
+import type { z } from 'zod'
+import type { draftCommentListQuerySchema } from '@/lib/api/contracts/draft-comments'
 import type { DraftCommentInput } from '@/lib/api/contracts/draft-comments'
 import { backendSDK, orNull } from '@/lib/backend/sdk'
 
 /** Apply one authorized discussion action through the canonical Go draft service. */
 export async function mutateDraftComment(
-  context: OrganizationAccess,
+  context: TenantContext,
   id: string,
   input: DraftCommentInput
 ) {
@@ -21,4 +23,13 @@ export async function mutateDraftComment(
         reviewedByUserId: draft.reviewedByUserId,
       }
     : null
+}
+
+/** Read a filtered discussion document through the same backend visibility checks. */
+export async function listDraftComments(
+  context: TenantContext,
+  id: string,
+  query: z.infer<typeof draftCommentListQuerySchema>
+) {
+  return orNull(backendSDK(context).listContentDraftComments(id, query))
 }

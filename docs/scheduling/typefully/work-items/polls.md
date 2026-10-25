@@ -1,44 +1,95 @@
-# Epic POLL: polls across supported channels
+# Epic POLL: native polls across channels
 
-**Source:** [TF-036](https://typefully.com/changelog/polls-70) and [TF-109](https://typefully.com/changelog/polls-linkedin-threads-mastodon). **Updated:** 2026-10-24. The implementation assignment reopens this epic. [Implementation evidence](implementation-evidence.md) records the complete 42-entry audit.
+Revalidated against the working implementation on 2026-10-24. The October 19 X-only assessment is obsolete. TF-036 and TF-109 are covered by the six slices below. Local adapter fixtures are not live provider certification.
 
-The composer, persisted channel versions, schedule contracts, Go admission and native adapters support X, LinkedIn, Threads and verified Mastodon instances. TF-036 retains its checked regression status. TF-109 remains unchecked because actual provider submission and public outcomes were not verified; live verification was skipped at the user's request.
+## Verified provider contracts
 
-## Provider contracts
+| Channel | Question | Choices | Duration | Media / access |
+|---|---|---|---|---|
+| X | Post text | 2–4; 1–25 Unicode code points each | Integer minutes, 5–10,080 | No media; verified write grant |
+| LinkedIn | Separate field, 1–140 code points | 2–4; 1–30 code points | 1, 3, 7, or 14 days | No media/document; authorized person or page |
+| Threads | Post text | 2–4; 1–25 code points | Provider default; wire value `0` | Text posts only; `threads_basic`, `threads_content_publish`; Advanced Access for non-testers |
+| Mastodon | Post text | From connected instance configuration | Whole minutes within server's seconds bounds | No media; instance write grant; multiple-choice supported |
+| Bluesky / Instagram | Unavailable | — | — | No supported native poll contract in these adapters |
 
-| Channel | Question | Choices | Duration | Other constraints |
-| --- | --- | --- | --- | --- |
-| X | Post text | 2–4, up to 25 Unicode characters | Integer minutes, 5–10,080 | Single choice, no media; root and reply polls preserve exact minutes. |
-| LinkedIn | Separate, up to 140 Unicode characters | 2–4, up to 30 characters | 1 day, 3 days, 1 week or 2 weeks | Single choice, no media/document/reshare; native `content.poll`. |
-| Threads | Post text | 2–4, up to 25 characters | 24 hours, controlled by the provider | Single choice, text only; native `poll_attachment` on creation containers, including replies. |
-| Mastodon | Post text | Verified instance `configuration.polls` limits | Verified instance min/max seconds, represented as whole minutes in the composer | Multiple choice supported; distinct options, no media; unknown capabilities refuse scheduling. |
-| Bluesky, Instagram and other unsupported destinations | — | — | — | A copied poll produces a validation error, never a silent ordinary post. |
+Official contracts: [X create post OpenAPI](https://api.x.com/2/openapi.json), [LinkedIn Posts API](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api), [Threads polls](https://developers.facebook.com/docs/threads/posts/polls/), [Mastodon instance](https://docs.joinmastodon.org/methods/instance/), [Mastodon statuses](https://docs.joinmastodon.org/methods/statuses/). Threads exposes no duration request field: the old specification's fixed 24-hour assertion is deliberately removed.
 
-Sources: [X Create Posts](https://docs.x.com/x-api/posts/create-post), [LinkedIn Poll API](https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/poll-post-api), [Threads polls](https://developers.facebook.com/documentation/threads/create-posts/polls), [Mastodon statuses](https://docs.joinmastodon.org/methods/statuses/) and [Instance configuration](https://docs.joinmastodon.org/entities/Instance/). These were consulted for implementation; real app permissions and provider acceptance are separate gates.
+## WI-POLL-1: validate a poll for its destination
 
-## Completed local work
+**Source:** TF-036, TF-109. **Gap:** the old common 25-character / four-option schema prevented valid LinkedIn and custom-instance polls. **Size:** S. **Priority:** reopened expansion. **Depends on:** existing immutable draft scheduling and verified account identity. [Source requirements](../changelog-features.md).
 
-| Work item | Implementation | Verification |
-| --- | --- | --- |
-| WI-POLL-1: Per-channel contract and admission | `lib/write/document.ts`, `capabilities.ts`, `publication.ts`; `lib/api/contracts/content-draft-platform.ts`; `services/internal/product/content_draft_options.go`; shared `socialidentity` validators. Draft and publication settings are separate: incomplete settings may be edited, but cannot silently disappear when publishing. | `test/write-publication.test.ts`; Go `content_draft_poll_test.go`, shared validator tests and admission integration coverage. |
-| WI-POLL-2: LinkedIn native polls | `linkedin/post.go` validates before uploading or creating. Four exact native duration values; no fallback to one week. Poll/reshare combinations are refused. | `linkedin/poll_options_test.go`: native JSON for all four durations and native resharing; Unicode boundaries and invalid combinations cause zero HTTP mutations. |
-| WI-POLL-3: Threads native polls | `threads/poll.go`, `threads/provider.go`; native JSON poll attachment for root/reply creation, with no invented expiry field. | `TestPollContainerAndReplyKeepNativeOptions` and product validation; browser settings survive reload. |
-| WI-POLL-4: Dynamic Mastodon polls | `mastodon/polls.go`, custom-instance capability discovery and direct publishing allowlist; current scope/capability proofs required. | `TestMastodonPollSchedulingChecksVerifiedServerLimits`, native request tests, and browser duration/multiple-choice persistence. |
-| WI-POLL-5: Reuse with independent settings | `composer/post-tools.tsx` and `lib/write/poll-copy.ts`; explicit Copy options from control replaces only choices and preserves the destination question, duration, voting mode and post content. Incompatible choices are never truncated. | `write-poll-copy.test.ts` checks preservation and validation; `typefully-options.spec.ts` copies from Threads into Mastodon and LinkedIn, reloads the distinct settings, and verifies an oversized Mastodon choice is flagged on LinkedIn before correcting it. |
-| WI-POLL-6: Unsupported destinations | Capability validation reports the destination that cannot publish a poll. | Publication tests cover unsupported channels, unknown Mastodon capabilities, media conflicts and invalid durations. |
+**Changes and evidence:** `lib/write/document.ts` and `lib/write/wire.ts` carry bounded poll data without imposing one provider's limits on every provider. `lib/write/capabilities.ts` validates the destination. `services/internal/product/content_draft_options.go` repeats provider rules before scheduling. `services/internal/socialidentity/threads_poll.go` and `polls.go` supply shared Go validators. LinkedIn's question remains `PublishOptions.PollQuestion`; no second question field or database migration is necessary.
 
-No migration is required: poll data and capabilities use existing versioned documents and immutable scheduled snapshots. Generated API and SDK types were refreshed. Existing publishing entitlements, account authorization, approval, metering, receipts and unknown-delivery handling continue to apply.
+**Acceptance:** valid X durations include non-preset whole minutes; question/option overflow, whitespace-only options, media conflicts, malformed durations and unsupported channels fail before scheduling. Saved documents retain platform versions and unsupported choices for explicit editing, without silently truncating them. Normal draft approval, plan limits and publication idempotency still apply.
 
-## Failure and activation behavior
+**Failure / observability:** validation returns actionable field/channel errors without creating scheduled posts. Worker failures retain the existing attempt and destination status; ambiguous delivery requires reconciliation. No poll option text or credentials are added to operational logs.
 
-A rejected poll is a failed main publication, not a successful ordinary post. Invalid settings fail before admission or mutation. Unknown provider outcomes remain unknown and use the existing recovery path; a retry must not blindly create another post.
+**Verification:** `test/write-publication.test.ts`, `test/write-publication.test.ts`, Go `content_draft_publish_integration_test.go`, `socialidentity/x_test.go`, and native adapter poll tests. PostgreSQL product suite and publication TS tests executed successfully; full final regression results belong in `execution.md`.
 
-Custom Mastodon publishing remains behind `PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED=true` and verified instance proofs. Accounts without refreshed poll capabilities must reconnect. Activation is not implied by passing fixtures.
+## WI-POLL-2: publish a LinkedIn poll
 
-Remaining acceptance work: publish and inspect a real native poll through each approved provider app/account, including a Mastodon instance with nondefault limits and the eligible LinkedIn author types. Confirm app scopes, provider receipts, rendered choices, expiry and failure/unknown-outcome recovery. No real poll was submitted by this task.
+**Priority:** Reopened expansion; live provider activation remains separately gated.
 
-## Executed checks
+**Source:** TF-109. **Gap:** stale triage missed the current LinkedIn implementation; verify native serialization rather than replace it. **Size:** S. **Depends on:** WI-POLL-1; LinkedIn app products and person/page write grants. [Source requirements](../changelog-features.md).
 
-The full JavaScript and serial Go integration suites, generated contracts, TypeScript/lint checks and browser workflows are listed with final results in [implementation-evidence.md](implementation-evidence.md). Protocol fixtures test actual native HTTP payloads; they are not represented as live provider verification.
+**Changes and evidence:** `services/internal/social/integrations/social/linkedin/post.go` creates native poll content and maps the four duration values; `services/internal/social/tenantpublishing/options.go` supplies the question. `components/write/composer/post-tools.tsx` collects question/options/duration. The inherited page adapter uses the selected organization author.
 
-Existing publish outcomes and validation errors remain the operational evidence. No new dashboard or poll-specific production telemetry is claimed by this patch.
+**Acceptance:** the delivered payload contains a native poll, the question is independent of caption text, and a document/image/poll combination is rejected. The first-comment workflow remains a separately tracked extra after a successful main post.
+
+**Failure / observability:** a rejected poll never becomes a text-only fallback. Known preflight failures leave the draft editable. Uncertain HTTP outcomes remain unknown and cannot be blindly retried. Existing publishing attempts and audit events identify the destination.
+
+**Verification:** LinkedIn provider tests plus PostgreSQL schedule validation; the browser copy workflow edits and persists a separate LinkedIn question after reload. Live creation, page entitlement and app-review approval remain unverified because no controlled LinkedIn account is available.
+
+## WI-POLL-3: publish a Threads poll
+
+**Priority:** Reopened expansion; live provider activation remains separately gated.
+
+**Source:** TF-109. **Gap:** missing native poll attachment serialization. **Size:** M. **Depends on:** WI-POLL-1; Meta Threads app and approved content-publish access. [Source requirements](../changelog-features.md).
+
+**Changes and evidence:** `services/internal/socialidentity/threads_poll.go` validates 2–4 choices, 25 code points, no media/multiple choice, and provider-default duration `0` (legacy saved 1,440-minute values remain accepted without sending a duration field). `services/internal/social/integrations/social/threads/provider.go` builds `poll_attachment` using `option_a` through `option_d` on a text container. `threads/polls_test.go` exercises native fields and malformed input. Composer labels duration “Provider default.” Existing container preparation, status checks and publishing workflow remain in use.
+
+**Acceptance:** two, three and four choices serialize exactly; Unicode limits match the composer; custom duration and image/video polls fail before a container is created; ordinary text posts and existing X polls are unaffected.
+
+**Failure / observability:** keep container/publish receipts and existing unknown-outcome protections. Never republish after a timeout merely because no response was received. Invalid local polls perform no provider mutation. Log provider operation and attempt ID, not tokens or full content.
+
+**Verification:** adapter fixtures assert serialization, invalid cardinality/length/duration and no unwanted mutations. Live activation for non-testers requires Advanced Access; no claim of successful Meta publishing is made from those tests.
+
+## WI-POLL-4: use Mastodon instance poll limits
+
+**Priority:** Reopened expansion; live provider activation remains separately gated.
+
+**Source:** TF-109. **Gap:** fixed limits cannot represent independently configured instances. **Size:** M. **Depends on:** WI-POLL-1; verified instance origin and credentials. [Source requirements](../changelog-features.md).
+
+**Changes and evidence:** `mastodon/polls.go` reads `/api/v2/instance.configuration.polls` through the existing guarded transport. `mastodoncustom/provider.go` uses the connected origin. `product/social_sets.go`, `tenantpublishing/options.go`, SDK `settings-platform.ts` and `lib/write/capabilities.ts` expose the same live limits. Scheduling and the adapter revalidate. Pending data retains the exact poll; native form fields include `poll[options][]`, seconds in `poll[expires_in]`, and `poll[multiple]`.
+
+**Acceptance:** custom option counts and text limits work; integer-minute duration must satisfy the server's seconds range; unreadable/invalid configuration disables scheduling with an explanation; custom connections never borrow the default instance's limits; poll data survives media-processing workflow boundaries without a second scheduler.
+
+**Failure / observability:** unknown instance limits fail closed. A provider-side policy change is rechecked at publication and does not result in a text-only post. Existing request IDs and attempt records diagnose failed validation or delivery.
+
+**Verification:** `mastodon/provider_test.go` tests a non-default five-choice server, exact seconds, multiple choice, pending persistence and media rejection. `mastodoncustom/provider_test.go` tests origin/credential restrictions. Both packages executed successfully. Live federated publication is unverified.
+
+## WI-POLL-5: review and copy a poll to a channel version
+
+**Priority:** Reopened expansion; live provider activation remains separately gated.
+
+**Source:** TF-036, TF-109. **Gap:** editing separate versions did not offer an explicit poll-copy workflow. **Size:** M. **Depends on:** WI-POLL-1–4 and existing Plate version forking. [Source requirements](../changelog-features.md).
+
+**Changes and evidence:** `components/write/composer/copy-poll.tsx` and `WriteComposer.tsx` add “Copy poll to channel…”. The dialog reads the source poll, selects a destination, exposes required question and duration changes, validates destination limits, and requires an explicit review/apply step. It forks a manual destination version using existing version helpers.
+
+**Acceptance:** source version stays unchanged; incompatible choices remain visible for editing; copying does not silently shorten options or drop media; cancel makes no change; copied data survives autosave/reload; subsequent source edits do not overwrite the manual destination version.
+
+**Failure / observability:** show destination-specific problems and keep the dialog open; failed saves follow the composer's conflict/recovery path. Ordinary revision and activity records capture accepted edits.
+
+**Verification:** `test/e2e/typefully-workitems.spec.ts` creates an X poll, copies it to LinkedIn, edits the separate question, reloads and verifies choices/question. The workflow passed against local PostgreSQL and collaboration services; screenshot `typefully-poll-copy.png` records the UI. This does not verify live provider delivery.
+
+## WI-POLL-6: explain unsupported polls
+
+**Priority:** Reopened expansion; live provider activation remains separately gated.
+
+**Source:** TF-109. **Gap:** a missing control alone did not explain provider support. **Size:** S. **Depends on:** WI-POLL-5. [Source requirements](../changelog-features.md).
+
+**Changes and evidence:** `PostSettingsTools`, `PollTool`, `pollRules` and `pollProblems` expose an unavailable state for Bluesky and Instagram. Unsupported versions cannot be scheduled with a poll. No external poll site or plain-link substitute is described as a native poll.
+
+**Acceptance:** switching to an unsupported channel shows why a native poll is unavailable; unsupported direct API payloads are rejected in Go; switching back preserves the original compatible poll; API/MCP cannot bypass the rule.
+
+**Failure / verification / observability:** validation tests cover unsupported channels and multi-choice misuse; `test/e2e/typefully-poll-support.spec.ts` passed both unavailable explanations in synced versions, native Threads duration and original poll preservation after returning and reloading. Existing validation responses provide the reason without generating publishing attempts.

@@ -17,6 +17,7 @@ const channel = {
   is_private: false,
   context_team_id: 'T012345',
 }
+const brandChannel = { ...channel, id: 'C067890', name: 'brand-publishing' }
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1')
   const chunks = []
@@ -72,20 +73,20 @@ const server = createServer(async (request, response) => {
         sink.channelPages.push(cursor)
         return json({
           ok: true,
-          channels: cursor ? [channel] : [],
+          channels: cursor ? [channel, brandChannel] : [],
           response_metadata: { next_cursor: cursor ? '' : 'page-two' },
         })
       }
       if (url.pathname === '/api/conversations.info') {
-        if (form.get('channel') !== channel.id)
-          return json({ ok: false, error: 'invalid_arguments' })
-        return json({ ok: true, channel })
+        const selected = [channel, brandChannel].find((item) => item.id === form.get('channel'))
+        if (!selected) return json({ ok: false, error: 'invalid_arguments' })
+        return json({ ok: true, channel: selected })
       }
       if (url.pathname === '/api/chat.postMessage') {
         const body = request.headers['content-type']?.includes('json')
           ? JSON.parse(raw)
           : Object.fromEntries(form)
-        assert.ok([channel.id, 'U012345'].includes(body.channel))
+        assert.ok([channel.id, brandChannel.id, 'U012345'].includes(body.channel))
         sink.slack.push(body)
         const uncertain = [...uncertainSlackWorkspaces].find((name) =>
           body.text.startsWith(`${name}: `)

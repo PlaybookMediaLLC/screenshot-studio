@@ -91,11 +91,12 @@ type ContentDraftRecord struct {
 	PublishedPosts int `json:"publishedPosts"`
 	// The draft's social set and what it copied from the set's defaults when
 	// it was created (RFC 024); later changes to the set leave these alone.
-	Engagement         schema.Engagement `json:"engagement"`
-	NaturalPostingTime bool              `json:"naturalPostingTime"`
-	PlannedFor         *time.Time        `json:"plannedFor"`
-	PrimaryPlatform    *string           `json:"primaryPlatform"`
-	SocialSetID        *string           `json:"socialSetId"`
+	SuppressSlackOnPublish bool              `json:"suppressSlackOnPublish"`
+	Engagement             schema.Engagement `json:"engagement"`
+	NaturalPostingTime     bool              `json:"naturalPostingTime"`
+	PlannedFor             *time.Time        `json:"plannedFor"`
+	PrimaryPlatform        *string           `json:"primaryPlatform"`
+	SocialSetID            *string           `json:"socialSetId"`
 	// Write (RFC 025): the draft's kind and target, platform versions,
 	// article, internal scratchpad, tags of its set, pin and plan zone.
 	Article          *draftdoc.Article         `json:"article"`
@@ -140,6 +141,8 @@ type ContentDraftListQuery struct {
 
 // ContentDraftInput is a new draft. Every field is optional.
 type ContentDraftInput struct {
+	// ImportKey is an optional actor-bound receipt for retried batch imports.
+	ImportKey            string            `json:"importKey"`
 	RequestKey           string            `json:"requestKey"`
 	AssetIDs             []string          `json:"assetIds"`
 	Body                 []any             `json:"body"`
@@ -197,7 +200,7 @@ func contentDraftRecord(row *ent.ContentDraft) ContentDraftRecord {
 		Version: row.Version, CalendarVersion: row.CalendarVersion, ApprovedVersion: row.ApprovedVersion, ReviewNote: row.ReviewNote,
 		ReviewStatus: string(row.ReviewStatus), ReviewedByUserID: row.ReviewedByUserID, ShareToken: row.ShareToken,
 		GuestComments: nonNilComments(row.GuestComments), Engagement: row.Engagement,
-		NaturalPostingTime: row.NaturalPostingTime, PlannedFor: row.PlannedFor, PrimaryPlatform: row.PrimaryPlatform,
+		NaturalPostingTime: row.NaturalPostingTime, SuppressSlackOnPublish: row.SuppressSlackOnPublish, PlannedFor: row.PlannedFor, PrimaryPlatform: row.PrimaryPlatform,
 		SocialSetID: row.SocialSetID, Article: row.Article, Kind: string(row.Kind), PinnedAt: row.PinnedAt,
 		PlanTimeZone: row.PlanTimeZone, PlatformVersions: nonNilVersions(row.PlatformVersions), Scratchpad: row.Scratchpad,
 		SourceDraftID: row.SourceDraftID, TagIDs: nonNilStrings(row.TagIds), Target: row.Target}
@@ -538,8 +541,29 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		return nil, err
 	}
 	defer tx.Rollback()
-	if kind == "repurpose" && input.Target != nil && input.Target.SourceDraftID != "" {
-		return c.repurposePublishedDraft(ctx, tx, actor, input)
+	receipt, fingerprint, err := draftImportIdentity(actor, input)
+	if err != nil {
+		return nil, err
+	}
+	if receipt != "" {
+		if _, err := tx.PlatformExec(ctx, `SELECT pg_advisory_xact_lock(hashtext($1))`, receipt); err != nil {
+			return nil, err
+		}
+		saved, err := tx.PlatformDraftImport.Get(ctx, receipt)
+		if err == nil {
+			if saved.Fingerprint != fingerprint {
+				return nil, conflict("This import key was already used for different content.")
+			}
+			row, err := visibleContentDraft(ctx, tx.Client(), actor, saved.DraftID)
+			if err != nil {
+				return nil, err
+			}
+			result := contentDraftRecord(row)
+			return &result, nil
+		}
+		if !ent.IsNotFound(err) {
+			return nil, err
+		}
 	}
 	replay, creationHash, err := beginDraftCreation(ctx, tx, actor, input)
 	if err != nil {
@@ -547,6 +571,24 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	}
 	if replay != nil {
 		return replay, tx.Commit()
+	}
+	target, err := draftTarget(kind, input.Target)
+	if err != nil {
+		return nil, err
+	}
+	if kind == "repurpose" {
+		if err := seedRepurposedDraft(ctx, tx, actor, &input, target); err != nil {
+			return nil, err
+		}
+		if body, err = contentDraftBody(input.Body); err != nil {
+			return nil, err
+		}
+		if text, err = contentDraftText(input.PlainText); err != nil {
+			return nil, err
+		}
+		if title, err = contentDraftTitle(input.Title); err != nil {
+			return nil, err
+		}
 	}
 	set, defaults, defaultPrimary, err := c.draftDefaults(ctx, tx, actor, input.SocialSetID)
 	if err != nil {
@@ -571,10 +613,6 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		}
 	}
 	if err := draftKindChannel(kind, primary); err != nil {
-		return nil, err
-	}
-	target, err := draftTarget(kind, input.Target)
-	if err != nil {
 		return nil, err
 	}
 	if err := draftTargetChannel(kind, primary, target); err != nil {
@@ -626,6 +664,9 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		SetNillableCreatedByUserID(projectActor(actor)).SetNillableUpdatedByUserID(projectActor(actor))
 	if target != nil {
 		create.SetTarget(target)
+		if kind == "repurpose" && target.SourceDraftID != "" {
+			create.SetSourceDraftID(target.SourceDraftID)
+		}
 	}
 	if article != nil {
 		create.SetArticle(article)
@@ -633,6 +674,11 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	row, err := create.Save(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if receipt != "" {
+		if _, err := tx.PlatformDraftImport.Create().SetID(receipt).SetOrganizationID(actor.OrganizationID).SetDraftID(row.ID).SetFingerprint(fingerprint).Save(ctx); err != nil {
+			return nil, err
+		}
 	}
 	if err := rememberDraftMentions(ctx, tx, row); err != nil {
 		return nil, err
@@ -1140,8 +1186,14 @@ func draftChangeMetadata(before, after *ent.ContentDraft) map[string]any {
 	if before.Title != after.Title {
 		changed = append(changed, "title")
 	}
-	if before.PlainText != after.PlainText || !sameJSON(before.Body, after.Body) {
+	if before.PlainText != after.PlainText || !sameJSON(before.Body, after.Body) || !sameJSON(before.ChannelText, after.ChannelText) {
 		changed = append(changed, "content")
+	}
+	if !slices.Equal(before.AssetIds, after.AssetIds) {
+		changed = append(changed, "media")
+	}
+	if before.NaturalPostingTime != after.NaturalPostingTime || !sameJSON(before.Engagement, after.Engagement) {
+		changed = append(changed, "publishing_options")
 	}
 	if !slices.Equal(before.ChannelConnectionIds, after.ChannelConnectionIds) {
 		changed = append(changed, "destinations")

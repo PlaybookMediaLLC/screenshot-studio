@@ -1,0 +1,60 @@
+import { xLength } from '@/lib/content-drafts/x-length'
+import type { DraftChannel, PlateBody } from './document'
+import { postBreak } from './versions'
+
+/** Import only explicit thread delimiters; URL query values are already decoded by Next. */
+export function importedPosts(text: string): string[] {
+  if (text.length > 100_000) throw new Error('Import at most 100,000 characters.')
+  const posts = text
+    .replace(/\r\n?/g, '\n')
+    .split(/\n[ \t]*---[ \t]*\n|\n(?:[ \t]*\n){3,}/)
+    .map((post) => post.trim())
+    .filter(Boolean)
+  if (posts.length > 25) throw new Error('A thread can contain at most 25 posts.')
+  return posts
+}
+
+/** Build normal Plate blocks, never HTML; imported markup cannot become executable content. */
+export function importedBody(posts: string[]): PlateBody {
+  return posts.flatMap((post) => [
+    postBreak(),
+    ...post.split('\n').map((text) => ({ type: 'p', children: [{ text }] })),
+  ])
+}
+
+/** Split on word boundaries, preserving URLs and whole graphemes, with no model call. */
+export function splitThread(text: string, channel: DraftChannel, limit: number): string[] {
+  if (!Number.isInteger(limit) || limit < 23 || limit > 25_000)
+    throw new Error('Choose a post length between 23 and 25,000.')
+  if (text.length > 100_000) throw new Error('Import at most 100,000 characters.')
+  const length = channel === 'x' ? xLength : (value: string) => [...value].length
+  const posts: string[] = []
+  let current = ''
+  const push = () => {
+    if (current.trim()) posts.push(current.trim())
+    current = ''
+    if (posts.length > 25)
+      throw new Error('This text needs more than 25 posts. Shorten it or increase the limit.')
+  }
+  for (const token of text.replace(/\r\n?/g, '\n').match(/\S+\s*/g) ?? []) {
+    if (length((current + token).trim()) <= limit) {
+      current += token
+      continue
+    }
+    push()
+    if (length(token.trim()) <= limit) {
+      current = token
+      continue
+    }
+    for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(
+      token
+    )) {
+      if (length(segment) > limit)
+        throw new Error('A character sequence exceeds the selected limit.')
+      if (length((current + segment).trim()) > limit) push()
+      current += segment
+    }
+  }
+  push()
+  return posts
+}

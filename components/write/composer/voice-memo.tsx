@@ -1,0 +1,45 @@
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { call } from '@/lib/content-drafts/client'
+import { validateVoiceMemo } from '@/lib/write/voice-memo'
+import type { DraftChannel } from '@/lib/write/document'
+
+/** A voice memo becomes editable source material before an assistant request is sent. */
+export function VoiceMemo({draftId,channel,onUse}: {draftId:string;channel:DraftChannel;onUse:(text:string)=>void}) {
+  const [file,setFile] = useState<File | null>(null)
+  const [transcript,setTranscript] = useState('')
+  const [busy,setBusy] = useState(false)
+  const [error,setError] = useState('')
+  async function transcribe() {
+    if (!file || busy) return
+    setBusy(true);setError('')
+    try {
+      if(file.size > 10 * 1024 * 1024) throw new Error('Choose an audio file of at most 10 MB.')
+      const extension = file.name.split('.').at(-1)?.toLowerCase()
+      const mediaType = ({mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg'} as Record<string,string>)[extension ?? ''] ?? file.type
+      validateVoiceMemo(new Uint8Array(await file.arrayBuffer()),mediaType)
+      const audio = await new Promise<string>((resolve,reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result).split(',')[1])
+        reader.onerror = () => reject(new Error('This audio file could not be read.'))
+        reader.readAsDataURL(file)
+      })
+      const result = await call<{transcript:string}>('/api/v1/content-drafts/transcribe',{method:'POST',body:{draftId,channel,mediaType,audio}})
+      setTranscript(result.transcript)
+    } catch (cause) {setError(cause instanceof Error ? cause.message : 'Transcription failed. Your draft is unchanged.')} finally {setBusy(false)}
+  }
+  return <details className="rounded-lg border border-white/[0.06] p-3">
+    <summary className="cursor-pointer">Voice memo</summary>
+    <p className="my-2 text-xs text-muted-foreground">Upload up to 10 MB of audio. Transcription uses workspace AI credits. Review the text before sending it to the assistant.</p>
+    <input aria-label="Voice memo audio" type="file" accept=".mp3,.wav,.m4a,.ogg" disabled={busy} className="max-w-full text-xs" onChange={event => {setFile(event.target.files?.[0] ?? null);setTranscript('');setError('')}} />
+    <Button type="button" size="sm" className="mt-2" disabled={!file || busy} onClick={() => void transcribe()}>{busy ? 'Transcribing…' : 'Transcribe audio'}</Button>
+    {error && <p role="alert" className="mt-2 text-xs">{error}</p>}
+    {transcript && <div className="mt-3 grid gap-2">
+      <Textarea aria-label="Review voice transcript" rows={5} maxLength={7_600} value={transcript} onChange={event => setTranscript(event.target.value)} />
+      <Button type="button" size="sm" variant="outline" disabled={!transcript.trim()} onClick={() => onUse(`Help me turn these voice notes into a draft. Use only these facts and ask about anything unclear.\n\n${transcript.trim()}`)}>Use reviewed transcript</Button>
+    </div>}
+  </details>
+}

@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -29,6 +30,7 @@ var Backoff = []time.Duration{30 * time.Second, 2 * time.Minute, 10 * time.Minut
 // Safe error classes a delivery can record; none carries response bodies,
 // URLs or secrets.
 const (
+	ErrorResourcePrivate    = "resource_private"
 	ErrorBlockedDestination = "blocked_destination"
 	ErrorConnection         = "connection"
 	ErrorDNS                = "dns"
@@ -218,7 +220,19 @@ func (d *Dispatcher) deliverOne(ctx context.Context, id string) (bool, error) {
 	}
 	started := time.Now()
 	status, class := 0, ""
-	if secret, err := Open(d.Key, current); err != nil {
+	var envelope Envelope
+	if err := json.Unmarshal([]byte(c.body), &envelope); err != nil {
+		return false, err
+	}
+	visible := true
+	if envelope.SocialSetID != nil {
+		if err := d.DB.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM social_set WHERE id=$1 AND "organizationId"=$2 AND visibility='WORKSPACE')`, *envelope.SocialSetID, c.org).Scan(&visible); err != nil {
+			return false, err
+		}
+	}
+	if !visible {
+		class = ErrorResourcePrivate
+	} else if secret, err := Open(d.Key, current); err != nil {
 		class = ErrorSecret
 	} else {
 		c.secrets = []string{secret}
@@ -321,7 +335,7 @@ func (d *Dispatcher) record(ctx context.Context, c claim, started time.Time, sta
 		if err == nil {
 			_, err = tx.ExecContext(ctx, `UPDATE webhook_subscription SET "lastSuccessAt" = $2 WHERE id = $1`, c.sub, started.UTC())
 		}
-	case c.manual || c.attempts >= MaxAttempts:
+	case c.manual || c.attempts >= MaxAttempts || class == ErrorResourcePrivate:
 		_, err = tx.ExecContext(ctx, `UPDATE webhook_delivery SET status = 'DEAD', "leaseUntil" = NULL, "lastAttemptAt" = $2,
 			"responseStatus" = $3, "errorClass" = $4, "updatedAt" = now() WHERE id = $1`, c.id, started.UTC(), responseStatus, errorClass)
 		if err == nil {

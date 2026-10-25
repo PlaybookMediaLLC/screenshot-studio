@@ -16,6 +16,8 @@ const (
 	FieldID = "userId"
 	// FieldTimeZone holds the string denoting the time_zone field in the database.
 	FieldTimeZone = "timeZone"
+	// FieldAccentColor holds the string denoting the accent_color field in the database.
+	FieldAccentColor = "accentColor"
 	// FieldTheme holds the string denoting the theme field in the database.
 	FieldTheme = "theme"
 	// FieldNavigation holds the string denoting the navigation field in the database.
@@ -46,6 +48,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldTimeZone,
+	FieldAccentColor,
 	FieldTheme,
 	FieldNavigation,
 	FieldWeekStart,
@@ -70,6 +73,8 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultAccentColor holds the default value on creation for the "accent_color" field.
+	DefaultAccentColor string
 	// DefaultShowScrollbars holds the default value on creation for the "show_scrollbars" field.
 	DefaultShowScrollbars bool
 	// DefaultDeveloperMode holds the default value on creation for the "developer_mode" field.
@@ -205,6 +210,11 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByTimeZone orders the results by the time_zone field.
 func ByTimeZone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldTimeZone, opts...).ToFunc()
+}
+
+// ByAccentColor orders the results by the accent_color field.
+func ByAccentColor(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAccentColor, opts...).ToFunc()
 }
 
 // ByTheme orders the results by the theme field.

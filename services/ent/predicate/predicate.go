@@ -183,6 +183,9 @@ type PlatformCreativeSet func(*sql.Selector)
 // PlatformCreativeSetVersion is the predicate function for platformcreativesetversion builders.
 type PlatformCreativeSetVersion func(*sql.Selector)
 
+// PlatformDraftImport is the predicate function for platformdraftimport builders.
+type PlatformDraftImport func(*sql.Selector)
+
 // PlatformNotificationDelivery is the predicate function for platformnotificationdelivery builders.
 type PlatformNotificationDelivery func(*sql.Selector)
 
@@ -212,6 +215,9 @@ type PlatformSlackPersonalConnection func(*sql.Selector)
 
 // PlatformSocialMention is the predicate function for platformsocialmention builders.
 type PlatformSocialMention func(*sql.Selector)
+
+// PlatformSocialObservation is the predicate function for platformsocialobservation builders.
+type PlatformSocialObservation func(*sql.Selector)
 
 // PlatformWorkspaceCreation is the predicate function for platformworkspacecreation builders.
 type PlatformWorkspaceCreation func(*sql.Selector)

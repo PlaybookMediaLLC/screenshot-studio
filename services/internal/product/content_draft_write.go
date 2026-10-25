@@ -38,10 +38,11 @@ var tagColors = []string{"gray", "red", "orange", "amber", "green", "teal", "sky
 // ContentDraftPropertiesInput changes a draft's organizing properties. They
 // are not content: the version, and so any approval, stays.
 type ContentDraftPropertiesInput struct {
-	AddTagIDs    []string `json:"addTagIds"`
-	Pinned       *bool    `json:"pinned"`
-	RemoveTagIDs []string `json:"removeTagIds"`
-	Scratchpad   *string  `json:"scratchpad"`
+	AddTagIDs              []string `json:"addTagIds"`
+	Pinned                 *bool    `json:"pinned"`
+	RemoveTagIDs           []string `json:"removeTagIds"`
+	Scratchpad             *string  `json:"scratchpad"`
+	SuppressSlackOnPublish *bool    `json:"suppressSlackOnPublish"`
 }
 
 // UpdateContentDraftProperties pins, tags or annotates a draft. Tags are
@@ -67,6 +68,10 @@ func (c *Configuration) UpdateContentDraftProperties(ctx context.Context, actor 
 	}
 	update := tx.ContentDraft.UpdateOneID(id)
 	changed := []string{}
+	if input.SuppressSlackOnPublish != nil && *input.SuppressSlackOnPublish != draft.SuppressSlackOnPublish {
+		update.SetSuppressSlackOnPublish(*input.SuppressSlackOnPublish)
+		changed = append(changed, "publish_slack_preference")
+	}
 	if input.Pinned != nil {
 		if *input.Pinned && draft.PinnedAt == nil {
 			update.SetPinnedAt(time.Now().UTC())

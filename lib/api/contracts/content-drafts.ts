@@ -1,7 +1,4 @@
-import {
-  collabTokenSchema,
-  draftVersionsQuerySchema,
-} from '@/lib/api/contracts/content-draft-concurrency'
+import { draftVersionsQuerySchema } from '@/lib/api/contracts/content-draft-concurrency'
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
 import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
@@ -76,6 +73,7 @@ export const contentDraftSchema = z
      */
     engagement: draftEngagementSchema,
     naturalPostingTime: z.boolean().default(false),
+    suppressSlackOnPublish: z.boolean().optional(),
     /** A calendar placement without scheduling, as an ISO 8601 instant. */
     plannedFor: timestampSchema.nullable().default(null),
     primaryPlatform: z.string().nullable().default(null),
@@ -102,6 +100,7 @@ export const contentDraftFieldsSchema = draftWriteInputSchema.extend({
  * takes the set's default platforms.
  */
 export const contentDraftCreateSchema = contentDraftFieldsSchema.extend({
+  importKey: z.string().min(16).max(128).optional(),
   requestKey: contentDraftIdSchema.optional(),
   kind: draftKindSchema.optional(),
   /** The platform the body is written for; the set's primary platform when omitted. */
@@ -286,6 +285,7 @@ export const contentDraftPostSchema = z.object({
   /** A thread: its reply count and how many went out. */
   replies: z.number().int(),
   threadProgress: z.object({
+    quotes: z.array(z.object({ postId: z.string(), state: z.string() })).optional(),
     lastReplyId: z.string().optional(),
     posted: z.number().int(),
     total: z.number().int(),
@@ -324,6 +324,8 @@ export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
     .optional(),
   /** The queue's next free slot instead of `scheduledFor`; the backend reserves it. */
   queue: z.boolean().optional(),
+  /** A previewed queue slot; a changed queue is a conflict instead of a silent move. */
+  expectedQueueSlot: z.iso.datetime().optional(),
   /** Overrides the draft's natural posting time for this schedule (±4 minutes). */
   naturalPostingTime: z.boolean().optional(),
   scheduledFor: z.coerce
@@ -380,17 +382,3 @@ export const scheduleContentDraftContract = defineContract({
 
 /** A collaboration token: one member, one draft, a few minutes. */
 export { collabTokenSchema } from '@/lib/api/contracts/content-draft-concurrency'
-
-/**
- * `POST /api/v1/content-drafts/{id}/collab-token`: admits the signed-in member
- * to the draft's real-time session. Browser-only, so it is not in the
- * API-key reference.
- */
-export const createCollabTokenContract = defineContract({
-  method: 'POST',
-  name: 'content-drafts.collab-token',
-  output: collabTokenSchema,
-  params: contentDraftParamsSchema,
-  path: '/api/v1/content-drafts/{id}/collab-token',
-  summary: 'Issue a collaboration token for a content draft',
-})

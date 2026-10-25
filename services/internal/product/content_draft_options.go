@@ -31,6 +31,9 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 		return nil
 	}
 	o := *options
+	if err := postoptions.CheckPhotoTags(o.PhotoTagIDs); err != nil {
+		return invalid(err.Error())
+	}
 	if o.LinkPreview != nil {
 		if err := o.LinkPreview.Validate(); err != nil {
 			return invalid(err.Error())
@@ -42,7 +45,7 @@ func checkPostOptions(channel string, options *postoptions.PublishOptions, first
 	if o.ShareWithFollowers && o.CommunityID == "" {
 		return invalid("Share to timeline requires an X community.")
 	}
-	xOnly := len(o.TaggedUserIDs) > 0 || o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.ShareWithFollowers ||
+	xOnly := len(o.PhotoTagIDs) > 0 || len(o.TaggedUserIDs) > 0 || o.ReplySettings != "" || o.MadeWithAI || o.PaidPartnership || o.CommunityID != "" || o.ShareWithFollowers ||
 		o.ArticleTitle != "" || o.ArticleCoverAssetID != "" || o.ArticleHTML != ""
 	linkedInOnly := o.Visibility != "" || o.FirstComment != "" || o.DocumentAssetID != "" || o.DocumentTitle != "" || o.PollQuestion != ""
 	switch {

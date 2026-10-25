@@ -356,6 +356,7 @@ export function FinisherDialog({
   onClose: () => void
   setId: string
 }) {
+  const quoteSupported = ['x', 'bluesky', 'mastodon'].includes(channel)
   const [items, setItems] = React.useState<DraftFinisherWire[] | null>(null)
   const [editing, setEditing] = React.useState<{
     id?: string
@@ -453,6 +454,7 @@ export function FinisherDialog({
               </span>
               <Switch
                 aria-label="Quote the first post"
+                disabled={!quoteSupported}
                 checked={editing.quoteFirstPost}
                 onCheckedChange={(checked) =>
                   setEditing({ ...editing, quoteFirstPost: checked === true })
@@ -540,7 +542,7 @@ export function FinisherDialog({
             </ul>
             <DialogFooter>
               <Button
-                onClick={() => setEditing({ name: '', quoteFirstPost: true, text: '' })}
+                onClick={() => setEditing({ name: '', quoteFirstPost: quoteSupported, text: '' })}
                 type="button"
                 variant="outline"
               >

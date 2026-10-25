@@ -7,12 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
-	managedslack "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/slack"
 	"log/slog"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
+	managedslack "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations/social/slack"
 
 	productent "github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/articlebody"
@@ -156,6 +157,9 @@ func pollDetails(poll *postoptions.Poll) *integrations.PollDetails {
 // publicationOutcome maps a provider failure: reconnect, or an outcome the
 // remote account must be checked for before any retry.
 func publicationOutcome(err error) error {
+	if temporalx.FailureType(err) == temporalx.TypePublicationRejected {
+		return socialapi.NewError(http.StatusBadRequest, false, "The platform rejected the publication. Review its text, media and publishing configuration before retrying.")
+	}
 	if temporalx.FailureType(err) == temporalx.TypeRefreshToken || temporalx.FailureType(err) == temporalx.TypeDisconnect {
 		return socialapi.NewError(http.StatusConflict, false, "social credentials must be reconnected")
 	}
@@ -236,6 +240,9 @@ func (p *Publisher) PublishThread(ctx context.Context, input socialapi.PublishIn
 		return socialapi.Receipt{}, socialapi.NewError(http.StatusBadGateway, true, "provider returned no confirmed post receipt")
 	}
 	progress := p.postReplies(ctx, provider, account, input, response[0].PostID)
+	if response[0].QuoteState != "" {
+		progress.Quotes = append(progress.Quotes, postoptions.QuoteReceipt{PostID: response[0].PostID, State: response[0].QuoteState})
+	}
 	return socialapi.Receipt{PostID: response[0].PostID, Thread: progress}, nil
 }
 
@@ -268,7 +275,7 @@ func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destination
 	}
 	reader, ok := provider.(integrations.PostAnalytics)
 	if !ok {
-		return postoptions.Metrics{}, nil
+		return nil, postoptions.ErrMetricsUnavailable
 	}
 	series, err := reader.PostAnalytics(ctx, account.InternalID, account.Token, remotePostID, 0)
 	if err != nil {
@@ -286,6 +293,9 @@ func (p *Publisher) PostMetrics(ctx context.Context, organizationID, destination
 				metrics[name] = total
 			}
 		}
+	}
+	if len(metrics) == 0 {
+		return nil, postoptions.ErrMetricsUnavailable
 	}
 	return metrics, nil
 }
@@ -395,6 +405,9 @@ func (p *Publisher) postReplies(ctx context.Context, provider poster, account *s
 			}
 			if err == nil {
 				last = response[0].PostID
+				if response[0].QuoteState != "" {
+					progress.Quotes = append(progress.Quotes, postoptions.QuoteReceipt{PostID: last, State: response[0].QuoteState})
+				}
 				progress.Posted, progress.LastReplyID = index+1, last
 				progress.Receipts = append(progress.Receipts, postoptions.ThreadReceipt{RemoteID: last, Position: index + 1, PublishedAt: p.currentTime()})
 				continue

@@ -117,7 +117,9 @@ test('LinkedIn Threads and Mastodon polls copy choices and retain separate setti
     await page.getByRole('button', { name: 'Add poll', exact: true }).click()
     await page.getByLabel('Poll option 1', { exact: true }).fill('Alpha')
     await page.getByLabel('Poll option 2', { exact: true }).fill('Beta')
-    await expect(page.getByLabel('Poll duration', { exact: true })).toContainText('1 day')
+    await expect(page.getByLabel('Poll duration', { exact: true })).toContainText(
+      'Set by the platform'
+    )
     await page.keyboard.press('Escape')
     await expectSaved(page)
     await page.getByTestId('platform-tab-mastodon').click()
@@ -149,7 +151,9 @@ test('LinkedIn Threads and Mastodon polls copy choices and retain separate setti
     await page.keyboard.press('Escape')
     await page.getByTestId('platform-tab-threads').click()
     await page.getByRole('button', { name: 'Edit the poll', exact: true }).first().click()
-    await expect(page.getByLabel('Poll duration', { exact: true })).toContainText('1 day')
+    await expect(page.getByLabel('Poll duration', { exact: true })).toContainText(
+      'Set by the platform'
+    )
     await expect(page.getByLabel('Poll option 1', { exact: true })).toHaveValue('Alpha')
     await page.keyboard.press('Escape')
     await page.getByTestId('platform-tab-linkedin').click()

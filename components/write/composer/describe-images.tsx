@@ -57,11 +57,13 @@ function draftImages(editor: PlateEditor): DraftImage[] {
 export function DescribeImages({
   editor,
   onClose,
+  aiEnabled = false,
   imageId,
   onSaved,
 }: {
   editor: PlateEditor
   onClose: () => void
+  aiEnabled?: boolean
   imageId?: string
   onSaved: (assetId: string, alt: string) => void
 }) {
@@ -97,6 +99,20 @@ export function DescribeImages({
       onClose()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The descriptions did not save.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const suggest = async (index: number) => {
+    setBusy(true)
+    try {
+      const { altText } = await call<{ altText: string }>(
+        `/api/v1/assets/${encodeURIComponent(images[index].assetId)}/describe`,
+        { method: 'POST' }
+      )
+      setAlts((current) => current.map((alt, at) => (at === index ? altText : alt)))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'The image could not be described.')
     } finally {
       setBusy(false)
     }
@@ -137,10 +153,27 @@ export function DescribeImages({
                     value={alts[index]}
                   />
                   <span>{Array.from(alts[index]).length} / 1000</span>
+                  {aiEnabled && (
+                    <Button
+                      disabled={busy}
+                      onClick={() => void suggest(index)}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                    >
+                      Suggest with AI
+                    </Button>
+                  )}
                 </label>
               </li>
             ))}
           </ul>
+        )}
+        {aiEnabled && (
+          <p className="text-xs text-muted-foreground">
+            AI suggestions use workspace credits. Review and edit the description before saving.
+            Animated images use their first frame.
+          </p>
         )}
         <DialogFooter>
           <Button disabled={busy} onClick={onClose} type="button" variant="outline">

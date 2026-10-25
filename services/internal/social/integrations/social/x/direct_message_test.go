@@ -21,7 +21,7 @@ func TestDirectMessageDefaultOffAndVerifiedGrantRequired(t *testing.T) {
 	calls, done := fakePublishingX(t, func(r recorded) (int, string) { t.Error("missing DM grant reached message mutation"); return 201, `{}` })
 	defer done()
 	_, err := New().SendDirectMessage(context.Background(), in, "2", "Hello")
-	if temporalx.FailureType(err) != temporalx.TypeBadBody || len(*calls) != 1 {
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected || len(*calls) != 1 {
 		t.Fatalf("unapproved send err=%v calls=%+v", err, *calls)
 	}
 }

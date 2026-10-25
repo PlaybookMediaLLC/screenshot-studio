@@ -28,6 +28,7 @@ export default async function AnalyzePage({
         <Link href="/write/analyze/posting-times" className="underline">
           Best times and posting slots
         </Link>
+        <Link href="/write/analyze/observations" className="ml-4 underline">Recorded observations and CSV</Link>
       </div>
       <AnalyzeWorkspace
         sets={sets.map((s) => socialSetSchema.parse(s))}

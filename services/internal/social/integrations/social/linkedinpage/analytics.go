@@ -78,7 +78,7 @@ func newSeries(labels ...string) *series {
 
 func (s *series) push(label string, total json.Number, date string) {
 	if total == "" {
-		return // An absent provider counter is not a measured zero.
+		return
 	}
 	s.data[label] = append(s.data[label], integrations.AnalyticsItem{Total: total.String(), Date: date})
 }
@@ -139,7 +139,7 @@ func (p *Provider) Analytics(ctx context.Context, id, accessToken string, days i
 			analytics.push("Comments", s.CommentCount, date)
 		}
 	}
-	return analytics.result(5, false), nil
+	return analytics.result(0, true), nil
 }
 
 func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken, postID string, _ int64) ([]integrations.AnalyticsData, error) {

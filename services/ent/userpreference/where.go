@@ -69,6 +69,11 @@ func TimeZone(v string) predicate.UserPreference {
 	return predicate.UserPreference(sql.FieldEQ(FieldTimeZone, v))
 }
 
+// AccentColor applies equality check predicate on the "accent_color" field. It's identical to AccentColorEQ.
+func AccentColor(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldEQ(FieldAccentColor, v))
+}
+
 // ShowScrollbars applies equality check predicate on the "show_scrollbars" field. It's identical to ShowScrollbarsEQ.
 func ShowScrollbars(v bool) predicate.UserPreference {
 	return predicate.UserPreference(sql.FieldEQ(FieldShowScrollbars, v))
@@ -167,6 +172,71 @@ func TimeZoneEqualFold(v string) predicate.UserPreference {
 // TimeZoneContainsFold applies the ContainsFold predicate on the "time_zone" field.
 func TimeZoneContainsFold(v string) predicate.UserPreference {
 	return predicate.UserPreference(sql.FieldContainsFold(FieldTimeZone, v))
+}
+
+// AccentColorEQ applies the EQ predicate on the "accent_color" field.
+func AccentColorEQ(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldEQ(FieldAccentColor, v))
+}
+
+// AccentColorNEQ applies the NEQ predicate on the "accent_color" field.
+func AccentColorNEQ(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldNEQ(FieldAccentColor, v))
+}
+
+// AccentColorIn applies the In predicate on the "accent_color" field.
+func AccentColorIn(vs ...string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldIn(FieldAccentColor, vs...))
+}
+
+// AccentColorNotIn applies the NotIn predicate on the "accent_color" field.
+func AccentColorNotIn(vs ...string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldNotIn(FieldAccentColor, vs...))
+}
+
+// AccentColorGT applies the GT predicate on the "accent_color" field.
+func AccentColorGT(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldGT(FieldAccentColor, v))
+}
+
+// AccentColorGTE applies the GTE predicate on the "accent_color" field.
+func AccentColorGTE(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldGTE(FieldAccentColor, v))
+}
+
+// AccentColorLT applies the LT predicate on the "accent_color" field.
+func AccentColorLT(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldLT(FieldAccentColor, v))
+}
+
+// AccentColorLTE applies the LTE predicate on the "accent_color" field.
+func AccentColorLTE(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldLTE(FieldAccentColor, v))
+}
+
+// AccentColorContains applies the Contains predicate on the "accent_color" field.
+func AccentColorContains(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldContains(FieldAccentColor, v))
+}
+
+// AccentColorHasPrefix applies the HasPrefix predicate on the "accent_color" field.
+func AccentColorHasPrefix(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldHasPrefix(FieldAccentColor, v))
+}
+
+// AccentColorHasSuffix applies the HasSuffix predicate on the "accent_color" field.
+func AccentColorHasSuffix(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldHasSuffix(FieldAccentColor, v))
+}
+
+// AccentColorEqualFold applies the EqualFold predicate on the "accent_color" field.
+func AccentColorEqualFold(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldEqualFold(FieldAccentColor, v))
+}
+
+// AccentColorContainsFold applies the ContainsFold predicate on the "accent_color" field.
+func AccentColorContainsFold(v string) predicate.UserPreference {
+	return predicate.UserPreference(sql.FieldContainsFold(FieldAccentColor, v))
 }
 
 // ThemeEQ applies the EQ predicate on the "theme" field.

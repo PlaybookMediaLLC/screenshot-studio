@@ -1,15 +1,25 @@
+import { updateSocialSetQueueContract } from '@/lib/api/contracts/social-set-queue'
+import { listSocialSetsContract, getSocialSetContract } from '@/lib/api/contracts/social-sets'
+import { lookupMentionsContract } from '@/lib/api/contracts/social-mentions'
+import {
+  bestPostingTimesContract,
+  listCalendarPostsContract,
+} from '@/lib/api/contracts/content-draft-platform'
+import {
+  mutateDraftCommentContract,
+  listDraftCommentsContract,
+} from '@/lib/api/contracts/draft-comments'
 import {
   draftLinkImageContract,
   draftGiphySearchContract,
   draftGiphyAttachContract,
-} from '@/lib/api/contracts/content-draft-platform'
+} from '@/lib/api/contracts/draft-media'
 import {
   mutateCalendarContract,
   getAnalyticsContract,
   refreshAnalyticsContract,
   updateAnalyticsSettingsContract,
 } from './plan-analyze'
-import { mutateDraftCommentContract } from '@/lib/api/contracts/draft-comments'
 import {
   decideCampaignApprovalContract,
   listApprovalsContract,
@@ -88,6 +98,12 @@ import {
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
+  listSocialSetsContract,
+  updateSocialSetQueueContract,
+  lookupMentionsContract,
+  getSocialSetContract,
+  bestPostingTimesContract,
+  listCalendarPostsContract,
   draftLinkImageContract,
   draftGiphySearchContract,
   draftGiphyAttachContract,
@@ -153,4 +169,5 @@ export const documentedContracts = [
   getOrganizationCapabilitiesContract,
   activateOrganizationContract,
   mutateDraftCommentContract,
+  listDraftCommentsContract,
 ]

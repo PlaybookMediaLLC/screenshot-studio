@@ -1,8 +1,5 @@
 import { createHash } from 'node:crypto'
-import {
-  draftGiphyAttachContract,
-  draftGiphySearchContract,
-} from '@/lib/api/contracts/content-draft-platform'
+import { draftGiphyAttachContract, draftGiphySearchContract } from '@/lib/api/contracts/draft-media'
 import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
 import { backendSDK } from '@/lib/backend/sdk'

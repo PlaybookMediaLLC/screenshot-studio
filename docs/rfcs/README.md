@@ -2,6 +2,12 @@
 
 **Updated:** 2026-10-24. All 52 RFCs are renumbered in priority order, following the [release-readiness codebase audit](../release-readiness-audit-2026-10-23.md).
 
+**Assignment amendment (2026-10-24):** The Typefully backlog implementation explicitly
+reopens RFC 039 expansion and the scoped draft integrations in RFC 038. This amendment
+does not replace release readiness or authorize API-key draft publishing/autonomous
+approval. [Work-item coverage](../scheduling/typefully/work-items/coverage.md) tracks
+implementation, verification and provider gates separately.
+
 This is the authoritative order for new product work toward the
 [Shots north star](../../vision.md): meaningful releases become accurate,
 approved communications that reach and are used by their intended audiences.

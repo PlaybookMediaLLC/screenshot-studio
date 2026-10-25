@@ -37,7 +37,7 @@ func publishingLimits(ctx context.Context, token string, in *ent.Integration) (s
 }
 
 func publishRejected(message string) error {
-	return temporalx.BadBody(identifier, "{}", "{}", message)
+	return temporalx.PublicationRejected(identifier, message)
 }
 
 // AccountMaxLength gives admission checks the stored, tenant-bound allowance.

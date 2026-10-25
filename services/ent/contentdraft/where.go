@@ -134,6 +134,11 @@ func Scratchpad(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldScratchpad, v))
 }
 
+// SuppressSlackOnPublish applies equality check predicate on the "suppress_slack_on_publish" field. It's identical to SuppressSlackOnPublishEQ.
+func SuppressSlackOnPublish(v bool) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldSuppressSlackOnPublish, v))
+}
+
 // PinnedAt applies equality check predicate on the "pinned_at" field. It's identical to PinnedAtEQ.
 func PinnedAt(v time.Time) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldEQ(FieldPinnedAt, v))
@@ -1082,6 +1087,16 @@ func ScratchpadEqualFold(v string) predicate.ContentDraft {
 // ScratchpadContainsFold applies the ContainsFold predicate on the "scratchpad" field.
 func ScratchpadContainsFold(v string) predicate.ContentDraft {
 	return predicate.ContentDraft(sql.FieldContainsFold(FieldScratchpad, v))
+}
+
+// SuppressSlackOnPublishEQ applies the EQ predicate on the "suppress_slack_on_publish" field.
+func SuppressSlackOnPublishEQ(v bool) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldEQ(FieldSuppressSlackOnPublish, v))
+}
+
+// SuppressSlackOnPublishNEQ applies the NEQ predicate on the "suppress_slack_on_publish" field.
+func SuppressSlackOnPublishNEQ(v bool) predicate.ContentDraft {
+	return predicate.ContentDraft(sql.FieldNEQ(FieldSuppressSlackOnPublish, v))
 }
 
 // PinnedAtEQ applies the EQ predicate on the "pinned_at" field.

@@ -421,7 +421,7 @@ func validWorkspaceUpdate(input product.UpdateWorkspaceInput) bool {
 
 func workspaceResponse(workspace *product.Workspace) map[string]any {
 	return map[string]any{
-		"id": workspace.ID, "logo": workspace.Logo, "name": workspace.Name, "slug": workspace.Slug,
+		"id": workspace.ID, "createdAt": workspace.CreatedAt, "logo": workspace.Logo, "name": workspace.Name, "slug": workspace.Slug,
 		"workspaceSettings": workspaceSettingsResponse(workspace.WorkspaceSettings),
 	}
 }
@@ -461,5 +461,9 @@ func (s *Server) pageAccess(w http.ResponseWriter, r *http.Request) {
 		writeStoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, result)
+	var workspace any
+	if result.Workspace != nil {
+		workspace = workspaceResponse(result.Workspace)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"active": result.Active, "count": result.Count, "workspace": workspace, "features": result.Features})
 }

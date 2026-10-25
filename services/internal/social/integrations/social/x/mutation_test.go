@@ -22,9 +22,9 @@ func TestContentMutationsSendOnlyOnce(t *testing.T) {
 		}{
 			{"server error", `{"detail":"Service Unavailable"}`, temporalx.TypeUnknownDelivery, 503},
 			{"internal error", `{}`, temporalx.TypeUnknownDelivery, 500},
-			{"rate limit", `{"detail":"Too Many Requests"}`, temporalx.TypeBadBody, 429},
+			{"rate limit", `{"detail":"Too Many Requests"}`, temporalx.TypePublicationRejected, 429},
 			{"unauthorized", `{}`, temporalx.TypeRefreshToken, 401},
-			{"rejected", `{}`, temporalx.TypeBadBody, 400},
+			{"rejected", `{}`, temporalx.TypePublicationRejected, 400},
 			{"missing receipt", `{"data":{}}`, temporalx.TypeUnknownDelivery, 201},
 			{"malformed receipt", `{"data":`, temporalx.TypeUnknownDelivery, 201},
 			{"partial error", `{"data":{"id":"91","post_id":"92"},"errors":[{"message":"private canary"}]}`, temporalx.TypeUnknownDelivery, 201},
@@ -68,6 +68,8 @@ func TestMutationRedirectDisconnectAndOversizeAreUncertain(t *testing.T) {
 	for _, mode := range []string{"redirect", "disconnect", "oversize"} {
 		t.Run(mode, func(t *testing.T) {
 			t.Setenv("DISABLE_SSRF_PROTECTION", "true")
+			t.Setenv("X_API_KEY", "fixture-key")
+			t.Setenv("X_API_SECRET", "fixture-secret")
 			var received atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				received.Add(1)
@@ -141,5 +143,15 @@ func TestArticleDraftReceiptPrecedesPublishAndSurvivesFailure(t *testing.T) {
 	}
 	if !strings.Contains(string(ready.PendingData), `"articleDraftId":"91"`) {
 		t.Fatal("known draft lost after publish failure")
+	}
+}
+
+func TestMissingApplicationCredentialsNeverSend(t *testing.T) {
+	t.Setenv("X_API_KEY", "")
+	t.Setenv("X_API_SECRET", "")
+	var receipt any
+	err := newClient("a:b").mutationJSON(context.Background(), "https://api.x.com/2/tweets", map[string]string{"text": "hello"}, &receipt)
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected {
+		t.Fatalf("missing config became uncertain: %v", err)
 	}
 }

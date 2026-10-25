@@ -87,6 +87,7 @@ const contentDraftReplyLimit = 24
 // the backend reserves. NaturalPostingTime overrides the draft's own choice
 // for this schedule.
 type ScheduleContentDraftInput struct {
+	ExpectedQueueSlot   *time.Time                   `json:"expectedQueueSlot"`
 	BaseCalendarVersion int                          `json:"baseCalendarVersion"`
 	NaturalPostingTime  *bool                        `json:"naturalPostingTime"`
 	Queue               bool                         `json:"queue"`
@@ -823,6 +824,9 @@ func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, dra
 		slot, err := nextFreeSlot(ctx, tx.Client(), set, now)
 		if err != nil {
 			return placement, err
+		}
+		if input.ExpectedQueueSlot != nil && !slot.Equal(*input.ExpectedQueueSlot) {
+			return placement, conflict("The queue changed after preview. Preview the remaining drafts again.")
 		}
 		placement.base, placement.mode = slot, scheduledpost.ScheduleModeQueue
 	}

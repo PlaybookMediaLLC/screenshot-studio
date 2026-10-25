@@ -138,7 +138,7 @@ func TestAnalytics(t *testing.T) {
 	labels := []string{"Page Views", "Clicks", "Shares", "Engagement", "Comments", "Organic Followers", "Paid Followers"}
 	totals := []string{"12", "4", "1", "0.25", "2", "3", "0"}
 	for i, a := range got {
-		if a.Label != labels[i] || len(a.Data) != 1 || a.Data[0].Total != totals[i] || a.PercentageChange != 5 {
+		if a.Label != labels[i] || len(a.Data) != 1 || a.Data[0].Total != totals[i] || a.PercentageChange != 0 {
 			t.Fatalf("%d: %+v", i, a)
 		}
 	}
@@ -157,6 +157,7 @@ func TestPostAnalyticsFallsBackToSocialActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// An omitted comments count is unknown, never an invented zero.
 	if len(got) != 1 || got[0].Label != "Likes" || got[0].Data[0].Total != "5" {
 		t.Fatalf("got %+v", got)
 	}

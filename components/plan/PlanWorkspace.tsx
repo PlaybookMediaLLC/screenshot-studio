@@ -93,7 +93,12 @@ export function PlanWorkspace({
     planPreferencesSchema.parse({
       zone: initialZone,
       weekStart: initialWeekStart,
-      view: ['flex', 'month', 'week'].includes(initialView ?? '') ? initialView : 'flex',
+      view:
+        initialView === 'queue'
+          ? 'week'
+          : ['flex', 'month', 'week'].includes(initialView ?? '')
+            ? initialView
+            : 'flex',
     })
   )
   const [anchor, setAnchor] = React.useState(
@@ -965,6 +970,18 @@ export function PlanWorkspace({
       {detail ? (
         <PlanDetail
           item={detail}
+          swapCandidates={
+            advancedScheduling && canPublish
+              ? items.filter(
+                  (candidate) =>
+                    candidate.id !== detail.id &&
+                    candidate.setId === detail.setId &&
+                    candidate.accountId === detail.accountId &&
+                    candidate.deliveryStatus === 'SCHEDULED' &&
+                    !candidate.campaignId
+                )
+              : []
+          }
           sets={sets}
           canEdit={canEdit}
           canPublish={canPublish}
@@ -1458,6 +1475,7 @@ function PlanComposer({
 
 function PlanDetail({
   item,
+  swapCandidates,
   sets,
   canEdit,
   canPublish,
@@ -1467,6 +1485,7 @@ function PlanDetail({
   placement,
 }: {
   item: PlanItem
+  swapCandidates: PlanItem[]
   sets: SocialSetWire[]
   canEdit: boolean
   canPublish: boolean
@@ -1574,6 +1593,33 @@ function PlanDetail({
             onZone={setZone}
             onChoice={setChoice}
           />
+          {item.deliveryStatus === 'SCHEDULED' && swapCandidates.length > 0 ? (
+            <label className="grid gap-1 text-sm">
+              Swap queue position
+              <select
+                className={field}
+                aria-label={`Swap queue position for ${item.text || item.title}`}
+                disabled={busy || !canPublish}
+                value=""
+                onChange={(event) => {
+                  const other = swapCandidates.find(
+                    (candidate) => candidate.id === event.target.value
+                  )
+                  if (other)
+                    void run(() =>
+                      mutate('swap', [placement(item, other.at), placement(other, item.at)])
+                    )
+                }}
+              >
+                <option value="">Choose a scheduled post…</option>
+                {swapCandidates.map((candidate) => (
+                  <option key={candidate.id} value={candidate.id}>
+                    {candidate.text || candidate.title} · {new Date(candidate.at).toLocaleString()}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
               disabled={

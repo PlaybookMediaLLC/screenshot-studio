@@ -1,22 +1,7 @@
 import { resolveLocalTime } from './zoned-time'
-import { addDays, dayOfWeek } from '@/lib/settings/zoned-time'
 
 /** Dragging an authored draft opens scheduling review; it never creates a job. */
 export const CALENDAR_DRAFT_DRAG = 'application/x-shots-calendar-draft'
-
-/** Calendar intervals use local dates, including all leading/trailing month days. */
-export function calendarRange(day: string, view: 'week' | 'month' | 'queue', firstWeekday: number) {
-  const anchor = view === 'month' ? `${day.slice(0, 7)}-01` : day
-  const start = addDays(anchor, -((dayOfWeek(anchor) - firstWeekday + 7) % 7))
-  return { start, end: addDays(start, view === 'month' ? 42 : 7), days: view === 'month' ? 42 : 7 }
-}
-
-/** Advance a calendar period without overflowing short months or shifting time zones. */
-export function shiftCalendar(day: string, view: 'week' | 'month' | 'queue', step: number): string {
-  if (view !== 'month') return addDays(day, step * 7)
-  const [year, month] = day.split('-').map(Number)
-  return new Date(Date.UTC(year, month - 1 + step, 1)).toISOString().slice(0, 10)
-}
 
 /** A move never guesses which occurrence of an ambiguous local time was intended. */
 export function calendarMoveTime(day: string, clock: string, zone: string): Date {
@@ -47,4 +32,37 @@ export function availableDaySlots(
       )
     })
     .sort()
+}
+
+/** Visible calendar days, including adjacent weeks in month view. */
+export function calendarRange(anchor: string, view: 'week' | 'month' | 'queue', firstWeekday = 1) {
+  const parsed = new Date(`${anchor}T12:00:00Z`)
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(anchor) ||
+    !Number.isFinite(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== anchor
+  ) {
+    throw new Error('Choose a valid calendar date.')
+  }
+  const start = new Date(parsed)
+  if (view === 'month') start.setUTCDate(1)
+  start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() - firstWeekday + 7) % 7))
+  const days = view === 'month' ? 42 : 7
+  const end = new Date(start)
+  end.setUTCDate(end.getUTCDate() + days)
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10), days }
+}
+
+/** Navigate months from their first day so January 31 never skips February. */
+export function shiftCalendar(
+  anchor: string,
+  view: 'week' | 'month' | 'queue',
+  delta: number
+): string {
+  const date = new Date(`${anchor}T12:00:00Z`)
+  if (view === 'month') {
+    date.setUTCDate(1)
+    date.setUTCMonth(date.getUTCMonth() + delta)
+  } else date.setUTCDate(date.getUTCDate() + delta * 7)
+  return date.toISOString().slice(0, 10)
 }

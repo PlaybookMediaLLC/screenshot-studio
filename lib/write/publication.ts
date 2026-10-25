@@ -8,6 +8,7 @@ import {
   POST_BREAK,
   serializeDraft,
 } from '@/lib/content-drafts/serialize'
+import { previewMediaTypes } from '@/lib/write/preview-media'
 import { engagementAutomation } from '@/lib/write/automation'
 import {
   type AccountStanding,
@@ -40,6 +41,10 @@ import { bodyFor, groupSettings, versionFor } from '@/lib/write/versions'
 
 /** A post's settings as the backend stores them on a scheduled post. */
 export const publishOptionsSchema = z.object({
+  photoTagIds: z
+    .array(z.string().regex(/^[0-9]{1,19}$/))
+    .max(10)
+    .optional(),
   linkPreview: linkPreviewSchema.optional(),
   taggedUserIds: z
     .array(z.string().regex(/^\d{1,19}$/))
@@ -103,6 +108,8 @@ export type PublicationAccount = {
 
 /** A destination's publication: what it sends, how it previews, and what blocks it. */
 export type Publication = {
+  /** Preview-only kinds; the backend checks actual uploaded MIME before publication. */
+  mediaTypes: Record<string, 'image' | 'video'>
   /** Blocking problems: nothing can be scheduled while any remain. */
   problems: string[]
   /** Each post's settings, by its index in `serialized.posts`. */
@@ -130,6 +137,7 @@ function postOptions(
     if (settings.disclosures?.madeWithAi) options.madeWithAi = true
     if (settings.disclosures?.paidPartnership) options.paidPartnership = true
   }
+  if (channel === 'x' && settings.photoTagIds?.length) options.photoTagIds = settings.photoTagIds
   if (['x', 'bluesky', 'mastodon'].includes(channel) && settings.quoteFirstPost && !first)
     options.quoteFirstPost = true
   return options
@@ -177,13 +185,14 @@ function firstPoll(
   const poll = settings?.poll
   if (!poll) return { problems: [] }
   const problems = pollProblems(channel, poll, media, standing)
-  if (channel === 'x' && !first?.caption.trim())
-    problems.push('An X poll asks the post’s text: write the question.')
+  if (['x', 'mastodon', 'threads'].includes(channel) && !first?.caption.trim())
+    problems.push('This poll asks the post’s text: write the question.')
   return {
     poll: {
-      durationMinutes: poll.durationMinutes,
+      durationMinutes:
+        channel === 'threads' && poll.durationMinutes === 1440 ? 0 : poll.durationMinutes,
       ...(poll.multiple ? { multiple: true } : {}),
-      options: poll.options.map((option) => option.trim()),
+      options: poll.options,
     },
     problems,
     question: CAPABILITIES[channel].poll?.question === 'field' ? poll.question?.trim() : undefined,
@@ -209,6 +218,13 @@ export function buildPublication(
   const settings = serialized.posts.map((post) => groups[post.group] ?? {})
   const [first, ...rest] = serialized.posts
   const problems = [...serialized.errors]
+  if (channel === 'x')
+    settings.forEach((setting, index) => {
+      if (setting.photoTagIds?.length && (article || !serialized.posts[index]?.images))
+        problems.push('Photo tagging needs an attached photo on a regular X post.')
+      if (setting.photoTagIds && new Set(setting.photoTagIds).size !== setting.photoTagIds.length)
+        problems.push('Use distinct photo tag IDs.')
+    })
   // Tolerant editor readers may omit malformed settings, but publishing must
   // never turn an invalid poll or audience selection into an ordinary post.
   body.forEach((node, index) => {
@@ -357,5 +373,11 @@ export function buildPublication(
         }
       : {}),
   }
-  return { problems: [...new Set(problems)], serialized, settings, target }
+  return {
+    mediaTypes: previewMediaTypes(body),
+    problems: [...new Set(problems)],
+    serialized,
+    settings,
+    target,
+  }
 }

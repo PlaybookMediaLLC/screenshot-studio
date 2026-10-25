@@ -33,6 +33,8 @@ const INSTRUCTIONS: Record<RefineAction, string> = {
   'mix-it-up': 'Write a fresh variation: a different angle or opening, the same point.',
   expand:
     'Expand and elaborate: add useful detail or an example the writer implies. Invent no facts.',
+  continue:
+    'Keep the original text and continue its unfinished thought with a short ending. Invent no facts or claims; respect the post length limit.',
   structure:
     'Improve structure and spacing: short paragraphs, line breaks where they help reading, lists where they fit.',
   positive: 'Rewrite it in a positive, constructive tone.',

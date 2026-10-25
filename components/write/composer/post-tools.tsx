@@ -42,6 +42,7 @@ const REPLY_LABELS: Record<PostSettings['replySettings'] & string, string> = {
 
 /** A duration in minutes as a person reads it. */
 function durationLabel(minutes: number): string {
+  if (minutes === 0) return 'Set by the platform'
   if (minutes < 60) return `${minutes} minutes`
   if (minutes < 1_440) return `${minutes / 60} hour${minutes === 60 ? '' : 's'}`
   const days = minutes / 1_440
@@ -468,7 +469,9 @@ export function PollEditor({
         ) : (
           <Select
             onValueChange={(value) => onChange({ ...poll, durationMinutes: Number(value) })}
-            value={String(poll.durationMinutes)}
+            value={String(
+              channel === 'threads' && poll.durationMinutes === 1440 ? 0 : poll.durationMinutes
+            )}
           >
             <SelectTrigger aria-label="Poll duration">
               <SelectValue />

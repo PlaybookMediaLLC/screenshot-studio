@@ -717,6 +717,18 @@ func (f PlatformCreativeSetVersionFunc) Mutate(ctx context.Context, m ent.Mutati
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformCreativeSetVersionMutation", m)
 }
 
+// The PlatformDraftImportFunc type is an adapter to allow the use of ordinary
+// function as PlatformDraftImport mutator.
+type PlatformDraftImportFunc func(context.Context, *ent.PlatformDraftImportMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformDraftImportFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformDraftImportMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformDraftImportMutation", m)
+}
+
 // The PlatformNotificationDeliveryFunc type is an adapter to allow the use of ordinary
 // function as PlatformNotificationDelivery mutator.
 type PlatformNotificationDeliveryFunc func(context.Context, *ent.PlatformNotificationDeliveryMutation) (ent.Value, error)
@@ -835,6 +847,18 @@ func (f PlatformSocialMentionFunc) Mutate(ctx context.Context, m ent.Mutation) (
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSocialMentionMutation", m)
+}
+
+// The PlatformSocialObservationFunc type is an adapter to allow the use of ordinary
+// function as PlatformSocialObservation mutator.
+type PlatformSocialObservationFunc func(context.Context, *ent.PlatformSocialObservationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PlatformSocialObservationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PlatformSocialObservationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PlatformSocialObservationMutation", m)
 }
 
 // The PlatformWorkspaceCreationFunc type is an adapter to allow the use of ordinary

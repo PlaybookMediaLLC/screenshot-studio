@@ -1,4 +1,4 @@
-import { draftLinkImageContract } from '@/lib/api/contracts/content-draft-platform'
+import { draftLinkImageContract } from '@/lib/api/contracts/draft-media'
 import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'

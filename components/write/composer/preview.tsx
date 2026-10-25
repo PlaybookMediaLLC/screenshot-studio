@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { PreviewLinkCard } from './preview-link-card'
 import { LinkPreviewCard } from './link-cards'
 import { Button } from '@/components/ui/button'
 import {
@@ -373,10 +374,11 @@ function Poll({
         </span>
       ))}
       <p className="text-[11px] text-neutral-400">
-        {poll.durationMinutes >= 1_440
-          ? `${poll.durationMinutes / 1_440} day${poll.durationMinutes === 1_440 ? '' : 's'}`
-          : `${poll.durationMinutes} minutes`}{' '}
-        left
+        {channel === 'threads' && poll.durationMinutes === 0
+          ? 'Duration set by the platform'
+          : poll.durationMinutes >= 1_440
+            ? `${poll.durationMinutes / 1_440} day${poll.durationMinutes === 1_440 ? '' : 's'} left`
+            : `${poll.durationMinutes} minutes left`}
       </p>
     </div>
   )
@@ -431,6 +433,12 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
                 <span className="ml-1 text-neutral-400">· now</span>
               </p>
               <Truncated channel={channel} text={post.caption} />
+              {post.media.length === 0 &&
+              !settings.poll &&
+              target?.kind !== 'quote' &&
+              !publication.target.options?.linkPreview ? (
+                <PreviewLinkCard text={post.caption} />
+              ) : null}
               <Media media={post.media} />
               {settings.poll ? <Poll channel={channel} poll={settings.poll} /> : null}
               {(

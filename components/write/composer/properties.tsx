@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
@@ -103,6 +104,9 @@ export function PropertiesPanel({
   const [activity, setActivity] = React.useState<DraftActivityWire[] | null>(null)
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [naming, setNaming] = React.useState(false)
+  const [skipSlack,setSkipSlack] = React.useState(Boolean(draft.suppressSlackOnPublish))
+  const [savingSlack,setSavingSlack] = React.useState(false)
+  React.useEffect(() => setSkipSlack(Boolean(draft.suppressSlackOnPublish)),[draft.suppressSlackOnPublish])
   const setId = draft.socialSetId ?? data.sets.find((set) => set.visibility === 'WORKSPACE')?.id
   const tags = data.sets.find((set) => set.id === setId)?.id === data.activeSet?.id ? data.tags : []
   React.useEffect(() => {
@@ -140,6 +144,13 @@ export function PropertiesPanel({
   const seconds = readingSeconds(words)
   return (
     <div className="flex flex-col gap-5 p-4 text-sm" data-testid="properties-panel">
+      <Label className="flex items-center justify-between gap-3">
+        <span>Skip Slack publish notice<span className="block text-xs text-muted-foreground">Only this draft’s shared-channel success notice. Failure alerts and personal notifications still follow workspace rules.</span></span>
+        <Switch aria-label="Skip Slack publish notice" checked={skipSlack} disabled={!canEdit || savingSlack} onCheckedChange={(suppressSlackOnPublish) => {
+          setSavingSlack(true)
+          void writeApi.properties(draft.id,{suppressSlackOnPublish}).then((saved) => {setSkipSlack(Boolean(saved.suppressSlackOnPublish));router.refresh()}).catch((error:unknown) => toast.error(error instanceof Error ? error.message : 'The notification preference was not saved.')).finally(() => setSavingSlack(false))
+        }}/>
+      </Label>
       <Label className="grid gap-1 text-xs text-neutral-400">
         Internal title
         <Input

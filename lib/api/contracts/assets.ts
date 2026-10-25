@@ -161,6 +161,16 @@ export const assetAltTextSchema = z.object({
   id: z.string(),
 })
 
+/** `POST /api/v1/assets/{assetId}/describe`; suggestions require explicit saving. */
+export const describeAssetContract = defineContract({
+  method: 'POST',
+  name: 'assets.describe',
+  params: assetParamsSchema,
+  output: z.object({ altText: z.string().min(1).max(1000) }),
+  path: '/api/v1/assets/{assetId}/describe',
+  summary: 'Suggest an image description using workspace AI credits',
+})
+
 /** `PUT /api/v1/assets/{assetId}/alt-text` */
 export const setAssetAltTextContract = defineContract({
   access: {

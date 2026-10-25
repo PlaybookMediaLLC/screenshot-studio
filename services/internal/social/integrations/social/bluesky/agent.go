@@ -395,7 +395,8 @@ func (a *agent) resolveHandle(ctx context.Context, handle string) (string, error
 	var out struct {
 		Did string `json:"did"`
 	}
-	return out.Did, a.call(ctx, xrpcRequest{nsid: "com.atproto.identity.resolveHandle", params: url.Values{"handle": {handle}}}, &out)
+	err := a.call(ctx, xrpcRequest{nsid: "com.atproto.identity.resolveHandle", params: url.Values{"handle": {handle}}}, &out)
+	return out.Did, err
 }
 
 // uploadBlob returns the blob ref exactly as the PDS serialized it.

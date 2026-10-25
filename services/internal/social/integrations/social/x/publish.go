@@ -176,14 +176,15 @@ func uploadWithRateLimitRetry[T any](ctx context.Context, p *Provider, fn func()
 }
 
 type mediaEntry struct {
-	id    string
-	paths []string
+	tagIDs []string
+	id     string
+	paths  []string
 	// alts are the paths' descriptions, by index; empty for none.
 	alts []string
 }
 
 func entryOf(post integrations.PostDetails) mediaEntry {
-	e := mediaEntry{id: post.ID}
+	e := mediaEntry{id: post.ID, tagIDs: decodeSettings(post.Settings).TaggedUserIDs}
 	for _, m := range post.Media {
 		e.paths = append(e.paths, m.Path)
 		e.alts = append(e.alts, m.Alt)
@@ -210,6 +211,7 @@ func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []
 		}
 	}()
 	for _, entry := range entries {
+		var entryFacts []mediaFacts
 		for i, source := range entry.paths {
 			signed, err := signer.SignURL(ctx, source)
 			if err != nil {
@@ -225,6 +227,10 @@ func (p *Provider) uploadMediaEntries(ctx context.Context, c *client, entries []
 			}
 			staged = append(staged, item)
 			result.facts = append(result.facts, item.facts)
+			entryFacts = append(entryFacts, item.facts)
+		}
+		if err := checkPhotoTagMedia(entry.tagIDs, entryFacts); err != nil {
+			return result, err
 		}
 	}
 	if err := checkMediaFacts(caps, result.facts, article); err != nil {
@@ -735,4 +741,19 @@ func (p *Provider) Comment(ctx context.Context, _, postID, lastCommentID, access
 		ReleaseURL: "https://twitter.com/" + jsString(integration.Profile) + "/status/" + id,
 		Status:     "posted",
 	}}, nil
+}
+
+func checkPhotoTagMedia(ids []string, facts []mediaFacts) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if len(facts) == 0 {
+		return publishRejected("Photo tagging needs attached photos.")
+	}
+	for _, f := range facts {
+		if f.MIME != "image/jpeg" && f.MIME != "image/png" && f.MIME != "image/webp" {
+			return publishRejected("Photo tags are supported on static photos only.")
+		}
+	}
+	return nil
 }

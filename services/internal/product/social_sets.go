@@ -707,10 +707,20 @@ func validEngagement(engagement schema.Engagement) (schema.Engagement, error) {
 	return engagement, nil
 }
 
-// UpdateSocialSet saves the fields input sets. Publishers, admins and owners
-// may change a set they can see; the write is guarded by its version.
+// UpdateSocialSet saves the fields input sets. Admins and owners may change a
+// set they can see; the write is guarded by its version.
 func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id string, input SocialSetUpdate) (*SocialSetRecord, error) {
-	if err := c.authorizeSocialSetManage(ctx, actor); err != nil {
+	return c.updateSocialSet(ctx, actor, id, input, false)
+}
+
+func (c *Configuration) updateSocialSet(ctx context.Context, actor Actor, id string, input SocialSetUpdate, queueOnly bool) (*SocialSetRecord, error) {
+	authorize := func(config *Configuration) error {
+		if queueOnly {
+			return config.authorizeSocialSetQueue(ctx, actor)
+		}
+		return config.authorizeSocialSetManage(ctx, actor)
+	}
+	if err := authorize(c); err != nil {
 		return nil, err
 	}
 	if input.BaseVersion < 1 {
@@ -721,6 +731,12 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := lockSocialSetAuthority(ctx, tx, actor, id); err != nil {
+		return nil, err
+	}
+	if err := authorize(NewConfiguration(tx.Client())); err != nil {
+		return nil, err
+	}
 	set, err := visibleSocialSet(ctx, tx.Client(), actor, id)
 	if err != nil {
 		return nil, err
@@ -796,10 +812,12 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		first := defaults[0]
 		primary = &first
 	}
-	if primary == nil {
-		update.ClearPrimaryPlatform()
-	} else {
-		update.SetPrimaryPlatform(*primary)
+	if !queueOnly {
+		if primary == nil {
+			update.ClearPrimaryPlatform()
+		} else {
+			update.SetPrimaryPlatform(*primary)
+		}
 	}
 	if input.EngagementDefaults != nil {
 		engagement, err := validEngagement(*input.EngagementDefaults)

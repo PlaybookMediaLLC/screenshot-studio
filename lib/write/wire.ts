@@ -56,10 +56,11 @@ export const draftEngagementSchema = z
   .object({ autoPlug: draftEngagementRuleSchema, autoRepost: draftEngagementRuleSchema })
   .default({ autoPlug: NO_RULE, autoRepost: NO_RULE })
 
-/** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
+/** A poll payload envelope; provider-specific limits are checked on schedule. */
 export const pollSchema = z.object({
-  durationMinutes: z.number().int().min(5).max(10_080),
-  options: z.array(z.string().trim().min(1).max(25)).min(2).max(4),
+  multiple: z.boolean().optional(),
+  durationMinutes: z.number().int().min(0).max(525_600),
+  options: z.array(z.string().min(1).max(5_000)).min(2).max(100),
 })
 
 /** The Write fields a draft is created or updated with. */

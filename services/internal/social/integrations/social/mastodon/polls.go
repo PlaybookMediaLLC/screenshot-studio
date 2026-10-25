@@ -2,10 +2,12 @@ package mastodon
 
 import (
 	"context"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
+	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // NativePoll is persisted with pending status data so resuming a media workflow
@@ -19,6 +21,9 @@ type NativePoll struct {
 func (p *Provider) checkedPoll(ctx context.Context, origin string, poll *integrations.PollDetails, media int) (*NativePoll, error) {
 	if poll == nil {
 		return nil, nil
+	}
+	if poll.Question != "" {
+		return nil, fmt.Errorf("Mastodon uses the post text as its poll question")
 	}
 	var instance struct {
 		Configuration struct {

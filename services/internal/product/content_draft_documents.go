@@ -121,7 +121,7 @@ func draftTarget(kind string, target *draftdoc.Target) (*draftdoc.Target, error)
 		}
 		return &clean, nil
 	}
-	return nil, invalid("Use the URL of an X post (x.com/…/status/…) or a LinkedIn post.")
+	return nil, invalid("Use the URL of an X post (x.com/…/status/…) a LinkedIn post, a Bluesky post, or a Mastodon post.")
 }
 
 // draftTargetChannel checks a reply or quote target suits the draft's channel:

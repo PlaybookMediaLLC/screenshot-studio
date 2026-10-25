@@ -286,7 +286,7 @@ export type Disclosures = z.infer<typeof disclosuresSchema>
  * (`lib/write/capabilities.ts`).
  */
 export const postPollSchema = z.strictObject({
-  durationMinutes: z.number().int().min(1).max(527_040),
+  durationMinutes: z.number().int().min(0).max(527_040),
   multiple: z.boolean().optional(),
   options: z.array(z.string().max(1000)).min(2).max(20),
   // Draft storage permits incomplete questions; provider validation uses
@@ -302,6 +302,10 @@ export type PostPoll = z.infer<typeof postPollSchema>
  * with the post when it is reordered.
  */
 export const postSettingsSchema = z.object({
+  photoTagIds: z
+    .array(z.string().regex(/^[0-9]{1,19}$/))
+    .max(10)
+    .optional(),
   disclosures: disclosuresSchema.optional(),
   /** A stable id: the post's identity across edits, moves and saves. */
   id: z.string().max(64).optional(),

@@ -37,6 +37,9 @@ func (c *Configuration) SwapContentDraftPosts(ctx context.Context, actor Actor, 
 	// All overlapping swaps claim rows in the same order to avoid deadlocks.
 	ids := []string{firstID, secondID}
 	sort.Strings(ids)
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM scheduled_post WHERE id IN ($1,$2) AND "organizationId"=$3 ORDER BY id FOR UPDATE`, ids[0], ids[1], actor.OrganizationID); err != nil {
+		return nil, err
+	}
 	posts := make([]*ent.ScheduledPost, 0, 2)
 	for _, id := range ids {
 		post, err := tx.ScheduledPost.Query().Where(scheduledpost.ID(id), scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.ContentDraftIDNotNil()).WithChannelConnection().Only(ctx)

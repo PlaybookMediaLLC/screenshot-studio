@@ -3,25 +3,34 @@ package mastodon
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"net/http"
 	"net/url"
 	"regexp"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 var statusID = regexp.MustCompile(`^[0-9]{1,80}$`)
 
 func (p *Provider) quoteTarget(ctx context.Context, origin, token string, settings json.RawMessage) (string, error) {
 	var options struct {
-		URI string `json:"quote_uri"`
+		URI       string `json:"quote_uri"`
+		LegacyURL string `json:"quote_url"`
+		LegacyID  string `json:"quote_status_id"`
 	}
 	if len(settings) == 0 {
 		return "", nil
 	}
 	if err := json.Unmarshal(settings, &options); err != nil {
 		return "", err
+	}
+	if options.URI == "" {
+		options.URI = options.LegacyURL
+	}
+	if options.URI == "" {
+		options.URI = options.LegacyID
 	}
 	if options.URI == "" {
 		return "", nil
@@ -104,9 +113,15 @@ func (p *Provider) checkedQuote(ctx context.Context, origin, token, reference st
 	return source.ID, nil
 }
 
-func (p *Provider) confirmQuote(id, state, origin string) error {
-	if state == "accepted" {
-		return nil
+// Unknown or omitted quote states must not be represented as accepted.
+func confirmedQuoteState(requested bool, state string) string {
+	if !requested {
+		return ""
 	}
-	return temporalx.UnknownDelivery(p.Info().Identifier, "The post exists at "+origin+"/statuses/"+id+", but its quote is not confirmed. Review it before trying again.")
+	switch state {
+	case "pending", "accepted", "rejected", "revoked", "deleted", "unauthorized":
+		return state
+	default:
+		return "unconfirmed"
+	}
 }

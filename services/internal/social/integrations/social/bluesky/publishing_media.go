@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
@@ -95,7 +97,7 @@ func prepareImages(ctx context.Context, media []integrations.MediaContent, caps 
 	var images []preparedImage
 	for _, m := range media {
 		var buffer bytes.Buffer
-		if _, err := copyMedia(ctx, m.Path, limit, &buffer); err != nil {
+		if _, err := copyMedia(ctx, m.Path, max(limit, mediaresize.MaxSourceBytes), &buffer); err != nil {
 			return nil, err
 		}
 		data := buffer.Bytes()
@@ -106,6 +108,16 @@ func prepareImages(ctx context.Context, media []integrations.MediaContent, caps 
 		}
 		if err != nil || cfg.Width < 1 || cfg.Height < 1 || (format != "png" && format != "jpeg" && format != "gif" && format != "webp") {
 			return nil, contentFailure("Choose a valid PNG, JPEG, GIF or WebP image for Bluesky")
+		}
+		if int64(len(data)) > limit {
+			data, mime, err = mediaresize.Fit(data, mime, limit)
+			if err != nil {
+				return nil, contentFailure(err.Error())
+			}
+			cfg, _, err = image.DecodeConfig(bytes.NewReader(data))
+			if err != nil {
+				return nil, err
+			}
 		}
 		images = append(images, preparedImage{media: m, data: data, mime: mime, width: cfg.Width, height: cfg.Height})
 	}

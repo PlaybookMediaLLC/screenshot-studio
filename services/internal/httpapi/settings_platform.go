@@ -23,6 +23,7 @@ type SettingsPlatformStore interface {
 	GetSocialSet(context.Context, product.Actor, string) (*product.SocialSetRecord, error)
 	CreateSocialSet(context.Context, product.Actor, product.SocialSetInput) (*product.SocialSetRecord, error)
 	UpdateSocialSet(context.Context, product.Actor, string, product.SocialSetUpdate) (*product.SocialSetRecord, error)
+	UpdateSocialSetQueue(context.Context, product.Actor, string, product.SocialSetQueueUpdate) (*product.SocialSetRecord, error)
 	ShareSocialSet(context.Context, product.Actor, string) (*product.SocialSetRecord, error)
 	DeleteSocialSet(context.Context, product.Actor, string, string) (*product.SocialSetRemoval, error)
 	AssignSocialSetAccount(context.Context, product.Actor, string, string) (*product.SocialSetRecord, error)
@@ -53,6 +54,7 @@ func (s *Server) registerSettingsPlatform(mux *http.ServeMux) {
 	mux.Handle("POST /v1/social-sets/copy", product(s.copySocialSet))
 	mux.Handle("GET /v1/social-sets/{id}", product(s.getSocialSet))
 	mux.Handle("PATCH /v1/social-sets/{id}", product(s.updateSocialSet))
+	mux.Handle("PATCH /v1/social-sets/{id}/queue", product(s.updateSocialSetQueue))
 	mux.Handle("DELETE /v1/social-sets/{id}", product(s.deleteSocialSet))
 	mux.Handle("POST /v1/social-sets/{id}/share", product(s.shareSocialSet))
 	mux.Handle("POST /v1/social-sets/{id}/accounts/{connectionId}", product(s.assignSocialSetAccount))
@@ -176,6 +178,20 @@ func (s *Server) updateSocialSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	set, err := s.configuration.UpdateSocialSet(r.Context(), workspaceActor(r), id, input)
+	respond(w, http.StatusOK, set, err)
+}
+
+func (s *Server) updateSocialSetQueue(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r, "id")
+	if !ok {
+		return
+	}
+	var input product.SocialSetQueueUpdate
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid queue settings")
+		return
+	}
+	set, err := s.configuration.UpdateSocialSetQueue(r.Context(), workspaceActor(r), id, input)
 	respond(w, http.StatusOK, set, err)
 }
 

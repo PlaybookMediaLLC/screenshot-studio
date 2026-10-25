@@ -68,3 +68,15 @@ test('calendar omits daylight saving gaps and ambiguous slots', () => {
     ['02:30', '03:30']
   )
 })
+
+test('month calendar includes adjacent days and navigates leap and year boundaries', () => {
+  assert.deepEqual(calendarRange('2028-02-29', 'month'), {
+    start: '2028-01-31',
+    end: '2028-03-13',
+    days: 42,
+  })
+  assert.equal(shiftCalendar('2027-01-31', 'month', 1), '2027-02-01')
+  assert.equal(shiftCalendar('2026-12-31', 'month', 1), '2027-01-01')
+  assert.equal(calendarRange('2026-10-24', 'week', 0).start, '2026-10-18')
+  assert.throws(() => calendarRange('2026-02-31', 'month'))
+})

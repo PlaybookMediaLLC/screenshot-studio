@@ -1,6 +1,17 @@
 import { z } from 'zod'
 import { defineContract } from '@/lib/api/contract'
 import { assistantInputSchema, refineInputSchema } from '@/lib/write/refine-actions'
+import { voiceMemoSchema } from '@/lib/write/voice-memo'
+
+/** `POST /api/v1/content-drafts/transcribe`; returns text for explicit author review. */
+export const transcribeContract = defineContract({
+  body: voiceMemoSchema,
+  method: 'POST',
+  name: 'content-drafts.transcribe',
+  output: z.object({ transcript: z.string().min(1).max(7_600) }),
+  path: '/api/v1/content-drafts/transcribe',
+  summary: 'Transcribe a voice memo for review in the writing assistant',
+})
 
 /**
  * AI in the Write composer (RFC 025): Refine and the writing assistant.

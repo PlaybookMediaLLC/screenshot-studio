@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
+
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	_ "golang.org/x/image/webp"
@@ -140,6 +142,10 @@ func stageMedia(ctx context.Context, source string, caps socialidentity.XCapabil
 	if article && (mime == "image/gif" || mime == "video/mp4") {
 		return stagedMedia{}, publishRejected("X Articles support static PNG, JPEG or WebP images.")
 	}
+	readLimit := limit
+	if mediaresize.Static(mime) {
+		readLimit = max(limit, mediaresize.MaxSourceBytes)
+	}
 	file, e := os.CreateTemp("", "shots-x-media-*")
 	if e != nil {
 		return stagedMedia{}, errors.New("Temporary X media storage is unavailable")
@@ -150,14 +156,14 @@ func stageMedia(ctx context.Context, source string, caps socialidentity.XCapabil
 			item.close()
 		}
 	}()
-	size, e := io.Copy(file, io.LimitReader(io.MultiReader(bytes.NewReader(prefix), contextMediaReader{ctx: ctx, reader: reader}), limit+1))
+	size, e := io.Copy(file, io.LimitReader(io.MultiReader(bytes.NewReader(prefix), contextMediaReader{ctx: ctx, reader: reader}), readLimit+1))
 	if ctx.Err() != nil {
 		return stagedMedia{}, ctx.Err()
 	}
 	if e != nil {
 		return stagedMedia{}, errors.New("The complete X media source could not be stored")
 	}
-	if size == 0 || size > limit {
+	if size == 0 || size > readLimit {
 		return stagedMedia{}, publishRejected("The X media file exceeds this account's verified size limit.")
 	}
 	item.facts.Bytes = size
@@ -167,6 +173,25 @@ func stageMedia(ctx context.Context, source string, caps socialidentity.XCapabil
 		data, e := io.ReadAll(io.NewSectionReader(file, 0, size))
 		if e != nil {
 			return stagedMedia{}, publishRejected("The X image could not be read.")
+		}
+		if size > limit {
+			resized, resizedMIME, e := mediaresize.Fit(data, mime, limit)
+			if e != nil {
+				return stagedMedia{}, publishRejected(e.Error())
+			}
+			if e = file.Truncate(0); e != nil {
+				return stagedMedia{}, e
+			}
+			if _, e = file.Seek(0, io.SeekStart); e != nil {
+				return stagedMedia{}, e
+			}
+			if _, e = file.Write(resized); e != nil {
+				return stagedMedia{}, e
+			}
+			data = resized
+			mime = resizedMIME
+			item.facts.Bytes = int64(len(data))
+			item.facts.MIME = mime
 		}
 		err = inspectImage(data, mime)
 	}

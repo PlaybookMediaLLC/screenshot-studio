@@ -557,7 +557,6 @@ func (p *Provider) Post(ctx context.Context, userID, accessToken string, posts [
 	if len(posts) == 0 {
 		return []integrations.PostResponse{}, nil
 	}
-	firstPost := posts[0]
 	responses, err := p.PostPending(ctx, userID, accessToken, posts, integration)
 	if err != nil {
 		return nil, err
@@ -592,7 +591,7 @@ func (p *Provider) Post(ctx context.Context, userID, accessToken string, posts [
 			}
 		}
 		if result.Status == "completed" {
-			return []integrations.PostResponse{{ID: firstPost.ID, PostID: result.PostID, Status: "success", ReleaseURL: result.ReleaseURL}}, nil
+			return []integrations.PostResponse{{ID: posts[0].ID, PostID: result.PostID, Status: "success", ReleaseURL: result.ReleaseURL}}, nil
 		}
 
 		pendingData = result.PendingData
@@ -696,13 +695,13 @@ func (p *Provider) Analytics(ctx context.Context, id, accessToken string, date i
 			} `json:"values"`
 		} `json:"data"`
 	}
-	if err := rawJSON(ctx, fmt.Sprintf("%s/v1.0/%s/threads_insights?metric=views,likes,replies,reposts,quotes&access_token=%s&period=day&since=%d&until=%d", graphURL, id, accessToken, since, until), &res); err != nil {
+	if err := integrations.ReadInsightsJSON(ctx, fmt.Sprintf("%s/v1.0/%s/threads_insights?metric=views,likes,replies,reposts,quotes&access_token=%s&period=day&since=%d&until=%d", graphURL, id, accessToken, since, until), &res); err != nil {
 		return nil, err
 	}
 
 	out := []integrations.AnalyticsData{}
 	for _, d := range res.Data {
-		item := integrations.AnalyticsData{Label: capitalize(d.Name), PercentageChange: 5, Data: []integrations.AnalyticsItem{}}
+		item := integrations.AnalyticsData{Label: capitalize(d.Name), Data: []integrations.AnalyticsItem{}}
 		if d.TotalValue != nil {
 			item.Data = append(item.Data, integrations.AnalyticsItem{Total: number(d.TotalValue.Value), Date: now.Format("2006-01-02")})
 		} else {
@@ -734,7 +733,7 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 			} `json:"total_value"`
 		} `json:"data"`
 	}
-	if err := rawJSON(ctx, graphURL+"/v1.0/"+postID+"/insights?metric=views,likes,replies,reposts,quotes&access_token="+accessToken, &res); err != nil {
+	if err := integrations.ReadInsightsJSON(ctx, graphURL+"/v1.0/"+postID+"/insights?metric=views,likes,replies,reposts,quotes&access_token="+accessToken, &res); err != nil {
 		return nil, err
 	}
 

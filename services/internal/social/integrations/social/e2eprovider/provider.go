@@ -117,7 +117,10 @@ func (p *Provider) action(ctx context.Context, kind, postID, text string) (strin
 	var result struct {
 		ID string `json:"id"`
 	}
-	return result.ID, response.JSON(&result)
+	if err := response.JSON(&result); err != nil {
+		return "", err
+	}
+	return result.ID, nil
 }
 
 // Comment answers a post: a thread's next post or a first comment.
@@ -159,5 +162,8 @@ func (p *Provider) PostEngagement(ctx context.Context, _ *ent.Integration, postI
 		Likes   int `json:"likes"`
 		Reposts int `json:"reposts"`
 	}
-	return result.Likes, result.Reposts, response.JSON(&result)
+	if err := response.JSON(&result); err != nil {
+		return 0, 0, err
+	}
+	return result.Likes, result.Reposts, nil
 }

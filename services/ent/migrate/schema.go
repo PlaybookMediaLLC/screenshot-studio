@@ -870,6 +870,7 @@ var (
 		{Name: "platformVersions", Type: field.TypeJSON},
 		{Name: "article", Type: field.TypeJSON, Nullable: true},
 		{Name: "scratchpad", Type: field.TypeString, Default: ""},
+		{Name: "suppressSlackOnPublish", Type: field.TypeBool, Default: false},
 		{Name: "tagIds", Type: field.TypeJSON},
 		{Name: "pinnedAt", Type: field.TypeTime, Nullable: true},
 		{Name: "planTimeZone", Type: field.TypeString, Nullable: true},
@@ -890,12 +891,12 @@ var (
 			{
 				Name:    "contentdraft_organizationId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[37]},
+				Columns: []*schema.Column{ContentDraftColumns[1], ContentDraftColumns[38]},
 			},
 			{
 				Name:    "contentdraft_socialSetId_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ContentDraftColumns[18], ContentDraftColumns[37]},
+				Columns: []*schema.Column{ContentDraftColumns[18], ContentDraftColumns[38]},
 			},
 		},
 	}
@@ -1810,6 +1811,20 @@ var (
 			},
 		},
 	}
+	// PlatformDraftImportColumns holds the columns for the "platform_draft_import" table.
+	PlatformDraftImportColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "draftId", Type: field.TypeString},
+		{Name: "fingerprint", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// PlatformDraftImportTable holds the schema information for the "platform_draft_import" table.
+	PlatformDraftImportTable = &schema.Table{
+		Name:       "platform_draft_import",
+		Columns:    PlatformDraftImportColumns,
+		PrimaryKey: []*schema.Column{PlatformDraftImportColumns[0]},
+	}
 	// PlatformNotificationDeliveryColumns holds the columns for the "platform_notification_delivery" table.
 	PlatformNotificationDeliveryColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -1895,6 +1910,7 @@ var (
 		{Name: "slack_connection_id", Type: field.TypeString, Default: ""},
 		{Name: "slack_channel_id", Type: field.TypeString, Default: ""},
 		{Name: "slack_channel_name", Type: field.TypeString, Default: ""},
+		{Name: "social_set_slack_channels", Type: field.TypeJSON},
 		{Name: "enabled_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 	}
@@ -2069,6 +2085,40 @@ var (
 				Name:    "platformsocialmention_organizationId_socialSetId_kind_lastUsedAt",
 				Unique:  false,
 				Columns: []*schema.Column{PlatformSocialMentionColumns[1], PlatformSocialMentionColumns[2], PlatformSocialMentionColumns[3], PlatformSocialMentionColumns[6]},
+			},
+		},
+	}
+	// PlatformSocialObservationColumns holds the columns for the "platform_social_observation" table.
+	PlatformSocialObservationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "connectionId", Type: field.TypeString},
+		{Name: "subjectId", Type: field.TypeString},
+		{Name: "kind", Type: field.TypeEnum, Enums: []string{"post", "account", "feed"}},
+		{Name: "platform", Type: field.TypeString},
+		{Name: "day", Type: field.TypeTime},
+		{Name: "observedAt", Type: field.TypeTime},
+		{Name: "metrics", Type: field.TypeJSON, Nullable: true},
+		{Name: "externalPost", Type: field.TypeJSON, Nullable: true},
+		{Name: "series", Type: field.TypeJSON, Nullable: true},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"available", "unavailable", "failed"}},
+	}
+	// PlatformSocialObservationTable holds the schema information for the "platform_social_observation" table.
+	PlatformSocialObservationTable = &schema.Table{
+		Name:       "platform_social_observation",
+		Columns:    PlatformSocialObservationColumns,
+		PrimaryKey: []*schema.Column{PlatformSocialObservationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "platformsocialobservation_organizationId_kind_subjectId_day",
+				Unique:  true,
+				Columns: []*schema.Column{PlatformSocialObservationColumns[1], PlatformSocialObservationColumns[5], PlatformSocialObservationColumns[4], PlatformSocialObservationColumns[7]},
+			},
+			{
+				Name:    "platformsocialobservation_organizationId_socialSetId_observedAt",
+				Unique:  false,
+				Columns: []*schema.Column{PlatformSocialObservationColumns[1], PlatformSocialObservationColumns[2], PlatformSocialObservationColumns[8]},
 			},
 		},
 	}
@@ -2595,6 +2645,7 @@ var (
 		{Name: "threadProgress", Type: field.TypeJSON, Nullable: true},
 		{Name: "remotePostId", Type: field.TypeString, Nullable: true},
 		{Name: "metrics", Type: field.TypeJSON, Nullable: true},
+		{Name: "publishedAt", Type: field.TypeTime, Nullable: true},
 		{Name: "metricsAt", Type: field.TypeTime, Nullable: true},
 		{Name: "autoActions", Type: field.TypeJSON, Nullable: true},
 		{Name: "poll", Type: field.TypeJSON, Nullable: true},
@@ -2621,7 +2672,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "scheduled_post_channel_connection_scheduled_posts",
-				Columns:    []*schema.Column{ScheduledPostColumns[27]},
+				Columns:    []*schema.Column{ScheduledPostColumns[28]},
 				RefColumns: []*schema.Column{ChannelConnectionColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2630,17 +2681,17 @@ var (
 			{
 				Name:    "scheduledpost_channelConnectionId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{ScheduledPostColumns[27], ScheduledPostColumns[18]},
+				Columns: []*schema.Column{ScheduledPostColumns[28], ScheduledPostColumns[19]},
 			},
 			{
 				Name:    "scheduledpost_organizationId_status_scheduledFor",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[16], ScheduledPostColumns[15]},
+				Columns: []*schema.Column{ScheduledPostColumns[1], ScheduledPostColumns[17], ScheduledPostColumns[16]},
 			},
 			{
 				Name:    "scheduledpost_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[16], ScheduledPostColumns[26]},
+				Columns: []*schema.Column{ScheduledPostColumns[17], ScheduledPostColumns[27]},
 			},
 			{
 				Name:    "scheduledpost_contentDraftId",
@@ -3117,6 +3168,7 @@ var (
 	UserPreferenceColumns = []*schema.Column{
 		{Name: "userId", Type: field.TypeString},
 		{Name: "timeZone", Type: field.TypeString, Nullable: true},
+		{Name: "accentColor", Type: field.TypeString, Default: ""},
 		{Name: "theme", Type: field.TypeEnum, Enums: []string{"light", "dark", "system"}, Default: "dark"},
 		{Name: "navigation", Type: field.TypeEnum, Enums: []string{"compact", "dynamic", "expanded"}, Default: "compact"},
 		{Name: "weekStart", Type: field.TypeEnum, Enums: []string{"monday", "sunday"}, Default: "monday"},
@@ -3409,6 +3461,7 @@ var (
 		PlatformAutoDmRecipientTable,
 		PlatformCreativeSetTable,
 		PlatformCreativeSetVersionTable,
+		PlatformDraftImportTable,
 		PlatformNotificationDeliveryTable,
 		PlatformNotificationInboxTable,
 		PlatformNotificationPolicyTable,
@@ -3419,6 +3472,7 @@ var (
 		PlatformSlackPacingTable,
 		PlatformSlackPersonalConnectionTable,
 		PlatformSocialMentionTable,
+		PlatformSocialObservationTable,
 		PlatformWorkspaceCreationTable,
 		PostAutomationRunTable,
 		ProductProfileTable,
@@ -3643,6 +3697,9 @@ func init() {
 	PlatformCreativeSetVersionTable.Annotation = &entsql.Annotation{
 		Table: "platform_creative_set_version",
 	}
+	PlatformDraftImportTable.Annotation = &entsql.Annotation{
+		Table: "platform_draft_import",
+	}
 	PlatformNotificationDeliveryTable.Annotation = &entsql.Annotation{
 		Table: "platform_notification_delivery",
 	}
@@ -3672,6 +3729,9 @@ func init() {
 	}
 	PlatformSocialMentionTable.Annotation = &entsql.Annotation{
 		Table: "platform_social_mention",
+	}
+	PlatformSocialObservationTable.Annotation = &entsql.Annotation{
+		Table: "platform_social_observation",
 	}
 	PlatformWorkspaceCreationTable.Annotation = &entsql.Annotation{
 		Table: "platform_workspace_creation",

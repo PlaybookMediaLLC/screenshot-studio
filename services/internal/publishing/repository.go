@@ -2,10 +2,11 @@ package publishing
 
 import (
 	"context"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
@@ -586,7 +587,7 @@ func (r *Repository) Complete(ctx context.Context, post *ent.ScheduledPost, atte
 		scheduledpost.ID(post.ID),
 		scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING),
 		scheduledpost.TriggerRunIDEQ(runID),
-	).SetStatus(scheduledpost.StatusPUBLISHED).SetRemotePostID(providerPostID).Save(ctx)
+	).SetStatus(scheduledpost.StatusPUBLISHED).SetPublishedAt(time.Now().UTC()).SetRemotePostID(providerPostID).Save(ctx)
 	if err != nil || updated != 1 {
 		if err != nil {
 			return err

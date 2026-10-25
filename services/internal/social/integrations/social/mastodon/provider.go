@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -28,7 +29,7 @@ import (
 const identifier = "mastodon"
 
 // Scopes is the scope list shared with mastodoncustom.
-var Scopes = []string{"write:statuses", "profile", "write:media"}
+var Scopes = []string{"write:statuses", "profile", "write:media", "read:search", "read:statuses"}
 
 // Poll cadence of the blocking DynamicPost, shortened by tests.
 var (
@@ -459,19 +460,28 @@ func (p *Provider) FinalizePost(ctx context.Context, accessToken string, raw jso
 	}
 	var post struct {
 		ID    string `json:"id"`
-		Quote struct {
+		Quote *struct {
 			State string `json:"state"`
 		} `json:"quote"`
 	}
 	if err := res.JSON(&post); err != nil {
 		return nil, err
 	}
-	if pending.QuoteID != "" {
-		if err := p.confirmQuote(post.ID, post.Quote.State, pending.URL); err != nil {
-			return nil, err
-		}
+	if !statusID.MatchString(post.ID) {
+		return nil, fmt.Errorf("Mastodon returned no confirmed status ID; check the account before retrying")
 	}
-	return &integrations.PendingCheckResponse{Status: "completed", PostID: post.ID, ReleaseURL: pending.URL + "/statuses/" + post.ID}, nil
+	if pending.QuoteID != "" {
+		state := "unconfirmed"
+		if post.Quote != nil {
+			state = post.Quote.State
+		}
+		slog.Info("Mastodon native quote submitted", "status_id", post.ID, "quote_state", state)
+	}
+	state := ""
+	if post.Quote != nil {
+		state = post.Quote.State
+	}
+	return &integrations.PendingCheckResponse{Status: "completed", PostID: post.ID, ReleaseURL: pending.URL + "/statuses/" + post.ID, QuoteState: confirmedQuoteState(pending.QuoteID != "", state)}, nil
 }
 
 // DynamicPost is the old blocking behavior, kept for workflow versions before
@@ -485,8 +495,8 @@ func (p *Provider) DynamicPost(ctx context.Context, id, accessToken, url string,
 	response := responses[0]
 	pending := response.PendingData
 	started := time.Now()
-	completed := func(postID, releaseURL string) []integrations.PostResponse {
-		return []integrations.PostResponse{{ID: response.ID, PostID: postID, ReleaseURL: releaseURL, Status: "completed"}}
+	completed := func(postID, releaseURL, quoteState string) []integrations.PostResponse {
+		return []integrations.PostResponse{{ID: response.ID, PostID: postID, ReleaseURL: releaseURL, Status: "completed", QuoteState: quoteState}}
 	}
 
 	for {
@@ -505,11 +515,11 @@ func (p *Provider) DynamicPost(ctx context.Context, id, accessToken, url string,
 				return nil, err
 			}
 			if finalize.Status == "completed" {
-				return completed(finalize.PostID, finalize.ReleaseURL), nil
+				return completed(finalize.PostID, finalize.ReleaseURL, finalize.QuoteState), nil
 			}
 			pending = finalize.PendingData
 		case "completed":
-			return completed(check.PostID, check.ReleaseURL), nil
+			return completed(check.PostID, check.ReleaseURL, check.QuoteState), nil
 		default:
 			pending = check.PendingData
 		}
@@ -559,7 +569,7 @@ func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID,
 	body, contentType := Form(pairs...)
 	res, err := p.Fetch(ctx, url+"/api/v1/statuses", integrations.Request{
 		Method:  http.MethodPost,
-		Headers: map[string]string{"Authorization": "Bearer " + accessToken, "Content-Type": contentType},
+		Headers: map[string]string{"Authorization": "Bearer " + accessToken, "Content-Type": contentType, "Idempotency-Key": "shots-reply-" + commentPost.ID},
 		Body:    body,
 	})
 	if err != nil {
@@ -567,19 +577,18 @@ func (p *Provider) DynamicComment(ctx context.Context, _, postID, lastCommentID,
 	}
 	var post struct {
 		ID    string `json:"id"`
-		Quote struct {
+		Quote *struct {
 			State string `json:"state"`
 		} `json:"quote"`
 	}
 	if err := res.JSON(&post); err != nil {
 		return nil, err
 	}
-	if quote != "" {
-		if err := p.confirmQuote(post.ID, post.Quote.State, url); err != nil {
-			return nil, err
-		}
+	state := ""
+	if post.Quote != nil {
+		state = post.Quote.State
 	}
-	return []integrations.PostResponse{{ID: commentPost.ID, PostID: post.ID, ReleaseURL: url + "/statuses/" + post.ID, Status: "completed"}}, nil
+	return []integrations.PostResponse{{ID: commentPost.ID, PostID: post.ID, ReleaseURL: url + "/statuses/" + post.ID, Status: "completed", QuoteState: confirmedQuoteState(quote != "", state)}}, nil
 }
 
 func (p *Provider) Post(ctx context.Context, id, accessToken string, posts []integrations.PostDetails, _ *ent.Integration) ([]integrations.PostResponse, error) {

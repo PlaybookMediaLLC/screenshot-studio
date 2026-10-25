@@ -160,6 +160,29 @@ jobs:
       - run: helm lint charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
       - run: helm template screenshot-studio charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
 
+  native-clients:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            integrations/raycast/package-lock.json
+            integrations/zapier/package-lock.json
+      - run: npm ci
+      # Native host dependencies belong to each client's own TypeScript project.
+      - run: npm ci --prefix integrations/raycast
+      - run: npm run typecheck --prefix integrations/raycast
+      - run: npm test --prefix integrations/raycast
+      - run: npm run build --prefix integrations/raycast
+      - run: npm ci --prefix integrations/zapier
+      - run: npm test --prefix integrations/zapier
+
   # The public contract: the committed OpenAPI document and typed client must
   # match the zod contracts, and a pull request may not break the document
   # unless the break is listed in breaking-changes-allowed.txt (RFC 014).

@@ -130,6 +130,8 @@ type Tx struct {
 	PlatformCreativeSet *PlatformCreativeSetClient
 	// PlatformCreativeSetVersion is the client for interacting with the PlatformCreativeSetVersion builders.
 	PlatformCreativeSetVersion *PlatformCreativeSetVersionClient
+	// PlatformDraftImport is the client for interacting with the PlatformDraftImport builders.
+	PlatformDraftImport *PlatformDraftImportClient
 	// PlatformNotificationDelivery is the client for interacting with the PlatformNotificationDelivery builders.
 	PlatformNotificationDelivery *PlatformNotificationDeliveryClient
 	// PlatformNotificationInbox is the client for interacting with the PlatformNotificationInbox builders.
@@ -150,6 +152,8 @@ type Tx struct {
 	PlatformSlackPersonalConnection *PlatformSlackPersonalConnectionClient
 	// PlatformSocialMention is the client for interacting with the PlatformSocialMention builders.
 	PlatformSocialMention *PlatformSocialMentionClient
+	// PlatformSocialObservation is the client for interacting with the PlatformSocialObservation builders.
+	PlatformSocialObservation *PlatformSocialObservationClient
 	// PlatformWorkspaceCreation is the client for interacting with the PlatformWorkspaceCreation builders.
 	PlatformWorkspaceCreation *PlatformWorkspaceCreationClient
 	// PostAutomationRun is the client for interacting with the PostAutomationRun builders.
@@ -422,6 +426,7 @@ func (tx *Tx) init() {
 	tx.PlatformAutoDMRecipient = NewPlatformAutoDMRecipientClient(tx.config)
 	tx.PlatformCreativeSet = NewPlatformCreativeSetClient(tx.config)
 	tx.PlatformCreativeSetVersion = NewPlatformCreativeSetVersionClient(tx.config)
+	tx.PlatformDraftImport = NewPlatformDraftImportClient(tx.config)
 	tx.PlatformNotificationDelivery = NewPlatformNotificationDeliveryClient(tx.config)
 	tx.PlatformNotificationInbox = NewPlatformNotificationInboxClient(tx.config)
 	tx.PlatformNotificationPolicy = NewPlatformNotificationPolicyClient(tx.config)
@@ -432,6 +437,7 @@ func (tx *Tx) init() {
 	tx.PlatformSlackPacing = NewPlatformSlackPacingClient(tx.config)
 	tx.PlatformSlackPersonalConnection = NewPlatformSlackPersonalConnectionClient(tx.config)
 	tx.PlatformSocialMention = NewPlatformSocialMentionClient(tx.config)
+	tx.PlatformSocialObservation = NewPlatformSocialObservationClient(tx.config)
 	tx.PlatformWorkspaceCreation = NewPlatformWorkspaceCreationClient(tx.config)
 	tx.PostAutomationRun = NewPostAutomationRunClient(tx.config)
 	tx.ProductProfile = NewProductProfileClient(tx.config)

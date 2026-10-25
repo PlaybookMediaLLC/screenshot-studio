@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 /** A person's preferences (RFC 024); they follow the person across workspaces. */
 export type UserPreferences = {
+  /** Empty uses the standard palette. */
+  accentColor: string
   developerMode: boolean
   dismissedTips: string[]
   emailNotifications: boolean
@@ -19,6 +21,7 @@ export type UserPreferences = {
 
 /** Changes the fields set; `baseVersion` refuses a stale save with 409. */
 export type UserPreferencesUpdate = {
+  accentColor?: string
   baseVersion?: number
   developerMode?: boolean
   dismissTip?: string

@@ -47,7 +47,7 @@ func TestBlueskyScheduleChecksOriginalContentAndProof(t *testing.T) {
 		return id
 	}
 	image := addAsset("image/png", 100, w.org)
-	oversize := addAsset("image/png", 2000001, w.org)
+	oversize := addAsset("image/png", 20000001, w.org)
 	video := addAsset("video/mp4", 100, w.org)
 	wrongVideo := addAsset("video/webm", 100, w.org)
 	images := []string{image}

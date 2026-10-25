@@ -1,5 +1,8 @@
 'use client'
 
+import { BulkImportDialog } from './bulk-import'
+import { BulkScheduleDialog } from './bulk-schedule'
+
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
@@ -96,6 +99,7 @@ export function WriteRail() {
   const [selected, setSelected] = React.useState<string[]>([])
   const [lastClicked, setLastClicked] = React.useState<string | null>(null)
   const [managingTags, setManagingTags] = React.useState(false)
+  const [importing, setImporting] = React.useState(false)
   const tab = data.query.tab
   const select = (id: string, range: boolean) => {
     setSelected((current) => {
@@ -141,6 +145,12 @@ export function WriteRail() {
           Settings
         </Link>
       </div>
+      {canEdit && (
+        <Button className="mx-3" variant="ghost" size="sm" onClick={() => setImporting(true)}>
+          Bulk import
+        </Button>
+      )}
+      {importing && <BulkImportDialog onClose={() => setImporting(false)} />}
       <nav
         aria-label="Publishing utilities"
         className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
@@ -630,13 +640,13 @@ function DraftRow({
     >
       <Link
         aria-current={active ? 'page' : undefined}
-        draggable={canEdit && draft.status !== 'archived'}
-        onDragStart={(event) => {
-          event.dataTransfer.setData('application/x-shots-calendar-draft', draft.id)
-          event.dataTransfer.effectAllowed = 'copy'
-        }}
         className="block px-4 py-3 pr-10"
         href={draftHref(draft.id, data.activeSet?.id)}
+        draggable={canEdit && draft.status === 'draft' && draft.queuedPosts === 0}
+        onDragStart={(event) => {
+          event.dataTransfer.setData('application/x-shots-library-draft', draft.id)
+          event.dataTransfer.effectAllowed = 'copy'
+        }}
         onClick={(event) => {
           if (event.shiftKey || selecting) {
             event.preventDefault()
@@ -1041,7 +1051,8 @@ function CopyDialog({
 /** Actions on several selected drafts. */
 function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] }) {
   const router = useWriteRouter()
-  const { activeId, beforeLeaveRef, data, hideDraft } = useWrite()
+  const { activeId, beforeLeaveRef, data, hideDraft, canPublish } = useWrite()
+  const [scheduling, setScheduling] = React.useState(false)
   const [confirm, setConfirm] = React.useState(false)
   const [progress, setProgress] = React.useState<number | null>(null)
   const run = async (label: string, work: (id: string) => Promise<unknown>) => {
@@ -1083,6 +1094,14 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
       role="toolbar"
       aria-label="Selected drafts"
     >
+      {scheduling && (
+        <BulkScheduleDialog selected={selected} onClose={() => setScheduling(false)} />
+      )}
+      {canPublish && (
+        <Button size="sm" variant="ghost" onClick={() => setScheduling(true)}>
+          Schedule
+        </Button>
+      )}
       <span className="mr-auto text-sky-200">
         {progress === null
           ? `${selected.length} selected`

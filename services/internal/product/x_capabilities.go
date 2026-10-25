@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/mediaresize"
+
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -43,6 +45,9 @@ func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnec
 	if caps == nil {
 		return nil, conflict("Reconnect X to verify this account's publishing permissions and limits.")
 	}
+	if target.AutoActions != nil && target.AutoActions.QuoteAfterHours > 0 {
+		return nil, conflict("X automated quotes require verified Enterprise API access. Remove the automated quote before scheduling.")
+	}
 	if article && (caps.Articles == nil || !*caps.Articles) {
 		return nil, conflict("This connection has no verified X Articles access. Reconnect an eligible account.")
 	}
@@ -80,10 +85,27 @@ func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnec
 				if isArticle && row.MediaType != "image/jpeg" && row.MediaType != "image/png" && row.MediaType != "image/webp" {
 					return conflict("X articles support JPEG, PNG, or WebP images here.")
 				}
-				media = append(media, socialidentity.XMedia{MIME: row.MediaType, Bytes: int64(row.Bytes)})
+				size := int64(row.Bytes)
+				if mediaresize.Static(row.MediaType) && size <= mediaresize.MaxSourceBytes {
+					size = min(size, caps.ImageMaxBytes)
+				}
+				media = append(media, socialidentity.XMedia{MIME: row.MediaType, Bytes: size})
+			}
+		}
+		if options != nil && len(options.PhotoTagIDs) > 0 {
+			if isArticle || len(media) == 0 {
+				return invalid("Photo tagging needs an attached photo on a regular X post.")
+			}
+			for _, item := range media {
+				if !mediaresize.Static(item.MIME) {
+					return invalid("Photo tags are supported on static photos only.")
+				}
 			}
 		}
 		if options != nil {
+			if len(options.TaggedUserIDs) == 0 {
+				options.TaggedUserIDs = options.PhotoTagIDs
+			}
 			if isArticle && len(options.TaggedUserIDs) > 0 {
 				return conflict("Photo tags are not supported on articles.")
 			}

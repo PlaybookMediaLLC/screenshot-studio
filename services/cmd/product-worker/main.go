@@ -237,7 +237,7 @@ func main() {
 		if github != nil {
 			events.WithGitHubApp(github)
 		}
-		jobs := &maintenance.Store{Activity: notifications.New(db.SQL, db.Client), DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
+		jobs := &maintenance.Store{Analytics: events, Activity: notifications.New(db.SQL, db.Client), DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
 			Onboarding: &temporalonboarding.Client{Temporal: temporalClient},
 			Drains:     maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
 			Webhooks:   webhooks.NewDispatcher(db.SQL, cfg.WebhookEncryptionKey),
@@ -248,7 +248,12 @@ func main() {
 		})
 		temporalmaintenance.Register(maintenanceWorker, temporalmaintenance.RunnerFunc(func(ctx context.Context, job string) (int, error) {
 			if job == "social-analytics" {
-				return events.CollectDueAnalytics(ctx)
+				n, err := events.CollectDueAnalytics(ctx)
+				if err != nil {
+					return n, err
+				}
+				m, err := jobs.Run(ctx, job)
+				return n + m, err
 			}
 			if job == "scheduled-posts" {
 				return recovery.DispatchDue(ctx)

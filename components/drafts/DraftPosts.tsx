@@ -220,6 +220,12 @@ export function DraftPosts({
                   A thread: this post and {post.replies} replies.
                 </p>
               ) : null}
+              {post.status === 'PUBLISHED' && post.threadProgress.quotes?.map((quote) => (
+                <p key={quote.postId} className="text-xs text-muted-foreground" role="status">
+                  Native quote on post {quote.postId}: {quote.state} when published.
+                  {quote.state !== 'accepted' ? ' The post is live; check its Mastodon server for the current quote approval. Do not republish it to retry approval.' : ''}
+                </p>
+              ))}
               {stopped ? (
                 <p
                   className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300"

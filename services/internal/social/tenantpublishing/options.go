@@ -75,6 +75,9 @@ func postSettings(platform string, base map[string]any, options *postoptions.Pub
 }
 
 func xSettings(settings map[string]any, options postoptions.PublishOptions, rootID string) {
+	if len(options.TaggedUserIDs) == 0 {
+		options.TaggedUserIDs = options.PhotoTagIDs
+	}
 	if len(options.TaggedUserIDs) > 0 {
 		settings["tagged_user_ids"] = options.TaggedUserIDs
 	}

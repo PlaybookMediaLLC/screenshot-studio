@@ -102,6 +102,10 @@ import { AssistantPanel } from './assistant'
 import { withAssetDescription } from '@/lib/write/media-operations'
 import { DescribeImages, PreviewImageDescription } from './describe-images'
 import { MediaTools } from './media-tools'
+import { MediaImportDialog } from './media-import-dialog'
+import { CopyPollDialog } from './copy-poll'
+import { PasteThreadDialog } from './paste-thread'
+import type { PostPoll } from '@/lib/write/document'
 import { RefineButton } from './refine'
 import {
   MentionPicker,
@@ -122,7 +126,18 @@ const DraftEditor = dynamic(() => import('@/components/drafts/DraftEditor'), {
 type Panel = 'properties' | 'preview' | 'comments' | 'assistant'
 
 /** The dialogs the composer opens. */
-type Dialog = 'schedule' | 'queue' | 'publish' | 'manage' | 'share' | 'backups' | 'compare' | null
+type Dialog =
+  | 'schedule'
+  | 'queue'
+  | 'publish'
+  | 'manage'
+  | 'share'
+  | 'backups'
+  | 'compare'
+  | 'media'
+  | 'copy-poll'
+  | 'paste'
+  | null
 
 /** Plugins Write adds to the editor; stable, so the editor is built once. */
 const WRITE_PLUGINS = [SocialMentionPlugin, ...SocialMentionInputPlugins]
@@ -236,13 +251,15 @@ export function WriteComposer({
       : null
   })
   const [dialog, setDialog] = React.useState<Dialog>(() =>
-    params.get('panel') === 'backups'
-      ? 'backups'
-      : params.get('panel') === 'schedule'
-        ? 'schedule'
-        : params.has('connected')
-          ? 'manage'
-          : null
+    params.has('attach')
+      ? 'media'
+      : params.get('panel') === 'backups'
+        ? 'backups'
+        : params.get('panel') === 'schedule'
+          ? 'schedule'
+          : params.has('connected')
+            ? 'manage'
+            : null
   )
   const [focus, setFocus] = React.useState(false)
   const focusRoot = React.useRef<HTMLDivElement>(null)
@@ -281,6 +298,11 @@ export function WriteComposer({
   const shareButton = React.useRef<HTMLButtonElement>(null)
   const [posts, setPosts] = React.useState(initialPosts)
   const editor = React.useRef<PlateEditor | null>(null)
+  const editorChannel = React.useRef<DraftChannel | null>(null)
+  const [copiedPoll, setCopiedPoll] = React.useState<{
+    channel: DraftChannel
+    poll: PostPoll
+  } | null>(null)
   const [editorInstance, setEditorInstance] = React.useState<PlateEditor | null>(null)
   const primary = document.primaryPlatform
   const accounts = set?.accounts ?? []
@@ -923,6 +945,29 @@ export function WriteComposer({
                   <DropdownMenuItem className="sm:hidden" onSelect={() => setDialog('share')}>
                     Share…
                   </DropdownMenuItem>
+                  {canEdit && activePublication.settings[0]?.poll ? (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        setCopiedPoll({
+                          channel: active,
+                          poll: structuredClone(activePublication.settings[0].poll!),
+                        })
+                        setDialog('copy-poll')
+                      }}
+                    >
+                      Copy poll to channel…
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canEdit && editorInstance ? (
+                    <DropdownMenuItem onSelect={() => setDialog('media')}>
+                      Manage media…
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canEdit && CAPABILITIES[active].thread ? (
+                    <DropdownMenuItem onSelect={() => setDialog('paste')}>
+                      Paste as thread…
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem onSelect={() => setDialog('backups')}>
                     View automatic backups
                   </DropdownMenuItem>
@@ -1097,6 +1142,7 @@ export function WriteComposer({
                 onDiscussionsChange={onDiscussionsChange}
                 onEditor={(next) => {
                   editor.current = next
+                  editorChannel.current = active
                   setEditorInstance(next)
                 }}
                 toolbarExtras={
@@ -1139,6 +1185,8 @@ export function WriteComposer({
                   onDiscussionsChange={() => undefined}
                   onEditor={(next) => {
                     editor.current = next
+                    editorChannel.current = active
+                    setEditorInstance(next)
                   }}
                   toolbarExtras={
                     <ToolbarExtras
@@ -1357,6 +1405,13 @@ export function WriteComposer({
         ) : null}
         {dialog === 'share' ? (
           <ShareDialog
+            onInsertLink={
+              CAPABILITIES[active].thread
+                ? (link) => {
+                    if (editor.current) appendPost(editor.current, `Read the thread: ${link}`)
+                  }
+                : undefined
+            }
             canEdit={canEdit}
             draft={server}
             onClose={() => {
@@ -1364,6 +1419,63 @@ export function WriteComposer({
               requestAnimationFrame(() => shareButton.current?.focus())
             }}
             onDraft={setServer}
+          />
+        ) : null}
+        {dialog === 'copy-poll' && copiedPoll ? (
+          <CopyPollDialog
+            source={copiedPoll.channel}
+            poll={copiedPoll.poll}
+            destinations={accounts.map((account) => ({
+              channel: account.channel,
+              limits: account.pollLimits,
+            }))}
+            onClose={() => setDialog(null)}
+            onPrepare={(target) => {
+              if (target !== primary && versionFor(document.versions, target).mode !== 'manual')
+                update((current) => ({
+                  versions: forkVersion(
+                    current.versions,
+                    target,
+                    current.value as PlateBody,
+                    server.version,
+                    Boolean(CAPABILITIES[target].thread)
+                  ),
+                }))
+              setTab(target)
+            }}
+            onCopy={(target, poll) => {
+              const current = editor.current
+              const index = current?.children.findIndex((node) => node.type === 'post_break') ?? -1
+              if (!current || editorChannel.current !== target || index < 0) {
+                toast.info('Wait for the destination editor to load, then copy the poll.')
+                return false
+              }
+              current.tf.setNodes({ poll: structuredClone(poll) }, { at: [index] })
+              toast.success('Poll copied. Review the destination before scheduling.')
+              return true
+            }}
+          />
+        ) : null}
+        {dialog === 'media' && editorInstance && services.uploadFile ? (
+          <MediaImportDialog
+            editor={editorInstance}
+            uploadFile={services.uploadFile}
+            draftId={initial.id}
+            returnedAsset={params.get('attach') ?? undefined}
+            onClose={() => {
+              setDialog(null)
+              const url = new URL(window.location.href)
+              url.searchParams.delete('attach')
+              window.history.replaceState(null, '', url)
+            }}
+          />
+        ) : null}
+        {dialog === 'paste' ? (
+          <PasteThreadDialog
+            channel={active}
+            editor={editor}
+            limit={activePublication.serialized.limit}
+            onClose={() => setDialog(null)}
           />
         ) : null}
         {dialog === 'backups' ? (
@@ -1528,6 +1640,7 @@ function ToolbarExtras({
       </Button>
       {describing && editor.current ? (
         <DescribeImages
+          aiEnabled={aiEnabled}
           editor={editor.current}
           onClose={() => setDescribing(false)}
           onSaved={onDescriptionSaved}

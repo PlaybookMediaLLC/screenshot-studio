@@ -312,6 +312,20 @@ func (_c *ContentDraftCreate) SetNillableScratchpad(v *string) *ContentDraftCrea
 	return _c
 }
 
+// SetSuppressSlackOnPublish sets the "suppress_slack_on_publish" field.
+func (_c *ContentDraftCreate) SetSuppressSlackOnPublish(v bool) *ContentDraftCreate {
+	_c.mutation.SetSuppressSlackOnPublish(v)
+	return _c
+}
+
+// SetNillableSuppressSlackOnPublish sets the "suppress_slack_on_publish" field if the given value is not nil.
+func (_c *ContentDraftCreate) SetNillableSuppressSlackOnPublish(v *bool) *ContentDraftCreate {
+	if v != nil {
+		_c.SetSuppressSlackOnPublish(*v)
+	}
+	return _c
+}
+
 // SetTagIds sets the "tag_ids" field.
 func (_c *ContentDraftCreate) SetTagIds(v []string) *ContentDraftCreate {
 	_c.mutation.SetTagIds(v)
@@ -525,6 +539,10 @@ func (_c *ContentDraftCreate) defaults() {
 		v := contentdraft.DefaultScratchpad
 		_c.mutation.SetScratchpad(v)
 	}
+	if _, ok := _c.mutation.SuppressSlackOnPublish(); !ok {
+		v := contentdraft.DefaultSuppressSlackOnPublish
+		_c.mutation.SetSuppressSlackOnPublish(v)
+	}
 	if _, ok := _c.mutation.TagIds(); !ok {
 		v := contentdraft.DefaultTagIds
 		_c.mutation.SetTagIds(v)
@@ -613,6 +631,9 @@ func (_c *ContentDraftCreate) check() error {
 	}
 	if _, ok := _c.mutation.Scratchpad(); !ok {
 		return &ValidationError{Name: "scratchpad", err: errors.New(`ent: missing required field "ContentDraft.scratchpad"`)}
+	}
+	if _, ok := _c.mutation.SuppressSlackOnPublish(); !ok {
+		return &ValidationError{Name: "suppress_slack_on_publish", err: errors.New(`ent: missing required field "ContentDraft.suppress_slack_on_publish"`)}
 	}
 	if _, ok := _c.mutation.TagIds(); !ok {
 		return &ValidationError{Name: "tag_ids", err: errors.New(`ent: missing required field "ContentDraft.tag_ids"`)}
@@ -773,6 +794,10 @@ func (_c *ContentDraftCreate) createSpec() (*ContentDraft, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Scratchpad(); ok {
 		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
 		_node.Scratchpad = value
+	}
+	if value, ok := _c.mutation.SuppressSlackOnPublish(); ok {
+		_spec.SetField(contentdraft.FieldSuppressSlackOnPublish, field.TypeBool, value)
+		_node.SuppressSlackOnPublish = value
 	}
 	if value, ok := _c.mutation.TagIds(); ok {
 		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)

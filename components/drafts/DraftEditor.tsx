@@ -726,10 +726,14 @@ export default function DraftEditor({
         ? (normalizePosts(initialValue as PlateBody) as Value)
         : emptyValue(),
   })
+  const [live, setLive] = React.useState(false)
   const reportEditor = React.useEffectEvent(() => onEditor?.(editor))
   React.useEffect(() => {
+    // External tools read editor.children immediately. Report the collaborative
+    // editor only after its initial snapshot is ready, never the empty shell.
+    if (collaboration && !live) return
     reportEditor()
-  }, [editor])
+  }, [collaboration, editor, live])
   const firstValue = React.useRef(initialValue)
   const [initiallyEmpty] = React.useState(() => draftPlainText(initialValue).length === 0)
   React.useEffect(() => {
@@ -739,7 +743,6 @@ export default function DraftEditor({
   }, [collaboration, editor, readOnly])
   // Plate renders the editable only once the editor has content; a live
   // session gets it asynchronously, so the editable remounts when it arrives.
-  const [live, setLive] = React.useState(false)
   React.useEffect(() => {
     if (!collaboration) return
     const yjs = editor.getApi(YjsPlugin).yjs

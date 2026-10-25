@@ -143,7 +143,13 @@ export async function deleteDraftFinisher(
 export async function updateDraftProperties(
   context: TenantContext,
   id: string,
-  input: { addTagIds?: string[]; pinned?: boolean; removeTagIds?: string[]; scratchpad?: string }
+  input: {
+    addTagIds?: string[]
+    pinned?: boolean
+    removeTagIds?: string[]
+    scratchpad?: string
+    suppressSlackOnPublish?: boolean
+  }
 ) {
   const draft = await orNull(backendSDK(context).updateContentDraftProperties(id, input))
   return draft ? readDraft(draft) : null

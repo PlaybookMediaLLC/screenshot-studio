@@ -22,6 +22,7 @@ func (PlatformNotificationPolicy) Fields() []ent.Field {
 		field.String("slack_connection_id").Default(""),
 		field.String("slack_channel_id").Default(""),
 		field.String("slack_channel_name").Default(""),
+		field.JSON("social_set_slack_channels", map[string]map[string]string{}).Default(map[string]map[string]string{}),
 		field.Time("enabled_at").Default(time.Now),
 		field.Time("updated_at").Default(time.Now)}
 }

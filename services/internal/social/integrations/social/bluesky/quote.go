@@ -3,19 +3,24 @@ package bluesky
 import (
 	"context"
 	"encoding/json"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 	"strings"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 func quoteURI(settings json.RawMessage) (string, error) {
 	var values struct {
-		Quote string `json:"quote_uri"`
+		Quote     string `json:"quote_uri"`
+		LegacyURL string `json:"quote_url"`
 	}
 	if len(settings) == 0 {
 		return "", nil
 	}
 	if err := json.Unmarshal(settings, &values); err != nil {
 		return "", contentFailure("Invalid Bluesky settings")
+	}
+	if values.Quote == "" {
+		values.Quote = values.LegacyURL
 	}
 	if values.Quote == "" {
 		return "", nil
@@ -53,7 +58,7 @@ func (a *agent) quoteEmbed(ctx context.Context, uri string, media any) (any, err
 	if err != nil {
 		return nil, err
 	}
-	if post == nil || post.URI != uri || post.CID == "" {
+	if post == nil || post.URI != uri || post.CID == "" || len(post.CID) > 256 {
 		return nil, contentFailure("The quoted Bluesky post is unavailable")
 	}
 	record := map[string]any{"$type": "app.bsky.embed.record", "record": refOrUndefined{URI: post.URI, CID: post.CID}}

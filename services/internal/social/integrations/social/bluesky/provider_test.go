@@ -67,7 +67,7 @@ func newFakePDS(t *testing.T) *fakePDS {
 				_, _ = w.Write([]byte(`{"error":"InvalidRequest","message":"Unable to resolve handle"}`))
 				return
 			}
-			_, _ = w.Write([]byte(`{"did":"did:plc:alice"}`))
+			_, _ = w.Write([]byte(`{"did":"did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"}`))
 		case "/xrpc/com.atproto.repo.uploadBlob":
 			f.mu.Lock()
 			f.uploads++
@@ -172,7 +172,7 @@ func TestPostWithImageFacetsAndHandshake(t *testing.T) {
 	facets, _ := json.Marshal(record["facets"])
 	// "hé " is 4 bytes: the mention starts at byte 4; the unresolved handle
 	// keeps an empty did.
-	want := `[{"$type":"app.bsky.richtext.facet","features":[{"$type":"app.bsky.richtext.facet#mention","did":"did:plc:alice"}],"index":{"byteEnd":22,"byteStart":4}},` +
+	want := `[{"$type":"app.bsky.richtext.facet","features":[{"$type":"app.bsky.richtext.facet#mention","did":"did:plc:aaaaaaaaaaaaaaaaaaaaaaaa"}],"index":{"byteEnd":22,"byteStart":4}},` +
 		`{"$type":"app.bsky.richtext.facet","features":[{"$type":"app.bsky.richtext.facet#mention","did":""}],"index":{"byteEnd":43,"byteStart":27}},` +
 		`{"features":[{"$type":"app.bsky.richtext.facet#tag","tag":"go"}],"index":{"byteEnd":47,"byteStart":44}}]`
 	if string(facets) != want {
@@ -275,7 +275,7 @@ func TestAutoRepostPlug(t *testing.T) {
 	}
 }
 
-func TestImagesRemainUnchangedAndOversizeRejected(t *testing.T) {
+func TestImagesPreserveOriginalAndResizeToVerifiedLimit(t *testing.T) {
 	img := image.NewRGBA(image.Rect(0, 0, 100, 50))
 	r := rand.New(rand.NewPCG(1, 2))
 	for i := range img.Pix {
@@ -300,7 +300,19 @@ func TestImagesRemainUnchangedAndOversizeRejected(t *testing.T) {
 	}
 	limit := int64(2048)
 	caps.BlobUploadLimit = &limit
+	images, err = prepareImages(context.Background(), media, caps)
+	if err != nil || len(images) != 1 {
+		t.Fatalf("resize failed: %v", err)
+	}
+	if len(images[0].data) > 2048 || images[0].width >= 100 || images[0].height >= 50 {
+		t.Fatal("verified blob limit was not applied")
+	}
+	original, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(original, buf.Bytes()) {
+		t.Fatal("workspace original changed")
+	}
+	limit = 512
 	if _, err := prepareImages(context.Background(), media, caps); temporalx.FailureType(err) != temporalx.TypeBadBody {
-		t.Fatalf("oversized image was not rejected: %v", err)
+		t.Fatalf("unusable limit accepted: %v", err)
 	}
 }

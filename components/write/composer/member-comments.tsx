@@ -28,7 +28,7 @@ const commentSchema = z.object({
 const threadSchema = z.object({
   id: z.string(),
   userId: z.string(),
-  scope: z.literal('draft').optional(),
+  scope: z.enum(['draft','post','text']).optional(),
   documentContent: z.string().optional(),
   isResolved: z.boolean(),
   comments: z.array(commentSchema),

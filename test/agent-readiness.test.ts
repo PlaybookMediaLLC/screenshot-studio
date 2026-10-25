@@ -331,3 +331,9 @@ test("agent-facing API copy distinguishes utility and tenant authentication", ()
   assert.match(apiCopy, /\/api\/v1[\s\S]*(X-API-Key|signed-in session)/i);
   assert.doesNotMatch(apiCopy, /anonymous|no API key|no credential/i);
 });
+
+test('explicit key scopes accumulate actions without implicitly granting comment access', async () => {
+  const {permissionsForApiKeyScopes}=await import('../lib/auth/api-key-scopes')
+  assert.deepEqual(permissionsForApiKeyScopes(['draft:write','draft:comment']),{draft:['write','comment']})
+  assert.deepEqual(permissionsForApiKeyScopes(['draft:write']),{draft:['write']})
+})

@@ -23,3 +23,16 @@ func (s *Server) mutateContentDraftComment(w http.ResponseWriter, r *http.Reques
 	}
 	writeJSON(w, http.StatusOK, draft)
 }
+
+func (s *Server) listContentDraftComments(w http.ResponseWriter, r *http.Request) {
+	id, ok := contentDraftID(w, r)
+	if !ok {
+		return
+	}
+	result, err := s.configuration.ListContentDraftComments(r.Context(), workspaceActor(r), id, r.URL.Query().Get("status"), r.URL.Query().Get("platform"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}

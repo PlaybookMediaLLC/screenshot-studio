@@ -62,6 +62,11 @@ func mentionQuery(channel, query string) (string, error) {
 
 // LookupMentions finds what a set's account for a channel can mention.
 func (c *Configuration) LookupMentions(ctx context.Context, actor Actor, setID, channel, query string) ([]Mention, error) {
+	if actor.Kind == "api_key" {
+		if err := c.auth.AuthorizeAPIKeyScope(ctx, actor.OrganizationID, actor.KeyID, "artifact:read"); err != nil {
+			return nil, err
+		}
+	}
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
@@ -96,8 +101,24 @@ func (c *Configuration) LookupMentions(ctx context.Context, actor Actor, setID, 
 	if !ok {
 		return nil, conflict("Mention lookup is not available on this server.")
 	}
-	return finder.Mentions(ctx, actor.OrganizationID, connection.ExternalAccountID, connection.Platform,
+	items, err := finder.Mentions(ctx, actor.OrganizationID, connection.ExternalAccountID, connection.Platform,
 		connection.SecretReference, normalized)
+	if err != nil {
+		return nil, err
+	}
+	// A provider call can be slow. Recheck before returning workspace-bound results.
+	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
+		return nil, err
+	}
+	if actor.Kind == "api_key" {
+		if err := c.auth.AuthorizeAPIKeyScope(ctx, actor.OrganizationID, actor.KeyID, "artifact:read"); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := visibleSocialSet(ctx, c.client, actor, setID); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 func channelLabel(channel string) string {

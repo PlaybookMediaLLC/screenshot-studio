@@ -13,6 +13,10 @@ import (
 // queue and its settings, best times, moving and resuming posts, review,
 // guest share links, revisions, and live posts' engagement.
 type ContentDraftPlatformStore interface {
+	ReadSharedDraftImage(context.Context, string) ([]byte, string, error)
+	PreviewDraftBatchTimes(context.Context, product.Actor, product.DraftBatchTimesInput) ([]time.Time, error)
+	ValidateContentDraftSchedule(context.Context, product.Actor, string, product.ScheduleContentDraftInput) error
+	ListSocialObservations(context.Context, product.Actor, string, time.Time, time.Time) ([]product.SocialObservation, error)
 	GetContentDraftSettings(context.Context, product.Actor) (*product.ContentDraftSettings, error)
 	UpdateContentDraftSettings(context.Context, product.Actor, product.ContentDraftSettingsUpdate) (*product.ContentDraftSettings, error)
 	NextQueueSlot(context.Context, product.Actor, string) (time.Time, error)
@@ -23,6 +27,7 @@ type ContentDraftPlatformStore interface {
 	ResumeContentDraftThread(context.Context, product.Actor, string) (*product.MovedDraftPost, error)
 	ListContentDraftPostsBetween(context.Context, product.Actor, time.Time, time.Time, string) ([]product.CalendarPost, error)
 	ReviewContentDraft(context.Context, product.Actor, string, product.ContentDraftReviewInput) (*product.ContentDraftRecord, error)
+	ListContentDraftComments(context.Context, product.Actor, string, string, string) (*product.ContentDraftCommentList, error)
 	MutateContentDraftComment(context.Context, product.Actor, string, product.ContentDraftCommentInput) (*product.ContentDraftRecord, error)
 	ShareContentDraft(context.Context, product.Actor, string, bool) (*product.ContentDraftRecord, error)
 	GetSharedContentDraft(context.Context, string) (*product.SharedContentDraft, error)
@@ -33,6 +38,10 @@ type ContentDraftPlatformStore interface {
 }
 
 func (s *Server) registerContentDraftPlatform(mux *http.ServeMux) {
+	mux.Handle("POST /v1/content-draft-posts/swap", s.authenticateProduct(http.HandlerFunc(s.swapContentDraftPostTimes)))
+	mux.Handle("POST /v1/content-draft-batch/times", s.authenticateProduct(http.HandlerFunc(s.previewDraftBatchTimes)))
+	mux.Handle("POST /v1/content-drafts/{id}/schedule/validate", s.authenticateProduct(http.HandlerFunc(s.validateDraftSchedule)))
+	mux.Handle("GET /v1/social-analytics", s.authenticateProduct(http.HandlerFunc(s.listSocialObservations)))
 	mux.Handle("GET /v1/content-draft-settings", s.authenticateProduct(http.HandlerFunc(s.getContentDraftSettings)))
 	mux.Handle("PUT /v1/content-draft-settings", s.authenticateProduct(http.HandlerFunc(s.updateContentDraftSettings)))
 	mux.Handle("GET /v1/content-draft-queue/next", s.authenticateProduct(http.HandlerFunc(s.nextQueueSlot)))
@@ -44,11 +53,13 @@ func (s *Server) registerContentDraftPlatform(mux *http.ServeMux) {
 	mux.Handle("POST /v1/content-draft-posts/{id}/resume", s.authenticateProduct(http.HandlerFunc(s.resumeContentDraftThread)))
 	mux.Handle("POST /v1/content-draft-posts/{id}/metrics", s.authenticateProduct(http.HandlerFunc(s.refreshDraftPostMetrics)))
 	mux.Handle("POST /v1/content-drafts/{id}/review", s.authenticateProduct(http.HandlerFunc(s.reviewContentDraft)))
+	mux.Handle("GET /v1/content-drafts/{id}/comments", s.authenticateProduct(http.HandlerFunc(s.listContentDraftComments)))
 	mux.Handle("POST /v1/content-drafts/{id}/comments", s.authenticateProduct(http.HandlerFunc(s.mutateContentDraftComment)))
 	mux.Handle("PUT /v1/content-drafts/{id}/share", s.authenticateProduct(http.HandlerFunc(s.shareContentDraft)))
 	mux.Handle("GET /v1/content-drafts/{id}/revisions", s.authenticateProduct(http.HandlerFunc(s.listContentDraftRevisions)))
 	mux.Handle("GET /v1/content-drafts/{id}/revisions/{revisionId}", s.authenticateProduct(http.HandlerFunc(s.getContentDraftRevision)))
 	// A guest's share link: only the web app, with the service credential, reads it.
+	mux.Handle("GET /v1/internal/content-draft-shares/{token}/image", s.authenticateService(http.HandlerFunc(s.readSharedDraftImage)))
 	mux.Handle("GET /v1/internal/content-draft-shares/{token}", s.authenticateService(http.HandlerFunc(s.getSharedContentDraft)))
 	mux.Handle("POST /v1/internal/content-draft-shares/{token}/comments", s.authenticateService(http.HandlerFunc(s.addGuestComment)))
 }
@@ -314,4 +325,83 @@ func (s *Server) addGuestComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, draft)
+}
+
+func (s *Server) listSocialObservations(w http.ResponseWriter, r *http.Request) {
+	from, e1 := time.Parse(time.RFC3339, r.URL.Query().Get("from"))
+	to, e2 := time.Parse(time.RFC3339, r.URL.Query().Get("to"))
+	if e1 != nil || e2 != nil {
+		writeError(w, http.StatusBadRequest, "from and to must be RFC 3339 times")
+		return
+	}
+	rows, err := s.configuration.ListSocialObservations(r.Context(), workspaceActor(r), r.URL.Query().Get("socialSetId"), from, to)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": rows})
+}
+
+func (s *Server) previewDraftBatchTimes(w http.ResponseWriter, r *http.Request) {
+	var input product.DraftBatchTimesInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid batch times")
+		return
+	}
+	times, err := s.configuration.PreviewDraftBatchTimes(r.Context(), workspaceActor(r), input)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"times": times})
+}
+func (s *Server) validateDraftSchedule(w http.ResponseWriter, r *http.Request) {
+	id, ok := contentDraftID(w, r)
+	if !ok {
+		return
+	}
+	var input product.ScheduleContentDraftInput
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid schedule")
+		return
+	}
+	if err := s.configuration.ValidateContentDraftSchedule(r.Context(), workspaceActor(r), id, input); err != nil {
+		writeContentDraftError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"valid": true})
+}
+
+func (s *Server) swapContentDraftPostTimes(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		First  string `json:"first"`
+		Second string `json:"second"`
+	}
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid queue swap")
+		return
+	}
+	moved, err := s.configuration.SwapContentDraftPosts(r.Context(), workspaceActor(r), input.First, input.Second)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	for _, item := range moved {
+		if !s.startMovedPost(w, r, item) {
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"posts": moved})
+}
+
+func (s *Server) readSharedDraftImage(w http.ResponseWriter, r *http.Request) {
+	body, mime, err := s.configuration.ReadSharedDraftImage(r.Context(), r.PathValue("token"))
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", mime)
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Write(body)
 }

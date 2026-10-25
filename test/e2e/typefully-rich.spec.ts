@@ -125,7 +125,7 @@ test('a dropped video uploads, survives reload and plays in the post preview', a
     await expectSaved(page)
     await page.reload()
     await page.getByRole('button', { name: 'Preview', exact: true }).first().click()
-    const video = page.getByTestId('preview-panel').getByLabel('Attached video preview')
+    const video = page.getByTestId('preview-panel').getByLabel('Attached video', { exact: true })
     await expect(video).toBeVisible()
     await expect(video).toHaveAttribute('src', /\/api\/v1\/assets\/[a-z0-9-]+\/content/)
     await video.evaluate(async (element) => {

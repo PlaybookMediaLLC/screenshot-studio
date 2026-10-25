@@ -12,7 +12,7 @@ func CheckThreadsPoll(options []string, minutes, media int, multiple bool) error
 	if len(options) < 2 || len(options) > 4 {
 		return fmt.Errorf("A Threads poll has 2 to 4 choices.")
 	}
-	if minutes != 1440 {
+	if minutes != 0 && minutes != 1440 {
 		return fmt.Errorf("Threads polls use a fixed 24-hour duration.")
 	}
 	if media != 0 || multiple {

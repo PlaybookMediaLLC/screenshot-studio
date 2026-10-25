@@ -78,7 +78,9 @@ the compatible Better Auth 1.6 range.
   non-fatal MediaPipe dynamic-dependency and webpack chunk-cycle warnings.
   Development also uses webpack: the patched Next.js Turbopack compiler rejects
   FFmpeg's runtime worker URL, which caused the first CI integration smoke run
-  to fail despite a successful production build.
+  to fail despite a successful production build. Local stack startup warms the
+  editor before endpoint checks so its cold compile can finish across proxy
+  request deadlines.
 - All nine collaboration tests passed with Redis enabled, including reconnect
   and workspace authorization behavior.
 - Local smoke checks against the built production server verified CSP,

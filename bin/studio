@@ -241,6 +241,9 @@ smoke() {
     --aws-sigv4 "aws:amz:us-east-1:s3" --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY" >/dev/null
   wait_for_http "http://127.0.0.1:3000/api/health" "Screenshot Studio"
   wait_for_http "http://127.0.0.1:3000/api/auth/ok" "Better Auth"
+  # A cold webpack editor compile can outlast the locale proxy's request
+  # deadline. Finish it before the one-shot public endpoint smoke checks.
+  wait_for_redirect_or_ok "http://127.0.0.1:3000/" "Screenshot Studio editor route"
   [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
     --header 'content-type: application/json' --data '{}' \
     http://127.0.0.1:3000/api/screenshot/invalidate)" == "401" ]]

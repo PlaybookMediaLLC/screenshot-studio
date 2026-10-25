@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "build:sdk": "npm run build -w screenshot-studio-backend-sdk",
     "api:generate": "tsx scripts/openapi.ts && openapi-typescript services/internal/shotsapi/openapi.json -o packages/shots-api-client/src/schema.ts",

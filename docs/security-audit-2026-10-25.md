@@ -76,6 +76,9 @@ the compatible Better Auth 1.6 range.
   Security-related Go packages also passed the race detector.
 - The production webpack build and TypeScript checks passed. The build emitted
   non-fatal MediaPipe dynamic-dependency and webpack chunk-cycle warnings.
+  Development also uses webpack: the patched Next.js Turbopack compiler rejects
+  FFmpeg's runtime worker URL, which caused the first CI integration smoke run
+  to fail despite a successful production build.
 - All nine collaboration tests passed with Redis enabled, including reconnect
   and workspace authorization behavior.
 - Local smoke checks against the built production server verified CSP,

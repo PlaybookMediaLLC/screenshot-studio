@@ -69,6 +69,9 @@ the compatible Better Auth 1.6 range.
   Raycast/Zapier tests and Raycast typechecking.
 - All 18 server/browser tests passed, including workspace creation, membership,
   invitations, image rendering, screenshot capture, and media ingestion.
+- Both Plan and Analyze browser acceptance flows passed locally with Turbopack.
+  Chromium also verified that the native FFmpeg client starts its module worker
+  and loads a fixture core.
 - `go test ./...` passed. An isolated migrated PostgreSQL database was used for
   the auth-store, product, and publishing integration suites; all passed.
 - ESLint with zero allowed warnings, formatting, Go vet, API/database-boundary

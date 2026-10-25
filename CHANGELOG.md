@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.37.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.4...v2.37.0) (2026-10-25)
+
+
+### Features
+
+* **scheduling:** implement Plan and Analyze workspaces ([#305](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/305)) ([1e49108](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/1e491089f67ef9cea47d62b18153bdba68d0efac))
+* **write:** add media workflows and live preview verification ([#306](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/306)) ([54bc009](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/54bc0094b81c19d8a0716341ba39cfd06fdf3f0a))
+* **write:** expand Typefully authoring, publishing and planning workflows ([#309](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/309)) ([25689d6](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/25689d66e83347555ab51d2e3c8683ee683bd981))
+* **write:** implement Typefully editor, scheduling, and platform options ([#308](https://github.com/PlaybookMediaLLC/screenshot-studio/issues/308)) ([65e3f42](https://github.com/PlaybookMediaLLC/screenshot-studio/commit/65e3f42fb4c7acba21ed44d676457726cb7fbd02))
+
 ## [2.36.4](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.3...v2.36.4) (2026-10-23)
 
 

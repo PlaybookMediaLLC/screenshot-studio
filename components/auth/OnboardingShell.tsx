@@ -32,7 +32,7 @@ export function OnboardingShell({
 }) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#090909] p-2 text-white md:p-6">
-      <div className="flex min-h-[calc(100dvh-1rem)] w-full max-w-5xl rounded-2xl border border-[#1c1c1c] bg-[#111111] p-2 md:min-h-[38rem]">
+      <div className="flex min-h-[calc(100dvh-1rem)] w-full rounded-2xl border border-[#1c1c1c] bg-[#111111] p-2 md:h-[80dvh] md:min-h-0 md:w-[80vw]">
         <aside className="hidden w-72 shrink-0 flex-col justify-between p-6 md:flex">
           <div className="flex flex-col gap-10">
             <div className="flex items-center gap-2.5">
@@ -86,7 +86,7 @@ export function OnboardingShell({
           {footer ? <div className="text-xs text-neutral-500">{footer}</div> : null}
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col rounded-xl border border-[#1c1c1c] bg-[#090909]">
+        <section className="flex min-w-0 flex-1 flex-col overflow-y-auto rounded-xl border border-[#1c1c1c] bg-[#090909]">
           <div aria-hidden className="flex gap-1.5 px-4 pt-4 md:hidden">
             {steps.map((step, index) => (
               <span

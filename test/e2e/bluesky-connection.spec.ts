@@ -125,10 +125,10 @@ for (const outcome of ['verified', 'unknown'] as const) {
       await expect(dialog.getByRole('button', { name: 'Connect', exact: true })).toBeEnabled()
       await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
       await expect(dialog.getByRole('button', { name: 'Bluesky', exact: true })).toBeFocused()
-      expect(provider.calls.map((call) => [call.method, call.url])).toEqual([
-        ['GET', '/api/public/v1/me'],
-        ['GET', '/api/public/v1/connection-availability'],
-      ])
+      // Opening and cancelling only reads availability (the picker rechecks it); nothing connects.
+      expect(new Set(provider.calls.map((call) => `${call.method} ${call.url}`))).toEqual(
+        new Set(['GET /api/public/v1/me', 'GET /api/public/v1/connection-availability'])
+      )
       expect(await list()).toHaveLength(0)
       expect(page.url()).toBe(originalURL)
       await dialog.getByRole('button', { name: 'Bluesky', exact: true }).click()

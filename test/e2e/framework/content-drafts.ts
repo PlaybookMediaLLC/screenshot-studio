@@ -23,7 +23,8 @@ import {
 export const socialMockPort = Number(process.env.E2E_SOCIAL_MOCK_PORT ?? 5679)
 
 /** Credential-free standard X identity supplied only by the local protocol fixture. */
-const xVerification = {
+/** A verified read-write X profile; the backend requires it before saving an X connection. */
+export const xVerification = {
   accountKey: 'x:123456789',
   accountKind: 'profile',
   grantedScopes: ['read-write'],

@@ -156,6 +156,8 @@ export function WorkspaceAssets() {
     { limit: PAGE_SIZE, type: typeFilter, sort, search: search || undefined, classification },
     {
       getNextPageParam: (page) => page.nextCursor,
+      // Client-side Back remounts from cache; a save made elsewhere must still show.
+      refetchOnMount: 'always',
     }
   )
   const query = useInfiniteQuery(options)

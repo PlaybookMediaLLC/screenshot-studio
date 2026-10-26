@@ -54,14 +54,14 @@ test('two-factor sign-in accepts a TOTP or one-time recovery code and rejects re
   await startTwoFactorSignIn(page, identity)
   await page.getByLabel('Authenticator code').fill(getTotpCode(setup.totpURI))
   await page.getByRole('button', { name: 'Verify and sign in' }).click()
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/')
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/home')
 
   await signOut(page)
   await startTwoFactorSignIn(page, identity)
   await page.getByRole('button', { name: 'Use a recovery code' }).click()
   await page.getByLabel('Recovery code').fill(recoveryCode)
   await page.getByRole('button', { name: 'Verify and sign in' }).click()
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/')
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/home')
 
   await signOut(page)
   await startTwoFactorSignIn(page, identity)

@@ -36,7 +36,10 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
             baseVersion: first.version,
             name: 'Same name',
             timeZone: 'America/New_York',
-            postingSlots: [{ weekday: 1, time: '09:15' }],
+            // The slot falls on the planned day, three days out, so it is never already past.
+            postingSlots: [
+              { weekday: new Date(Date.now() + 3 * 86400000).getUTCDay(), time: '09:15' },
+            ],
           },
         })
       ).status
@@ -68,9 +71,9 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     expect(sourceDraft.status, JSON.stringify(sourceDraft.body)).toBe(201)
     const sourceId = (sourceDraft.body as { id: string }).id
     await page.goto(`/write/plan?day=${day}`)
-    await test.step('P01 Plan retains shared application navigation', async () => {
+    await test.step('P01 Calendar retains shared Publish navigation', async () => {
       await expect(page.getByRole('link', { name: 'Analyze', exact: true })).toBeVisible()
-      await expect(page.getByRole('link', { name: 'Write', exact: true }).first()).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Drafts', exact: true }).first()).toBeVisible()
     })
     await test.step('P02 same-named provider identities are distinguishable', async () => {
       await expect(

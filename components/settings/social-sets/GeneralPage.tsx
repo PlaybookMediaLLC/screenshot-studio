@@ -50,7 +50,10 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
   useUnsavedSettings(dirty)
   return (
     <>
-      <Row description="Choose a name that helps your team recognize this set." label="Name">
+      <Row
+        description="Choose a name that helps your team recognize this publishing brand."
+        label="Name"
+      >
         <form
           className="flex flex-wrap items-center gap-2"
           onSubmit={(event) => {
@@ -61,7 +64,7 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
           }}
         >
           <Input
-            aria-label="Brand name"
+            aria-label="Publishing brand name"
             className="w-64"
             disabled={!canManage || nameState === 'saving'}
             maxLength={80}
@@ -81,7 +84,7 @@ function NameAndColor({ canManage, set }: { canManage: boolean; set: SocialSetRe
       <Row label="Colour">
         <div className="flex flex-wrap items-center gap-2">
           <RadioGroup
-            aria-label="Brand colour"
+            aria-label="Publishing brand colour"
             className="flex flex-wrap items-center gap-2"
             disabled={!canManage}
             name={`color-${set.id}`}
@@ -111,7 +114,7 @@ function Accounts({ canManage, set }: { canManage: boolean; set: SocialSetRecord
   const store = useStoreSocialSet()
   return (
     <Row
-      description="One account per platform. Drafts in this set publish to these accounts."
+      description="One account per platform. Drafts in this publishing brand publish to these accounts."
       label={<span id="accounts">Connected accounts</span>}
       layout="stacked"
     >
@@ -259,7 +262,7 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
   if (set.visibility === 'WORKSPACE') {
     return (
       <Row
-        description="Everyone in this workspace can use this set under their role: viewers read, creators write, publishers schedule."
+        description="Everyone in this workspace can use this publishing brand under their role: viewers read, creators write, publishers schedule."
         label="Ownership and sharing"
       >
         <Pill>Shared with workspace</Pill>
@@ -268,7 +271,7 @@ function Ownership({ canManage, set }: { canManage: boolean; set: SocialSetRecor
   }
   return (
     <Row
-      description="Only you can see this set, its accounts and its drafts. Moving it to the team shares all of them with the workspace under each member's role. This cannot be undone here."
+      description="Only you can see this publishing brand, its accounts and its drafts. Moving it to the team shares all of them with the workspace under each member's role. This cannot be undone here."
       label="Ownership and sharing"
     >
       {set.isOwner && canManage ? (
@@ -315,10 +318,10 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
     <Group className="ring-red-500/30">
       <Row
         description="Its accounts are disabled so nothing more publishes through them, its drafts are archived, and its published posts keep their history. A set with queued or publishing posts cannot be deleted; cancel them first."
-        label="Delete brand"
+        label="Delete publishing brand"
       >
         <ConfirmDialog
-          confirmLabel="Delete brand"
+          confirmLabel="Delete publishing brand"
           confirmText={set.name}
           description={<p>This removes {set.name} for everyone who can see it.</p>}
           destructive
@@ -340,7 +343,7 @@ function DangerZone({ permissions, set }: { permissions: SetPermissions; set: So
             }
           }}
           title={`Delete ${set.name}?`}
-          triggerLabel="Delete brand"
+          triggerLabel="Delete publishing brand"
         />
       </Row>
     </Group>

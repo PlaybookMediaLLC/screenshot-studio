@@ -128,7 +128,7 @@ export function BrandSection() {
           </Button>
         ) : null
       }
-      title="Brand"
+      title="Visual brand kits"
     >
       {!session ? (
         <p className="px-2 text-[11px] text-muted-foreground">
@@ -148,7 +148,7 @@ export function BrandSection() {
         </p>
       ) : (
         <div className="space-y-2.5">
-          <ul aria-label="Brand kits" className="space-y-1">
+          <ul aria-label="Visual brand kits" className="space-y-1">
             {kits.map((kit) => {
               const isSelected = kit.name === selected?.name
               return (

@@ -391,6 +391,20 @@ function ScheduleActions({
   )
 }
 
+/**
+ * Delivery readiness, kept apart from review: an approved post can still be
+ * blocked. The channel connection itself is checked when scheduling.
+ */
+function schedulingState(post: CopyPost): { label: string; tone: PillTone } {
+  if (post.status === 'SCHEDULED' || post.status === 'PUBLISHED') return POST_STATUS[post.status]
+  if (post.status !== 'APPROVED') return { label: 'Waiting for approval', tone: 'gray' }
+  if (campaignPostReviewIssue(post)) return { label: 'Blocked by review', tone: 'red' }
+  if (connectionsForChannel(post.channel, []) === null)
+    return { label: 'No scheduling channel', tone: 'gray' }
+  if (post.visuals.length === 0) return { label: 'Ready without a visual', tone: 'yellow' }
+  return { label: 'Ready for a connected channel', tone: 'green' }
+}
+
 function PostCard({
   channelLabel,
   onSelect,
@@ -405,6 +419,11 @@ function PostCard({
   selected: boolean
 }) {
   const status = POST_STATUS[post.status]
+  const scheduling = schedulingState(post)
+  // An approval record outlives a return to review; only these states still rest on it.
+  const approvedRevision =
+    post.approval !== null &&
+    (post.status === 'APPROVED' || post.status === 'SCHEDULED' || post.status === 'PUBLISHED')
   const [editing, setEditing] = useState(false)
   const editBlock = postEditBlock(
     post.status,
@@ -432,15 +451,16 @@ function PostCard({
           {post.phase ? <Pill>{post.phase}</Pill> : null}
           {post.angle ? <Pill tone="blue">{post.angle}</Pill> : null}
           {post.fromEarlierPlan ? <Pill>From an earlier plan</Pill> : null}
-          <span className="ml-auto">
-            <Pill tone={status.tone}>
+          <span className="ml-auto flex flex-wrap gap-1.5">
+            <Pill tone={approvedRevision ? 'green' : status.tone}>
               Review:{' '}
-              {post.approval
+              {approvedRevision
                 ? 'Approved revision'
                 : post.status === 'SCHEDULED' || post.status === 'PUBLISHED'
                   ? 'See approval history'
                   : status.label}
             </Pill>
+            <Pill tone={scheduling.tone}>Scheduling: {scheduling.label}</Pill>
           </span>
         </div>
         {editing ? (
@@ -474,9 +494,6 @@ function PostCard({
             ) : null}
           </>
         )}
-        <p className="text-xs font-medium text-muted-foreground">
-          Scheduling readiness is checked separately from review approval.
-        </p>
         {campaignPostReviewIssue(post) ? (
           <p role="alert" className="text-sm text-red-700 dark:text-red-300">
             {campaignPostReviewIssue(post)}

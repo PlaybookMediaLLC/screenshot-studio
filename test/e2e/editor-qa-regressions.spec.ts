@@ -39,7 +39,7 @@ test('bad images cannot block autosave, text remains editable, and playback and 
     { buffer, mimeType: 'image/png', name: 'one.png' },
     { buffer, mimeType: 'image/png', name: 'two.png' },
   ])
-  await expect(page.getByRole('button', { name: 'Remove slide 2', exact: true })).toBeAttached()
+  await expect(page.getByRole('button', { name: 'Select slide 2', exact: true })).toBeAttached()
   await page.getByRole('button', { name: 'Add Text', exact: true }).first().click()
   const content = page.getByRole('textbox', { name: 'Text content', exact: true })
   await content.click()
@@ -48,7 +48,10 @@ test('bad images cannot block autosave, text remains editable, and playback and 
   await page.getByRole('button', { name: 'Save as project', exact: true }).click()
   await page.getByLabel('Project name').fill('Editor QA project')
   await page.getByRole('button', { name: 'Save project', exact: true }).click()
-  const saved = page.getByRole('button', { name: 'Project Editor QA project: Saved', exact: true })
+  const saved = page.getByRole('button', {
+    name: 'Project Editor QA project: Saved to workspace',
+    exact: true,
+  })
   await expect(saved).toBeVisible({ timeout: 30000 })
   const projectId = new URL(page.url()).searchParams.get('project')!
 
@@ -60,7 +63,7 @@ test('bad images cannot block autosave, text remains editable, and playback and 
   await expect(
     page.getByText('broken.png is not a valid image/png image.', { exact: true })
   ).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Remove slide 3', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Select slide 3', exact: true })).toHaveCount(0)
   await content.click()
   await content.fill('Still saving after a rejected image')
   await expect(saved).toBeVisible({ timeout: 30000 })
@@ -75,6 +78,8 @@ test('bad images cannot block autosave, text remains editable, and playback and 
   page.on('request', (request) => {
     if (request.method() === 'POST' && request.url().includes('project.updateDocument')) writes++
   })
+  // The timeline is closed until Animate opens it.
+  await page.getByRole('button', { name: 'Animate', exact: true }).click()
   await page.getByRole('button', { name: 'Play animation', exact: true }).click()
   await page.waitForTimeout(6500)
   await page.getByRole('button', { name: 'Pause animation', exact: true }).click()
@@ -120,9 +125,9 @@ test('Remove keeps other slides and text, and screenshot upload remains availabl
   await expect(canvasText(page)).toHaveText('Text')
   await page.getByRole('button', { name: 'Redo (⌘⇧Z)', exact: true }).click()
   await expect(canvasText(page)).toHaveText('One typing burst')
-  await page.getByRole('button', { name: 'Remove', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'Remove slide 3', exact: true })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Remove slide 2', exact: true })).toBeAttached()
+  await page.getByRole('button', { name: 'Remove screenshot', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Select slide 3', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Select slide 2', exact: true })).toBeAttached()
   await page.getByRole('button', { name: 'Export Video', exact: true }).click()
   await page.getByRole('button', { name: /Slideshow/ }).click()
   const duration = page.getByRole('spinbutton', { name: 'Slide Duration', exact: true })
@@ -135,14 +140,14 @@ test('Remove keeps other slides and text, and screenshot upload remains availabl
   await duration.press('Tab')
   await expect(duration).toHaveValue('0.5')
   await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: 'Remove', exact: true }).click()
-  await page.getByRole('button', { name: 'Remove', exact: true }).click()
+  await page.getByRole('button', { name: 'Remove screenshot', exact: true }).click()
+  await page.getByRole('button', { name: 'Remove screenshot', exact: true }).click()
   await expect(canvasText(page)).toHaveText('One typing burst')
   await expect(page.getByText('Upload image…', { exact: true })).toBeVisible()
   await page
     .getByLabel('Add slides', { exact: true })
     .setInputFiles({ buffer, mimeType: 'image/png', name: 'replacement.png' })
-  await expect(page.getByRole('button', { name: 'Remove', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Remove screenshot', exact: true })).toBeEnabled()
   await expect(canvasText(page)).toHaveText('One typing burst')
 })
 

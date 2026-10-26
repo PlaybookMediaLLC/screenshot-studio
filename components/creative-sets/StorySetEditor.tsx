@@ -497,12 +497,12 @@ function SetWorkspace({
           onClick={() =>
             void attempt(async () => {
               if (canEdit && !(await session.save()))
-                throw new Error('Save the set before opening it in Canvas.')
+                throw new Error('Save the set before creating a Canvas copy.')
               router.push(`/canvas/new?set=${session.record.id}`)
             })
           }
         >
-          Open in Canvas
+          Create Canvas copy
         </Button>
         {canEdit ? (
           <Button

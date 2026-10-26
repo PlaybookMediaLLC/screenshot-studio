@@ -111,7 +111,7 @@ test('Start over asks first, by mouse or keyboard, and Remove can be undone', as
   await expect(mainImage(page)).toHaveCount(1)
 
   // Remove takes only the screenshot, and its toast undoes it.
-  await page.getByRole('button', { exact: true, name: 'Remove' }).click()
+  await page.getByRole('button', { exact: true, name: 'Remove screenshot' }).click()
   await expect(mainImage(page)).toHaveCount(0)
   await page.getByRole('button', { exact: true, name: 'Undo' }).click()
   await expect(mainImage(page)).toHaveCount(1)

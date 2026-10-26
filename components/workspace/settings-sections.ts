@@ -57,7 +57,7 @@ export type SettingSection = {
 export const SETTING_GROUPS: { id: SettingGroup; title: string }[] = [
   { id: 'personal', title: 'My account' },
   { id: 'workspace', title: 'Workspace & team' },
-  { id: 'brand', title: 'Brand & content' },
+  { id: 'brand', title: 'Brand resources & content' },
   { id: 'publishing', title: 'Publishing' },
   { id: 'integrations', title: 'Integrations' },
   { id: 'advanced', title: 'Advanced' },

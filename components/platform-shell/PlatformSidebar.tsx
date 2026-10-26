@@ -15,7 +15,7 @@ import { CaretUpDownIcon as ChevronsUpDown } from '@phosphor-icons/react/dist/ss
 import { SidebarSimpleIcon as PanelLeftClose } from '@phosphor-icons/react/dist/ssr/SidebarSimple'
 import { SidebarSimpleIcon as PanelLeftOpen } from '@phosphor-icons/react/dist/ssr/SidebarSimple'
 import { BuildingIcon as Building2 } from '@phosphor-icons/react/dist/ssr/Building'
-import { PLATFORM_DESTINATIONS, platformArea } from '@/lib/platform/navigation'
+import { PLATFORM_DESTINATIONS, platformArea, withPublishAccess } from '@/lib/platform/navigation'
 import { ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -137,7 +137,7 @@ function Navigation({
           {index === 1 ? <NotificationCenter collapsed={collapsed} /> : null}
           {group.items
             .filter((item) => campaignsEnabled || item.href !== '/campaigns')
-            .filter((item) => draftsEnabled || item.href !== '/write')
+            .map((item) => withPublishAccess(item, draftsEnabled))
             .map((item) => (
               <NavLink collapsed={collapsed} item={item} key={item.href} onNavigate={onNavigate} />
             ))}

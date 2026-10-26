@@ -150,7 +150,7 @@ export function AiBackgroundSection() {
             [
               ['none', 'Any colours'],
               ['screenshot', 'From screenshot'],
-              ['brand', kit ? `Brand: ${kit.name}` : 'Brand kit'],
+              ['brand', kit ? `Visual brand kit: ${kit.name}` : 'Visual brand kit'],
             ] as const
           ).map(([value, label]) => (
             <Button variant="custom" size={null}

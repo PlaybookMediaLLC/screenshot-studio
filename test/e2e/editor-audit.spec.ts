@@ -49,7 +49,7 @@ test('leaving the editor flushes a pending draft', async ({ identity, page }) =>
   await page.getByLabel('Text content', { exact: true }).fill('Saved first')
   await expect.poll(() => savedText(page)).toBe('Saved first')
   await page.getByLabel('Text content', { exact: true }).fill('Saved before leaving')
-  await page.getByRole('link', { name: 'Projects', exact: true }).click()
+  await page.getByRole('link', { name: 'Library', exact: true }).click()
   await expect.poll(() => savedText(page), { timeout: 5_000 }).toBe('Saved before leaving')
   await page.goto('/')
   await expect(page.locator('[data-text-overlay-id]')).toContainText('Saved before leaving')
@@ -78,9 +78,11 @@ test('App Store save failure keeps the open project and does not report success'
   await expect(page.getByRole('status').filter({ hasText: 'Not saved' })).toBeVisible()
   await expect(page.locator('[data-sonner-toast]').filter({ hasText: /^Saved$/ })).toHaveCount(0)
   await page.getByRole('button', { name: 'Project', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'All projects…' }).click()
+  await page.getByRole('menuitem', { name: 'Projects in this browser…' }).click()
   await page.getByRole('button', { name: 'New blank project' }).click()
-  await expect(page.getByRole('dialog', { name: 'Projects', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('dialog', { name: 'Projects in this browser', exact: true })
+  ).toBeVisible()
   await expect(page.getByTitle('Rename project')).toHaveText('Unsaved audit project')
 })
 
@@ -111,14 +113,24 @@ test('App Store canvas and editing controls remain usable on a phone', async ({
   await page.keyboard.press('Escape')
   await expect(page.locator('[data-store-canvas-slide]')).toContainText('Edited on a phone')
   await expect(page.getByRole('dialog')).toBeHidden()
-  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible()
+  await expect(
+    page.getByRole('status').filter({ hasText: /^Saved on this browser$/ })
+  ).toBeVisible()
   await page.screenshot({ path: '.context/editor-audit/mobile-after.png', animations: 'disabled' })
 })
 
+/**
+ * The canvas shortcut opens App Store screenshots in place; Back returns to the
+ * screenshot editor, which stays mounted with its own session.
+ */
 async function switchEditor(page: Page, section: 'Screenshot editor' | 'App Store Screenshots') {
-  const editor = page.getByRole('button', { name: 'Editor', exact: true })
-  if ((await editor.getAttribute('aria-expanded')) !== 'true') await editor.click()
-  await page.getByRole('link', { name: section, exact: true }).click()
+  if (section === 'App Store Screenshots') {
+    await page.getByRole('link', { name: /^Create App Store screenshots/ }).click()
+    await expect(page).toHaveURL(/[?&]editor=app-store/)
+  } else {
+    await page.goBack()
+    await expect(page).not.toHaveURL(/[?&]editor=app-store/)
+  }
 }
 
 test('editor sections preserve projects, selection, uploaded assets and independent history', async ({
@@ -177,16 +189,11 @@ test('editor sections preserve projects, selection, uploaded assets and independ
   await expect(uploaded).toHaveCount(0)
   await page.getByRole('button', { name: /^Redo/ }).click()
   await expect(uploaded).toHaveCount(1)
-  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible()
+  await expect(
+    page.getByRole('status').filter({ hasText: /^Saved on this browser$/ })
+  ).toBeVisible()
   await page.screenshot({ path: '.context/editor-audit/integrated-desktop.png' })
-  await expect(page.getByRole('button', { name: 'Editor', exact: true })).toHaveAttribute(
-    'aria-expanded',
-    'true'
-  )
-  const storeLink = page.getByRole('link', { name: 'App Store Screenshots', exact: true })
-  await expect(storeLink).toHaveAttribute('aria-current', 'page')
-  await storeLink.hover()
-  await expect(page.getByRole('tooltip')).toContainText('App Store Screenshots')
+  await expect(page).toHaveURL(/[?&]editor=app-store/)
   await page.screenshot({
     path: '.context/editor-audit/integrated-navigation.png',
     animations: 'disabled',
@@ -225,23 +232,22 @@ test('mobile editor navigation works with the keyboard and browser back', async 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
   const navigation = page.getByRole('dialog', { name: 'Navigation', exact: true })
-  await navigation.getByRole('link', { name: 'App Store Screenshots', exact: true }).press('Enter')
+  await navigation.getByRole('link', { name: 'Create', exact: true }).press('Enter')
   await expect(navigation).toBeHidden()
+  await expect(page).toHaveURL(/\/create$/)
+  await page.getByRole('link', { name: /^Build store screenshots/ }).press('Enter')
   await expect(page.getByRole('button', { name: 'Use the sample set' })).toBeVisible()
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390)
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
-  await expect(
-    navigation.getByRole('link', { name: 'App Store Screenshots', exact: true })
-  ).toHaveAttribute('aria-current', 'page')
+  await expect(navigation.getByRole('link', { name: 'Create', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page'
+  )
   await page.keyboard.press('Escape')
   await page.goBack()
-  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
-  await expect(
-    navigation.getByRole('link', { name: 'Screenshot editor', exact: true })
-  ).toHaveAttribute('aria-current', 'page')
+  await expect(page).toHaveURL(/\/create$/)
 })
 
 test('adding slides keeps the active image, accepts a repeated file, and rejects invalid input', async ({
@@ -256,10 +262,10 @@ test('adding slides keeps the active image, accepts a repeated file, and rejects
   await expect(main).toBeVisible()
   const add = page.getByLabel('Add slides', { exact: true })
   await add.setInputFiles(resolve('public/store-screenshot-write.png'))
-  await page.getByText('Slide 2', { exact: true }).click()
+  await page.getByRole('button', { name: 'Select slide 2', exact: true }).click()
   const active = await main.getAttribute('src')
   await add.setInputFiles(resolve('public/store-screenshot-write.png'))
-  await expect(page.getByText('Slide 3', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Select slide 3', exact: true })).toBeVisible()
   await expect(main).toHaveAttribute('src', active!)
   await add.setInputFiles({
     name: 'invalid.svg',
@@ -269,7 +275,7 @@ test('adding slides keeps the active image, accepts a repeated file, and rejects
   await expect(
     page.getByText('File type not supported. Use PNG, JPG, or WEBP.', { exact: true })
   ).toBeVisible()
-  await expect(page.getByText('Slide 4', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Select slide 4', exact: true })).toHaveCount(0)
   await expect(main).toHaveAttribute('src', active!)
 })
 
@@ -282,9 +288,9 @@ test('deleting the open App Store project does not save it back into the library
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   await expect(page.locator('[data-store-canvas-slide]')).toBeVisible()
   await page.getByRole('button', { name: 'Project', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'All projects…' }).click()
+  await page.getByRole('menuitem', { name: 'Projects in this browser…' }).click()
   await page
-    .getByRole('dialog', { name: 'Projects', exact: true })
+    .getByRole('dialog', { name: 'Projects in this browser', exact: true })
     .getByRole('button', { name: 'Delete', exact: true })
     .click()
   await page
@@ -316,7 +322,7 @@ test('initial App Store imports are consumed once and do not reopen in a new pro
     page.getByRole('listbox', { name: 'Slides', exact: true }).getByRole('option')
   ).toHaveCount(1)
   await page.getByRole('button', { name: 'Project', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'All projects…' }).click()
+  await page.getByRole('menuitem', { name: 'Projects in this browser…' }).click()
   await page.getByRole('button', { name: 'New blank project', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Untitled set', exact: true })).toBeVisible()
   await expect(dialog).toBeHidden()
@@ -397,7 +403,9 @@ test('App Store transforms, device frames, visibility and backgrounds persist', 
     .click()
   await expect(background).not.toHaveAttribute('style', oldBackground!)
   const savedBackground = await background.getAttribute('style')
-  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible()
+  await expect(
+    page.getByRole('status').filter({ hasText: /^Saved on this browser$/ })
+  ).toBeVisible()
   await page.reload()
   await expect(background).toHaveAttribute('style', savedBackground!)
   await page.getByRole('option', { name: /^Device/ }).click()
@@ -408,20 +416,13 @@ test('App Store transforms, device frames, visibility and backgrounds persist', 
   await expect(page.getByLabel('Rotation', { exact: true })).toHaveValue('15')
 })
 
-test('Editor expands inline in the rail and mobile navigation; Settings opens its own menu', async ({
+test('App Store opens from the editor by keyboard, mobile navigation reaches Create; Settings opens its own menu', async ({
   identity,
   page,
 }) => {
   await signUpAndCreateWorkspace(identity, page)
-  const editor = page.getByRole('button', { name: 'Editor', exact: true })
-  const sections = page.getByRole('navigation', { name: 'Editor sections', exact: true })
-  await expect(editor).toHaveAttribute('aria-expanded', 'true')
-  await editor.press('Space')
-  await expect(editor).toHaveAttribute('aria-expanded', 'false')
-  await expect(sections).toBeHidden()
-  await editor.press('Enter')
-  await expect(sections).toBeVisible()
-  await sections.getByRole('link', { name: 'App Store Screenshots', exact: true }).press('Enter')
+  await page.getByRole('link', { name: /^Create App Store screenshots/ }).press('Enter')
+  await expect(page).toHaveURL(/[?&]editor=app-store/)
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   // Settings is one link: its sections are listed on the settings pages.
   const workspace = page.getByRole('navigation', { name: 'Workspace', exact: true })
@@ -432,7 +433,7 @@ test('Editor expands inline in the rail and mobile navigation; Settings opens it
   await settings.click()
   await expect(page).toHaveURL(/\/workspace$/)
   await expect(settings).toHaveAttribute('aria-current', 'page')
-  const settingsLinks = page.getByRole('navigation', { name: 'Settings', exact: true })
+  const settingsLinks = page.getByRole('navigation', { name: 'Settings sections', exact: true })
   // Every settings section, including RFC 024's Appearance, Install, Experimental,
   // Social sets. Create workspace lives in the account menu.
   await expect(settingsLinks.getByRole('link')).toHaveCount(21)
@@ -456,8 +457,7 @@ test('Editor expands inline in the rail and mobile navigation; Settings opens it
     '/workspace'
   )
   await expect(drawer.getByRole('navigation', { name: 'Workspace settings' })).toHaveCount(0)
-  await drawer.getByRole('button', { name: 'Editor', exact: true }).press('Enter')
-  await drawer.getByRole('link', { name: 'App Store Screenshots', exact: true }).press('Enter')
+  await drawer.getByRole('link', { name: 'Create', exact: true }).press('Enter')
   await expect(drawer).toBeHidden()
-  await expect(page.locator('[data-store-canvas-slide]:visible')).toBeVisible()
+  await expect(page).toHaveURL(/\/create$/)
 })

@@ -485,7 +485,7 @@ test('sidebar choices persist across client navigation and content scrolls insid
   await expect(page.getByRole('dialog')).toBeVisible()
   await expect
     .poll(async () => (await page.getByRole('dialog').boundingBox())!.width)
-    .toBeCloseTo(1440 * 0.8, 0)
+    .toBeCloseTo(576, 0)
   await page.screenshot({
     path: '.context/ux-redesign/search-polished.png',
     style: 'nextjs-portal {display:none}',

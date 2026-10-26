@@ -81,7 +81,7 @@ export function SchedulingPage({ canManage, set }: { canManage: boolean; set: So
     <div className="grid gap-6">
       <Group>
         <Row
-          description="The time zone this set's queue, slots and calendar use. It is separate from your display time zone."
+          description="The time zone this publishing brand's queue, slots and calendar use. It is separate from your display time zone."
           label={
             <span className="flex items-center gap-2">
               Scheduling time zone <SaveStatus state={zoneState} />

@@ -39,9 +39,21 @@ export function KeyboardShortcutsDialog({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) {
+  // Opened programmatically, so Radix has no trigger to refocus on close.
+  const launcher = React.useRef<HTMLElement | null>(null)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onOpenAutoFocus={() => {
+          launcher.current = document.activeElement as HTMLElement | null
+        }}
+        onCloseAutoFocus={(event) => {
+          if (!launcher.current?.isConnected) return
+          event.preventDefault()
+          launcher.current.focus()
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
           <DialogDescription>Boost your workflow with these shortcuts</DialogDescription>

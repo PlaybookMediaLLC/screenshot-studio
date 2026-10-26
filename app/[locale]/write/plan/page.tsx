@@ -7,7 +7,7 @@ import { backendSDK, orNull } from '@/lib/backend/sdk'
 import { listSocialSets } from '@/lib/tenant/write'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
 
-export const metadata: Metadata = { title: 'Plan' }
+export const metadata: Metadata = { title: 'Calendar' }
 
 /** Personal calendar visibility is independent of the active Write social set. */
 export default async function WritePlanPage({

@@ -39,7 +39,9 @@ async function setUp(identity: E2EIdentity, page: Page) {
 }
 
 async function saved(page: Page) {
-  await expect(page.getByTestId('canvas-save-status')).toHaveText('Saved', { timeout: 60_000 })
+  await expect(page.getByTestId('canvas-save-status')).toHaveText('Saved to workspace', {
+    timeout: 60_000,
+  })
 }
 
 async function stored(page: Page) {

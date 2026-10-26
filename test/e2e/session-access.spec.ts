@@ -8,7 +8,7 @@ test('a signed-out user cannot open protected routes and can return after sign-i
   page,
 }) => {
   await signUpAndCreateWorkspace(identity, page)
-  await page.getByLabel('Open account menu').click()
+  await page.getByRole('button', { name: 'Open account menu' }).click()
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
 

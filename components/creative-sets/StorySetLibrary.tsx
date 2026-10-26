@@ -104,7 +104,8 @@ export function StorySetLibrary({
           edit Story Sets.
         </p>
       ) : null}
-      {busy || error || items.length > 0 || query ? (
+      {/* Keep the field while it has text, so clearing it never unmounts it mid-typing. */}
+      {busy || error || items.length > 0 || query || search ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative w-full sm:max-w-sm">
             <Search01Icon

@@ -80,7 +80,9 @@ test('retrying team creation after a lost committed response keeps one workspace
   await dialog.getByRole('button', { name: 'Invite members', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Members', exact: true })).toBeVisible()
   await expect(page.getByText('1 member', { exact: true })).toBeVisible()
-  await expect(page.getByText(identity.email, { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: 'Page content' }).getByText(identity.email, { exact: true })
+  ).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('workspace-creation-recovered.png') })
   expect(requests).toHaveLength(2)
   expect(requests[1]).toBe(requests[0])

@@ -60,6 +60,8 @@ test('copilot versions compare before applying; captions and alt text are writte
   const panel = page.getByRole('region', { name: 'AI copilot' })
   await panel.getByLabel('Ask the copilot').fill('Give me four versions of this design')
   await panel.getByLabel('Ask the copilot').press('Enter')
+  // The request prefills Variants; spending credits still takes an explicit click.
+  await panel.getByRole('button', { name: 'Make 4 versions' }).click()
   const versions = panel.getByRole('list', { name: 'Versions' })
   await expect(versions.getByRole('button', { name: /^Inspect / })).toHaveCount(4, {
     timeout: 90_000,

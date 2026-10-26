@@ -33,7 +33,7 @@ test('batch drill-ins preserve results without fetching again, and compare swaps
   await expect(page.getByText(/Results · 2 checked, 0 failed/)).toBeVisible()
   const rows = await page.locator('tbody').innerText()
   await page.locator('tbody button').first().click()
-  await expect(page.getByRole('tab', { name: 'Overview' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Result' })).toBeVisible()
   await page.getByRole('button', { name: 'Batch', exact: true }).click()
   await expect(links).toHaveValue(`${first}\n${second}`)
   await expect(page.locator('tbody')).toHaveText(rows, { useInnerText: true })
@@ -108,7 +108,7 @@ test('image and share edits survive tabs, saving, Escape, and reload', async ({
     'naturalWidth',
     1
   )
-  await page.getByRole('heading', { name: 'Link preview', exact: true }).click()
+  await page.getByRole('heading', { name: 'Link checks', exact: true }).click()
   await page.keyboard.press('Escape')
   await expect(page.getByLabel('Title', { exact: false }).first()).toHaveValue('My fixed title')
   await page.getByLabel('Image URL').fill('javascript:alert(1)')
@@ -131,7 +131,7 @@ test('image and share edits survive tabs, saving, Escape, and reload', async ({
   await expect(page.getByLabel(/Variant \(utm_content/)).toHaveValue('hero/v2?x=1')
   await page.getByRole('tab', { name: 'Previews', exact: true }).click()
   await expect(page.getByRole('textbox', { name: /Post text/ })).toHaveValue('Launch 🚀')
-  await page.getByRole('heading', { name: 'Link preview', exact: true }).click()
+  await page.getByRole('heading', { name: 'Link checks', exact: true }).click()
   await page.keyboard.press('[')
   await expect(page.getByRole('tab', { name: 'Reddit', exact: true })).toHaveAttribute(
     'data-state',

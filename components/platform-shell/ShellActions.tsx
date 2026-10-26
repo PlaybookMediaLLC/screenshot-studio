@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { PLATFORM_DESTINATIONS, platformArea } from '@/lib/platform/navigation'
+import { PLATFORM_DESTINATIONS, platformArea, withPublishAccess } from '@/lib/platform/navigation'
 import { SidebarLink } from './SidebarLink'
 
 const NEW_ITEMS = [
@@ -158,9 +158,8 @@ export function ShellSearch({
   const items = PLATFORM_DESTINATIONS.filter(
     (item) =>
       (campaignsEnabled || item.key !== 'campaigns') &&
-      (draftsEnabled || item.key !== 'publish') &&
       t(item.key).toLowerCase().includes(query.toLowerCase())
-  )
+  ).map((item) => withPublishAccess(item, draftsEnabled))
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent

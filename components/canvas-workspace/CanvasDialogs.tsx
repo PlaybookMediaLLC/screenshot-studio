@@ -711,7 +711,7 @@ function BrandDialog({ onClose, session, actions }: Props) {
         {kits?.length ? (
           <div className="grid gap-3">
             <Select value={kitId} onValueChange={setKitId}>
-              <SelectTrigger aria-label="Brand kit" className="w-full">
+              <SelectTrigger aria-label="Visual brand kit" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

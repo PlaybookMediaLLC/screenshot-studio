@@ -55,7 +55,7 @@ function DefaultPlatforms({ canManage, set }: { canManage: boolean; set: SocialS
 
   return (
     <Row
-      description="New drafts in this set start with these platforms, in this order. The primary platform's text is the draft; each other platform follows it until you edit that platform's text, and from then on keeps its own."
+      description="New drafts in this publishing brand start with these platforms, in this order. The primary platform's text is the draft; each other platform follows it until you edit that platform's text, and from then on keeps its own."
       label={
         <span className="flex items-center gap-2">
           Default platforms <SaveStatus state={state} />
@@ -179,8 +179,8 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
     <Row
       description={
         hasX
-          ? 'New X posts from this set start with these follow-ups. Nothing reaches X until a draft is scheduled, and posts already out are not changed.'
-          : 'These follow-ups are for X. Connect an X account to this set to use them.'
+          ? 'New X posts from this publishing brand start with these follow-ups. Nothing reaches X until a draft is scheduled, and posts already out are not changed.'
+          : 'These follow-ups are for X. Connect an X account to this publishing brand to use them.'
       }
       label={
         <span className="flex items-center gap-2">

@@ -32,6 +32,7 @@ type Row = { href?: string; id: string; meta: string; status: string; title: str
 
 type Section = {
   empty: string
+  emptyAction?: { href: string; label: string }
   key: string
   load: (trpc: TRPC) => Promise<Row[]>
   title: string
@@ -81,7 +82,8 @@ const SECTIONS: Section[] = [
     title: 'Recently edited projects',
   },
   {
-    empty: 'Releases arrive through the API or a repository webhook.',
+    empty: 'Releases arrive from a connected repository or the API.',
+    emptyAction: { href: '/workflows?view=sources', label: 'Connect a release source' },
     key: 'releases',
     load: async (trpc) => {
       const { releases } = await trpc.release.list.query()
@@ -188,6 +190,11 @@ function ActivitySection({ section }: { section: Section }) {
         ) : state.rows && state.rows.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6">
             <p className="text-sm text-muted-foreground">Nothing here yet. {section.empty}</p>
+            {section.emptyAction ? (
+              <Button asChild className="mt-3" size="sm" variant="outline">
+                <Link href={section.emptyAction.href}>{section.emptyAction.label}</Link>
+              </Button>
+            ) : null}
           </div>
         ) : (
           <ul className="divide-y rounded-lg border">

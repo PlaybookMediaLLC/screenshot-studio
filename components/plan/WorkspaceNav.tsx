@@ -1,21 +1,20 @@
 import Link from 'next/link'
+import { publishLinks } from '@/lib/platform/navigation'
 
-/** Shared navigation between the existing authoring surface, Plan and Analyze. */
+const ACTIVE = { plan: 'Calendar', analyze: 'Analyze' }
+
+/** The Publish area navigation, shared with Drafts and Campaign deliveries. */
 export function WorkspaceNav({ active }: { active: 'plan' | 'analyze' }) {
   return (
-    <nav aria-label="Content workspace" className="flex gap-2 border-b p-3 text-sm">
-      {[
-        ['Write', '/write'],
-        ['Plan', '/write/plan'],
-        ['Analyze', '/write/analyze'],
-      ].map(([name, href]) => (
+    <nav aria-label="Publish" className="flex flex-wrap gap-2 border-b p-3 text-sm">
+      {publishLinks().map(({ href, label }) => (
         <Link
           className="rounded px-3 py-2 aria-[current=page]:bg-muted"
-          aria-current={name.toLowerCase() === active ? 'page' : undefined}
+          aria-current={label === ACTIVE[active] ? 'page' : undefined}
           key={href}
           href={href}
         >
-          {name}
+          {label}
         </Link>
       ))}
     </nav>

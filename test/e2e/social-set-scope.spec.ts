@@ -208,12 +208,16 @@ test('private social-set caches and delayed mutations stay in their original wor
       page.getByRole('link', { name: 'Settings for Private Beta', exact: true })
     ).toHaveCount(0)
     await page.getByRole('link', { name: 'Settings for Private Alpha', exact: true }).click()
-    await expect(page.getByLabel('Brand name', { exact: true })).toHaveValue('Private Alpha')
-    await page.getByLabel('Brand name', { exact: true }).fill('Private Alpha saved')
+    await expect(page.getByLabel('Publishing brand name', { exact: true })).toHaveValue(
+      'Private Alpha'
+    )
+    await page.getByLabel('Publishing brand name', { exact: true }).fill('Private Alpha saved')
     await page.getByRole('button', { name: 'Save name', exact: true }).click()
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
     await page.reload()
-    await expect(page.getByLabel('Brand name', { exact: true })).toHaveValue('Private Alpha saved')
+    await expect(page.getByLabel('Publishing brand name', { exact: true })).toHaveValue(
+      'Private Alpha saved'
+    )
     await page.goto(`/workspace/social-sets/${alpha.set.id}/writing-assistant`)
     await expect(
       page.locator('summary').filter({ hasText: 'Private writing sample for Private Alpha.' })

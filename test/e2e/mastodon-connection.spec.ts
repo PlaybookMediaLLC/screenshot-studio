@@ -112,7 +112,7 @@ test('custom Mastodon authorization keeps the selected origin and commits one pr
     expect(
       provider.calls.filter((call) => call.url === '/integrations/social-connect/mastodon-custom')
     ).toHaveLength(1)
-    await expect(page.getByLabel('Brand name', { exact: true })).toHaveValue('New brand')
+    await expect(page.getByLabel('Publishing brand name', { exact: true })).toHaveValue('New brand')
     await page.screenshot({
       path: '.context/mastodon-connection-fixture.png',
       animations: 'disabled',

@@ -59,7 +59,7 @@ function SetRow({ set, canManage }: { set: SocialSetRecord; canManage: boolean }
           <Platforms set={set} />
           <span>· {set.weeklySlotCount} weekly slots</span>
           <span>· {set.timeZone}</span>
-          <DeveloperId id={set.id} label="Brand" />
+          <DeveloperId id={set.id} label="Publishing brand" />
         </span>
       }
       label={
@@ -286,8 +286,11 @@ function CopyFromWorkspace({ canManage }: { canManage: boolean }) {
           }}
           value=""
         >
-          <SelectTrigger aria-label="Copy a brand from another workspace" className="bg-card">
-            <SelectValue placeholder="Choose a set…" />
+          <SelectTrigger
+            aria-label="Copy a publishing brand from another workspace"
+            className="bg-card"
+          >
+            <SelectValue placeholder="Choose a publishing brand…" />
           </SelectTrigger>
           <SelectContent>
             {items.map((item) => (
@@ -311,7 +314,8 @@ function CopyFromWorkspace({ canManage }: { canManage: boolean }) {
  */
 export function SocialSetList({ canManage }: { canManage: boolean }) {
   const list = useSocialSets()
-  if (list.isPending) return <p className="text-sm text-muted-foreground">Loading brands…</p>
+  if (list.isPending)
+    return <p className="text-sm text-muted-foreground">Loading publishing brands…</p>
   if (list.isError) {
     return (
       <p className="text-sm text-red-700 dark:text-red-300" role="alert">
@@ -324,9 +328,9 @@ export function SocialSetList({ canManage }: { canManage: boolean }) {
     <div className="grid gap-6">
       {sets.length === 0 ? (
         <EmptyState
-          description="Create a set for each person or brand you post as."
+          description="Create a publishing brand for each person or company you post as."
           icon={Layers}
-          title="No brands yet"
+          title="No publishing brands yet"
         />
       ) : (
         <Group>

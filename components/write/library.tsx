@@ -53,6 +53,7 @@ import { writeApi } from '@/lib/write/client'
 import type { DraftKind } from '@/lib/write/document'
 import type { ContentDraftSort } from '@/lib/write/wire'
 import { cn } from '@/lib/utils'
+import { publishLinks } from '@/lib/platform/navigation'
 import { SetDot, SocialSetSwitcher } from './sets'
 import { TagChip, TagManager } from './tags'
 import { draftHref, type LibraryDraft, since, useWrite } from './write-context'
@@ -128,18 +129,6 @@ export function WriteRail() {
         </div>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
-          href={data.activeSet ? `/write/plan?set=${data.activeSet.id}` : '/write/plan'}
-        >
-          Calendar
-        </Link>
-        <Link
-          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
-          href="/write/analyze"
-        >
-          Analyze
-        </Link>
-        <Link
-          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
           href={data.activeSet ? `/write/settings?set=${data.activeSet.id}` : '/write/settings'}
         >
           Settings
@@ -155,23 +144,11 @@ export function WriteRail() {
         aria-label="Publishing utilities"
         className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
       >
-        <Link href={data.activeSet ? `/write?set=${data.activeSet.id}` : '/write'}>Write</Link>
-        <Link href={data.activeSet ? `/write/plan?set=${data.activeSet.id}` : '/write/plan'}>
-          Plan
-        </Link>
-        <Link href={data.activeSet ? `/write/analyze?set=${data.activeSet.id}` : '/write/analyze'}>
-          Analyze
-        </Link>
-        <Link
-          href={`/link-preview?returnTo=${encodeURIComponent(data.activeSet ? `/write?set=${data.activeSet.id}` : '/write')}`}
-        >
-          Link checks
-        </Link>
-        <Link
-          href={data.activeSet ? `/write/deliveries?set=${data.activeSet.id}` : '/write/deliveries'}
-        >
-          Campaign deliveries
-        </Link>
+        {publishLinks(data.activeSet ? `?set=${data.activeSet.id}` : '').map((item) => (
+          <Link href={item.href} key={item.label}>
+            {item.label}
+          </Link>
+        ))}
       </nav>
       <div className="px-3" role="tablist" aria-label="Library">
         <div className="grid grid-cols-4 rounded-lg bg-white/[0.04] p-0.5">
@@ -252,8 +229,8 @@ export function WriteRail() {
               ? 'No drafts match these filters.'
               : {
                   archived: 'Nothing archived.',
-                  drafts: 'No drafts in this set. Start one above.',
-                  posted: 'Nothing posted from this set yet.',
+                  drafts: 'No drafts in this publishing brand. Start one above.',
+                  posted: 'Nothing posted from this publishing brand yet.',
                   queue: '',
                 }[tab]}
             {data.query.q || data.query.tag || data.query.kind ? (
@@ -553,7 +530,7 @@ export function TargetDialog({
           <DialogTitle>{kind.label}</DialogTitle>
           <DialogDescription>
             {kind.needs === 'source'
-              ? 'Start from a post this set published, or paste the URL of any published post.'
+              ? 'Start from a post this publishing brand published, or paste the URL of any published post.'
               : 'Paste the post’s URL. It is stored as the draft’s target, not as text in the post.'}
           </DialogDescription>
         </DialogHeader>
@@ -813,7 +790,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                 Duplicate
               </DropdownMenuItem>
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Copy to brand</DropdownMenuSubTrigger>
+                <DropdownMenuSubTrigger>Copy to publishing brand</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-60">
                   {data.sets
                     .filter((set) => set.id !== data.activeSet?.id)
@@ -891,7 +868,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
           <DropdownMenuItem
             onSelect={() => {
               void navigator.clipboard.writeText(internalLink())
-              toast.success('Internal link copied. Only members who can see this set can open it.')
+              toast.success('Internal link copied. Only members who can see this publishing brand can open it.')
             }}
           >
             Copy internal link
@@ -1182,7 +1159,7 @@ function QueueList() {
   if (data.queue.length === 0) {
     return (
       <p className="px-4 py-6 text-xs text-neutral-400">
-        Nothing queued or planned for this set. Schedule a draft, add it to the queue, or plan it.
+        Nothing queued or planned for this publishing brand. Schedule a draft, add it to the queue, or plan it.
       </p>
     )
   }

@@ -42,7 +42,7 @@ export function useLibraryStyleSources(open: boolean): BatchStyleSource[] {
         label: preset.name,
       })),
       ...kits.map((kit) => ({
-        description: 'Brand kit on the current design',
+        description: 'Visual brand kit on the current design',
         // The design's own overrides survive, as when the kit is applied in the editor.
         document: applyBrandKit(current, kit, BRAND_CATEGORIES, { binding: current.brand })
           .document,

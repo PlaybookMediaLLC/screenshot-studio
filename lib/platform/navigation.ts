@@ -14,6 +14,25 @@ export const PLATFORM_DESTINATIONS = [
 
 export type PlatformArea = (typeof PLATFORM_DESTINATIONS)[number]['key']
 
+/** One Publish vocabulary for every page in the area; `scope` keeps the publishing brand. */
+export function publishLinks(scope = '', returnTo = `/write${scope}`) {
+  return [
+    { href: `/write${scope}`, label: 'Drafts' },
+    { href: `/write/plan${scope}`, label: 'Calendar' },
+    { href: `/write/analyze${scope}`, label: 'Analyze' },
+    { href: `/write/deliveries${scope}`, label: 'Campaign deliveries' },
+    { href: `/link-preview?returnTo=${encodeURIComponent(returnTo)}`, label: 'Link checks' },
+  ]
+}
+
+/** Without drafts, Publish still owns Link checks, so it opens there instead of disappearing. */
+export function withPublishAccess<T extends { href: string; key: string }>(
+  item: T,
+  draftsEnabled: boolean
+): T {
+  return item.key === 'publish' && !draftsEnabled ? { ...item, href: '/link-preview' } : item
+}
+
 const ROUTES: [PlatformArea, string[]][] = [
   ['home', ['/home']],
   [

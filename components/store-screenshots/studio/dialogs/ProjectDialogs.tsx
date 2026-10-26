@@ -67,7 +67,7 @@ export function ProjectsDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="grid-cols-[minmax(0,1fr)] max-h-[88vh] sm:max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Projects</DialogTitle>
+            <DialogTitle>Projects in this browser</DialogTitle>
             <DialogDescription>Projects are saved in this browser automatically. Images are stored once and shared between versions.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-wrap items-center gap-2">

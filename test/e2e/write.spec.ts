@@ -304,7 +304,8 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     const db = createE2EDatabase()
     try {
       await db.query(
-        `UPDATE scheduled_post SET status='FAILED' WHERE "contentDraftId"=$1 AND status='SCHEDULED'`,
+        // A running worker may already have claimed the posts.
+        `UPDATE scheduled_post SET status='FAILED' WHERE "contentDraftId"=$1 AND status IN ('SCHEDULED', 'PROCESSING')`,
         [draftId]
       )
     } finally {
@@ -486,9 +487,9 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     // A second set with the same name as the default stays a separate identity.
     // Sets are made in workspace settings (RFC 024); the switcher links there.
     const setName =
-      (await page.getByRole('button', { name: /^Brand: / }).textContent())?.trim() ?? ''
-    await page.getByRole('button', { name: /^Brand: / }).click()
-    await expect(page.getByRole('menuitem', { name: 'New brand…' })).toHaveAttribute(
+      (await page.getByRole('button', { name: /^Publishing brand: / }).textContent())?.trim() ?? ''
+    await page.getByRole('button', { name: /^Publishing brand: / }).click()
+    await expect(page.getByRole('menuitem', { name: 'New publishing brand…' })).toHaveAttribute(
       'href',
       /\/workspace\/social-sets$/
     )
@@ -504,7 +505,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     // Open the new set, then switch back to the default (listed first).
     const switchSet = async (index: number) => {
       await page.waitForLoadState('networkidle')
-      await page.getByRole('button', { name: /^Brand: / }).click()
+      await page.getByRole('button', { name: /^Publishing brand: / }).click()
       const item = page
         .getByRole('menuitem')
         .filter({ hasText: setName.replace(/▾$/, '').trim() })
@@ -514,10 +515,10 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
       await page.waitForLoadState('networkidle')
     }
     await page.goto(`/write?set=${secondSet}`)
-    await expect(page.getByText('No drafts in this set.')).toBeVisible()
+    await expect(page.getByText('No drafts in this publishing brand.')).toBeVisible()
     await switchSet(0)
     await rowMenu('Pricing')
-    await page.getByRole('menuitem', { name: 'Copy to brand' }).click()
+    await page.getByRole('menuitem', { name: 'Copy to publishing brand' }).click()
     await page.getByRole('menu').last().getByRole('menuitem').first().click()
     await page.getByRole('button', { name: 'Copy without tags' }).click()
     await expect(page.getByText(/Copied/).first()).toBeVisible()

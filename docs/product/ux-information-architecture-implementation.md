@@ -93,3 +93,37 @@ Create and Library now share an on-demand visual catalog covering screenshot tem
 The browser regression checks every layout/preset renders, each template family has a preview, workflow browsing leaves backend definitions unchanged, wheel and PageDown scrolling still work, and mobile templates do not overflow horizontally. The earlier bundle table predates this follow-up; it is not a measurement of the expanded catalog. The gallery module loads only when the Templates view is opened.
 
 Follow-up validation: TypeScript, ESLint, targeted formatting and the production webpack build passed; the combined platform-redesign and Canvas-template browser suites passed all 11 tests. Build warnings remain in the existing media-processing dependencies. No deployment or manual Safari/touch-device verification was performed.
+
+## Audit evidence closure
+
+On October 26, 2026 each audit finding (S01–S18 in [section 2 of the specification](ux-information-architecture-redesign.md#2-current-shots-uiux-audit), with captures in [`ux-audit-evidence/2026-10-22/`](ux-audit-evidence/2026-10-22/)) was re-checked against `develop` at `6bbb39c6`. Findings that were already resolved are listed with the remaining gaps that this follow-up closed.
+
+| Finding | Status after this follow-up                                                                                                                                                                                                                                                             |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S01–S02 | Already resolved: labeled job navigation, Home landing and preserved editor links. The editor keeps its compact rail by default; labels remain in tooltips.                                                                                                                             |
+| S03     | The App Store studio menu and dialog now say “Projects in this browser”, so local projects no longer share the workspace Projects noun.                                                                                                                                                 |
+| S04–S05 | Already resolved: zoom transform removed; preview loading, unsupported, source and render failures are distinct and retryable.                                                                                                                                                          |
+| S06     | Story Sets now says “Create Canvas copy”, matching Projects. The copy flow is unchanged.                                                                                                                                                                                                |
+| S07     | One `publishLinks` list (Drafts, Calendar, Analyze, Campaign deliveries, Link checks) is used by Write, Calendar, Analyze, Campaign deliveries and Link checks. Without content drafts, Publish opens Link checks instead of disappearing from the rail and search.                     |
+| S08     | Already resolved; the empty Workflows state now links to Sources when no source is connected.                                                                                                                                                                                           |
+| S09     | Already resolved. The Go backend enforces `creative-sets:create` on create and duplicate (`requireCreativeCreation`).                                                                                                                                                                   |
+| S10–S11 | Already resolved: content-first settings section sheet; consistent account placement and separate workspace switching.                                                                                                                                                                  |
+| S12     | Link checks results show Result, Previews, Fix and Share first. Basic tags, Open Graph, X, images, technical, automation and raw output are grouped as Advanced diagnostics. Result leads with the score and fixes, links to previews and fixes, then the JavaScript check and history. |
+| S13     | The Activity releases empty state links to “Connect a release source”. Announcements still have no scheduling screen, so their API wording stays accurate.                                                                                                                              |
+| S14     | Each campaign post shows a separate Scheduling pill (waiting for approval, blocked by review, no scheduling channel, ready without a visual, ready for a connected channel, or delivery status). “Approved revision” only appears while the post still rests on that approval.          |
+| S15     | User-facing labels use “Publishing brand” for social sets and “Visual brand kit” for versioned kits across Write, publishing settings, brand settings, workflows, Canvas and the editor. Store studio’s local kits keep their separate label.                                           |
+| S16     | Already resolved: truthful readiness states with setup details. A status filter was deferred; the directory has about eight entries.                                                                                                                                                    |
+| S17     | The editor shortcut dialog returns focus to its launcher, covered by `editor-adversarial.spec.ts`. Write’s shortcut reference restores focus after the focus trap releases.                                                                                                             |
+| S18     | Already resolved: one shell-level Ctrl/Cmd+K owner.                                                                                                                                                                                                                                     |
+
+No schema, persistence, authorization or API contract changed. The human checks under “Release checks and rollback” still apply.
+
+### Browser suite repairs
+
+Running the affected Playwright specs surfaced failures that also occurred on `develop`. They were repaired rather than skipped:
+
+- Stale selectors from earlier redesign work: `Remove screenshot`, `Select slide N`, `Saved to workspace`, `Saved on this browser`, `Settings sections`, the `Link checks` heading, the Library rail link and the shell search dialog width (`max-w-xl`). Editor section tests now use the remaining in-app path (the canvas App Store shortcut, browser Back, and Create on mobile) because the rail's Editor expander no longer exists.
+- `test/e2e/framework/services.ts` reads `timestamp without time zone` columns as UTC, so database assertions no longer shift on a non-UTC machine.
+- The Calendar acceptance test puts its posting slot on the planned day instead of a fixed Monday that may already be past.
+- The failed-destination test seeds failures for posts a running worker has already claimed (`PROCESSING`); worker transitions are guarded on that status.
+- The editor project button now shrinks and truncates its name instead of being clipped under the history toolbar at 1156 CSS px.

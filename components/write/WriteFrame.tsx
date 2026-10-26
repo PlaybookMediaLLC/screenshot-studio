@@ -363,14 +363,15 @@ function FrameLayout({
           onShortcuts={() => setReference(true)}
         />
       ) : null}
-      <Dialog
-        onOpenChange={(value) => {
-          setReference(value)
-          if (!value) restoreFocus()
-        }}
-        open={reference}
-      >
-        <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto">
+      <Dialog onOpenChange={setReference} open={reference}>
+        <DialogContent
+          className="max-h-[85dvh] max-w-lg overflow-y-auto"
+          // Restore once the focus trap has released, not while it still holds focus.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            restoreFocus()
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Keyboard shortcuts</DialogTitle>
             <DialogDescription>

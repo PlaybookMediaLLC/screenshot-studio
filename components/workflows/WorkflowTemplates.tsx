@@ -373,7 +373,7 @@ export function WorkflowTemplates() {
                 </Row>
               ) : null}
               {overview.brands.length === 0 ? (
-                <Row label="Brand kit required">
+                <Row label="Visual brand kit required">
                   <Link
                     className="underline"
                     href="/workspace/brand-kit?returnTo=%2Fworkflows%2Fnew"
@@ -384,12 +384,15 @@ export function WorkflowTemplates() {
                   </Link>
                 </Row>
               ) : null}
-              <Row description="Drafts use this published brand kit." label="Brand kit">
+              <Row
+                description="Drafts use this published visual brand kit."
+                label="Visual brand kit"
+              >
                 <Select
                   onValueChange={(next) => setBrandKitId(next === EMPTY ? '' : next)}
                   value={brandKitId || EMPTY}
                 >
-                  <SelectTrigger aria-label="Brand kit" className="w-full">
+                  <SelectTrigger aria-label="Visual brand kit" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

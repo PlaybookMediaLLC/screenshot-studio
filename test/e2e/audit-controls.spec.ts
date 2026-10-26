@@ -24,7 +24,7 @@ test('an owner can manage and search audited retention and SIEM controls', async
   await page.getByPlaceholder('https://siem.example/events').fill('https://siem.example/events')
   await page.getByPlaceholder('Signing secret').fill('e2e-signing-secret')
   await page.getByRole('button', { name: 'Add log drain' }).click()
-  await expect(page.getByText('E2E SIEM')).toBeVisible()
+  await expect(page.getByRole('paragraph').filter({ hasText: 'E2E SIEM' })).toBeVisible()
   await page.getByRole('button', { name: 'Remove' }).click()
   await expect(page.getByText('No SIEM drains are configured.')).toBeVisible()
 

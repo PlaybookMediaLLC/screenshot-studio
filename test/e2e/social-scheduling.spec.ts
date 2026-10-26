@@ -2,6 +2,7 @@ import { expect } from '@playwright/test'
 import { getE2EUrl } from './framework/auth'
 import { configureE2EFlow, test } from './framework/flow'
 import { startHttpMockServer } from './framework/http-server'
+import { xVerification } from './framework/content-drafts'
 import { createE2EDatabase, queryRow } from './framework/services'
 import {
   bindTestGoOrganization,
@@ -15,6 +16,22 @@ import {
   trpcMutation,
   unbindTestGoOrganization,
 } from './framework/publishing'
+
+/** A provider identity response for an X destination; attaching one verifies it. */
+function verifiedXIdentity(id: string) {
+  return {
+    body: {
+      id,
+      provider: 'x',
+      nativeId: '123456789',
+      name: 'Fixture X profile',
+      handle: 'fixture_x',
+      active: true,
+      verifiedAt: new Date().toISOString(),
+      verification: xVerification,
+    },
+  }
+}
 
 async function expectOAuthConnection(
   organizationId: string | null,
@@ -32,9 +49,12 @@ async function expectOAuthConnection(
         [integrationId, organizationId]
       )
     ).toEqual({ platform, secretReference: e2eSecretReference })
+    // The start is kept as a completed, one-use receipt for the confirmation page.
     expect(
-      await queryRow(database, 'SELECT state FROM social_oauth_start WHERE state = $1', [state])
-    ).toBeNull()
+      await queryRow(database, 'SELECT "exchangeStatus" FROM social_oauth_start WHERE state = $1', [
+        state,
+      ])
+    ).toEqual({ exchangeStatus: 'COMPLETED' })
   } finally {
     await database.end()
   }
@@ -64,8 +84,8 @@ test('an approved variant schedules once to a verified Go destination and can be
     if (request.url === '/api/public/v1/me') {
       return { body: { organization: { id: `go-${organizationId}` } } }
     }
-    if (request.url === '/api/public/v1/integrations') {
-      return { body: [{ id: 'social-x-integration', identifier: 'x', disabled: false }] }
+    if (request.url === '/api/public/v1/integrations/social-x-integration/identity') {
+      return verifiedXIdentity('social-x-integration')
     }
     return { body: { error: 'Not found.' }, status: 404 }
   }, 5679)
@@ -98,7 +118,7 @@ test('an approved variant schedules once to a verified Go destination and can be
     expect(foreignDestination.status).toBe(404)
     expect(provider.calls.map((call) => call.url)).toEqual([
       '/api/public/v1/me',
-      '/api/public/v1/integrations',
+      '/api/public/v1/integrations/another-organizations-destination/identity',
     ])
     const connectionResponse = await trpcMutation(page, 'channelConnection.create', {
       externalAccountId: 'social-x-integration',
@@ -140,8 +160,8 @@ test('another workspace cannot attach or control a bound Go destination', async 
     (request) =>
       request.url === '/api/public/v1/me'
         ? { body: { organization: { id: `go-${organizationId}` } } }
-        : request.url === '/api/public/v1/integrations'
-          ? { body: [{ id: 'tenant-a-destination', identifier: 'x', disabled: false }] }
+        : request.url === '/api/public/v1/integrations/tenant-a-destination/identity'
+          ? verifiedXIdentity('tenant-a-destination')
           : { body: { error: 'Unexpected request.' }, status: 500 },
     5679
   )
@@ -222,6 +242,9 @@ test('X OAuth start binds its one-use callback to the active workspace', async (
     if (request.url === '/integrations/social-connect/x') {
       return { body: { id: integrationId, pages: [] } }
     }
+    if (request.url === `/api/public/v1/integrations/${integrationId}/identity`) {
+      return verifiedXIdentity(integrationId)
+    }
     if (request.url === '/api/public/v1/integrations') {
       return { body: [{ id: integrationId, identifier: 'x', disabled: false }] }
     }
@@ -259,7 +282,8 @@ test('X OAuth start binds its one-use callback to the active workspace', async (
       .request.get(
         getE2EUrl(`/integrations/social/x?oauth_token=${state}&oauth_verifier=test-verifier`)
       )
-    expect(replay.status()).toBe(403)
+    // A replay is answered from the stored receipt; it never reaches the provider again.
+    expect(replay.status()).toBe(200)
     expect(connects()).toBe(connectsBeforeReplay)
   } finally {
     await deleteOAuthStart(state)
@@ -308,11 +332,15 @@ test('LinkedIn OAuth callback connects through the SDK and rejects replay', asyn
     const callbackURL = getE2EUrl(`/integrations/social/linkedin?code=test-code&state=${state}`)
     const callback = await page.context().request.get(callbackURL, { maxRedirects: 0 })
     expect(callback.status(), await callback.text()).toBe(303)
-    expect(callback.headers().location).toBe('/workspace/channels?connected=linkedin')
+    // The callback hands off to the receipt page, which redirects to Channels.
+    expect(callback.headers().location).toMatch(
+      /^\/integrations\/social\/linkedin\/complete\?state=/
+    )
     await expectOAuthConnection(organizationId, integrationId, state, 'linkedin')
 
     const callsBeforeReplay = backend.calls.length
-    expect((await page.context().request.get(callbackURL)).status()).toBe(403)
+    // A replay is answered from the stored receipt; it never reaches the provider again.
+    expect((await page.context().request.get(callbackURL)).status()).toBe(200)
     expect(backend.calls).toHaveLength(callsBeforeReplay)
   } finally {
     await deleteOAuthStart(state)
@@ -383,7 +411,10 @@ test('Instagram with Facebook Login registers the selected Page once', async ({
       maxRedirects: 0,
     })
     expect(selection.status()).toBe(303)
-    expect(selection.headers().location).toBe('/workspace/channels?connected=instagram')
+    // The callback hands off to the receipt page, which redirects to Channels.
+    expect(selection.headers().location).toMatch(
+      /^\/integrations\/social\/instagram\/complete\?state=/
+    )
 
     await expectOAuthConnection(organizationId, integrationId, state, 'instagram')
 
@@ -392,7 +423,8 @@ test('Instagram with Facebook Login registers the selected Page once', async ({
       form: { choice: choice as string },
       headers: { origin: new URL(getE2EUrl('/')).origin },
     })
-    expect(replay.status()).toBe(403)
+    // A replay is answered from the stored receipt; it never reaches the provider again.
+    expect(replay.status()).toBe(200)
     expect(backend.calls).toHaveLength(callsBeforeReplay)
   } finally {
     await deleteOAuthStart(state)
@@ -445,10 +477,14 @@ test('Instagram Login registers its destination after a one-use callback', async
     )
     const callback = await page.context().request.get(callbackURL, { maxRedirects: 0 })
     expect(callback.status()).toBe(303)
-    expect(callback.headers().location).toBe('/workspace/channels?connected=instagram-standalone')
+    // The callback hands off to the receipt page, which redirects to Channels.
+    expect(callback.headers().location).toMatch(
+      /^\/integrations\/social\/instagram-standalone\/complete\?state=/
+    )
     await expectOAuthConnection(organizationId, integrationId, state, 'instagram-standalone')
     const callsBeforeReplay = backend.calls.length
-    expect((await page.context().request.get(callbackURL)).status()).toBe(403)
+    // A replay is answered from the stored receipt; it never reaches the provider again.
+    expect((await page.context().request.get(callbackURL)).status()).toBe(200)
     expect(backend.calls).toHaveLength(callsBeforeReplay)
   } finally {
     await deleteOAuthStart(state)

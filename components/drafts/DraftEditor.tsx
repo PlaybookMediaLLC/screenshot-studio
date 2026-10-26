@@ -16,7 +16,7 @@ import {
   insertBlock,
   insertInlineElement,
 } from '@shots/platejs-editor/components'
-import { PlaceholderPlugin } from '@shots/platejs-editor/@platejs/media/react'
+import { PlaceholderPlugin, type FileSize } from '@shots/platejs-editor/@platejs/media/react'
 import {
   EditorServicesProvider,
   type EditorServices,
@@ -35,6 +35,7 @@ import { createYjsPlugin, YjsPlugin } from '@shots/platejs-editor/collaboration'
 import {
   BlockPlaceholderKit,
   BlockSelectionKit,
+  MediaKit,
   commentPlugin,
   discussionPlugin,
   type TDiscussion,
@@ -72,12 +73,18 @@ import {
   threadAsRules,
 } from './thread'
 import { normalizePosts, postBreak } from '@/lib/write/versions'
+import { MEDIA_LIMITS } from '@/lib/write/media-limits'
 import type { PlateBody } from '@/lib/write/document'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { pendingDraftConnectionError, takePendingDraft } from '@/components/write/pending-draft'
 import type { z } from 'zod'
 import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
+
+// Keep the kit's upload renderer while adding host-specific limits and drop routing.
+const UploadPlaceholderPlugin = MediaKit.find(
+  (plugin) => plugin.key === PlaceholderPlugin.key
+)! as typeof PlaceholderPlugin
 
 /**
  * The document editor for a content draft: the vendored Plate.js editor with
@@ -88,7 +95,11 @@ import type { textDirectionSchema } from '@/lib/api/contracts/settings-platform'
 export type DraftEditorUser = { id: string; name: string }
 
 /** A live session: the collab server's URL and the draft it edits. */
-export type DraftCollaboration = { draftId: string; url: string }
+export type DraftCollaboration = { draftId: string; url: string; generation?: number }
+
+function collaborationRoom(session: DraftCollaboration): string {
+  return `content-draft:${session.draftId}${session.generation ? `:${session.generation}` : ''}`
+}
 
 /** Hashtags the workspace uses, one click from the post. */
 function HashtagChips({ hashtags }: { hashtags: string[] }) {
@@ -181,7 +192,7 @@ function colorFor(userId: string): string {
   return `hsl(${hash} 70% 45%)`
 }
 
-async function collabToken(draftId: string): Promise<string> {
+async function collabToken(draftId: string, documentName: string): Promise<string> {
   const response = await fetch(
     `/api/v1/content-drafts/${encodeURIComponent(draftId)}/collab-token`,
     {
@@ -189,7 +200,10 @@ async function collabToken(draftId: string): Promise<string> {
     }
   )
   if (!response.ok) throw new Error(`Collaboration token refused (${response.status}).`)
-  return ((await response.json()) as { token: string }).token
+  const issued = (await response.json()) as { token: string; documentName: string }
+  if (issued.documentName !== documentName)
+    throw new Error('The draft was replaced. Reload it to continue editing.')
+  return issued.token
 }
 
 /**
@@ -213,6 +227,7 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
       <EditorContainer
         className={cn('h-auto min-h-[160px]', open && wide && 'pr-80')}
         data-testid="draft-editor"
+        data-local-dropzone
       >
         {children}
       </EditorContainer>
@@ -480,11 +495,12 @@ function DraftToolbar({
       </ToolbarGroup>
       <ToolbarGroup>
         <FileButton
-          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
+          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
           inputRef={imageInput}
           label="Insert media"
           onFile={(file) => {
             // The media plugin takes a FileList, as from a drop or a picker.
+            if (!editor.selection) editor.tf.select(editor.api.end([]))
             const files = new DataTransfer()
             files.items.add(file)
             editor.getTransforms(PlaceholderPlugin).insert.media(files.files)
@@ -605,8 +621,9 @@ export default function DraftEditor({
       ? createYjsPlugin(
           {
             access: readOnly ? 'read' : 'write',
-            documentName: documentName ?? `content-draft:${collaboration.draftId}`,
-            getToken: () => collabToken(collaboration.draftId),
+            documentName: documentName ?? collaborationRoom(collaboration),
+            getToken: () =>
+              collabToken(collaboration.draftId, documentName ?? collaborationRoom(collaboration)),
             hocuspocusUrl: collaboration.url,
             // WebRTC stays off: it would need our own signaling and TURN servers.
             webrtc: null,
@@ -617,12 +634,55 @@ export default function DraftEditor({
     const hosted = (extraPlugins ?? []) as (typeof PostBreakPlugin)[]
     return createEditorKit({
       recipe: 'collaborative',
-      // Social handles remain literal; resolved platform mentions use the dedicated picker.
-      excludePluginKeys: ['mention', 'mention_input', 'autoformatShortcuts'],
+      // Only an explicitly supplied host lookup may replace literal social handles.
+      excludePluginKeys: ['mention', 'mention_input', 'autoformatShortcuts'].filter(
+        (key) => !hosted.some((plugin) => plugin.key === key)
+      ),
       additionalPlugins: live ? [PostBreakPlugin, ...hosted, live] : [PostBreakPlugin, ...hosted],
       // Comments and suggestions are authored by the signed-in member, not
       // the upstream demo users.
       overridePlugins: [
+        ...hosted,
+        // Extend the configured kit: configure() replaces its deferred renderer.
+        UploadPlaceholderPlugin.extend(() => ({
+          options: {
+            maxFileCount: 20,
+            uploadConfig: {
+              // Plate's type lists powers of two, but its runtime accepts exact
+              // byte strings. The upload service enforces the current plan again.
+              image: {
+                mediaType: KEYS.img,
+                maxFileCount: 20,
+                maxFileSize: `${MEDIA_LIMITS.paidImageBytes}B` as FileSize,
+              },
+              video: {
+                mediaType: KEYS.video,
+                maxFileCount: 20,
+                maxFileSize: `${MEDIA_LIMITS.videoBytes}B` as FileSize,
+              },
+              pdf: {
+                mediaType: KEYS.file,
+                maxFileCount: 1,
+                maxFileSize: `${MEDIA_LIMITS.pdfBytes}B` as FileSize,
+              },
+            },
+          },
+          handlers: {
+            onDrop: ({ editor, event, tf }) => {
+              const { files } = event.dataTransfer
+              if (!files.length) return false
+              event.preventDefault()
+              event.stopPropagation()
+              if (readOnly) return true
+              // Use the dropped position and the existing upload/placeholder
+              // pipeline. The global screenshot dropzone must not navigate away.
+              const at = editor.api.findEventRange(event)
+              if (at) editor.tf.select(at)
+              tf.insert.media(files)
+              return true
+            },
+          },
+        })),
         BlockSelectionKit[0].configure({ options: { disableSelectAll: true } }),
         BlockPlaceholderKit[0].configure({
           options: { placeholders: { [KEYS.p]: 'What would you like to share?' } },
@@ -666,10 +726,14 @@ export default function DraftEditor({
         ? (normalizePosts(initialValue as PlateBody) as Value)
         : emptyValue(),
   })
+  const [live, setLive] = React.useState(false)
   const reportEditor = React.useEffectEvent(() => onEditor?.(editor))
   React.useEffect(() => {
+    // External tools read editor.children immediately. Report the collaborative
+    // editor only after its initial snapshot is ready, never the empty shell.
+    if (collaboration && !live) return
     reportEditor()
-  }, [editor])
+  }, [collaboration, editor, live])
   const firstValue = React.useRef(initialValue)
   const [initiallyEmpty] = React.useState(() => draftPlainText(initialValue).length === 0)
   React.useEffect(() => {
@@ -679,7 +743,6 @@ export default function DraftEditor({
   }, [collaboration, editor, readOnly])
   // Plate renders the editable only once the editor has content; a live
   // session gets it asynchronously, so the editable remounts when it arrives.
-  const [live, setLive] = React.useState(false)
   React.useEffect(() => {
     if (!collaboration) return
     const yjs = editor.getApi(YjsPlugin).yjs
@@ -708,7 +771,7 @@ export default function DraftEditor({
       void yjs
         .init({
           autoSelect: 'end',
-          id: `content-draft:${collaboration.draftId}`,
+          id: documentName ?? collaborationRoom(collaboration),
           value:
             firstValue.current.length > 0
               ? (normalizePosts(firstValue.current as PlateBody) as Value)
@@ -725,8 +788,26 @@ export default function DraftEditor({
       clearTimeout(start)
       if (started) yjs.destroy()
     }
-  }, [collaboration, draftId, editor])
+  }, [collaboration, documentName, draftId, editor])
 
+  const [keyboardInset, setKeyboardInset] = React.useState(0)
+  React.useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const resize = () =>
+      setKeyboardInset(
+        window.matchMedia('(max-width: 639px)').matches
+          ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+          : 0
+      )
+    resize()
+    viewport.addEventListener('resize', resize)
+    viewport.addEventListener('scroll', resize)
+    return () => {
+      viewport.removeEventListener('resize', resize)
+      viewport.removeEventListener('scroll', resize)
+    }
+  }, [])
   const imageInput = React.useRef<HTMLInputElement>(null)
   const postTools = React.useMemo<PostTools>(
     () => (readOnly ? {} : { addImage: () => imageInput.current?.click(), settings: postSettings }),
@@ -750,6 +831,22 @@ export default function DraftEditor({
                 <ThreadLine />
                 <Editor
                   autoFocus={false}
+                  onDragOverCapture={(event) => {
+                    if (!readOnly && event.dataTransfer.types.includes('Files')) {
+                      event.preventDefault()
+                      event.dataTransfer.dropEffect = 'copy'
+                    }
+                  }}
+                  onDropCapture={(event) => {
+                    if (readOnly || !event.dataTransfer.files.length) return
+                    // Native files can land in empty space, outside a draggable block.
+                    // Handle them once here; block-to-block dragging stays with Plate.
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const range = editor.api.findEventRange(event)
+                    if (range) editor.tf.select(range)
+                    editor.getTransforms(PlaceholderPlugin).insert.media(event.dataTransfer.files)
+                  }}
                   aria-label="Draft body"
                   className={cn(
                     POST_COLUMN,
@@ -779,9 +876,14 @@ export default function DraftEditor({
               </div>
             )}
             {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
-            {readOnly ? null : (
+            {readOnly || (collaboration && !live) ? null : (
+              // Mount subscriptions after the shared document has loaded. Otherwise
+              // media tools can retain the empty pre-connection value until an edit.
               // The formatting bar floats at the bottom of the page, out of the text's way.
-              <div className="pointer-events-none sticky bottom-5 z-10 flex justify-center px-2">
+              <div
+                style={{ bottom: Math.max(20, keyboardInset) }}
+                className="pointer-events-none sticky z-10 flex justify-center px-2"
+              >
                 <div className="pointer-events-auto min-w-0 max-w-full">
                   <DraftToolbar
                     editor={editor}

@@ -52,15 +52,27 @@ export function isPublicAddress(address: string): boolean {
     return true
   }
   if (kind === 6) {
-    const value = address.toLowerCase()
-    const mapped = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
-    if (mapped) return isPublicAddress(mapped[1]!)
-    if (value === '::' || value === '::1') return false
-    if (/^(fc|fd)/.test(value)) return false // unique local
-    if (/^fe[89ab]/.test(value)) return false // link-local
-    if (value.startsWith('ff')) return false // multicast
-    if (value.startsWith('2001:db8')) return false // documentation
-    if (value.startsWith('64:ff9b:')) return false // NAT64 can reach IPv4 private space
+    if (address.includes('%')) return false
+    // Canonicalize expanded and IPv4-mapped forms before checking ranges.
+    const value = new URL(`http://[${address}]/`).hostname.slice(1, -1).toLowerCase()
+    const mapped = value.match(/^::ffff:([0-9a-f]+):([0-9a-f]+)$/)
+    if (mapped) {
+      const upper = Number.parseInt(mapped[1], 16)
+      const lower = Number.parseInt(mapped[2], 16)
+      return isPublicAddress(`${upper >> 8}.${upper & 255}.${lower >> 8}.${lower & 255}`)
+    }
+    // Only global unicast, excluding transition tunnels and documentation.
+    if (!/^[23][0-9a-f]{3}:/.test(value)) return false
+    if (
+      value.startsWith('2002:') ||
+      value.startsWith('2001::') ||
+      value.startsWith('2001:0:') ||
+      value.startsWith('2001:db8:') ||
+      value.startsWith('2001:2:') ||
+      /^2001:[12][0-9a-f]:/.test(value) ||
+      value.startsWith('3fff:')
+    )
+      return false
     return true
   }
   return false
@@ -84,6 +96,8 @@ export type Transport = (request: {
 }) => Promise<TransportResponse>
 
 export type SafeFetchOptions = {
+  /** When supplied, every redirect hop must remain on one of these exact origins. */
+  allowedOrigins?: ReadonlySet<string>
   /** Read text error pages for diagnostics; redirects and SSRF checks still apply. */
   acceptErrorStatus?: boolean
   /** Extra request headers (for example an Accept header for an API). */
@@ -133,6 +147,9 @@ const nodeTransport: Transport = ({ address, family, headers, timeoutMs, url }) 
           else done(null, address, family)
         },
         method: 'GET',
+        // A socket timeout only measures idle time. A trickling response must
+        // still stop at the deadline, including while its body is being read.
+        signal: AbortSignal.timeout(timeoutMs),
         timeout: timeoutMs,
       },
       (response) =>
@@ -169,6 +186,9 @@ async function checkHop(
   if (!['http:', 'https:'].includes(url.protocol))
     return { reason: 'Only http and https links are read.' }
   if (url.username || url.password) return { reason: 'Links with credentials are not read.' }
+  if (options.allowedOrigins && !options.allowedOrigins.has(url.origin)) {
+    return { reason: 'The link points at an origin that is not allowed.' }
+  }
   const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '')
   const testHost = options.allowedPrivateHosts?.has(hostname) ?? false
   if (!testHost && !WEB_PORTS.has(url.port)) return { reason: 'Only standard web ports are read.' }
@@ -194,6 +214,23 @@ async function checkHop(
 
 type FetchFailure = Extract<FetchedText, { ok: false }>
 
+async function withinDeadline<T>(pending: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      pending,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error('The source took too long to respond.')),
+          timeoutMs
+        )
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /** One response in a redirect chain. */
 export type Hop = { status: number; url: string }
 
@@ -205,6 +242,7 @@ async function safeRequest(
   acceptErrors = false
 ): Promise<{ hops: Hop[]; ok: true; response: TransportResponse; url: URL } | FetchFailure> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const deadline = Date.now() + timeoutMs
   const transport = options.transport ?? nodeTransport
   let url: URL
   try {
@@ -214,8 +252,17 @@ async function safeRequest(
   }
   const hops: Hop[] = []
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-    const checked = await checkHop(url, options)
+    let checked: Awaited<ReturnType<typeof checkHop>>
+    try {
+      checked = await withinDeadline(checkHop(url, options), Math.max(1, deadline - Date.now()))
+    } catch {
+      return { ok: false, reason: 'The source took too long to resolve.', status: 'failed' }
+    }
     if ('reason' in checked) return { ok: false, reason: checked.reason, status: 'blocked' }
+    const remainingMs = deadline - Date.now()
+    if (remainingMs <= 0) {
+      return { ok: false, reason: 'The source took too long to respond.', status: 'failed' }
+    }
     let response: TransportResponse
     try {
       response = await transport({
@@ -226,7 +273,7 @@ async function safeRequest(
           'user-agent': 'ScreenshotStudioLaunchBot/1.0 (+release spec drafting)',
           ...options.headers,
         },
-        timeoutMs,
+        timeoutMs: remainingMs,
         url,
       })
     } catch (error) {

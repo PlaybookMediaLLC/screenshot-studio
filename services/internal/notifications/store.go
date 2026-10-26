@@ -32,12 +32,20 @@ type Channels struct {
 	Slack bool `json:"slack"`
 }
 type Policy struct {
-	Availability      *Channels           `json:"availability"`
-	Events            map[string]Channels `json:"events"`
-	Generation        int                 `json:"generation"`
-	SlackConnectionID string              `json:"slackConnectionId"`
-	SlackChannelID    string              `json:"slackChannelId"`
-	SlackChannelName  string              `json:"slackChannelName"`
+	SocialSetSlackChannels map[string]SlackDestination `json:"socialSetSlackChannels"`
+	Availability           *Channels                   `json:"availability"`
+	Events                 map[string]Channels         `json:"events"`
+	Generation             int                         `json:"generation"`
+	SlackConnectionID      string                      `json:"slackConnectionId"`
+	SlackChannelID         string                      `json:"slackChannelId"`
+	SlackChannelName       string                      `json:"slackChannelName"`
+}
+
+// SlackDestination uses the policy's connected Slack workspace. An empty
+// channel explicitly disables shared-channel delivery for this social set.
+type SlackDestination struct {
+	ChannelID   string `json:"channelId"`
+	ChannelName string `json:"channelName"`
 }
 type Preferences struct {
 	SlackEnabled      *bool               `json:"slackEnabled"`
@@ -120,9 +128,9 @@ func (s *Service) Authorize(ctx context.Context, p Principal, admin bool) error 
 }
 
 func defaultPolicy() Policy {
-	p := Policy{Availability: &Channels{InApp: true, Email: true, Slack: true}, Events: map[string]Channels{}, Generation: 1}
+	p := Policy{Availability: &Channels{InApp: true, Email: true, Slack: true}, Events: map[string]Channels{}, Generation: 1, SocialSetSlackChannels: map[string]SlackDestination{}}
 	for _, d := range activity.Catalogue {
-		p.Events[d.ID] = Channels{InApp: true, Email: d.EmailDefault}
+		p.Events[d.ID] = Channels{InApp: true, Email: d.EmailDefault, Slack: d.ID == "post.published"}
 	}
 	return p
 }
@@ -142,9 +150,9 @@ type queryer interface {
 
 func policy(ctx context.Context, db queryer, org string) (Policy, error) {
 	p := defaultPolicy()
-	var raw, available []byte
-	err := db.QueryRowContext(ctx, `SELECT events,availability,generation,slack_connection_id,slack_channel_id,slack_channel_name FROM platform_notification_policy WHERE "organizationId"=$1`, org).
-		Scan(&raw, &available, &p.Generation, &p.SlackConnectionID, &p.SlackChannelID, &p.SlackChannelName)
+	var raw, available, setChannels []byte
+	err := db.QueryRowContext(ctx, `SELECT events,availability,generation,slack_connection_id,slack_channel_id,slack_channel_name,social_set_slack_channels FROM platform_notification_policy WHERE "organizationId"=$1`, org).
+		Scan(&raw, &available, &p.Generation, &p.SlackConnectionID, &p.SlackChannelID, &p.SlackChannelName, &setChannels)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, nil
 	}
@@ -152,6 +160,9 @@ func policy(ctx context.Context, db queryer, org string) (Policy, error) {
 		return p, err
 	}
 	if err = json.Unmarshal(available, p.Availability); err != nil {
+		return p, err
+	}
+	if err = json.Unmarshal(setChannels, &p.SocialSetSlackChannels); err != nil {
 		return p, err
 	}
 	var overrides map[string]Channels
@@ -264,7 +275,33 @@ func (s *Service) SavePolicy(ctx context.Context, p Principal, input Policy) (*S
 	if !validEvents(input.Events, false) {
 		return nil, ErrInvalid
 	}
-	if input.SlackConnectionID != "" || input.SlackChannelID != "" {
+	// Older clients omit this additive field; keep their existing routes.
+	if input.SocialSetSlackChannels == nil {
+		current, err := policy(ctx, s.DB, p.OrganizationID)
+		if err != nil {
+			return nil, err
+		}
+		input.SocialSetSlackChannels = current.SocialSetSlackChannels
+	}
+	if len(input.SocialSetSlackChannels) > 100 {
+		return nil, ErrInvalid
+	}
+	for id, destination := range input.SocialSetSlackChannels {
+		if !socialSetIDPattern.MatchString(id) {
+			return nil, ErrInvalid
+		}
+		if destination.ChannelID != "" {
+			channel, err := s.ValidateChannel(ctx, p.OrganizationID, input.SlackConnectionID, destination.ChannelID)
+			if err != nil {
+				return nil, err
+			}
+			destination.ChannelName = channel.Name
+		} else {
+			destination.ChannelName = ""
+		}
+		input.SocialSetSlackChannels[id] = destination
+	}
+	if input.SlackChannelID != "" {
 		ch, err := s.ValidateChannel(ctx, p.OrganizationID, input.SlackConnectionID, input.SlackChannelID)
 		if err != nil {
 			return nil, err
@@ -272,6 +309,11 @@ func (s *Service) SavePolicy(ctx context.Context, p Principal, input Policy) (*S
 		input.SlackChannelName = ch.Name
 	} else {
 		input.SlackChannelName = ""
+		if input.SlackConnectionID != "" {
+			if _, err := s.Token(ctx, p.OrganizationID, input.SlackConnectionID); err != nil {
+				return nil, err
+			}
+		}
 	}
 	raw, _ := json.Marshal(input.Events)
 	if input.Availability == nil {
@@ -286,8 +328,20 @@ func (s *Service) SavePolicy(ctx context.Context, p Principal, input Policy) (*S
 	if err = lockSessionMember(ctx, tx, p, true); err != nil {
 		return nil, err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_policy ("organizationId",events,slack_connection_id,slack_channel_id,slack_channel_name,generation,availability) VALUES ($1,$2,$3,$4,$5,2,$6)
-	 ON CONFLICT ("organizationId") DO UPDATE SET availability=EXCLUDED.availability,events=EXCLUDED.events,slack_connection_id=EXCLUDED.slack_connection_id,slack_channel_id=EXCLUDED.slack_channel_id,slack_channel_name=EXCLUDED.slack_channel_name,generation=platform_notification_policy.generation+1,enabled_at=now(),updated_at=now()`, p.OrganizationID, raw, input.SlackConnectionID, input.SlackChannelID, input.SlackChannelName, available)
+	for id := range input.SocialSetSlackChannels {
+		var found string
+		if err = tx.QueryRowContext(ctx, `SELECT id FROM social_set WHERE id=$1 AND "organizationId"=$2 AND visibility='WORKSPACE' AND "deletedAt" IS NULL FOR SHARE`, id, p.OrganizationID).Scan(&found); errors.Is(err, sql.ErrNoRows) {
+			return nil, publishing.ErrNotFound
+		} else if err != nil {
+			return nil, err
+		}
+	}
+	if input.SocialSetSlackChannels == nil {
+		input.SocialSetSlackChannels = map[string]SlackDestination{}
+	}
+	setChannels, _ := json.Marshal(input.SocialSetSlackChannels)
+	_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_policy ("organizationId",events,slack_connection_id,slack_channel_id,slack_channel_name,generation,availability,social_set_slack_channels) VALUES ($1,$2,$3,$4,$5,2,$6,$7)
+	 ON CONFLICT ("organizationId") DO UPDATE SET availability=EXCLUDED.availability,events=EXCLUDED.events,slack_connection_id=EXCLUDED.slack_connection_id,slack_channel_id=EXCLUDED.slack_channel_id,slack_channel_name=EXCLUDED.slack_channel_name,social_set_slack_channels=EXCLUDED.social_set_slack_channels,generation=platform_notification_policy.generation+1,enabled_at=now(),updated_at=now()`, p.OrganizationID, raw, input.SlackConnectionID, input.SlackChannelID, input.SlackChannelName, available, setChannels)
 	if err != nil {
 		return nil, err
 	}

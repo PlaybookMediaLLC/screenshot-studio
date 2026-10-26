@@ -134,9 +134,11 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
     } finally {
       await anonymous.close()
     }
-    await grantWorkspacePlan(organizationId, 'free')
-    expect((await apiRequest(page, '/api/v1/social-connection-availability')).status).toBe(403)
     expect(reads()).toHaveLength(before)
+    // Drafts, and so connection readiness, are part of the free plan.
+    await grantWorkspacePlan(organizationId, 'free')
+    expect((await apiRequest(page, '/api/v1/social-connection-availability')).status).toBe(200)
+    expect(reads()).toHaveLength(before + 1)
   } finally {
     await unbindTestGoOrganization(organizationId)
     await provider.close()

@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
 )
@@ -174,6 +175,7 @@ func build(components map[string]any, path, method string, raw rawOperation) (*O
 		operation.Parameters = append(operation.Parameters,
 			Parameter{Argument: argument, In: parameter.In, Name: parameter.Name, Required: parameter.Required})
 	}
+	var bodyUnion map[string]any
 	if raw.RequestBody != nil {
 		content, ok := raw.RequestBody.Content["application/json"]
 		if !ok {
@@ -184,17 +186,24 @@ func build(components map[string]any, path, method string, raw rawOperation) (*O
 			return nil, err
 		}
 		body, _ := resolved.(map[string]any)
-		if body["type"] != "object" {
-			return nil, fmt.Errorf("the request body is not an object")
-		}
-		bodyProperties, _ := body["properties"].(map[string]any)
-		bodyRequired, _ := body["required"].([]any)
-		for name, schema := range bodyProperties {
-			mandatory := false
-			for _, item := range bodyRequired {
-				mandatory = mandatory || item == name
+		if body["type"] == "object" {
+			bodyProperties, _ := body["properties"].(map[string]any)
+			bodyRequired, _ := body["required"].([]any)
+			for name, schema := range bodyProperties {
+				mandatory := false
+				for _, item := range bodyRequired {
+					mandatory = mandatory || item == name
+				}
+				if err := add(name, schema, mandatory); err != nil {
+					return nil, err
+				}
 			}
-			if err := add(name, schema, mandatory); err != nil {
+		} else {
+			// Preserve each discriminated action's required and forbidden fields.
+			// Flatten path/query parameters into every branch, never erase the union.
+			var err error
+			bodyUnion, err = mergeUnionInput(body, properties, required)
+			if err != nil {
 				return nil, err
 			}
 		}
@@ -202,6 +211,9 @@ func build(components map[string]any, path, method string, raw rawOperation) (*O
 	operation.InputSchema = map[string]any{"type": "object", "properties": properties, "additionalProperties": false}
 	if len(required) > 0 {
 		operation.InputSchema["required"] = required
+	}
+	if bodyUnion != nil {
+		operation.InputSchema = bodyUnion
 	}
 	for _, status := range []string{"200", "201", "202"} {
 		response, ok := raw.Responses[status]
@@ -220,6 +232,49 @@ func build(components map[string]any, path, method string, raw rawOperation) (*O
 		break
 	}
 	return operation, nil
+}
+
+// mergeUnionInput derives MCP arguments from an object union and the REST
+// parameters, retaining branch validation and rejecting name collisions.
+func mergeUnionInput(body, parameters map[string]any, required []string) (map[string]any, error) {
+	keyword := "oneOf"
+	branches, ok := body[keyword].([]any)
+	if !ok {
+		keyword = "anyOf"
+		branches, ok = body[keyword].([]any)
+	}
+	if !ok || len(branches) == 0 {
+		return nil, fmt.Errorf("the request body is not an object or object union")
+	}
+	allProperties := maps.Clone(parameters)
+	combined := []any{}
+	for _, raw := range branches {
+		branch, ok := raw.(map[string]any)
+		if !ok || branch["type"] != "object" {
+			return nil, fmt.Errorf("every request body union branch must be an object")
+		}
+		properties := maps.Clone(parameters)
+		branchProperties, _ := branch["properties"].(map[string]any)
+		for name, schema := range branchProperties {
+			if _, taken := parameters[name]; taken {
+				return nil, fmt.Errorf("argument %q is declared twice", name)
+			}
+			properties[name] = schema
+			// The branch, not this union of names, owns the field's validation.
+			allProperties[name] = map[string]any{}
+		}
+		mandatory := []any{}
+		for _, name := range required {
+			mandatory = append(mandatory, name)
+		}
+		if names, ok := branch["required"].([]any); ok {
+			mandatory = append(mandatory, names...)
+		}
+		merged := maps.Clone(branch)
+		merged["properties"], merged["required"], merged["additionalProperties"] = properties, mandatory, false
+		combined = append(combined, merged)
+	}
+	return map[string]any{"type": "object", "properties": allProperties, "additionalProperties": false, keyword: combined}, nil
 }
 
 // inline returns a deep copy of schema with every local $ref replaced by the

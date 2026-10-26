@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import { socialAccountSchema } from 'screenshot-studio-backend-sdk'
 import type { SocialSet, SocialSetList, WritingSample } from 'screenshot-studio-backend-sdk'
 import { defineContract, mirrors } from '@/lib/api/contract'
@@ -122,6 +123,15 @@ export const socialSetAccountParamsSchema = z.object({
 
 /** `GET /api/v1/social-sets` */
 export const listSocialSetsContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
+  docs: workspaceDocs({
+    operationId: 'listSocialSets',
+    description:
+      'Lists workspace-visible social sets and their connected identities, posting schedule, and defaults. Private member sets are excluded for API keys.',
+    extensions: { 'x-shots-entitlement': { feature: 'content:drafts' } },
+    responses: { '200': 'The authorized result.', '404': 'The social set is unavailable.' },
+    tag: 'Workspace',
+  }),
   method: 'GET',
   name: 'social-sets.list',
   output: socialSetListSchema,
@@ -152,6 +162,15 @@ export const createSocialSetContract = defineContract({
 
 /** `GET /api/v1/social-sets/{id}` */
 export const getSocialSetContract = defineContract({
+  access: { apiKeyScope: 'artifact:read', feature: 'content:drafts', permission: 'artifact:read' },
+  docs: workspaceDocs({
+    operationId: 'getSocialSet',
+    description:
+      'Reads one visible social set including its posting schedule. Reading never changes approval or publishing permissions.',
+    extensions: { 'x-shots-entitlement': { feature: 'content:drafts' } },
+    responses: { '200': 'The authorized result.', '404': 'The social set is unavailable.' },
+    tag: 'Workspace',
+  }),
   method: 'GET',
   name: 'social-sets.get',
   output: socialSetSchema,

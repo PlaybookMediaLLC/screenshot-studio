@@ -16,7 +16,7 @@ export const PLUG_WINDOW_HOURS = 48
  * direct-message access, and X sends DMs only on paid API plans.
  */
 export const AUTO_DM_UNAVAILABLE =
-  'Auto-DM is not available: this workspace connects to X without direct-message access, and X sends direct messages only on paid API plans. Nothing is sent.'
+  'Auto-DM delivery is off until authorized X messaging and event access, consent records, and opt-out processing are configured. Prepared settings do not send messages.'
 
 /** Reposts a new set starts with: six hours after publishing, removed 12 hours later. */
 export const DEFAULT_AUTOMATION: Automation = {

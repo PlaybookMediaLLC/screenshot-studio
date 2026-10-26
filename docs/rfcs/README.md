@@ -2,6 +2,12 @@
 
 **Updated:** 2026-10-24. All 52 RFCs are renumbered in priority order, following the [release-readiness codebase audit](../release-readiness-audit-2026-10-23.md).
 
+**Assignment amendment (2026-10-24):** The Typefully backlog implementation explicitly
+reopens RFC 039 expansion and the scoped draft integrations in RFC 038. This amendment
+does not replace release readiness or authorize API-key draft publishing/autonomous
+approval. [Work-item coverage](../scheduling/typefully/work-items/coverage.md) tracks
+implementation, verification and provider gates separately.
+
 This is the authoritative order for new product work toward the
 [Shots north star](../../vision.md): meaningful releases become accurate,
 approved communications that reach and are used by their intended audiences.
@@ -22,6 +28,8 @@ ID, filename, previous ID and category; the verifier checks the catalog against
 this index and every RFC title. New dependencies and reused capabilities are
 separate in the active RFC headers. Historical dependency lists remain context
 for earlier designs, not instructions to rebuild superseded architecture.
+
+**Scoped authorization (2026-10-24):** The [Plan and Analyze implementation](../scheduling/typefully/plan-and-analyze/implementation.md) is an explicit exception to the social scheduling/analytics deferral. Its [acceptance matrix](../scheduling/typefully/plan-and-analyze/implementation-matrix.md) records the implemented scope and provider verification dependencies. Other deferred expansions remain deferred.
 
 ## Build order and exit gates
 
@@ -152,10 +160,10 @@ Reopen with repeated paid-customer evidence and an explicit decision that the wo
 | [036 — Demo video generation](036-demo-video-generation.md) | Video editing exists; captured-workflow demo product not established | Static evidence and usable kits first; no separate interactive-demo product. |
 | [037 — Content pillars/calendar](037-content-pillars.md) | Dedicated pillar-planning proposal not established | Weekly marketing volume is outside the initial job. |
 | [038 — External research](038-external-research-tools.md) | Some onboarding enrichment exists; broad research toolset is not the milestone | Prioritize the customer's own release evidence. |
-| [039 — Social analytics](039-analytics-ingestion.md) | Some provider analytics code exists; normalized RFC-wide loop not established | Measure adopted kits in 001/005; impressions are secondary. |
+| [039 — Social analytics](039-analytics-ingestion.md) | Plan/Analyze account reports and snapshot ingestion implemented by scoped authorization; wider matched-age/learning loop remains planned | Measure adopted kits in 001/005; impressions are secondary. |
 | [040 — Feedback-driven generation](040-feedback-driven-generation.md) | Proposed performance-weight feedback loop | First learn from corrections and audience use. |
 | [041 — Recurring campaigns](041-recurring-campaign-generation.md) | Proposed weekly planner; event workflows are a distinct existing capability | No weekly post quota or autonomous calendar commitment. |
-| [042 — Scheduling priorities](042-scheduling-feature-priorities.md) | Some related Write/settings work exists; priority order superseded | Network parity, bulk social scheduling and social dashboards are not the current critical path. |
+| [042 — Scheduling priorities](042-scheduling-feature-priorities.md) | Plan calendar and account analytics implemented by scoped authorization; network/bulk expansion remains deferred | Network parity, bulk social scheduling and social dashboards are not the current critical path. |
 | [043 — Approval policies](043-approval-policies.md) | Generic automatic-approval proposal | New release facts and kit delivery retain explicit human decisions. |
 | [044 — Autonomy modes](044-autonomy-modes.md) | Generic autopilot proposal | Automate evidence preparation and bounded handoffs first. |
 | [045 — Cloudflare data plane](045-cloudflare-native-data-pipeline.md) | Original Workers/queue proposal not established; R2/rendering already used | No data-plane rewrite is required for the kit workflow; old Trigger.dev premise is obsolete. |

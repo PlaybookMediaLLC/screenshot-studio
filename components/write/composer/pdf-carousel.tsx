@@ -7,7 +7,7 @@ import { assetContentUrl } from '@/lib/editor/services'
 /** LinkedIn's limit on a document's pages. */
 const PAGE_LIMIT = 300
 
-type Loaded = { count: number; render: (page: number, canvas: HTMLCanvasElement) => Promise<void> }
+type Loaded = { count: number; destroy: () => Promise<void>; render: (page: number, canvas: HTMLCanvasElement) => { promise: Promise<void>; cancel: () => void } }
 
 /** Open a PDF with pdf.js, loaded on first use; its worker ships beside the app. */
 async function openPdf(url: string): Promise<Loaded> {
@@ -16,17 +16,26 @@ async function openPdf(url: string): Promise<Loaded> {
     'pdfjs-dist/build/pdf.worker.min.mjs',
     import.meta.url
   ).toString()
-  const document = await pdfjs.getDocument({ url }).promise
+  const loading = pdfjs.getDocument({ url })
+  const document = await loading.promise
   return {
     count: document.numPages,
-    render: async (page, canvas) => {
+    destroy: () => loading.destroy(),
+    render: (page, canvas) => {
+      let cancelled = false
+      let task: ReturnType<Awaited<ReturnType<typeof document.getPage>>['render']> | undefined
+      const promise = (async () => {
       const loaded = await document.getPage(page)
+      if (cancelled) return
       const viewport = loaded.getViewport({ scale: 1 })
       const scale = Math.min(2, 640 / viewport.width)
       const scaled = loaded.getViewport({ scale })
       canvas.width = scaled.width
       canvas.height = scaled.height
-      await loaded.render({ canvas, viewport: scaled }).promise
+      task = loaded.render({ canvas, viewport: scaled })
+      await task.promise
+      })()
+      return { promise, cancel: () => { cancelled = true; task?.cancel() } }
     },
   }
 }
@@ -43,21 +52,27 @@ export function PdfCarousel({ assetId }: { assetId: string }) {
   const [error, setError] = React.useState<string | null>(null)
   React.useEffect(() => {
     let current = true
+    let opened: Loaded | null = null
+    setPage(1)
     setPdf(null)
     setError(null)
     openPdf(assetContentUrl(assetId))
-      .then((loaded) => current && setPdf(loaded))
+      .then((loaded) => { opened = loaded; if (current) setPdf(loaded); else void loaded.destroy() })
       .catch(
         () =>
           current && setError('This PDF could not be read. Upload it again, or use another file.')
       )
     return () => {
       current = false
+      if (opened) void opened.destroy()
     }
   }, [assetId])
   React.useEffect(() => {
     if (!pdf || !canvas.current) return
-    pdf.render(page, canvas.current).catch(() => setError(`Page ${page} could not be drawn.`))
+    let active = true
+    const task = pdf.render(page, canvas.current)
+    task.promise.catch(() => { if (active) setError(`Page ${page} could not be drawn.`) })
+    return () => { active = false; task.cancel() }
   }, [page, pdf])
   if (error) {
     return (
@@ -70,7 +85,7 @@ export function PdfCarousel({ assetId }: { assetId: string }) {
     <div className="grid gap-2" data-testid="pdf-carousel">
       <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg bg-white/5">
         {pdf ? null : <p className="p-8 text-center text-sm text-neutral-400">Reading the PDF…</p>}
-        <canvas aria-label={`Page ${page}`} className="block w-full" ref={canvas} role="img" />
+        <canvas aria-label={`Document preview, page ${page}. Use the original PDF for selectable text.`} className="block w-full" ref={canvas} role="img" />
         {pdf ? (
           <>
             {/* Where LinkedIn draws the page counter and the next arrow. */}

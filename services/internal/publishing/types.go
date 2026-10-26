@@ -51,6 +51,7 @@ type CreateScheduledPostResult struct {
 
 // MediaAsset is one stored file a post publishes.
 type MediaAsset struct {
+	AssetID   string `json:",omitempty"`
 	MediaType string
 	ObjectKey string
 	// Alt describes an image (RFC 025); jobs recorded before it have none.
@@ -64,6 +65,7 @@ type PublishReply struct {
 	// Options are the reply's own settings (RFC 025); replies from before
 	// them have none.
 	Options *postoptions.PublishOptions `json:",omitempty"`
+	Poll    *postoptions.Poll           `json:",omitempty"`
 }
 
 type PublishJob struct {

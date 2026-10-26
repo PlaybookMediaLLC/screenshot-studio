@@ -145,10 +145,10 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
   await expect(page.getByRole('heading', { name: 'Workspace deletion is scheduled' })).toBeVisible()
   await page.goto('/')
   await expect.poll(() => new URL(page.url()).pathname).toBe('/workspace')
-  await page.getByRole('button', { name: 'Open account menu' }).click()
+  await page.getByRole('button', { name: /^Workspace:/ }).click()
   await page.getByRole('button', { name: `Switch to ${recoveryWorkspaceName}` }).click()
-  await expect.poll(() => new URL(page.url()).pathname).toBe('/')
-  await page.getByRole('button', { name: 'Open account menu' }).click()
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/home')
+  await page.getByRole('button', { name: /^Workspace:/ }).click()
   await page
     .getByRole('button', { exact: true, name: `Switch to ${identity.workspaceName}` })
     .click()

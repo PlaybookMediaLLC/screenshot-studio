@@ -89,8 +89,12 @@ export async function updateContentDraft(
 }
 
 /** Delete a draft; false when it is not in this workspace. */
-export async function deleteContentDraft(context: TenantContext, id: string) {
-  return (await orNull(backendSDK(context).deleteContentDraft(id))) !== null
+export async function deleteContentDraft(
+  context: TenantContext,
+  id: string,
+  expected?: { version?: number; calendarVersion?: number }
+) {
+  return (await orNull(backendSDK(context).deleteContentDraft(id, expected))) !== null
 }
 
 /** A draft's post with its times as Dates. */
@@ -120,7 +124,7 @@ export async function listContentDraftPosts(context: TenantContext, id: string) 
  * before anything is queued. Go resolves the time and checks every payload
  * again.
  */
-export async function scheduleContentDraft(
+export async function prepareContentDraftSchedule(
   context: OrganizationAccess,
   id: string,
   input: {
@@ -134,10 +138,12 @@ export async function scheduleContentDraft(
     publishNow?: boolean
     /** When set, the set's next free queue slot, reserved by the backend. */
     queue?: boolean
+    expectedQueueSlot?: string
     /** Overrides the draft's natural posting time for this schedule. */
     naturalPostingTime?: boolean
     scheduledFor?: Date
     timeZone?: string
+    baseCalendarVersion?: number
     version: number
   }
 ) {
@@ -171,6 +177,9 @@ export async function scheduleContentDraft(
         standing: {
           maxWeightedCharacters: accounts.get(channelConnectionId)?.xCaptionLimit,
           articles: accounts.get(channelConnectionId)?.xArticles,
+          xQuotes: accounts.get(channelConnectionId)?.xQuotes,
+          pollLimits: accounts.get(channelConnectionId)?.pollLimits,
+          mastodonQuotes: accounts.get(channelConnectionId)?.mastodonQuotes,
         },
       },
       input.blockImages
@@ -185,7 +194,8 @@ export async function scheduleContentDraft(
       ...(!target.poll && legacy?.poll ? { poll: legacy.poll } : {}),
     }
   })
-  const result = await backendSDK(context).scheduleContentDraft(id, {
+  return {
+    expectedQueueSlot: input.expectedQueueSlot,
     disambiguation: input.disambiguation,
     localTime: input.localTime,
     naturalPostingTime: input.naturalPostingTime,
@@ -194,8 +204,20 @@ export async function scheduleContentDraft(
     scheduledFor: input.scheduledFor,
     targets,
     timeZone: input.timeZone,
+    baseCalendarVersion: input.baseCalendarVersion,
     version: input.version,
-  })
+  }
+}
+
+/** Schedule using the same preparation as a batch preflight. */
+export async function scheduleContentDraft(
+  context: OrganizationAccess,
+  id: string,
+  input: Parameters<typeof prepareContentDraftSchedule>[2]
+) {
+  const prepared = await prepareContentDraftSchedule(context, id, input)
+  if (!prepared) return null
+  const result = await backendSDK(context).scheduleContentDraft(id, prepared)
   return {
     created: result.created,
     draft: readDraft(result.draft),
@@ -267,12 +289,28 @@ export async function listContentDraftPostsBetween(
     ...readPost(post),
     draftId: post.draftId,
     draftTitle: post.draftTitle,
+    socialSetId: post.socialSetId,
+    version: post.version,
+    calendarVersion: post.calendarVersion,
+    tagIds: post.tagIds,
   }))
 }
 
 /** Move one queued post; null when it is not in this workspace. */
 export async function moveContentDraftPost(context: TenantContext, id: string, scheduledFor: Date) {
   const result = await orNull(backendSDK(context).moveContentDraftPost(id, scheduledFor))
+  return result ? readPost(result.post) : null
+}
+
+/** Swap two immutable queued commitments; the backend enforces visibility and account compatibility. */
+export async function swapContentDraftPosts(context: TenantContext, id: string, withId: string) {
+  const result = await orNull(backendSDK(context).swapContentDraftPosts(id, withId))
+  return result ? result.posts.map(readPost) : null
+}
+
+/** Publish one queued snapshot now; null when it is outside this workspace. */
+export async function publishQueuedContentDraftPost(context: TenantContext, id: string) {
+  const result = await orNull(backendSDK(context).publishQueuedContentDraftPost(id))
   return result ? readPost(result.post) : null
 }
 

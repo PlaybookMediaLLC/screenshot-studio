@@ -22,7 +22,7 @@ const (
 // limits mirrors the Packaging table in RFC 023. An unsubscribed workspace
 // keeps its owner's seat.
 var limits = map[string]map[string]int{
-	"free":       {Seats: 1, Channels: 0},
+	"free":       {Seats: 1, Channels: 1},
 	"pro":        {Seats: 5, Channels: 3},
 	"business":   {Seats: 20, Channels: 15},
 	"enterprise": {Seats: math.MaxInt32, Channels: math.MaxInt32},
@@ -55,6 +55,9 @@ func Resolve(row *ent.WorkspaceEntitlement, now time.Time) (plan, status string,
 	status = row.Status
 	if _, known := limits[row.Plan]; known {
 		plan = row.Plan
+	} else {
+		active = false
+		return
 	}
 	active = (status == "active" || status == "trialing" ||
 		(status == "past_due" && row.GraceUntil != nil && row.GraceUntil.After(now))) &&

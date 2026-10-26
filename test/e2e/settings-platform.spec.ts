@@ -88,8 +88,10 @@ test('personal settings are addressable, saved on the server and survive a reloa
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
   await expect(page.getByRole('switch', { name: 'Email notifications' })).not.toBeChecked()
-  await page.getByText('Slack delivery details', { exact: true }).click()
-  await expect(page.getByText('Direct messages are unavailable', { exact: false })).toBeVisible()
+  await expect(
+    page.getByText('No personal Slack account connected.', { exact: true })
+  ).toBeVisible()
+  await expect(page.getByText('Slack is unavailable.', { exact: false }).first()).toBeVisible()
 
   await openWorkspaceSetting(page, 'Account')
   await page.getByLabel('Search display time zone').fill('Tokyo')
@@ -97,6 +99,7 @@ test('personal settings are addressable, saved on the server and survive a reloa
     page.getByRole('combobox', { exact: true, name: 'Display time zone' }),
     /^Tokyo · Asia\/Tokyo · /
   )
+  await page.getByRole('button', { name: 'Save time zone', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
   await page.reload()
   await expect(
@@ -149,7 +152,9 @@ test('social sets keep their own names, schedules and settings beside the compos
 }) => {
   await withDraftWorkspace(identity, page, async () => {
     await page.goto('/workspace/social-sets')
-    await expect(page.getByRole('heading', { exact: true, level: 2, name: 'Brands' })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { exact: true, level: 2, name: 'Publishing brands' })
+    ).toBeVisible()
 
     // Two sets may share a name; each is its own by ID.
     const ids: string[] = []

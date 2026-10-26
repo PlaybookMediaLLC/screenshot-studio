@@ -4,13 +4,13 @@ import {
   updateSocialSetContract,
 } from '@/lib/api/contracts/social-sets'
 import { errorResponse, route } from '@/lib/api/route'
-import { organizationAccess } from '@/lib/api/route-auth'
+import { organizationAccess, tenantAccess } from '@/lib/api/route-auth'
 import { backendSDK } from '@/lib/backend/sdk'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 /** One social set. */
 export const GET = route(getSocialSetContract, {
-  auth: organizationAccess('artifact:read'),
+  auth: tenantAccess(getSocialSetContract.access),
   handler: ({ access, params }) =>
     contentDraftsEnabled()
       ? backendSDK(access).getSocialSet(params.id)

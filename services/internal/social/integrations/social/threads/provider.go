@@ -341,8 +341,11 @@ func multipartForm(pairs ...string) ([]byte, string) {
 	return buf.Bytes(), w.FormDataContentType()
 }
 
-func (p *Provider) createTextContent(ctx context.Context, userID, accessToken, message, replyToID, quoteID string) (string, error) {
+func (p *Provider) createTextContent(ctx context.Context, userID, accessToken, message, replyToID, quoteID string, poll string) (string, error) {
 	pairs := []string{"media_type", "TEXT", "text", message, "access_token", accessToken}
+	if poll != "" {
+		pairs = append(pairs, "poll_attachment", poll)
+	}
 	if replyToID != "" {
 		pairs = append(pairs, "reply_to_id", replyToID)
 	}
@@ -375,10 +378,14 @@ func (p *Provider) publishThread(ctx context.Context, userID, accessToken, creat
 }
 
 func (p *Provider) createThreadContent(ctx context.Context, userID, accessToken string, post integrations.PostDetails, replyToID, quoteID string) (string, error) {
+	poll, err := pollAttachment(post)
+	if err != nil {
+		return "", err
+	}
 	switch len(post.Media) {
 	case 0:
 		// Text-only content
-		return p.createTextContent(ctx, userID, accessToken, post.Message, replyToID, quoteID)
+		return p.createTextContent(ctx, userID, accessToken, post.Message, replyToID, quoteID, poll)
 	case 1:
 		// Single media content
 		return p.createSingleMediaContent(ctx, userID, accessToken, post.Media[0], post.Message, false, replyToID)
@@ -430,6 +437,10 @@ func (p *Provider) PostPending(ctx context.Context, userID, accessToken string, 
 		return []integrations.PostResponse{}, nil
 	}
 	firstPost := posts[0]
+	poll, pollErr := pollAttachment(firstPost)
+	if pollErr != nil {
+		return nil, pollErr
+	}
 
 	// Carousels: only create the child containers here, the carousel container
 	// itself is created by finalizePost once the children are processed.
@@ -456,7 +467,7 @@ func (p *Provider) PostPending(ctx context.Context, userID, accessToken string, 
 		err         error
 	)
 	if len(firstPost.Media) == 0 {
-		containerID, err = p.createTextContent(ctx, userID, accessToken, firstPost.Message, "", "")
+		containerID, err = p.createTextContent(ctx, userID, accessToken, firstPost.Message, "", "", poll)
 	} else {
 		containerID, err = p.createSingleMediaContent(ctx, userID, accessToken, firstPost.Media[0], firstPost.Message, false, "")
 	}
@@ -546,7 +557,6 @@ func (p *Provider) Post(ctx context.Context, userID, accessToken string, posts [
 	if len(posts) == 0 {
 		return []integrations.PostResponse{}, nil
 	}
-	firstPost := posts[0]
 	responses, err := p.PostPending(ctx, userID, accessToken, posts, integration)
 	if err != nil {
 		return nil, err
@@ -581,7 +591,7 @@ func (p *Provider) Post(ctx context.Context, userID, accessToken string, posts [
 			}
 		}
 		if result.Status == "completed" {
-			return []integrations.PostResponse{{ID: firstPost.ID, PostID: result.PostID, Status: "success", ReleaseURL: result.ReleaseURL}}, nil
+			return []integrations.PostResponse{{ID: posts[0].ID, PostID: result.PostID, Status: "success", ReleaseURL: result.ReleaseURL}}, nil
 		}
 
 		pendingData = result.PendingData
@@ -626,6 +636,9 @@ func rawJSON(ctx context.Context, rawURL string, out any) error {
 		return err
 	}
 	defer res.Body.Close()
+	if err := integrations.CheckResponse(res); err != nil {
+		return err
+	}
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		return err
@@ -682,13 +695,13 @@ func (p *Provider) Analytics(ctx context.Context, id, accessToken string, date i
 			} `json:"values"`
 		} `json:"data"`
 	}
-	if err := rawJSON(ctx, fmt.Sprintf("%s/v1.0/%s/threads_insights?metric=views,likes,replies,reposts,quotes&access_token=%s&period=day&since=%d&until=%d", graphURL, id, accessToken, since, until), &res); err != nil {
+	if err := integrations.ReadInsightsJSON(ctx, fmt.Sprintf("%s/v1.0/%s/threads_insights?metric=views,likes,replies,reposts,quotes&access_token=%s&period=day&since=%d&until=%d", graphURL, id, accessToken, since, until), &res); err != nil {
 		return nil, err
 	}
 
 	out := []integrations.AnalyticsData{}
 	for _, d := range res.Data {
-		item := integrations.AnalyticsData{Label: capitalize(d.Name), PercentageChange: 5, Data: []integrations.AnalyticsItem{}}
+		item := integrations.AnalyticsData{Label: capitalize(d.Name), Data: []integrations.AnalyticsItem{}}
 		if d.TotalValue != nil {
 			item.Data = append(item.Data, integrations.AnalyticsItem{Total: number(d.TotalValue.Value), Date: now.Format("2006-01-02")})
 		} else {
@@ -720,9 +733,8 @@ func (p *Provider) PostAnalytics(ctx context.Context, _, accessToken, postID str
 			} `json:"total_value"`
 		} `json:"data"`
 	}
-	if err := rawJSON(ctx, graphURL+"/v1.0/"+postID+"/insights?metric=views,likes,replies,reposts,quotes&access_token="+accessToken, &res); err != nil {
-		fmt.Fprintln(os.Stderr, "Error fetching Threads post analytics:", err)
-		return []integrations.AnalyticsData{}, nil
+	if err := integrations.ReadInsightsJSON(ctx, graphURL+"/v1.0/"+postID+"/insights?metric=views,likes,replies,reposts,quotes&access_token="+accessToken, &res); err != nil {
+		return nil, err
 	}
 
 	result := []integrations.AnalyticsData{}

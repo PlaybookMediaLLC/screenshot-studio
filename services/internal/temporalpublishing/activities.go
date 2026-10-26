@@ -169,7 +169,7 @@ type threadRecorder interface {
 // the post is live either way.
 func (a *Activities) publish(ctx context.Context, input socialapi.PublishInput) (string, error) {
 	threads, ok := a.provider.(threadPublisher)
-	if !ok || len(input.Replies) == 0 {
+	if !ok {
 		return a.provider.Publish(ctx, input)
 	}
 	receipt, err := threads.PublishThread(ctx, input)

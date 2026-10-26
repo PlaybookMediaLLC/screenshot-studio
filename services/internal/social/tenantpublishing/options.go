@@ -3,7 +3,7 @@ package tenantpublishing
 import (
 	"context"
 	"encoding/json"
-	"log/slog"
+	"fmt"
 	"maps"
 	"strings"
 
@@ -13,6 +13,7 @@ import (
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // Write (RFC 025): a post's settings become its adapter's settings JSON on
@@ -27,10 +28,32 @@ func postSettings(platform string, base map[string]any, options *postoptions.Pub
 		settings = map[string]any{}
 	}
 	if options != nil {
+		if options.LinkPreview != nil {
+			if platform != "bluesky" {
+				return nil, fmt.Errorf("this provider has no verified link preview control")
+			}
+			settings["link_preview"] = options.LinkPreview
+		}
+
+		if options.ShareWithFollowers && (platform != "x" || options.CommunityID == "") {
+			return nil, fmt.Errorf("share to timeline requires an X community")
+		}
 		switch platform {
 		case "x":
+			if options.QuoteFirstPost && rootID == "" && options.QuoteRemoteID == "" {
+				return nil, fmt.Errorf("the first post has no confirmed provider identity")
+			}
 			xSettings(settings, *options, rootID)
-		case "linkedin":
+		case "bluesky", "mastodon", "mastodon-custom":
+			if options.QuoteRemoteID != "" {
+				settings["quote_uri"] = options.QuoteRemoteID
+			} else if options.QuoteFirstPost {
+				if rootID == "" {
+					return nil, fmt.Errorf("the first post has no confirmed provider identity")
+				}
+				settings["quote_uri"] = rootID
+			}
+		case "linkedin", "linkedin-page":
 			if options.Visibility != "" {
 				settings["visibility"] = options.Visibility
 			}
@@ -52,6 +75,12 @@ func postSettings(platform string, base map[string]any, options *postoptions.Pub
 }
 
 func xSettings(settings map[string]any, options postoptions.PublishOptions, rootID string) {
+	if len(options.TaggedUserIDs) == 0 {
+		options.TaggedUserIDs = options.PhotoTagIDs
+	}
+	if len(options.TaggedUserIDs) > 0 {
+		settings["tagged_user_ids"] = options.TaggedUserIDs
+	}
 	if options.ReplySettings != "" {
 		settings["who_can_reply_post"] = options.ReplySettings
 	}
@@ -63,6 +92,8 @@ func xSettings(settings map[string]any, options postoptions.PublishOptions, root
 	}
 	if options.CommunityID != "" {
 		settings["community"] = "https://x.com/i/communities/" + options.CommunityID
+		// X changelog (July 2025): broadcast the community post to followers.
+		// Keep explicit false; omitting it lets provider defaults change intent.
 		settings["share_with_followers"] = options.ShareWithFollowers
 	}
 	switch {
@@ -104,6 +135,7 @@ func pollFor(poll *postoptions.Poll, options *postoptions.PublishOptions) *integ
 		return nil
 	}
 	details.DurationMinutes = poll.DurationMinutes
+	details.Multiple = poll.Multiple
 	if options != nil {
 		details.Question = strings.TrimSpace(options.PollQuestion)
 	}
@@ -113,16 +145,20 @@ func pollFor(poll *postoptions.Poll, options *postoptions.PublishOptions) *integ
 // AccountStanding projects verified account capabilities. Editable settings
 // and workspace plans never establish account-specific publishing access.
 func (p *Publisher) AccountStanding(ctx context.Context, organizationID, destinationID, platform, secretReference string) (product.AccountStanding, error) {
-	if platform != "x" {
+	if platform != "x" && platform != "mastodon-custom" {
 		return product.AccountStanding{}, nil
 	}
 	account, _, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
 	if err != nil {
 		return product.AccountStanding{}, err
 	}
+	if platform == "mastodon-custom" {
+		quotes := socialidentity.CanQuoteMastodon(*account.VerifiedCapabilities, account.VerifiedScopes)
+		return product.AccountStanding{PollLimits: account.VerifiedCapabilities.Polls, MastodonQuotes: &quotes}, nil
+	}
 	caps := account.VerifiedCapabilities.X
 	limit := caps.PostTextLimit()
-	return product.AccountStanding{Premium: caps.LongPostMaxWeightedCharacters != nil, XCaptionLimit: &limit, XArticles: caps.Articles}, nil
+	return product.AccountStanding{Premium: caps.LongPostMaxWeightedCharacters != nil, XCaptionLimit: &limit, XArticles: caps.Articles, XQuotes: socialidentity.XEnterpriseQuotesEnabled()}, nil
 }
 
 // Mentions looks a mention up with the account (RFC 025): an X user by
@@ -137,21 +173,19 @@ func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID,
 		Mention(context.Context, string, string, string, *socialent.Integration) ([]integrations.MentionResult, bool, error)
 	})
 	if !ok {
-		return []product.Mention{}, nil
+		return nil, socialapi.NewError(409, false, "This provider connection does not support mention lookup.")
 	}
 	found, _, err := finder.Mention(ctx, account.Token, query, account.InternalID, account)
 	if err != nil {
-		// LinkedIn answers an unknown vanity name with an error, not an empty list.
-		slog.InfoContext(ctx, "mention lookup found nothing", "platform", platform, "error", err)
-		return []product.Mention{}, nil
+		return nil, socialapi.NewError(502, false, "Mention lookup was refused or unavailable. Check the connection permissions and try again.")
 	}
 	mentions := make([]product.Mention, 0, len(found))
 	for _, item := range found {
 		mention := product.Mention{Image: item.Image, Label: item.Label}
 		switch platform {
 		case "x":
-			mention.Kind, mention.Handle, mention.ProviderID = "person", item.ID, item.ID
-		case "linkedin":
+			mention.Kind, mention.Handle, mention.ProviderID = "person", item.ID, item.NativeID
+		case "linkedin", "linkedin-page":
 			mention.Kind, mention.ProviderID = "organization", "urn:li:organization:"+item.ID
 		default:
 			continue
@@ -159,4 +193,30 @@ func (p *Publisher) Mentions(ctx context.Context, organizationID, destinationID,
 		mentions = append(mentions, mention)
 	}
 	return mentions, nil
+}
+
+// PeopleMentions searches followers through the connected Page's own grant.
+func (p *Publisher) PeopleMentions(ctx context.Context, organizationID, destinationID, platform, secretReference, query string) ([]product.Mention, error) {
+	if platform != "linkedin-page" {
+		return nil, socialapi.NewError(409, false, "Connect a LinkedIn Page with approved follower lookup access to search people.")
+	}
+	account, provider, _, err := p.account(ctx, organizationID, destinationID, platform, secretReference, nil)
+	if err != nil {
+		return nil, err
+	}
+	finder, ok := provider.(interface {
+		People(context.Context, string, string, string) ([]integrations.MentionResult, error)
+	})
+	if !ok {
+		return nil, socialapi.NewError(409, false, "This connection does not support LinkedIn people lookup.")
+	}
+	found, err := finder.People(ctx, account.Token, query, account.InternalID)
+	if err != nil {
+		return nil, socialapi.NewError(409, false, "LinkedIn people lookup requires an approved Page connection with r_organization_followers access. Reconnect after enabling this permission.")
+	}
+	out := []product.Mention{}
+	for _, person := range found {
+		out = append(out, product.Mention{Kind: "person", Label: person.Label, ProviderID: person.ID})
+	}
+	return out, nil
 }

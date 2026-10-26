@@ -56,7 +56,7 @@ func (p *Provider) statistics(ctx context.Context, accessToken, url string) ([]s
 	var out struct {
 		Elements []statElement `json:"elements"`
 	}
-	if err := linkedin.FetchJSON(ctx, http.MethodGet, url, linkedin.Headers(accessToken, ""), nil, &out); err != nil {
+	if err := linkedin.FetchJSONChecked(ctx, http.MethodGet, url, linkedin.Headers(accessToken, ""), nil, &out); err != nil {
 		return nil, err
 	}
 	return out.Elements, nil
@@ -77,6 +77,9 @@ func newSeries(labels ...string) *series {
 }
 
 func (s *series) push(label string, total json.Number, date string) {
+	if total == "" {
+		return
+	}
 	s.data[label] = append(s.data[label], integrations.AnalyticsItem{Total: total.String(), Date: date})
 }
 
@@ -136,15 +139,7 @@ func (p *Provider) Analytics(ctx context.Context, id, accessToken string, days i
 			analytics.push("Comments", s.CommentCount, date)
 		}
 	}
-	return analytics.result(5, false), nil
-}
-
-// orZero is `value || 0`.
-func orZero(n json.Number) json.Number {
-	if f, err := n.Float64(); err != nil || f == 0 {
-		return "0"
-	}
-	return n
+	return analytics.result(0, true), nil
 }
 
 func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken, postID string, _ int64) ([]integrations.AnalyticsData, error) {
@@ -167,7 +162,7 @@ func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken
 			TotalFirstLevelComments json.Number `json:"totalFirstLevelComments"`
 		} `json:"commentsSummary"`
 	}
-	if linkedin.FetchJSON(ctx, http.MethodGet, linkedin.APIURL+"/v2/socialActions/"+linkedin.EncodeURIComponent(postID),
+	if linkedin.FetchJSONChecked(ctx, http.MethodGet, linkedin.APIURL+"/v2/socialActions/"+linkedin.EncodeURIComponent(postID),
 		linkedin.Headers(accessToken, ""), nil, &socialActions) != nil {
 		socialActions = nil
 	}
@@ -181,13 +176,13 @@ func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken
 		}
 		found = true
 		date := current.TimeRange.day()
-		analytics.push("Impressions", orZero(s.ImpressionCount), date)
-		analytics.push("Unique Impressions", orZero(s.UniqueImpressionsCount), date)
-		analytics.push("Clicks", orZero(s.ClickCount), date)
-		analytics.push("Likes", orZero(s.LikeCount), date)
-		analytics.push("Comments", orZero(s.CommentCount), date)
-		analytics.push("Shares", orZero(s.ShareCount), date)
-		analytics.push("Engagement", orZero(s.Engagement), date)
+		analytics.push("Impressions", s.ImpressionCount, date)
+		analytics.push("Unique Impressions", s.UniqueImpressionsCount, date)
+		analytics.push("Clicks", s.ClickCount, date)
+		analytics.push("Likes", s.LikeCount, date)
+		analytics.push("Comments", s.CommentCount, date)
+		analytics.push("Shares", s.ShareCount, date)
+		analytics.push("Engagement", s.Engagement, date)
 	}
 
 	// No time series data but social actions: a single data point for today.
@@ -200,8 +195,8 @@ func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken
 		if socialActions.CommentsSummary != nil {
 			comments = socialActions.CommentsSummary.TotalFirstLevelComments
 		}
-		analytics.push("Likes", orZero(likes), today)
-		analytics.push("Comments", orZero(comments), today)
+		analytics.push("Likes", likes, today)
+		analytics.push("Comments", comments, today)
 	}
 	return analytics.result(0, true), nil
 }

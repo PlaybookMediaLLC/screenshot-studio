@@ -1,10 +1,14 @@
 # Typefully backlog triage
 
+> Historical baseline from October 19, 2026. This table is preserved for traceability. The reopened assignment revalidates each row in [coverage.md](coverage.md); do not use these old Exists/Missing labels as current completion claims.
+
 This file applies Step 1 (status) and Step 2 (epic) of the [method](README.md) to all 109 entries in the [backlog](../changelog-features.md).
 
 - **Checked against:** `main` at `f4c9b830`, on 2026-10-19.
 - **Sources:** the draft code (`components/drafts`, `lib/content-drafts`, `lib/api/contracts/content-drafts.ts`, `services/internal/product/content_draft*.go`, `services/internal/postoptions`), the social adapters, RFC 013, RFC 026, and RFC 042.
 - **Limit:** the triage used code search. A feature with an unusual name can hide from a search. Before you write a work item, confirm the status in the code.
+
+**October 24 update:** [implementation-evidence.md](implementation-evidence.md) supersedes the historical statuses below for the 42 entries in Sections 2, 4 and 5. It records actual implementation, executed browser/backend tests and remaining gates. The remaining 67 entries have not been re-triaged by this assignment.
 
 ## Epics
 

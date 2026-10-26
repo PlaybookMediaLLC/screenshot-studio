@@ -169,8 +169,8 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
       setPublished(publish)
       setNotice(
         publish
-          ? 'Brand kit published.'
-          : 'Brand kit draft saved. It is not active until published.'
+          ? 'Visual brand kit published.'
+          : 'Visual brand kit draft saved. It is not active until published.'
       )
       const result = await trpcClient.brandKit.list.query()
       setBrandKits(result.brandKits)
@@ -299,11 +299,13 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
         </section>
         <div className="flex min-w-0 flex-col gap-8">
           <BrandVoiceSection canManage={canManage} onPreview={setVoice} />
-          <Section title="Saved brand kits">
+          <Section title="Saved visual brand kits">
             <Group>
               {brandKits.length === 0 ? (
                 <Row>
-                  <p className="text-sm text-muted-foreground">No brand kits have been created.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No visual brand kits have been created.
+                  </p>
                 </Row>
               ) : (
                 brandKits.map((brandKit) => (
@@ -343,7 +345,7 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
               <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
                 <fieldset disabled={isSaving || isUploadingLogo}>
                   <Group>
-                    <Row label={<Label htmlFor="brand-name">Brand kit name</Label>}>
+                    <Row label={<Label htmlFor="brand-name">Visual brand kit name</Label>}>
                       <Input
                         className="h-10 rounded-lg md:w-72"
                         id="brand-name"
@@ -482,7 +484,7 @@ export function WorkspaceBrandSettings({ canManage }: WorkspaceBrandSettingsProp
                       ? 'Uploading logo…'
                       : isSaving
                         ? 'Saving…'
-                        : 'Publish brand kit'}
+                        : 'Publish visual brand kit'}
                   </Button>
                 </div>
               </form>
@@ -591,7 +593,7 @@ function BrandVoiceSection({
   return (
     <Section
       title="Brand voice"
-      description="Workspace defaults for writing. Social-set instructions can refine these; prohibited terms always apply. Voice changes save separately from visual brand kits."
+      description="Workspace defaults for writing. Publishing-brand instructions can refine these; prohibited terms always apply. Voice changes save separately from visual brand kits."
     >
       <form className="grid gap-4" onSubmit={handleSubmit}>
         <fieldset disabled={!canManage || saved === null || isSaving} className="grid gap-4">

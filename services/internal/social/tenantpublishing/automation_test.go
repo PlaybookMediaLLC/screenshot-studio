@@ -2,7 +2,11 @@ package tenantpublishing
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
 	"testing"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -93,5 +97,71 @@ func TestSignedMediaCarriesAltText(t *testing.T) {
 	})
 	if err != nil || len(media) != 1 || media[0].Alt != "A chart of signups" {
 		t.Fatalf("media = %+v err=%v", media, err)
+	}
+}
+
+type quotePoster struct {
+	details []integrations.PostDetails
+	err     error
+	receipt bool
+}
+
+func (p *quotePoster) Post(_ context.Context, _, _ string, posts []integrations.PostDetails, _ *socialent.Integration) ([]integrations.PostResponse, error) {
+	p.details = append(p.details, posts...)
+	if p.err != nil {
+		return nil, p.err
+	}
+	if !p.receipt {
+		return nil, nil
+	}
+	return []integrations.PostResponse{{PostID: "urn:li:share:99", Status: "posted"}}, nil
+}
+func TestQuoteAutomationUsesNativeIdentityAndPreservesFailures(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		for _, state := range []string{"posted", "unknown", "missing receipt"} {
+			t.Run(fmt.Sprintf("legacy=%t/%s", legacy, state), func(t *testing.T) {
+				p, _, _, input := directFixture()
+				provider := &quotePoster{receipt: state == "posted"}
+				if state == "unknown" {
+					provider.err = temporalx.UnknownDelivery("linkedin", "timeout")
+				}
+				p.resolve = func(string) poster { return provider }
+				var done bool
+				var err error
+				if legacy {
+					var result socialapi.AutoActionResult
+					result, err = p.AutoAct(context.Background(), socialapi.AutoActionInput{OrganizationID: input.OrganizationID, DestinationID: input.DestinationID, Platform: input.Platform, SecretReference: input.SecretReference, RemotePostID: "urn:li:share:42", Quote: true, QuoteText: "A useful update", PostURL: "https://example.com/not-a-quote"})
+					done = result.Quoted
+				} else {
+					var result socialapi.AutomationResult
+					result, err = p.Automate(context.Background(), socialapi.AutomationInput{OrganizationID: input.OrganizationID, DestinationID: input.DestinationID, Platform: input.Platform, SecretReference: input.SecretReference, RemotePostID: "urn:li:share:42", Kind: "quote", Text: "A useful update"})
+					done = result.Done
+				}
+				if done != (state == "posted") || (state != "posted" && temporalx.FailureType(err) != temporalx.TypeUnknownDelivery) {
+					t.Fatalf("done=%t err=%v", done, err)
+				}
+				if len(provider.details) != 1 || provider.details[0].Message != "A useful update" {
+					t.Fatalf("posts=%+v", provider.details)
+				}
+				var settings map[string]any
+				_ = json.Unmarshal(provider.details[0].Settings, &settings)
+				if settings["reshare_parent"] != "urn:li:share:42" {
+					t.Fatalf("settings=%+v", settings)
+				}
+			})
+		}
+	}
+}
+func TestNativeQuoteSettingsAcrossSupportedProviders(t *testing.T) {
+	for platform, key := range map[string]string{"x": "quote_tweet_id", "linkedin": "reshare_parent", "linkedin-page": "reshare_parent", "bluesky": "quote_uri", "mastodon-custom": "quote_uri"} {
+		raw, err := nativeQuoteSettings(platform, json.RawMessage(`{}`), "confirmed-id")
+		var settings map[string]any
+		_ = json.Unmarshal(raw, &settings)
+		if err != nil || settings[key] != "confirmed-id" {
+			t.Fatalf("%s settings=%s err=%v", platform, raw, err)
+		}
+	}
+	if _, err := nativeQuoteSettings("threads", json.RawMessage(`{}`), "123"); !errors.Is(err, socialapi.ErrUnsupported) {
+		t.Fatal("unsupported provider substituted a link")
 	}
 }

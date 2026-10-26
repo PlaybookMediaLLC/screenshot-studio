@@ -14,6 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/accountdeletionrequest"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/agentauthorization"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticsaccount"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticspost"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/analyticssnapshot"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/approval"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -26,6 +29,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/billingentitlementevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandkit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/calendarmutation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaign"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignasset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignplan"
@@ -61,8 +65,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/organizationenterprisesettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/pageknowledge"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmcampaign"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmdelivery"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmoptout"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformautodmrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativeset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformcreativesetversion"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformdraftimport"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationdelivery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationinbox"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformnotificationpolicy"
@@ -72,6 +81,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpacing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformslackpersonalconnection"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialmention"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformsocialobservation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/platformworkspacecreation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productprofile"
@@ -176,6 +187,9 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			accountdeletionrequest.Table:          accountdeletionrequest.ValidColumn,
 			agentauthorization.Table:              agentauthorization.ValidColumn,
+			analyticsaccount.Table:                analyticsaccount.ValidColumn,
+			analyticspost.Table:                   analyticspost.ValidColumn,
+			analyticssnapshot.Table:               analyticssnapshot.ValidColumn,
 			apikey.Table:                          apikey.ValidColumn,
 			approval.Table:                        approval.ValidColumn,
 			asset.Table:                           asset.ValidColumn,
@@ -188,6 +202,7 @@ func checkColumn(t, c string) error {
 			billingentitlementevent.Table:         billingentitlementevent.ValidColumn,
 			brandkit.Table:                        brandkit.ValidColumn,
 			brandprofile.Table:                    brandprofile.ValidColumn,
+			calendarmutation.Table:                calendarmutation.ValidColumn,
 			campaign.Table:                        campaign.ValidColumn,
 			campaignasset.Table:                   campaignasset.ValidColumn,
 			campaignplan.Table:                    campaignplan.ValidColumn,
@@ -223,8 +238,13 @@ func checkColumn(t, c string) error {
 			organizationenterprisesettings.Table:  organizationenterprisesettings.ValidColumn,
 			outboxevent.Table:                     outboxevent.ValidColumn,
 			pageknowledge.Table:                   pageknowledge.ValidColumn,
+			platformautodmcampaign.Table:          platformautodmcampaign.ValidColumn,
+			platformautodmdelivery.Table:          platformautodmdelivery.ValidColumn,
+			platformautodmoptout.Table:            platformautodmoptout.ValidColumn,
+			platformautodmrecipient.Table:         platformautodmrecipient.ValidColumn,
 			platformcreativeset.Table:             platformcreativeset.ValidColumn,
 			platformcreativesetversion.Table:      platformcreativesetversion.ValidColumn,
+			platformdraftimport.Table:             platformdraftimport.ValidColumn,
 			platformnotificationdelivery.Table:    platformnotificationdelivery.ValidColumn,
 			platformnotificationinbox.Table:       platformnotificationinbox.ValidColumn,
 			platformnotificationpolicy.Table:      platformnotificationpolicy.ValidColumn,
@@ -234,6 +254,8 @@ func checkColumn(t, c string) error {
 			platformslackinstallation.Table:       platformslackinstallation.ValidColumn,
 			platformslackpacing.Table:             platformslackpacing.ValidColumn,
 			platformslackpersonalconnection.Table: platformslackpersonalconnection.ValidColumn,
+			platformsocialmention.Table:           platformsocialmention.ValidColumn,
+			platformsocialobservation.Table:       platformsocialobservation.ValidColumn,
 			platformworkspacecreation.Table:       platformworkspacecreation.ValidColumn,
 			postautomationrun.Table:               postautomationrun.ValidColumn,
 			productprofile.Table:                  productprofile.ValidColumn,

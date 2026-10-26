@@ -116,5 +116,7 @@ test('Better Auth creation uses the atomic service without bypassing session or 
   await page.goto('/workspace/members')
   await expect(page.getByRole('heading', { name: 'Members', exact: true })).toBeVisible()
   await expect(page.getByText('1 member', { exact: true })).toBeVisible()
-  await expect(page.getByText(identity.email, { exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: 'Page content' }).getByText(identity.email, { exact: true })
+  ).toBeVisible()
 })

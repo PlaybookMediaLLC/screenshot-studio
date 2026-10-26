@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 /** A person's preferences (RFC 024); they follow the person across workspaces. */
 export type UserPreferences = {
+  /** Empty uses the standard palette. */
+  accentColor: string
   developerMode: boolean
   dismissedTips: string[]
   emailNotifications: boolean
@@ -19,6 +21,7 @@ export type UserPreferences = {
 
 /** Changes the fields set; `baseVersion` refuses a stale save with 409. */
 export type UserPreferencesUpdate = {
+  accentColor?: string
   baseVersion?: number
   developerMode?: boolean
   dismissTip?: string
@@ -99,6 +102,18 @@ export const socialAccountSchema = z.object({
   xCaptionLimit: z.union([z.literal(280), z.literal(25_000)]).nullish(),
   /** Verified Articles access, separate from long-post access. */
   xArticles: z.boolean().nullish(),
+  /** Native quotes require the deployed app's approved X Enterprise grant. */
+  xQuotes: z.boolean().optional(),
+  /** Verified Mastodon server poll limits; absent values do not permit a poll. */
+  mastodonQuotes: z.boolean().nullish(),
+  pollLimits: z
+    .object({
+      maxOptions: z.number().int(),
+      maxOptionCharacters: z.number().int(),
+      minDurationSeconds: z.number().int(),
+      maxDurationSeconds: z.number().int(),
+    })
+    .nullish(),
   socialSetId: z.string().nullable(),
 })
 

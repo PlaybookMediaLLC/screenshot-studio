@@ -12,7 +12,7 @@
  * - ultrafast H.264 preset for WASM (massive speedup, minimal quality loss)
  */
 
-import { FFmpeg } from '@ffmpeg/ffmpeg';
+import type { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL } from '@ffmpeg/util';
 import { audioBufferToWav } from './audio-track';
 
@@ -59,8 +59,9 @@ const CACHE_NAME = 'ffmpeg-wasm-cache-v1';
  * `import(coreURL)`. Next's production webpack build rewrites that into its
  * module loader despite the webpackIgnore comment, so the worker can never
  * load the core and the engine fails only in deployed builds. An unbundled
- * copy of the worker is served from public/ instead; tests keep it identical
- * to the installed package.
+ * copy of the worker and its client is served from public/ instead; tests keep
+ * them identical to the installed package. The native client import also keeps
+ * Turbopack from trying to resolve its runtime classWorkerURL at build time.
  */
 export const FFMPEG_CLASS_WORKER_PATH = '/ffmpeg/0.12.15/worker.js';
 
@@ -118,7 +119,6 @@ export async function loadFFmpeg(
   isLoading = true;
 
   loadPromise = (async () => {
-    const ffmpeg = new FFmpeg();
     const useMT = isCrossOriginIsolated();
     const tempBlobUrls: string[] = [];
 
@@ -135,6 +135,9 @@ export async function loadFFmpeg(
     const classWorkerURL = new URL(FFMPEG_CLASS_WORKER_PATH, window.location.origin).href;
 
     try {
+      const clientURL = new URL('classes.js', classWorkerURL).href;
+      const { FFmpeg } = await import(/* webpackIgnore: true */ clientURL) as typeof import('@ffmpeg/ffmpeg');
+      const ffmpeg = new FFmpeg();
       if (useMT) {
         const baseURL = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm';
         await ffmpeg.load({

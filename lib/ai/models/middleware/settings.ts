@@ -20,6 +20,7 @@ import type { ModelRole } from '../catalog'
  * which legitimately emits long structured objects. `nano` only classifies.
  */
 export const MAX_OUTPUT_TOKENS: Record<ModelRole, number> = {
+  transcription: 8192,
   fast: 8192,
   deep: 16_384,
   nano: 2048,

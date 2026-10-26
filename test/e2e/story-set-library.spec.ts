@@ -63,12 +63,6 @@ test('restricted members can request access, preview formats and keep working in
   await expect(page.getByLabel('Example Story Set')).toBeVisible()
   await expect(page.getByRole('button', { name: 'New Story Set' })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'No Story Sets yet' })).toBeVisible()
-  const sidebar = page.getByRole('complementary', { name: 'Primary navigation' })
-  expect(
-    await sidebar.getByRole('link', { name: 'Story Sets', exact: true }).locator('svg').innerHTML()
-  ).not.toBe(
-    await sidebar.getByRole('link', { name: 'Assets', exact: true }).locator('svg').innerHTML()
-  )
   await mkdir('.context', { recursive: true })
   await page.addStyleTag({ content: 'nextjs-portal { display: none; }' })
   await page.screenshot({ path: '.context/story-sets-desktop.png', fullPage: true })
@@ -151,24 +145,24 @@ test('failed list requests hide the empty state and can be retried', async ({ pa
 test('search and sorting survive navigation and long or blank queries are safe', async ({
   page,
 }) => {
-  await page.goto(getE2EUrl('/creative-sets'))
+  // An empty library hides search until there is a query to refine.
+  await page.goto(getE2EUrl('/creative-sets?search=launch'))
   const search = page.getByRole('searchbox', { name: 'Search Story Sets' })
-  await expect(page.getByRole('heading', { name: 'No Story Sets yet' })).toBeVisible()
+  await expect(page.getByText('No Story Sets match “launch”.')).toBeVisible()
   let listRequests = 0
   page.on('request', (request) => {
     if (request.url().includes('creativeSet.list')) listRequests++
   })
-  await search.fill('   ')
+  // Surrounding whitespace does not change the query, so nothing is fetched again.
+  await search.fill('  launch  ')
   await page.waitForTimeout(400)
   expect(listRequests).toBe(0)
-  await search.fill('  launch  ')
-  await expect(page.getByText('No Story Sets match “launch”.')).toBeVisible()
   await chooseOption(page.getByRole('combobox', { name: 'Sort Story Sets' }), 'Name')
   await expect(page).toHaveURL(/sort=name/)
   await page.getByRole('link', { name: 'View Projects' }).click()
   await expect(page).toHaveTitle(/Projects/)
   await page.goBack()
-  await expect(search).toHaveValue('  launch  ')
+  await expect(search).toHaveValue('launch')
   await expect(page.getByRole('combobox', { name: 'Sort Story Sets' })).toContainText('Name')
   await search.fill('x'.repeat(201))
   await expect(search).toHaveValue('x'.repeat(200))

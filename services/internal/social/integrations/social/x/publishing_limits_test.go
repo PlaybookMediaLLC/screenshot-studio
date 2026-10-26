@@ -76,7 +76,7 @@ func TestPublishingRejectsUnavailableStoredIdentityBeforeNetwork(t *testing.T) {
 	} {
 		for name, publish := range publicationPaths(integrations.PostDetails{Message: "hello"}) {
 			t.Run(mutate.name+"/"+name, func(t *testing.T) {
-				if err := publish(mutate.apply(publishingAccount())); temporalx.FailureType(err) != temporalx.TypeBadBody {
+				if err := publish(mutate.apply(publishingAccount())); temporalx.FailureType(err) != temporalx.TypePublicationRejected {
 					t.Fatalf("expected unavailable identity, got %v", err)
 				}
 			})
@@ -93,8 +93,8 @@ func TestPublishingRechecksCurrentGrantAndSubscription(t *testing.T) {
 		status                    int
 		want                      string
 	}{
-		{name: "downgrade", tier: "None", level: "read-write", want: temporalx.TypeBadBody},
-		{name: "unknown tier", tier: "FutureTier", level: "read-write", want: temporalx.TypeBadBody},
+		{name: "downgrade", tier: "None", level: "read-write", want: temporalx.TypePublicationRejected},
+		{name: "unknown tier", tier: "FutureTier", level: "read-write", want: temporalx.TypePublicationRejected},
 		{name: "read only", tier: "Premium", level: "read", want: temporalx.TypeRefreshToken},
 		{name: "missing grant", tier: "Premium", want: temporalx.TypeRefreshToken},
 		{name: "account replaced", tier: "Premium", level: "read-write", native: "2", want: temporalx.TypeRefreshToken},
@@ -166,7 +166,7 @@ func TestPendingContentCannotRetainAnExpiredLongPostAllowance(t *testing.T) {
 	}
 	tier = "None"
 	_, err = p.FinalizePost(ctx, "a:b", ready.PendingData, in)
-	if temporalx.FailureType(err) != temporalx.TypeBadBody || len(*calls) != 2 {
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected || len(*calls) != 2 {
 		t.Fatalf("expected fresh downgrade rejection, got %v (%d calls)", err, len(*calls))
 	}
 }
@@ -205,7 +205,7 @@ func TestPublishingRejectsInvalidThreadBeforeRootUpload(t *testing.T) {
 		{ID: "root", Message: "hello", Media: []integrations.MediaContent{{Path: apiBase + "/photo.png"}}},
 		{ID: "reply", Message: strings.Repeat("a", 25001)},
 	}, publishingAccount())
-	if temporalx.FailureType(err) != temporalx.TypeBadBody || len(*calls) != 1 {
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected || len(*calls) != 1 {
 		t.Fatalf("invalid thread: %v", err)
 	}
 }
@@ -228,7 +228,7 @@ func TestPublishingRejectsUnverifiedArticleAndQuote(t *testing.T) {
 			post := integrations.PostDetails{Message: "hello", Settings: marshal(settings), Media: []integrations.MediaContent{{Path: apiBase + "/pic.png"}}}
 			_, pendingErr := New().PostPending(context.Background(), "1", "a:b", []integrations.PostDetails{post}, publishingAccount())
 			_, finalErr := New().FinalizePost(context.Background(), "a:b", marshal(pendingData{Message: "hello", Settings: settings, Attempting: true, Confirmed: true}), publishingAccount())
-			if temporalx.FailureType(pendingErr) != temporalx.TypeBadBody || temporalx.FailureType(finalErr) != temporalx.TypeBadBody || len(*calls) != 2 {
+			if temporalx.FailureType(pendingErr) != temporalx.TypePublicationRejected || temporalx.FailureType(finalErr) != temporalx.TypePublicationRejected || len(*calls) != 2 {
 				t.Fatalf("unverified feature: %v, %v", pendingErr, finalErr)
 			}
 		})
@@ -258,7 +258,7 @@ func TestPublishingRejectsEmptyInputAndStaleCredential(t *testing.T) {
 	_, replyErr := p.Comment(ctx, "1", "42", "", "a:b", nil, in)
 	_, staleErr := publishingLimits(ctx, "old:credential", in)
 	for _, err := range []error{pendingErr, replyErr, staleErr} {
-		if temporalx.FailureType(err) != temporalx.TypeBadBody {
+		if temporalx.FailureType(err) != temporalx.TypePublicationRejected {
 			t.Fatalf("invalid input was not rejected: %v", err)
 		}
 	}
@@ -281,7 +281,7 @@ func TestAutoPlugUsesCurrentAccountLimits(t *testing.T) {
 	})
 	defer done()
 	posted, err := New().AutoPlugPost(context.Background(), publishingAccount(), "42", map[string]string{"likesAmount": "1", "post": strings.Repeat("a", 281)})
-	if posted || temporalx.FailureType(err) != temporalx.TypeBadBody || len(*calls) != 2 {
+	if posted || temporalx.FailureType(err) != temporalx.TypePublicationRejected || len(*calls) != 2 {
 		t.Fatalf("auto plug: %v, %v", posted, err)
 	}
 }
@@ -321,7 +321,38 @@ func TestCommentRechecksSubscriptionAfterMediaUpload(t *testing.T) {
 	_, err := New().Comment(context.Background(), "1", "42", "", "a:b", []integrations.PostDetails{{
 		ID: "reply", Message: strings.Repeat("a", 281), Media: []integrations.MediaContent{{Path: apiBase + "/pic.png"}},
 	}}, publishingAccount())
-	if temporalx.FailureType(err) != temporalx.TypeBadBody || reads.Load() != 2 || len(*calls) != 6 {
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected || reads.Load() != 2 || len(*calls) != 6 {
 		t.Fatalf("reply did not recheck after upload: %v, %d reads, %d calls", err, reads.Load(), len(*calls))
+	}
+}
+
+func TestEnterpriseQuoteUsesNativeReferenceAndRevocationStopsScheduledWork(t *testing.T) {
+	t.Setenv("PLATFORM_X_ENTERPRISE_QUOTES_ENABLED", "true")
+	calls, done := fakePublishingX(t, func(r recorded) (int, string) {
+		if r.path != "/2/tweets" {
+			t.Errorf("unexpected endpoint %s", r.path)
+		}
+		var body map[string]any
+		if err := json.Unmarshal(r.body, &body); err != nil {
+			t.Fatal(err)
+		}
+		if body["quote_tweet_id"] != "42" || body["text"] != "A native quote" {
+			t.Errorf("body=%s", r.body)
+		}
+		return 201, `{"data":{"id":"123456"}}`
+	})
+	defer done()
+	settings := pendingSettings{QuoteTweetID: ptr("42")}
+	_, err := New().FinalizePost(context.Background(), "a:b", marshal(pendingData{Message: "A native quote", Settings: settings, Attempting: true, Confirmed: true}), publishingAccount())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(*calls) != 2 {
+		t.Fatalf("calls=%+v", *calls)
+	}
+	t.Setenv("PLATFORM_X_ENTERPRISE_QUOTES_ENABLED", "")
+	_, err = New().FinalizePost(context.Background(), "a:b", marshal(pendingData{Message: "A native quote", Settings: settings, Attempting: true, Confirmed: true}), publishingAccount())
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected || len(*calls) != 3 {
+		t.Fatalf("revoked scheduled quote mutated: calls=%+v err=%v", *calls, err)
 	}
 }

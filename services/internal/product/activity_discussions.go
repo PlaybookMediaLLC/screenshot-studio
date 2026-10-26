@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/apikey"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 )
@@ -80,6 +81,13 @@ func recordDiscussionActivity(ctx context.Context, tx *ent.Tx, actor Actor, draf
 	if err != nil {
 		return err
 	}
+	// Full-document API writes cannot acquire comment authority implicitly.
+	if actor.Kind == "api_key" && (len(before.Threads) > 0 || len(after.Threads) > 0) && !reflect.DeepEqual(before.Threads, after.Threads) {
+		if err = NewConfiguration(tx.Client()).authorizeDraftComments(ctx, actor); err != nil {
+			return err
+		}
+	}
+	authorID := commentAuthorID(actor)
 	previous := map[string]activityThread{}
 	oldComments := map[string]activityComment{}
 	oldThread := map[string]string{}
@@ -105,7 +113,7 @@ func recordDiscussionActivity(ctx context.Context, tx *ent.Tx, actor Actor, draf
 		}
 		seen["thread:"+thread.ID] = true
 		old, exists := previous[thread.ID]
-		if !exists && (thread.UserID != actor.UserID || !eligible[thread.UserID]) || exists && old.UserID != thread.UserID {
+		if !exists && (thread.UserID != authorID || !(eligible[thread.UserID] || actor.Kind == "api_key")) || exists && old.UserID != thread.UserID {
 			return invalid("A discussion author cannot be changed.")
 		}
 		participants := []string{thread.UserID}
@@ -121,10 +129,10 @@ func recordDiscussionActivity(ctx context.Context, tx *ent.Tx, actor Actor, draf
 			if exists && (prior.UserID != comment.UserID || oldThread[comment.ID] != thread.ID) {
 				return invalid("A comment's author and discussion cannot be changed.")
 			}
-			if !exists && (comment.UserID != actor.UserID || !eligible[comment.UserID]) {
+			if !exists && (comment.UserID != authorID || !(eligible[comment.UserID] || actor.Kind == "api_key")) {
 				return invalid("A new comment must belong to the current workspace member.")
 			}
-			if exists && comment.UserID != actor.UserID && !reflect.DeepEqual(prior.ContentRich, comment.ContentRich) {
+			if exists && comment.UserID != authorID && !reflect.DeepEqual(prior.ContentRich, comment.ContentRich) {
 				return invalid("Only the comment author can edit its content.")
 			}
 			payload := map[string]any{"commentId": comment.ID, "threadId": thread.ID, "participantUserIds": participants}
@@ -172,6 +180,35 @@ func recordDiscussionActivity(ctx context.Context, tx *ent.Tx, actor Actor, draf
 			return err
 		}
 		users[userID] = map[string]any{"id": person.ID, "name": person.Name, "avatarUrl": person.Image}
+	}
+	// Rebuild key author names from server records on every human or agent save.
+	// Removed keys retain an explicit attribution without retaining their secret.
+	for _, thread := range after.Threads {
+		ids := []string{thread.UserID}
+		for _, comment := range thread.Comments {
+			ids = append(ids, comment.UserID)
+		}
+		for _, id := range ids {
+			keyID, ok := strings.CutPrefix(id, "api-key:")
+			if !ok {
+				continue
+			}
+			if _, exists := users[id]; exists {
+				continue
+			}
+			name := "Removed API key"
+			key, keyErr := tx.Apikey.Query().Where(apikey.ID(keyID), apikey.ReferenceID(actor.OrganizationID)).Only(ctx)
+			if keyErr != nil && !ent.IsNotFound(keyErr) {
+				return keyErr
+			}
+			if key != nil {
+				name = "API key"
+				if key.Name != nil && strings.TrimSpace(*key.Name) != "" {
+					name = *key.Name + " (API key)"
+				}
+			}
+			users[id] = map[string]any{"id": id, "name": name, "avatarUrl": nil}
+		}
 	}
 	next["users"] = users
 	return nil

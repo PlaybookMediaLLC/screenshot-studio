@@ -49,6 +49,20 @@ func (_u *UserPreferenceUpdate) ClearTimeZone() *UserPreferenceUpdate {
 	return _u
 }
 
+// SetAccentColor sets the "accent_color" field.
+func (_u *UserPreferenceUpdate) SetAccentColor(v string) *UserPreferenceUpdate {
+	_u.mutation.SetAccentColor(v)
+	return _u
+}
+
+// SetNillableAccentColor sets the "accent_color" field if the given value is not nil.
+func (_u *UserPreferenceUpdate) SetNillableAccentColor(v *string) *UserPreferenceUpdate {
+	if v != nil {
+		_u.SetAccentColor(*v)
+	}
+	return _u
+}
+
 // SetTheme sets the "theme" field.
 func (_u *UserPreferenceUpdate) SetTheme(v userpreference.Theme) *UserPreferenceUpdate {
 	_u.mutation.SetTheme(v)
@@ -276,6 +290,9 @@ func (_u *UserPreferenceUpdate) sqlSave(ctx context.Context) (_node int, err err
 	if _u.mutation.TimeZoneCleared() {
 		_spec.ClearField(userpreference.FieldTimeZone, field.TypeString)
 	}
+	if value, ok := _u.mutation.AccentColor(); ok {
+		_spec.SetField(userpreference.FieldAccentColor, field.TypeString, value)
+	}
 	if value, ok := _u.mutation.Theme(); ok {
 		_spec.SetField(userpreference.FieldTheme, field.TypeEnum, value)
 	}
@@ -354,6 +371,20 @@ func (_u *UserPreferenceUpdateOne) SetNillableTimeZone(v *string) *UserPreferenc
 // ClearTimeZone clears the value of the "time_zone" field.
 func (_u *UserPreferenceUpdateOne) ClearTimeZone() *UserPreferenceUpdateOne {
 	_u.mutation.ClearTimeZone()
+	return _u
+}
+
+// SetAccentColor sets the "accent_color" field.
+func (_u *UserPreferenceUpdateOne) SetAccentColor(v string) *UserPreferenceUpdateOne {
+	_u.mutation.SetAccentColor(v)
+	return _u
+}
+
+// SetNillableAccentColor sets the "accent_color" field if the given value is not nil.
+func (_u *UserPreferenceUpdateOne) SetNillableAccentColor(v *string) *UserPreferenceUpdateOne {
+	if v != nil {
+		_u.SetAccentColor(*v)
+	}
 	return _u
 }
 
@@ -613,6 +644,9 @@ func (_u *UserPreferenceUpdateOne) sqlSave(ctx context.Context) (_node *UserPref
 	}
 	if _u.mutation.TimeZoneCleared() {
 		_spec.ClearField(userpreference.FieldTimeZone, field.TypeString)
+	}
+	if value, ok := _u.mutation.AccentColor(); ok {
+		_spec.SetField(userpreference.FieldAccentColor, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.Theme(); ok {
 		_spec.SetField(userpreference.FieldTheme, field.TypeEnum, value)

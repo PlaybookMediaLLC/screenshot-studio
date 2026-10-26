@@ -2,6 +2,8 @@
 
 Prepared October 13, 2026. Read with [Plan](typefully-plan-spec.md) and [Analyze](typefully-analyze-spec.md).
 
+**Shots implementation audit (October 24, 2026):** [Implementation](implementation.md), [individual P01–P40/A01–A40 evidence](implementation-matrix.md), and [executed checks and release dependencies](verification.md). The research evidence labels below remain historical; they are not the implementation test results.
+
 These are acceptance criteria for a comparable implementation, not a claim that 80 tests were run against Typefully. Evidence refers to the accompanying specifications. **Live** means the control or behavior was observed; **Doc** means vendor documentation; **Proposed** means engineering coverage still needed. Even a Live row may include edge cases not executed during inspection.
 
 ## 1. Scope and dependency order

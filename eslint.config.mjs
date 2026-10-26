@@ -49,6 +49,15 @@ export default defineConfig([
     ...tseslint.configs.disableTypeChecked,
   },
   {
+    // Zapier's native runtime loads CommonJS modules.
+    files: ['integrations/zapier/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: { Buffer: 'readonly', URL: 'readonly' },
+    },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
     files: ['test/e2e/fixtures/*.mjs'],
     languageOptions: {
       globals: {
@@ -127,6 +136,7 @@ export default defineConfig([
       'scripts/**',
       '*.tsbuildinfo',
       'next-env.d.ts',
+      'integrations/raycast/raycast-env.d.ts',
     ],
   },
 ]);

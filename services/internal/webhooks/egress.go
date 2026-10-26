@@ -11,6 +11,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publicnet"
 )
 
 // ErrUnsafeEndpoint refuses an endpoint the platform will not call.
@@ -18,33 +20,11 @@ type ErrUnsafeEndpoint struct{ Reason string }
 
 func (e *ErrUnsafeEndpoint) Error() string { return e.Reason }
 
-var blockedPrefixes = []netip.Prefix{
-	netip.MustParsePrefix("100.64.0.0/10"),   // shared address space
-	netip.MustParsePrefix("198.18.0.0/15"),   // benchmarking
-	netip.MustParsePrefix("192.0.0.0/24"),    // IETF protocol assignments
-	netip.MustParsePrefix("192.0.2.0/24"),    // documentation
-	netip.MustParsePrefix("198.51.100.0/24"), // documentation
-	netip.MustParsePrefix("203.0.113.0/24"),  // documentation
-	netip.MustParsePrefix("240.0.0.0/4"),     // reserved
-	netip.MustParsePrefix("2001:db8::/32"),   // documentation
-	netip.MustParsePrefix("64:ff9b::/96"),    // NAT64 can reach private IPv4
-}
-
 // PublicAddress reports whether an address is one a customer endpoint may
 // resolve to: global unicast, and not private, loopback, link-local (which
 // includes cloud metadata at 169.254.169.254), shared or reserved.
 func PublicAddress(address netip.Addr) bool {
-	address = address.Unmap()
-	if !address.IsGlobalUnicast() || address.IsPrivate() || address.IsLoopback() || address.IsLinkLocalUnicast() ||
-		address.IsLinkLocalMulticast() || address.IsMulticast() || address.IsUnspecified() {
-		return false
-	}
-	for _, prefix := range blockedPrefixes {
-		if prefix.Contains(address) {
-			return false
-		}
-	}
-	return true
+	return publicnet.IsPublic(address)
 }
 
 // Resolver looks up a host's addresses; tests replace it.

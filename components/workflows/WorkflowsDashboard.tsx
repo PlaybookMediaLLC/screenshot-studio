@@ -209,6 +209,13 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
       >
         {overview.definitions.length === 0 ? (
           <EmptyState
+            action={
+              overview.sources.length === 0 ? (
+                <ButtonLink href={`${pathname}?view=sources#sources`} variant="outline">
+                  Connect a source first
+                </ButtonLink>
+              ) : null
+            }
             description="Turn a published release, a merged pull request, or a production deployment into campaign drafts for review."
             icon={WorkflowSquare03Icon}
             title="No workflows yet"

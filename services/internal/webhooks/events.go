@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/socialset"
 	"github.com/lucsky/cuid"
 )
 
@@ -21,6 +22,7 @@ const SchemaVersion = 1
 // own, stable wire identifiers.
 const (
 	DraftCreated       = "draft.created"
+	DraftUpdated       = "draft.updated"
 	DraftScheduled     = "draft.scheduled"
 	DraftPlanned       = "draft.planned"
 	DraftStatusChanged = "draft.status_changed"
@@ -32,7 +34,7 @@ const (
 )
 
 // EventTypes are the events a subscription can choose, in display order.
-var EventTypes = []string{DraftCreated, DraftPublished, DraftScheduled, DraftPlanned, DraftStatusChanged, DraftTagsChanged, DraftDeleted}
+var EventTypes = []string{DraftCreated, DraftUpdated, DraftPublished, DraftScheduled, DraftPlanned, DraftStatusChanged, DraftTagsChanged, DraftDeleted}
 
 // KnownEvent reports whether kind is an event a subscription can choose.
 func KnownEvent(kind string) bool {
@@ -76,6 +78,16 @@ func NewEnvelope(workspaceID, kind string, socialSetID *string, resource Resourc
 // Emit writes the event to the outbox inside the caller's transaction, so it
 // exists if and only if the change it describes commits.
 func Emit(ctx context.Context, tx *ent.Tx, envelope Envelope) error {
+	// A workspace webhook has no private-set owner identity.
+	if envelope.SocialSetID != nil {
+		visible, err := tx.SocialSet.Query().Where(socialset.ID(*envelope.SocialSetID), socialset.OrganizationID(envelope.WorkspaceID), socialset.VisibilityEQ(socialset.VisibilityWORKSPACE)).Exist(ctx)
+		if err != nil {
+			return err
+		}
+		if !visible {
+			return nil
+		}
+	}
 	encoded, err := json.Marshal(envelope)
 	if err != nil {
 		return err

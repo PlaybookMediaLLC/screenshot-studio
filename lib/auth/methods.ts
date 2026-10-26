@@ -11,7 +11,7 @@ import { getSocialProviderCredentials } from './environment'
  * has already verified the address.
  */
 
-export const SOCIAL_PROVIDERS = ['google', 'github', 'microsoft'] as const
+export const SOCIAL_PROVIDERS = ['google', 'github', 'microsoft', 'linkedin', 'twitter'] as const
 
 export type SocialProvider = (typeof SOCIAL_PROVIDERS)[number]
 
@@ -32,7 +32,9 @@ export function isPasswordAuthEnabled(): boolean {
 export function getEnabledSocialProviders(): SocialProvider[] {
   return SOCIAL_PROVIDERS.filter((provider) =>
     Boolean(
-      getSocialProviderCredentials(provider.toUpperCase() as 'GOOGLE' | 'GITHUB' | 'MICROSOFT')
+      getSocialProviderCredentials(
+        provider.toUpperCase() as Parameters<typeof getSocialProviderCredentials>[0]
+      )
     )
   )
 }

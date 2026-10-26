@@ -8,6 +8,7 @@ export const notificationChannelsSchema = z.object({
 })
 /** A workspace's policy, including its verified Slack destination. */
 export const notificationPolicySchema = z.object({
+  socialSetSlackChannels: z.record(z.string(),z.object({channelId:z.string().max(128),channelName:z.string().max(128)})).optional(),
   availability: notificationChannelsSchema,
   events: z.record(z.string(), notificationChannelsSchema),
   generation: z.number().int().positive(),

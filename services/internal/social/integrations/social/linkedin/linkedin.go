@@ -171,6 +171,15 @@ func Headers(accessToken, contentType string) map[string]string {
 // FetchJSON is `await (await fetch(url, init)).json()` for the calls the original app
 // makes with the global fetch: no retries and no status classification.
 func FetchJSON(ctx context.Context, method, url string, headers map[string]string, body []byte, out any) error {
+	return fetchJSON(ctx, method, url, headers, body, out, false)
+}
+
+// FetchJSONChecked propagates HTTP failures for analytics callers.
+func FetchJSONChecked(ctx context.Context, method, url string, headers map[string]string, body []byte, out any) error {
+	return fetchJSON(ctx, method, url, headers, body, out, true)
+}
+
+func fetchJSON(ctx context.Context, method, url string, headers map[string]string, body []byte, out any, checked bool) error {
 	var reader io.Reader
 	if body != nil {
 		reader = bytes.NewReader(body)
@@ -187,6 +196,11 @@ func FetchJSON(ctx context.Context, method, url string, headers map[string]strin
 		return err
 	}
 	defer res.Body.Close()
+	if checked {
+		if err := integrations.CheckResponse(res); err != nil {
+			return err
+		}
+	}
 	return json.NewDecoder(res.Body).Decode(out)
 }
 
@@ -343,7 +357,7 @@ type companyResult struct {
 	Options *companyOption `json:"options,omitempty"`
 }
 
-var errNoElements = errors.New("Cannot read properties of undefined (reading 'map')")
+var errNoElements = errors.New("LinkedIn did not return an organization lookup result")
 
 // Company resolves a company page URL to a mention option.
 func (p *Provider) Company(ctx context.Context, token string, data json.RawMessage) (any, error) {
@@ -361,17 +375,20 @@ func (p *Provider) Company(ctx context.Context, token string, data json.RawMessa
 			ID            json.Number `json:"id"`
 		} `json:"elements"`
 	}
-	if err := FetchJSON(ctx, http.MethodGet, APIURL+"/v2/organizations?q=vanityName&vanityName="+match[1],
-		Headers(token, "application/json"), nil, &out); err != nil {
+	response, err := p.Fetch(ctx, APIURL+"/rest/organizations?q=vanityName&vanityName="+EncodeURIComponent(match[1]), integrations.Request{Method: http.MethodGet, Headers: Headers(token, "")})
+	if err != nil {
+		return nil, err
+	}
+	if err := response.JSON(&out); err != nil {
 		return nil, err
 	}
 	if out.Elements == nil {
 		return nil, errNoElements
 	}
 	result := companyResult{}
-	if len(out.Elements) > 0 {
+	if len(out.Elements) > 0 && organizationID.MatchString(out.Elements[0].ID.String()) && strings.TrimSpace(out.Elements[0].LocalizedName) != "" {
 		e := out.Elements[0]
-		result.Options = &companyOption{Label: e.LocalizedName, Value: fmt.Sprintf("@[%s](urn:li:organization:%s)", e.LocalizedName, e.ID)}
+		result.Options = &companyOption{Label: e.LocalizedName, Value: p.MentionFormat(e.ID.String(), e.LocalizedName)}
 	}
 	return result, nil
 }
@@ -392,26 +409,41 @@ func (p *Provider) Mention(ctx context.Context, token, query, _ string, _ *ent.I
 			LogoV2        *LogoV2     `json:"logoV2"`
 		} `json:"elements"`
 	}
-	if err := FetchJSON(ctx, http.MethodGet, APIURL+"/v2/organizations?q=vanityName&vanityName="+EncodeURIComponent(query)+
-		"&projection=(elements*(id,localizedName,logoV2(original~:playableStreams)))", Headers(token, "application/json"), nil, &out); err != nil {
+	query = strings.TrimSpace(query)
+	if len(query) < 2 || len(query) > 100 {
+		return nil, false, errors.New("Search an organization using 2 to 100 characters")
+	}
+	response, err := p.Fetch(ctx, APIURL+"/rest/organizations?q=vanityName&vanityName="+EncodeURIComponent(query)+"&projection=(elements*(id,localizedName,logoV2(original~:playableStreams)))", integrations.Request{Method: http.MethodGet, Headers: Headers(token, "")})
+	if err != nil {
+		return nil, false, err
+	}
+	if err := response.JSON(&out); err != nil {
 		return nil, false, err
 	}
 	if out.Elements == nil {
 		return nil, false, errNoElements
 	}
 	results := make([]integrations.MentionResult, 0, len(out.Elements))
+	seen := map[string]bool{}
 	for _, e := range out.Elements {
+		if !organizationID.MatchString(e.ID.String()) || strings.TrimSpace(e.LocalizedName) == "" || seen[e.ID.String()] {
+			continue
+		}
+		seen[e.ID.String()] = true
 		results = append(results, integrations.MentionResult{ID: e.ID.String(), Label: e.LocalizedName, Image: e.LogoV2.URL()})
 	}
 	return results, false, nil
 }
 
 func (p *Provider) MentionFormat(idOrHandle, name string) string {
-	return fmt.Sprintf("@[%s](urn:li:organization:%s)", strings.Replace(name, "@", "", 1), idOrHandle)
+	if !organizationID.MatchString(idOrHandle) {
+		return littleText.Replace(name)
+	}
+	return fmt.Sprintf("@[%s](urn:li:organization:%s)", littleText.Replace(name), idOrHandle)
 }
 
 var (
-	companyMention = regexp.MustCompile(`@\[.+?]\(urn:li:organization.+?\)`)
+	companyMention = regexp.MustCompile(`@\[(?:\\.|[^\]\\])+]\(urn:li:(?:organization:[0-9]{1,30}|person:[A-Za-z0-9_-]{1,100})\)`)
 	// One pass is the same as the TypeScript replace chain: the backslash is
 	// escaped first and no later replacement produces a character it escapes.
 	littleText = strings.NewReplacer(
@@ -421,7 +453,7 @@ var (
 )
 
 // FixText escapes LinkedIn "little text" reserved characters everywhere except
-// inside company mentions.
+// inside valid native organization and person mentions.
 func FixText(text string) string {
 	var out strings.Builder
 	last := 0

@@ -37,6 +37,7 @@ const optionalModelId = z
  * drift apart.
  */
 export const modelEnvSchema = z.object({
+  PLATFORM_AI_MODEL_TRANSCRIPTION: optionalModelId,
   PLATFORM_AI_MODEL_FAST: optionalModelId,
   PLATFORM_AI_MODEL_DEEP: optionalModelId,
   PLATFORM_AI_MODEL_NANO: optionalModelId,

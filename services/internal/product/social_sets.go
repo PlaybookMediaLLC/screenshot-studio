@@ -60,10 +60,12 @@ const (
 
 // SocialAccount is one connected account as a set shows it.
 type SocialAccount struct {
-	AvatarURL   *string   `json:"avatarUrl"`
-	CreatedAt   time.Time `json:"createdAt"`
-	DisplayName *string   `json:"displayName"`
-	Handle      *string   `json:"handle"`
+	MastodonQuotes *bool                      `json:"mastodonQuotes"`
+	PollLimits     *socialidentity.PollLimits `json:"pollLimits"`
+	AvatarURL      *string                    `json:"avatarUrl"`
+	CreatedAt      time.Time                  `json:"createdAt"`
+	DisplayName    *string                    `json:"displayName"`
+	Handle         *string                    `json:"handle"`
 	// Health is connected, unverified, reconnect_required, expired, revoked, removed or permission_required.
 	Health      string  `json:"health"`
 	ID          string  `json:"id"`
@@ -74,6 +76,7 @@ type SocialAccount struct {
 	Premium       bool  `json:"premium"`
 	XCaptionLimit *int  `json:"xCaptionLimit"`
 	XArticles     *bool `json:"xArticles"`
+	XQuotes       bool  `json:"xQuotes"`
 }
 
 // WritingAssistantRecord is a set's assistant with its derived status:
@@ -381,6 +384,9 @@ func socialAccount(connection *ent.ChannelConnection, health string) SocialAccou
 
 // workspaceAIEnabled reads the workspace AI switch.
 func (c *Configuration) workspaceAIEnabled(ctx context.Context, organizationID string) bool {
+	if c.requireWorkspaceFeature(ctx, organizationID, "workspace:paid") != nil {
+		return false
+	}
 	settings, err := c.client.WorkspaceSettings.Get(ctx, organizationID)
 	return err != nil || settings.AiAgentEnabled
 }
@@ -431,9 +437,11 @@ func (c *Configuration) socialSetRecords(ctx context.Context, actor Actor, sets 
 	accounts := map[string][]SocialAccount{}
 	for _, connection := range connections {
 		account := socialAccount(connection, health[connection.ID])
-		if connection.Platform == "x" && account.Health == AccountConnected {
+		if (connection.Platform == "x" || connection.Platform == "mastodon-custom") && account.Health == AccountConnected {
 			standing := c.accountStanding(ctx, connection)
-			account.Premium, account.XCaptionLimit, account.XArticles = standing.Premium, standing.XCaptionLimit, standing.XArticles
+			account.Premium, account.XCaptionLimit, account.XArticles, account.PollLimits = standing.Premium, standing.XCaptionLimit, standing.XArticles, standing.PollLimits
+			account.MastodonQuotes = standing.MastodonQuotes
+			account.XQuotes = standing.XQuotes
 		}
 		accounts[*connection.SocialSetID] = append(accounts[*connection.SocialSetID], account)
 	}
@@ -699,10 +707,20 @@ func validEngagement(engagement schema.Engagement) (schema.Engagement, error) {
 	return engagement, nil
 }
 
-// UpdateSocialSet saves the fields input sets. Publishers, admins and owners
-// may change a set they can see; the write is guarded by its version.
+// UpdateSocialSet saves the fields input sets. Admins and owners may change a
+// set they can see; the write is guarded by its version.
 func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id string, input SocialSetUpdate) (*SocialSetRecord, error) {
-	if err := c.authorizeSocialSetManage(ctx, actor); err != nil {
+	return c.updateSocialSet(ctx, actor, id, input, false)
+}
+
+func (c *Configuration) updateSocialSet(ctx context.Context, actor Actor, id string, input SocialSetUpdate, queueOnly bool) (*SocialSetRecord, error) {
+	authorize := func(config *Configuration) error {
+		if queueOnly {
+			return config.authorizeSocialSetQueue(ctx, actor)
+		}
+		return config.authorizeSocialSetManage(ctx, actor)
+	}
+	if err := authorize(c); err != nil {
 		return nil, err
 	}
 	if input.BaseVersion < 1 {
@@ -713,6 +731,12 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := lockSocialSetAuthority(ctx, tx, actor, id); err != nil {
+		return nil, err
+	}
+	if err := authorize(NewConfiguration(tx.Client())); err != nil {
+		return nil, err
+	}
 	set, err := visibleSocialSet(ctx, tx.Client(), actor, id)
 	if err != nil {
 		return nil, err
@@ -741,6 +765,11 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		}
 		update.SetTimeZone(*input.TimeZone)
 		changed = append(changed, "timeZone")
+	}
+	if input.PostingSlots != nil || (input.NaturalPostingTimes != nil && *input.NaturalPostingTimes) || input.EngagementDefaults != nil {
+		if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, advancedSchedulingFeature); err != nil {
+			return nil, err
+		}
 	}
 	if input.PostingSlots != nil {
 		slots, err := queueSlots(*input.PostingSlots)
@@ -783,10 +812,12 @@ func (c *Configuration) UpdateSocialSet(ctx context.Context, actor Actor, id str
 		first := defaults[0]
 		primary = &first
 	}
-	if primary == nil {
-		update.ClearPrimaryPlatform()
-	} else {
-		update.SetPrimaryPlatform(*primary)
+	if !queueOnly {
+		if primary == nil {
+			update.ClearPrimaryPlatform()
+		} else {
+			update.SetPrimaryPlatform(*primary)
+		}
 	}
 	if input.EngagementDefaults != nil {
 		engagement, err := validEngagement(*input.EngagementDefaults)

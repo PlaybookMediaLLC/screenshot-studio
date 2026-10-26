@@ -15,7 +15,7 @@ import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
  */
 
 const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'pro' },
+  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'free' },
 }
 /** A draft's organizing properties; none of them is content. */
 export const draftPropertiesInputSchema = z.strictObject({
@@ -23,6 +23,7 @@ export const draftPropertiesInputSchema = z.strictObject({
   pinned: z.boolean().optional(),
   removeTagIds: z.array(contentDraftIdSchema).max(20).optional(),
   scratchpad: z.string().max(20_000).optional(),
+  suppressSlackOnPublish: z.boolean().optional(),
 })
 
 /** `PATCH /api/v1/content-drafts/{id}/properties` */
@@ -52,6 +53,8 @@ export const updateDraftPropertiesContract = defineContract({
 
 /** A plan: a future time and its zone, or null to clear it. */
 export const draftPlanInputSchema = z.strictObject({
+  /** Omitted legacy revisions can only initialize a never-planned draft. */
+  baseCalendarVersion: z.number().int().positive().optional(),
   plannedFor: z.iso.datetime({ offset: true }).nullable(),
   timeZone: z.string().max(80).optional(),
 })
@@ -106,6 +109,7 @@ export const duplicateContentDraftContract = defineContract({
   }),
   method: 'POST',
   name: 'content-drafts.duplicate',
+  query: z.object({ requestKey: z.string().min(1).max(200).optional() }),
   output: draftCopyResultSchema,
   params: contentDraftParamsSchema,
   path: '/api/v1/content-drafts/{id}/duplicate',

@@ -133,6 +133,11 @@ export const routeContractMetaSchema = z.object({
   /** Who may call it: the route binds this, and OpenAPI publishes it. */
   access: contractAccessSchema.optional(),
   bodyFormat: bodyFormatSchema.default('json'),
+  /** Maximum streamed request size, enforced before decoding or schema validation. */
+  maxBodyBytes: z
+    .int()
+    .positive()
+    .default(32 * 1024 * 1024),
   docs: contractDocsSchema.optional(),
   method: httpMethodSchema,
   /** Stable name for logs and metrics, such as `releases.create`. */

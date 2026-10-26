@@ -1,6 +1,8 @@
 'use client'
 
 import * as React from 'react'
+import { PreviewLinkCard } from './preview-link-card'
+import { LinkPreviewCard } from './link-cards'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -11,12 +13,17 @@ import {
 } from '@/components/ui/select'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { assetContentUrl } from '@/lib/editor/services'
-import { CAPABILITIES } from '@/lib/write/capabilities'
+import type { SerializedMedia } from '@/lib/content-drafts/serialize'
+import { previewLineLimit, previewScale, xCollapsedText } from '@/lib/write/preview-layout'
 import type { DraftChannel, DraftTarget } from '@/lib/write/document'
 import type { Publication } from '@/lib/write/publication'
 import { cn } from '@/lib/utils'
 import type { ComposerAccount } from './platforms'
 import { PdfCarousel } from './pdf-carousel'
+
+const DescribeMediaContext = React.createContext<((media: SerializedMedia) => void) | undefined>(
+  undefined
+)
 
 /** Devices the mobile preview lays out for, at their CSS viewport sizes. */
 const DEVICES = [
@@ -28,9 +35,6 @@ const DEVICES = [
   { height: 780, label: 'Samsung Galaxy S25', width: 360 },
   { height: 915, label: 'Google Pixel 10', width: 412 },
 ] as const
-
-/** Where a platform cuts a long post with "more": X shows 280 before "Show more"; LinkedIn about 210. */
-const CUTOFFS: Partial<Record<DraftChannel, number>> = { linkedin: 210, x: 280 }
 
 /** One destination's preview: its account and its publication. */
 export type PreviewItem = { account: ComposerAccount; publication: Publication }
@@ -44,12 +48,16 @@ export type PreviewItem = { account: ComposerAccount; publication: Publication }
 export function PreviewPanel({
   items,
   target,
+  onDescribe,
+  initialChannel,
 }: {
+  initialChannel?: DraftChannel
+  onDescribe?: (media: SerializedMedia) => void
   items: PreviewItem[]
   target: DraftTarget | null
 }) {
   const [channel, setChannel] = React.useState<DraftChannel | null>(
-    items[0]?.account.channel ?? null
+    initialChannel ?? items[0]?.account.channel ?? null
   )
   const [device, setDevice] = React.useState<'desktop' | (typeof DEVICES)[number]['label']>(
     'desktop'
@@ -98,20 +106,22 @@ export function PreviewPanel({
           </SelectContent>
         </Select>
       </div>
-      <div
-        className={cn(
-          'mx-auto w-full overflow-y-auto rounded-2xl border border-white/10 bg-black',
-          size ? 'shadow-2xl' : ''
-        )}
-        data-testid={`preview-${item.account.channel}`}
-        style={size ? { height: Math.min(size.height, 720), width: size.width } : undefined}
-      >
-        {item.account.channel === 'linkedin' ? (
-          <LinkedInPost item={item} target={target} />
-        ) : (
-          <ThreadPreview item={item} target={target} />
-        )}
-      </div>
+      <DescribeMediaContext.Provider value={onDescribe}>
+        <ScaledPreview width={size?.width ?? 600} height={size?.height}>
+          <div data-testid={`preview-${item.account.channel}`} key={item.account.id}>
+            {item.publication.target.options?.articleTitle ? (
+              <ArticlePreview item={item} />
+            ) : item.account.channel === 'linkedin' ? (
+              <LinkedInPost item={item} target={target} />
+            ) : (
+              <ThreadPreview item={item} target={target} />
+            )}
+          </div>
+        </ScaledPreview>
+      </DescribeMediaContext.Provider>
+      <p className="text-[11px] text-neutral-500">
+        Layout simulation. Feed cutoffs can vary by app and device.
+      </p>
       {item.publication.problems.length > 0 ? (
         <ul className="grid gap-0.5" role="alert">
           {item.publication.problems.map((problem) => (
@@ -152,52 +162,121 @@ function Avatar({ account, size = 'size-10' }: { account: ComposerAccount; size?
   )
 }
 
-/** Text cut where the platform shows "more", with the rest one tap away. */
+/** Scale an intrinsic feed column inside the available panel, with its own scrolling. */
+function ScaledPreview({
+  width,
+  height,
+  children,
+}: {
+  width: number
+  height?: number
+  children: React.ReactNode
+}) {
+  const container = React.useRef<HTMLDivElement>(null)
+  const content = React.useRef<HTMLDivElement>(null)
+  const [geometry, setGeometry] = React.useState({ available: width, height: 0 })
+  React.useLayoutEffect(() => {
+    const measure = () =>
+      setGeometry({
+        available: container.current?.clientWidth ?? width,
+        height: content.current?.scrollHeight ?? 0,
+      })
+    const observer = new ResizeObserver(measure)
+    if (container.current) observer.observe(container.current)
+    if (content.current) observer.observe(content.current)
+    measure()
+    return () => observer.disconnect()
+  }, [width])
+  const scale = previewScale(geometry.available, width)
+  return (
+    <div
+      ref={container}
+      className="w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-2xl border border-white/10 bg-black"
+      style={{ maxHeight: height ? Math.min(height * scale, 720) : '70vh' }}
+      data-testid="preview-scroll"
+    >
+      <div style={{ height: geometry.height * scale, position: 'relative' }}>
+        <div
+          ref={content}
+          style={{ width, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+          data-testid="preview-device-content"
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Browser line layout provides wrapping; long X posts also use weighted entity counting. */
 function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
   const [open, setOpen] = React.useState(false)
-  const cutoff = CUTOFFS[channel]
-  const lines = text.split('\n')
-  const long =
-    cutoff !== undefined &&
-    ([...text].length > cutoff || (channel === 'linkedin' && lines.length > 3))
-  const shown =
-    !long || open
-      ? text
-      : channel === 'linkedin'
-        ? lines.slice(0, 3).join('\n').slice(0, cutoff)
-        : [...text].slice(0, cutoff).join('')
+  const [overflow, setOverflow] = React.useState(false)
+  const paragraph = React.useRef<HTMLParagraphElement>(null)
+  const id = React.useId()
+  const lines = previewLineLimit(channel, text)
+  const collapsed = channel === 'x' ? xCollapsedText(text) : text
+  React.useLayoutEffect(() => {
+    const node = paragraph.current
+    if (!node || !lines || open) return
+    const measure = () =>
+      setOverflow(node.scrollHeight > parseFloat(getComputedStyle(node).lineHeight) * lines + 1)
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    measure()
+    return () => observer.disconnect()
+  }, [text, lines, open])
+  const long = collapsed !== text || overflow
   return (
-    <p className="whitespace-pre-wrap break-words text-[15px] leading-snug text-neutral-100">
-      <Mentions channel={channel} text={shown} />
-      {long && !open ? (
-        <>
-          {channel === 'linkedin' ? '… ' : ' '}
-          <Button
-            className="text-neutral-400 hover:underline"
-            onClick={() => setOpen(true)}
-            size={null}
-            type="button"
-            variant="custom"
-          >
-            {channel === 'linkedin' ? 'more' : 'Show more'}
-          </Button>
-        </>
+    <div>
+      <p
+        ref={paragraph}
+        id={id}
+        className="whitespace-pre-wrap break-words text-[15px] leading-[20px] text-neutral-100"
+        style={
+          !open && lines
+            ? {
+                display: '-webkit-box',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: lines,
+                overflow: 'hidden',
+                overflowWrap: 'anywhere',
+              }
+            : { overflowWrap: 'anywhere' }
+        }
+      >
+        <Mentions channel={channel} text={open ? text : collapsed} />
+      </p>
+      {long ? (
+        <Button
+          aria-controls={id}
+          aria-expanded={open}
+          className="text-[15px] text-sky-400 hover:underline"
+          onClick={() => setOpen(!open)}
+          size={null}
+          type="button"
+          variant="custom"
+        >
+          {open ? 'Show less' : channel === 'linkedin' ? '…more' : 'Show more'}
+        </Button>
       ) : null}
-    </p>
+    </div>
   )
 }
 
 /** Mentions and links drawn in the platform's link colour; LinkedIn annotations by their name. */
 function Mentions({ channel, text }: { channel: DraftChannel; text: string }) {
-  const parts = text.split(/(@\[[^\]]+\]\(urn:li:[^)]+\)|@[A-Za-z0-9_]{1,30}|https?:\/\/\S+)/g)
+  const parts = text.split(
+    /(@\[(?:\\.|[^\]\\])+\]\(urn:li:(?:organization:[0-9]{1,30}|person:[A-Za-z0-9_-]{1,100})\)|@[A-Za-z0-9_]{1,30}|https?:\/\/\S+)/g
+  )
   return (
     <>
       {parts.map((part, index) => {
-        const annotation = /^@\[([^\]]+)\]/.exec(part)
+        const annotation = /^@\[((?:\\.|[^\]\\])+)\]/.exec(part)
         if (annotation)
           return (
             <span className="font-medium text-sky-400" key={index}>
-              {annotation[1]}
+              {annotation[1].replace(/\\([\\|{}@[\]()<>#*_~])/g, '$1')}
             </span>
           )
         if (/^@|^https?:/.test(part))
@@ -212,25 +291,59 @@ function Mentions({ channel, text }: { channel: DraftChannel; text: string }) {
   )
 }
 
-/** A post's images in the platform's grid. */
-function Media({ assetIds, channel }: { assetIds: string[]; channel: DraftChannel }) {
-  const shown = assetIds.slice(0, CAPABILITIES[channel].media.imageLimit)
-  if (shown.length === 0) return null
+/** Render every normalized attachment in publication order, including its real description. */
+function Media({ media }: { media: SerializedMedia[] }) {
+  const onDescribe = React.useContext(DescribeMediaContext)
+  if (media.length === 0) return null
   return (
     <div
       className={cn(
         'mt-2 grid gap-0.5 overflow-hidden rounded-2xl border border-white/10',
-        shown.length > 1 && 'grid-cols-2'
+        media.length > 1 && 'grid-cols-2'
       )}
     >
-      {shown.map((assetId) => (
-        // biome-ignore lint/performance/noImgElement: signed asset redirects
-        <img
-          alt=""
-          className="aspect-video w-full bg-white/5 object-cover"
-          key={assetId}
-          src={assetContentUrl(assetId)}
-        />
+      {media.map((item, index) => (
+        <figure className="relative m-0 min-w-0" key={`${item.id}-${index}`}>
+          {item.kind === 'video' ? (
+            <video
+              aria-label={item.alt || 'Attached video'}
+              className="aspect-video w-full bg-white/5 object-contain"
+              controls
+              preload="metadata"
+              src={assetContentUrl(item.assetId)}
+            />
+          ) : (
+            <img
+              alt={item.alt}
+              className="aspect-video w-full bg-white/5 object-cover"
+              src={assetContentUrl(item.assetId)}
+            />
+          )}
+          {item.kind !== 'video' && onDescribe ? (
+            <Button
+              aria-label={item.alt ? 'Edit image description' : 'Add image description'}
+              className="bg-black/80 px-2 text-xs"
+              size="sm"
+              onClick={() => onDescribe(item)}
+            >
+              {item.alt ? 'Edit ALT' : '+ALT'}
+            </Button>
+          ) : null}
+          {item.photoTags.length ? (
+            <p className="text-xs">Tagged: {item.photoTags.map((tag) => tag.label).join(', ')}</p>
+          ) : null}
+          {item.alt ? (
+            <details className="bg-black/80 px-2 text-xs text-neutral-100">
+              <summary className="cursor-pointer">ALT</summary>
+              <p>{item.alt}</p>
+            </details>
+          ) : null}
+          {item.processingStatus !== 'ready' ? (
+            <figcaption role="status">
+              {item.processingStatus === 'failed' ? 'Processing failed' : 'Processing…'}
+            </figcaption>
+          ) : null}
+        </figure>
       ))}
     </div>
   )
@@ -261,10 +374,11 @@ function Poll({
         </span>
       ))}
       <p className="text-[11px] text-neutral-400">
-        {poll.durationMinutes >= 1_440
-          ? `${poll.durationMinutes / 1_440} day${poll.durationMinutes === 1_440 ? '' : 's'}`
-          : `${poll.durationMinutes} minutes`}{' '}
-        left
+        {channel === 'threads' && poll.durationMinutes === 0
+          ? 'Duration set by the platform'
+          : poll.durationMinutes >= 1_440
+            ? `${poll.durationMinutes / 1_440} day${poll.durationMinutes === 1_440 ? '' : 's'} left`
+            : `${poll.durationMinutes} minutes left`}
       </p>
     </div>
   )
@@ -293,13 +407,13 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
   const channel = account.channel
   const posts = publication.serialized.posts
   return (
-    <div className="p-3">
+    <div className={cn('p-3', channel === 'threads' && 'bg-[#101010]')} data-platform={channel}>
       {target?.kind === 'reply' ? (
         <p className="mb-2 text-xs text-neutral-400">Replying to {target.author ?? target.url}</p>
       ) : null}
       {(posts.length > 0
         ? posts
-        : [{ assetIds: [], caption: '', group: 0, images: 0, length: 0, videos: 0 }]
+        : [{ assetIds: [], media: [], caption: '', group: 0, images: 0, length: 0, videos: 0 }]
       ).map((post, index, list) => {
         const settings = publication.settings[index] ?? {}
         return (
@@ -319,9 +433,26 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
                 <span className="ml-1 text-neutral-400">· now</span>
               </p>
               <Truncated channel={channel} text={post.caption} />
-              <Media assetIds={post.assetIds} channel={channel} />
-              {index === 0 && publication.target.poll ? (
-                <Poll channel={channel} poll={publication.target.poll} />
+              {post.media.length === 0 &&
+              !settings.poll &&
+              target?.kind !== 'quote' &&
+              !publication.target.options?.linkPreview ? (
+                <PreviewLinkCard text={post.caption} />
+              ) : null}
+              <Media media={post.media} />
+              {settings.poll ? <Poll channel={channel} poll={settings.poll} /> : null}
+              {(
+                index === 0
+                  ? publication.target.options?.linkPreview
+                  : publication.target.replies?.[index - 1]?.options?.linkPreview
+              ) ? (
+                <LinkPreviewCard
+                  card={
+                    (index === 0
+                      ? publication.target.options?.linkPreview
+                      : publication.target.replies?.[index - 1]?.options?.linkPreview)!
+                  }
+                />
               ) : null}
               {index === 0 && target?.kind === 'quote' ? <TargetCard target={target} /> : null}
               {settings.quoteFirstPost ? (
@@ -371,7 +502,7 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
       <div className="mt-2">
         <Truncated channel="linkedin" text={post?.caption ?? ''} />
       </div>
-      {post ? <Media assetIds={post.assetIds} channel="linkedin" /> : null}
+      {post ? <Media media={post.media} /> : null}
       {publication.target.poll ? (
         <Poll channel="linkedin" poll={publication.target.poll} question={options?.pollQuestion} />
       ) : null}
@@ -387,6 +518,34 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
           {options.firstComment}
         </div>
       ) : null}
+    </article>
+  )
+}
+
+/** The article body comes exclusively from articleContent's escaped allowlisted serializer. */
+function ArticlePreview({ item }: { item: PreviewItem }) {
+  const options = item.publication.target.options!
+  const html = (options.articleHtml ?? '').replace(
+    /data-asset-id="([a-z0-9-]+)"/g,
+    (_, id: string) => `src="${assetContentUrl(id)}"`
+  )
+  return (
+    <article className="p-4" data-testid="article-preview">
+      {options.articleCoverAssetId ? (
+        <img
+          alt="Article cover"
+          className="mb-4 aspect-video rounded-lg object-cover"
+          src={assetContentUrl(options.articleCoverAssetId)}
+        />
+      ) : null}
+      <h1 className="mb-3 text-2xl font-bold">{options.articleTitle}</h1>
+      <p className="mb-4 text-sm text-neutral-400">
+        {item.account.displayName ?? item.account.handle}
+      </p>
+      <div
+        className="prose prose-invert max-w-none [&_p]:mb-3 [&_h1]:text-2xl [&_h2]:text-xl [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-5 [&_a]:text-sky-400 [&_img]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:pl-3"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </article>
   )
 }

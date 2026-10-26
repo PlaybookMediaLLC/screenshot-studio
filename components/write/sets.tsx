@@ -62,7 +62,7 @@ export function SocialSetSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          aria-label={`Brand: ${active?.name ?? 'none'}`}
+          aria-label={`Publishing brand: ${active?.name ?? 'none'}`}
           className="flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-left text-sm text-white hover:bg-white/[0.05]"
           data-testid="social-set-switcher"
           size={null}
@@ -71,7 +71,7 @@ export function SocialSetSwitcher() {
         >
           {active ? <SetDot color={active.color} /> : null}
           <span className="min-w-0 flex-1 truncate font-medium">
-            {active?.name ?? 'No brand'}
+            {active?.name ?? 'No publishing brand'}
           </span>
           {active ? <SetAccounts set={active} /> : null}
           {active?.needsAttention ? (
@@ -85,7 +85,7 @@ export function SocialSetSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80">
-        <DropdownMenuLabel>Brands</DropdownMenuLabel>
+        <DropdownMenuLabel>Publishing brands</DropdownMenuLabel>
         {data.sets.map((set) => (
           <DropdownMenuItem
             className="flex items-center gap-2"
@@ -97,6 +97,7 @@ export function SocialSetSwitcher() {
                 activeId &&
                 activeId !== 'plan' &&
                 activeId !== 'settings' &&
+                activeId !== 'analyze' &&
                 set.id !== data.activeSet?.id
               )
                 router.push(`/write?set=${encodeURIComponent(set.id)}`)
@@ -131,7 +132,7 @@ export function SocialSetSwitcher() {
               </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem asChild>
-              <Link href="/workspace/social-sets">New brand…</Link>
+              <Link href="/workspace/social-sets">New publishing brand…</Link>
             </DropdownMenuItem>
           </>
         ) : null}

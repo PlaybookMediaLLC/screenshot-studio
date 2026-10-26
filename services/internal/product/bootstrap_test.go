@@ -11,8 +11,8 @@ func TestBootstrapEntitlementRespectsStatusDatesAndOverrides(t *testing.T) {
 	t.Setenv("PLATFORM_CAMPAIGN_WORKFLOW", "")
 	now := time.Date(2026, time.October, 14, 12, 0, 0, 0, time.UTC)
 	plan, status, features := evaluateBootstrapEntitlement(nil, now)
-	// A workspace without a subscription gets nothing.
-	if plan != "free" || status != "active" || features["asset:read"] || features["workspace:use"] {
+	// An active free workspace gets basic scheduling, while paid features stay closed.
+	if plan != "free" || status != "active" || features["asset:read"] || !features["workspace:use"] || !features["content:drafts"] || features["workspace:paid"] || features[advancedSchedulingFeature] {
 		t.Fatalf("unsubscribed workspace has features: %s %s %+v", plan, status, features)
 	}
 	grace := now.Add(time.Hour)
@@ -29,8 +29,12 @@ func TestBootstrapEntitlementRespectsStatusDatesAndOverrides(t *testing.T) {
 	}
 	t.Setenv("PLATFORM_CAMPAIGN_WORKFLOW", "enabled")
 	_, _, features = evaluateBootstrapEntitlement(entitlement, now)
-	if !features["campaign:workflow"] || features["asset:read"] {
-		t.Fatalf("rollout flag changed unrelated features: %+v", features)
+	if features["campaign:workflow"] || features["asset:read"] {
+		t.Fatalf("rollout flag reopened an expired entitlement: %+v", features)
+	}
+	_, _, features = evaluateBootstrapEntitlement(nil, now)
+	if features["campaign:workflow"] {
+		t.Fatal("rollout flag granted paid campaign features to free workspace")
 	}
 }
 

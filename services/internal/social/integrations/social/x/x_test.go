@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/png"
 	"io"
@@ -292,7 +293,7 @@ func TestFinalizeTweetError(t *testing.T) {
 	defer done()
 	pending := marshal(pendingData{Message: "hi", Attempting: true, Confirmed: true})
 	_, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount())
-	if temporalx.FailureType(err) != temporalx.TypeBadBody ||
+	if temporalx.FailureType(err) != temporalx.TypePublicationRejected ||
 		temporalx.FailureMessage(err) != "There is a problem posting, please edit your post and check character count and media attachments" {
 		t.Fatalf("err = %v", err)
 	}
@@ -532,5 +533,39 @@ func TestAltTextGoesOnTheMedia(t *testing.T) {
 	}
 	if !found || metadata.ID != "11" || metadata.Metadata.AltText.Text != "A chart of signups" {
 		t.Fatalf("metadata = %+v (found %v)", metadata, found)
+	}
+}
+
+func TestArticlePreservesStylesEmptyParagraphsAndEmbeddedPosts(t *testing.T) {
+	state := articleContentState(`<p><strong>😀</strong><em>italic</em><s>strike</s><br>next</p><p></p><blockquote data-x-post="123"><a href="https://x.com/i/status/123">post</a></blockquote>`, nil, nil)
+	if len(state.Blocks) != 3 || state.Blocks[0].Text != "😀italicstrike\nnext" || state.Blocks[1].Text != "" || state.Blocks[2].Type != "atomic" {
+		t.Fatalf("blocks: %+v", state.Blocks)
+	}
+	styles := state.Blocks[0].InlineStyleRanges
+	if len(styles) != 3 || styles[0].Length != 2 || styles[1].Offset != 2 || styles[1].Style != "italic" || styles[2].Style != "strikethrough" {
+		t.Fatalf("styles: %+v", styles)
+	}
+	if len(state.Entities) != 1 || state.Entities[0].Value.Type != "post" || state.Entities[0].Value.Data.(map[string]string)["post_id"] != "123" {
+		t.Fatalf("entities: %+v", state.Entities)
+	}
+}
+
+func TestCommunityBroadcastKeepsExplicitFalse(t *testing.T) {
+	for _, share := range []bool{false, true} {
+		t.Run(fmt.Sprint(share), func(t *testing.T) {
+			calls, done := fakePublishingX(t, func(r recorded) (int, string) { return 201, `{"data":{"id":"99"}}` })
+			defer done()
+			pending := marshal(pendingData{Message: "community", Settings: pendingSettings{WhoCanReplyPost: ptr("everyone"), Community: ptr("https://x.com/i/communities/42"), ShareWithFollowers: &share}, Attempting: true, Confirmed: true})
+			if _, err := New().FinalizePost(context.Background(), "a:b", pending, publishingAccount()); err != nil {
+				t.Fatal(err)
+			}
+			var body map[string]any
+			if err := json.Unmarshal((*calls)[1].body, &body); err != nil {
+				t.Fatal(err)
+			}
+			if body["share_with_followers"] != share || body["community_id"] != "42" {
+				t.Fatalf("broadcast intent lost: %v", body)
+			}
+		})
 	}
 }

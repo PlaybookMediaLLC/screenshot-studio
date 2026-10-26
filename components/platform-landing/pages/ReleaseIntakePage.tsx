@@ -16,10 +16,12 @@ const SCOPE_NOTES: Record<ApiKeyScope, string> = {
   'source:write': 'Register source apps that send signed webhooks.',
   'asset:write': 'Create and complete workspace assets.',
   'upload:sign': 'Request signed upload URLs for asset bytes.',
+  'draft:comment': 'Comment on workspace drafts without approving or publishing.',
   'draft:write': 'Create, update, and delete content drafts.',
   'artifact:read': 'Read releases, assets, and generated artifacts.',
   'onboarding:run': 'Read a product site into its profile and follow the run.',
   'post:schedule': 'Schedule approved campaign posts. People still approve.',
+  'queue:write': 'Change future queue slots without moving or publishing posts.',
 }
 
 /** Field limits match releaseCreateSchema in lib/tenant/schemas.ts. */

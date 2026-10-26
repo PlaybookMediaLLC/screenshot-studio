@@ -5,8 +5,11 @@ package postoptions
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // AutoActions are what happens after a post is live, on channels that
@@ -19,8 +22,8 @@ type AutoActions struct {
 	PlugAtLikes int    `json:"plugAtLikes,omitempty"`
 	PlugText    string `json:"plugText,omitempty"`
 	PlugMetric  string `json:"plugMetric,omitempty"`
-	// QuoteAfterHours posts QuoteText with a link to the post this many hours
-	// after it went out, which X shows as a quote.
+	// QuoteAfterHours posts QuoteText as a native quote this many hours after
+	// publication. The provider must grant native quote access at execution.
 	QuoteAfterHours int    `json:"quoteAfterHours,omitempty"`
 	QuoteText       string `json:"quoteText,omitempty"`
 	// Retweets repost the post at each rule's time (RFC 025), and
@@ -70,16 +73,32 @@ func (r RetweetRule) When(publishedAt time.Time) (time.Time, error) {
 
 // Poll is a question's choices and how long it stays open.
 type Poll struct {
+	Multiple        bool     `json:"multiple,omitempty"`
 	DurationMinutes int      `json:"durationMinutes"`
 	Options         []string `json:"options"`
 }
 
 // ThreadProgress is how much of a thread is live: the replies posted, of
 // how many, and the last live reply a resumed thread answers.
+// ThreadReceipt records the exact successful continuation for attribution.
+type ThreadReceipt struct {
+	RemoteID    string    `json:"remoteId"`
+	Position    int       `json:"position"`
+	PublishedAt time.Time `json:"publishedAt"`
+}
+
 type ThreadProgress struct {
-	LastReplyID string `json:"lastReplyId,omitempty"`
-	Posted      int    `json:"posted"`
-	Total       int    `json:"total"`
+	Quotes      []QuoteReceipt  `json:"quotes,omitempty"`
+	Receipts    []ThreadReceipt `json:"receipts,omitempty"`
+	LastReplyID string          `json:"lastReplyId,omitempty"`
+	Posted      int             `json:"posted"`
+	Total       int             `json:"total"`
+}
+
+// QuoteReceipt preserves the native quote approval state of a published status.
+type QuoteReceipt struct {
+	PostID string `json:"postId"`
+	State  string `json:"state"`
 }
 
 // Metrics are a live post's engagement counts by name (likes, reposts,
@@ -91,6 +110,10 @@ type Metrics map[string]float64
 // belongs to the platforms whose adapter sends it; scheduling refuses it
 // anywhere else. Zero values are off.
 type PublishOptions struct {
+	// X: up to ten numeric user IDs tagged in attached photos.
+	PhotoTagIDs   []string     `json:"photoTagIds,omitempty"`
+	LinkPreview   *LinkPreview `json:"linkPreview,omitempty"`
+	TaggedUserIDs []string     `json:"taggedUserIds,omitempty"`
 	// X: who can reply (following, mentionedUsers, subscribers, verified);
 	// empty is everyone. Replies never change who can see the post.
 	ReplySettings string `json:"replySettings,omitempty"`
@@ -105,6 +128,7 @@ type PublishOptions struct {
 	// X: this reply quotes the thread's first post, once it is live.
 	QuoteFirstPost bool `json:"quoteFirstPost,omitempty"`
 	// X articles: the title and cover; the caption is the body.
+	ArticleHTML         string `json:"articleHtml,omitempty"`
 	ArticleTitle        string `json:"articleTitle,omitempty"`
 	ArticleCoverAssetID string `json:"articleCoverAssetId,omitempty"`
 	// LinkedIn: PUBLIC or CONNECTIONS; empty is PUBLIC.
@@ -119,7 +143,9 @@ type PublishOptions struct {
 }
 
 // Empty reports whether no option is set.
-func (o PublishOptions) Empty() bool { return o == PublishOptions{} }
+func (o PublishOptions) Empty() bool {
+	return len(o.PhotoTagIDs) == 0 && len(o.TaggedUserIDs) == 0 && func() bool { o.TaggedUserIDs = nil; o.PhotoTagIDs = nil; return reflect.DeepEqual(o, PublishOptions{}) }()
+}
 
 // LivePostURL is a live post's address on its platform, where one can be
 // built from its id.
@@ -133,7 +159,12 @@ func LivePostURL(platform string, remoteID *string) *string {
 		url = "https://x.com/i/status/" + *remoteID
 	case "linkedin":
 		url = "https://www.linkedin.com/feed/update/" + *remoteID
-	case "threads", "bluesky", "mastodon":
+	case "bluesky":
+		if uri, err := socialidentity.BlueskyPostURI(*remoteID); err == nil {
+			parts := strings.Split(strings.TrimPrefix(uri, "at://"), "/")
+			url = "https://bsky.app/profile/" + parts[0] + "/post/" + parts[2]
+		}
+	case "threads", "mastodon", "mastodon-custom":
 		// These providers report a post's address as its id.
 		if strings.HasPrefix(*remoteID, "https://") {
 			url = *remoteID

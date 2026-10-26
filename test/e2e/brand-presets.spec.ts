@@ -79,14 +79,14 @@ test('a brand kit and a saved preset style another screenshot the same way', asy
   await kitDialog.getByRole('button', { name: 'Create brand kit' }).click()
   await expect(kitDialog).toBeHidden()
   await expect(
-    page.getByRole('list', { name: 'Brand kits' }).getByText('Acme', { exact: true })
+    page.getByRole('list', { name: 'Visual brand kits' }).getByText('Acme', { exact: true })
   ).toBeVisible()
 
   await page.getByRole('button', { name: 'Apply Acme' }).click()
   await expect(page.getByText('Applied Acme')).toBeVisible()
   await expect(page.locator('[data-overlay-id="brand-logo"]')).toHaveCount(1)
   await expect(
-    page.getByRole('list', { name: 'Brand kits' }).getByText(/applied \(v1\)/)
+    page.getByRole('list', { name: 'Visual brand kits' }).getByText(/applied \(v1\)/)
   ).toBeVisible()
   // Brand gradient: the kit background (#0b1020) in the top-left corner.
   const branded = await exportPng(page)
@@ -115,7 +115,7 @@ test('a brand kit and a saved preset style another screenshot the same way', asy
     .getByRole('alertdialog', { name: 'Start over?' })
     .getByRole('button', { name: 'Start over' })
     .click()
-  await page.getByRole('button', { exact: true, name: 'Remove' }).click()
+  await page.getByRole('button', { exact: true, name: 'Remove screenshot' }).click()
   await expect(page.locator('img[alt="Main image"]')).toHaveCount(0)
   await dropScreenshot(page, '#16a34a')
   await expect(page.locator('[data-overlay-id="brand-logo"]')).toHaveCount(0)

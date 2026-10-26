@@ -56,11 +56,14 @@ func (f *fakeSigner) SignDelivery(_ context.Context, organizationID, key string)
 }
 
 type fakePoster struct {
-	calls int
-	media int
+	quoteState string
+	calls      int
+	media      int
 	// replies records each reply as "message>answers", in order.
 	replies          []string
 	poll             *integrations.PollDetails
+	replyPolls       []*integrations.PollDetails
+	message          string
 	path             string
 	err              error
 	status           string
@@ -78,7 +81,10 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if id != wantID || token != "private-token" || len(posts) != 1 || posts[0].ID != "canonical-post-1" {
 		return nil, errors.New("incorrect provider input")
 	}
-	f.path, f.media, f.poll = posts[0].Media[0].Path, len(posts[0].Media), posts[0].Poll
+	f.message, f.media, f.poll = posts[0].Message, len(posts[0].Media), posts[0].Poll
+	if len(posts[0].Media) > 0 {
+		f.path = posts[0].Media[0].Path
+	}
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -89,7 +95,7 @@ func (f *fakePoster) Post(_ context.Context, id, token string, posts []integrati
 	if f.afterPost != nil {
 		f.afterPost()
 	}
-	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status}}, nil
+	return []integrations.PostResponse{{PostID: "remote-post-1", Status: status, QuoteState: f.quoteState}}, nil
 }
 
 func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ string, posts []integrations.PostDetails, _ *socialent.Integration) ([]integrations.PostResponse, error) {
@@ -98,10 +104,30 @@ func (f *fakePoster) Comment(_ context.Context, _, postID, lastCommentID, _ stri
 		answers = postID
 	}
 	f.replies = append(f.replies, posts[0].Message+">"+answers)
+	f.replyPolls = append(f.replyPolls, posts[0].Poll)
 	if f.afterReply != nil {
 		f.afterReply()
 	}
-	return []integrations.PostResponse{{PostID: fmt.Sprintf("reply-%d", len(f.replies))}}, nil
+	return []integrations.PostResponse{{PostID: fmt.Sprintf("reply-%d", len(f.replies)), QuoteState: f.quoteState}}, nil
+}
+
+func TestNativeQuoteReceiptsPreservePublishedRootAndReplies(t *testing.T) {
+	for _, replies := range []int{0, 1} {
+		p, _, poster, input := directFixture()
+		poster.quoteState = "pending"
+		if replies > 0 {
+			input.Replies = []publishing.PublishReply{{Caption: "Finisher"}}
+		}
+		result, err := p.PublishThread(context.Background(), input)
+		if err != nil || result.PostID != "remote-post-1" || result.Thread.Posted != replies || len(result.Thread.Quotes) != replies+1 || poster.calls != 1 {
+			t.Fatalf("published outcome lost: %#v %v", result, err)
+		}
+		for _, quote := range result.Thread.Quotes {
+			if quote.PostID == "" || quote.State != "pending" {
+				t.Fatal(quote)
+			}
+		}
+	}
 }
 
 func directFixture() (*Publisher, *fakeSigner, *fakePoster, socialapi.PublishInput) {
@@ -142,6 +168,34 @@ func TestDirectPublisherPostsAThreadAsChainedReplies(t *testing.T) {
 	id, err := p.Publish(context.Background(), input)
 	if err != nil || id != "remote-post-1" || strings.Join(poster.replies, ",") != "two>remote-post-1,three>reply-1" {
 		t.Fatalf("id=%q err=%v replies=%v", id, err, poster.replies)
+	}
+}
+
+func TestDirectPublisherKeepsEachReplyPoll(t *testing.T) {
+	p, _, poster, input := directFixture()
+	input.Replies = []publishing.PublishReply{{Caption: "First reply"}, {Caption: "Question?", Poll: &postoptions.Poll{DurationMinutes: 6, Options: []string{"Yes", "No"}}}}
+	if _, err := p.Publish(context.Background(), input); err != nil {
+		t.Fatal(err)
+	}
+	if len(poster.replyPolls) != 2 || poster.replyPolls[0] != nil || poster.replyPolls[1] == nil || poster.replyPolls[1].DurationMinutes != 6 {
+		t.Fatalf("reply polls were lost or moved: %+v", poster.replyPolls)
+	}
+}
+
+func TestThreadReceiptsKeepEachExactProviderIDForAnalytics(t *testing.T) {
+	p, _, _, input := directFixture()
+	input.Replies = []publishing.PublishReply{{Caption: "two"}, {Caption: "three"}}
+	receipt, err := p.PublishThread(context.Background(), input)
+	if err != nil || len(receipt.Thread.Receipts) != 2 {
+		t.Fatalf("receipt=%+v %v", receipt, err)
+	}
+	for i, remote := range receipt.Thread.Receipts {
+		if remote.Position != i+1 || remote.RemoteID == "" || remote.RemoteID == receipt.PostID || remote.PublishedAt.IsZero() {
+			t.Fatalf("reply=%+v", remote)
+		}
+	}
+	if receipt.Thread.Receipts[0].RemoteID == receipt.Thread.Receipts[1].RemoteID {
+		t.Fatal("reply IDs collapsed")
 	}
 }
 
@@ -280,5 +334,69 @@ func TestLegacyAutoActPreservesUnknownDelivery(t *testing.T) {
 	result, err := p.AutoAct(context.Background(), socialapi.AutoActionInput{OrganizationID: input.OrganizationID, DestinationID: input.DestinationID, Platform: input.Platform, SecretReference: input.SecretReference, RemotePostID: "42", Plug: true, PlugAtLikes: 1, PlugText: "reply", Quote: true, QuoteText: "later"})
 	if temporalx.FailureType(err) != temporalx.TypeUnknownDelivery || result.Plugged || provider.calls != 0 {
 		t.Fatalf("uncertainty swallowed or later mutation sent: %+v %v calls=%d", result, err, provider.calls)
+	}
+}
+
+func TestArticlePublisherUsesRichSnapshotAndSignsInlineMediaOnce(t *testing.T) {
+	p, signer, provider, input := directFixture()
+	account := p.integrations.(fakeIntegrations).item
+	verifiedDirectAccount(t, account, "x")
+	provider.expectedNativeID = account.InternalID
+	input.Platform = "x"
+	input.Assets = []publishing.MediaAsset{{AssetID: "casset000001", MediaType: "image/png", ObjectKey: "org/product-org/inline.png"}}
+	input.Options = &postoptions.PublishOptions{ArticleTitle: "Article", ArticleHTML: `<p><em>rich</em></p><img data-asset-id="casset000001">`}
+	if _, err := p.Publish(context.Background(), input); err != nil {
+		t.Fatal(err)
+	}
+	if signer.calls != 1 || provider.media != 0 || !strings.Contains(provider.message, `<em>rich</em>`) || !strings.Contains(provider.message, `src="https://r2.example/private/image.png?fresh-signature"`) {
+		t.Fatalf("signs=%d media=%d message=%s", signer.calls, provider.media, provider.message)
+	}
+	input.Options.ArticleHTML = `<img data-asset-id="cother000001">`
+	if _, err := p.Publish(context.Background(), input); err == nil || provider.calls != 1 {
+		t.Fatal("unbound image reached provider")
+	}
+}
+
+type analyticsPoster struct{ *fakePoster }
+
+func (p *analyticsPoster) PostAnalytics(context.Context, string, string, string, int64) ([]integrations.AnalyticsData, error) {
+	return []integrations.AnalyticsData{{Label: "Impressions", Data: []integrations.AnalyticsItem{{Total: "0", Date: "2026-10-24"}}}}, nil
+}
+
+func TestAnalyticsCapabilitiesDoNotInheritPublishingRolloutRestrictions(t *testing.T) {
+	p, _, base, input := directFixture()
+	p.integrations.(fakeIntegrations).item.ProviderIdentifier = "facebook"
+	p.resolve = func(string) poster { return &analyticsPoster{base} }
+	if !p.AnalyticsCapabilities("facebook").Posts {
+		t.Fatal("installed analytics capability hidden")
+	}
+	metrics, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "facebook", input.SecretReference, "remote-post")
+	if err != nil || len(metrics) != 1 || metrics["impressions"] != 0 {
+		t.Fatalf("metrics=%v error=%v", metrics, err)
+	}
+	if _, err := p.PostMetrics(context.Background(), input.OrganizationID, input.DestinationID, "facebook", "another-tenant-secret", "remote-post"); err == nil {
+		t.Fatal("analytics bypassed credential binding")
+	}
+	input.Platform = "facebook"
+	if _, err := p.Publish(context.Background(), input); err == nil {
+		t.Fatal("analytics widened publication rollout")
+	}
+}
+
+func TestDirectPublisherPreservesDefiniteRejection(t *testing.T) {
+	p, _, poster, input := directFixture()
+	poster.err = temporalx.PublicationRejected("x", "invalid poll")
+	_, err := p.Publish(context.Background(), input)
+	var providerErr *socialapi.Error
+	if !errors.As(err, &providerErr) || providerErr.UnknownDelivery || providerErr.Status != 400 || poster.calls != 1 {
+		t.Fatalf("known rejection became unknown: %v", err)
+	}
+}
+
+func TestLegacyBadBodyCannotProveRejectedDelivery(t *testing.T) {
+	err := publicationOutcome(temporalx.BadBody("linkedin", "{}", "{}", "may already be published"))
+	var providerErr *socialapi.Error
+	if !errors.As(err, &providerErr) || !providerErr.UnknownDelivery {
+		t.Fatalf("unsafe retry enabled: %v", err)
 	}
 }

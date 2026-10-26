@@ -219,7 +219,7 @@ func TestWriteWorkspace(t *testing.T) {
 			t.Fatal(err)
 		}
 		at := time.Now().Add(24 * time.Hour).Truncate(time.Minute)
-		if _, err := repo.PlanContentDraft(ctx, writer, draft.ID, ContentDraftPlanInput{PlannedFor: &at, TimeZone: "UTC"}); err != nil {
+		if _, err := repo.PlanContentDraft(ctx, writer, draft.ID, ContentDraftPlanInput{BaseCalendarVersion: draft.CalendarVersion, PlannedFor: &at, TimeZone: "UTC"}); err != nil {
 			t.Fatalf("someone who never opted in could not plan: %v", err)
 		}
 		states, err := repo.ListExperiments(ctx, writer)
@@ -245,7 +245,7 @@ func TestWriteWorkspace(t *testing.T) {
 			t.Fatal(err)
 		}
 		at := time.Now().Add(48 * time.Hour).Truncate(time.Minute)
-		planned, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{PlannedFor: &at, TimeZone: "Europe/Paris"})
+		planned, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{BaseCalendarVersion: draft.CalendarVersion, PlannedFor: &at, TimeZone: "Europe/Paris"})
 		if err != nil || planned.PlannedFor == nil || !planned.PlannedFor.Equal(at) || planned.Version != draft.Version {
 			t.Fatalf("planned=%+v err=%v", planned, err)
 		}
@@ -257,17 +257,17 @@ func TestWriteWorkspace(t *testing.T) {
 			t.Fatalf("calendar=%+v err=%v", calendar, err)
 		}
 		past := time.Now().Add(-time.Hour)
-		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{PlannedFor: &past, TimeZone: "UTC"}); !errors.Is(err, ErrInvalidInput) {
+		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{BaseCalendarVersion: planned.CalendarVersion, PlannedFor: &past, TimeZone: "UTC"}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("a past plan was accepted: %v", err)
 		}
-		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{PlannedFor: &at, TimeZone: "Mars/Olympus"}); !errors.Is(err, ErrInvalidInput) {
+		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{BaseCalendarVersion: planned.CalendarVersion, PlannedFor: &at, TimeZone: "Mars/Olympus"}); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("an unknown zone was accepted: %v", err)
 		}
 		revisions, err := repo.ListContentDraftRevisions(ctx, owner, draft.ID)
 		if err != nil || len(revisions) != 1 || revisions[0].Reason != "plan" {
 			t.Fatalf("a plan keeps a backup: %+v err=%v", revisions, err)
 		}
-		cleared, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{})
+		cleared, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{BaseCalendarVersion: planned.CalendarVersion})
 		if err != nil || cleared.PlannedFor != nil {
 			t.Fatalf("cleared=%+v err=%v", cleared, err)
 		}
@@ -416,7 +416,7 @@ func TestWriteWorkspace(t *testing.T) {
 		backup("old_evening", oldDay.Add(20*time.Hour))
 		backup("ancient", now.Add(-400*day))
 		planned := time.Now().Add(day)
-		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{PlannedFor: &planned, TimeZone: "UTC"}); err != nil {
+		if _, err := repo.PlanContentDraft(ctx, owner, draft.ID, ContentDraftPlanInput{BaseCalendarVersion: draft.CalendarVersion, PlannedFor: &planned, TimeZone: "UTC"}); err != nil {
 			t.Fatal(err)
 		}
 		rows, err := w.db.Client.ContentDraftRevision.Query().Where(contentdraftrevision.ContentDraftID(draft.ID)).All(ctx)

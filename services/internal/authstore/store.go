@@ -311,6 +311,10 @@ func (q *query) selection(fields []string) (string, error) {
 // Execute runs one adapter operation. Single-row writes lock exactly one
 // matching row, so a non-unique filter never changes more than one record.
 func (s *Store) Execute(ctx context.Context, request Request) (*Result, error) {
+	request, err := scopeSCIMRequest(request)
+	if err != nil {
+		return nil, err
+	}
 	if !tables[request.Model] {
 		return nil, fmt.Errorf("%w: model %q", ErrInvalid, request.Model)
 	}

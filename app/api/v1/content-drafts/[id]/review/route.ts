@@ -1,13 +1,13 @@
 import { reviewContentDraftContract } from '@/lib/api/contracts/content-draft-platform'
 import { errorResponse, route } from '@/lib/api/route'
-import { organizationAccess } from '@/lib/api/route-auth'
+import { memberAccess } from '@/lib/api/route-auth'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { hasPermission } from '@/lib/auth/permissions'
 import { reviewContentDraft } from '@/lib/tenant/content-drafts'
 
 /** Writers request review; a separate approval permission decides the result. */
 export const POST = route(reviewContentDraftContract, {
-  auth: organizationAccess('artifact:read'),
+  auth: memberAccess({ permission: 'artifact:read', feature: 'content:drafts' }),
   handler: async ({ access, body, params }) => {
     if (!contentDraftsEnabled()) return errorResponse(404, 'Content draft not found.')
     const permission = body.action === 'request' ? 'artifact:edit' : 'release:approve'

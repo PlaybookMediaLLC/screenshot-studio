@@ -80,6 +80,7 @@ export const listScheduledPostsContract = defineContract({
 export const createScheduledPostContract = defineContract({
   access: {
     apiKeyScope: 'post:schedule',
+    feature: 'workspace:paid',
     permission: 'publish:manage',
     quota: 'api:write:minute',
     sensitive: true,

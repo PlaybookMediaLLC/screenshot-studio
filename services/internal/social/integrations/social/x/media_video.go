@@ -61,7 +61,7 @@ type videoTrack struct {
 	avc, aac bool
 }
 
-func inspectMP4(ctx context.Context, file *os.File, size int64) (int64, error) {
+func inspectMP4(ctx context.Context, file *os.File, size int64, facts ...*mediaFacts) (int64, error) {
 	invalid := func() (int64, error) {
 		return 0, publishRejected("Choose a complete MP4 video with H.264 video, valid timing, and optional mono or stereo AAC-LC audio.")
 	}
@@ -265,6 +265,10 @@ func inspectMP4(ctx context.Context, file *os.File, size int64) (int64, error) {
 			}
 			if t.visual == nil || !t.avc || t.visual.Width < 32 || t.visual.Height < 32 {
 				return invalid()
+			}
+			if len(facts) > 0 {
+				facts[0].Width, facts[0].Height = int(t.visual.Width), int(t.visual.Height)
+				facts[0].VideoCodec = "h264"
 			}
 			if uint32(t.visual.Width) > 3*uint32(t.visual.Height) || uint32(t.visual.Height) > 3*uint32(t.visual.Width) {
 				return 0, publishRejected("X video aspect ratios must be between 1:3 and 3:1.")

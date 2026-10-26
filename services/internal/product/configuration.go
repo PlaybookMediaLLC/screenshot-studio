@@ -81,6 +81,7 @@ type Configuration struct {
 	web *http.Client
 	// postMetrics reads a live post's engagement from its platform (RFC 013).
 	postMetrics PostMetricsReader
+	analytics   AnalyticsReader
 	// accounts reads an account's standing on its platform, such as X Premium (RFC 025).
 	accounts AccountStandingReader
 	// webhookKey seals outbound webhook secrets; webhookResolver checks their

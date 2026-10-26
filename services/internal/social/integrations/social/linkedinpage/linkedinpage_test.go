@@ -138,7 +138,7 @@ func TestAnalytics(t *testing.T) {
 	labels := []string{"Page Views", "Clicks", "Shares", "Engagement", "Comments", "Organic Followers", "Paid Followers"}
 	totals := []string{"12", "4", "1", "0.25", "2", "3", "0"}
 	for i, a := range got {
-		if a.Label != labels[i] || len(a.Data) != 1 || a.Data[0].Total != totals[i] || a.PercentageChange != 5 {
+		if a.Label != labels[i] || len(a.Data) != 1 || a.Data[0].Total != totals[i] || a.PercentageChange != 0 {
 			t.Fatalf("%d: %+v", i, a)
 		}
 	}
@@ -157,7 +157,8 @@ func TestPostAnalyticsFallsBackToSocialActions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 2 || got[0].Label != "Likes" || got[0].Data[0].Total != "5" || got[1].Label != "Comments" || got[1].Data[0].Total != "0" {
+	// An omitted comments count is unknown, never an invented zero.
+	if len(got) != 1 || got[0].Label != "Likes" || got[0].Data[0].Total != "5" {
 		t.Fatalf("got %+v", got)
 	}
 	if !strings.HasSuffix((*calls)[0].uri, "&shares=List(urn%3Ali%3Ashare%3A9)") {
@@ -169,7 +170,10 @@ func TestAutoRepostPost(t *testing.T) {
 	plugDelay = 0
 	calls := serve(t, map[string]http.HandlerFunc{
 		"GET /v2/socialActions/urn:li:share:9": jsonReply(map[string]any{"likesSummary": map[string]any{"totalLikes": 10}}),
-		"POST /rest/posts":                     func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusCreated) },
+		"POST /rest/posts": func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("x-restli-id", "urn:li:share:10")
+			w.WriteHeader(http.StatusCreated)
+		},
 	})
 	integration := &ent.Integration{InternalID: "42", Token: "tok"}
 	if fired, err := New().AutoRepostPost(context.Background(), integration, "urn:li:share:9", map[string]string{"likesAmount": "11"}); err != nil || fired {
@@ -212,5 +216,16 @@ func TestRetryThenBadBody(t *testing.T) {
 	_, err := New().AutoPlugPost(context.Background(), &ent.Integration{Token: "tok"}, "x", map[string]string{"likesAmount": "1"})
 	if temporalx.FailureType(err) != temporalx.TypeBadBody {
 		t.Fatalf("got %v", err)
+	}
+}
+
+func TestPostAnalyticsPreservesZeroAndOmitsMissingCounters(t *testing.T) {
+	serve(t, map[string]http.HandlerFunc{
+		"GET /v2/organizationalEntityShareStatistics": jsonReply(map[string]any{"elements": []any{map[string]any{"totalShareStatistics": map[string]any{"impressionCount": 0, "likeCount": 4}}}}),
+		"GET /v2/socialActions/urn:li:share:9":        func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusForbidden) },
+	})
+	got, err := New().PostAnalytics(context.Background(), "42", "tok", "urn:li:share:9", 0)
+	if err != nil || len(got) != 2 || got[0].Label != "Impressions" || got[0].Data[0].Total != "0" || got[1].Label != "Likes" || got[1].Data[0].Total != "4" {
+		t.Fatalf("counters=%+v error=%v", got, err)
 	}
 }

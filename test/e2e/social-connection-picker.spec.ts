@@ -83,7 +83,7 @@ test('provider-first creation stays layered, commits once, and preserves its set
     await enablePublishingTwoFactor(page, identity.password)
     organizationId = await bindTestGoOrganization(page)
     await page.goto('/workspace/social-sets?picker=preserve')
-    await expect(page.getByText('No brands yet', { exact: true })).toBeVisible()
+    await expect(page.getByText('No publishing brands yet', { exact: true })).toBeVisible()
     expect(await list()).toHaveLength(0)
     const originalURL = page.url()
     const launch = page.getByRole('button', { name: 'Add social set to your personal workspace' })
@@ -214,7 +214,7 @@ test('provider-first creation stays layered, commits once, and preserves its set
     expect(created.visibility).toBe('PRIVATE')
     expect(created.accounts).toHaveLength(1)
     expect(created.accounts[0]?.platform).toBe('x')
-    await expect(page.getByLabel('Brand name', { exact: true })).toHaveValue('New brand')
+    await expect(page.getByLabel('Publishing brand name', { exact: true })).toHaveValue('New brand')
     await page.getByRole('button', { name: 'Add social account', exact: true }).click()
     await expect(dialog.getByRole('heading', { name: 'Add account to “New brand”' })).toBeVisible()
     await expect(

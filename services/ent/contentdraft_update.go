@@ -234,6 +234,27 @@ func (_u *ContentDraftUpdate) AppendGuestComments(v []map[string]string) *Conten
 	return _u
 }
 
+// SetCalendarVersion sets the "calendar_version" field.
+func (_u *ContentDraftUpdate) SetCalendarVersion(v int) *ContentDraftUpdate {
+	_u.mutation.ResetCalendarVersion()
+	_u.mutation.SetCalendarVersion(v)
+	return _u
+}
+
+// SetNillableCalendarVersion sets the "calendar_version" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableCalendarVersion(v *int) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetCalendarVersion(*v)
+	}
+	return _u
+}
+
+// AddCalendarVersion adds value to the "calendar_version" field.
+func (_u *ContentDraftUpdate) AddCalendarVersion(v int) *ContentDraftUpdate {
+	_u.mutation.AddCalendarVersion(v)
+	return _u
+}
+
 // SetVersion sets the "version" field.
 func (_u *ContentDraftUpdate) SetVersion(v int) *ContentDraftUpdate {
 	_u.mutation.ResetVersion()
@@ -395,6 +416,20 @@ func (_u *ContentDraftUpdate) SetNillableScratchpad(v *string) *ContentDraftUpda
 	return _u
 }
 
+// SetSuppressSlackOnPublish sets the "suppress_slack_on_publish" field.
+func (_u *ContentDraftUpdate) SetSuppressSlackOnPublish(v bool) *ContentDraftUpdate {
+	_u.mutation.SetSuppressSlackOnPublish(v)
+	return _u
+}
+
+// SetNillableSuppressSlackOnPublish sets the "suppress_slack_on_publish" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableSuppressSlackOnPublish(v *bool) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetSuppressSlackOnPublish(*v)
+	}
+	return _u
+}
+
 // SetTagIds sets the "tag_ids" field.
 func (_u *ContentDraftUpdate) SetTagIds(v []string) *ContentDraftUpdate {
 	_u.mutation.SetTagIds(v)
@@ -444,6 +479,27 @@ func (_u *ContentDraftUpdate) SetNillablePlanTimeZone(v *string) *ContentDraftUp
 // ClearPlanTimeZone clears the value of the "plan_time_zone" field.
 func (_u *ContentDraftUpdate) ClearPlanTimeZone() *ContentDraftUpdate {
 	_u.mutation.ClearPlanTimeZone()
+	return _u
+}
+
+// SetCollabGeneration sets the "collab_generation" field.
+func (_u *ContentDraftUpdate) SetCollabGeneration(v int) *ContentDraftUpdate {
+	_u.mutation.ResetCollabGeneration()
+	_u.mutation.SetCollabGeneration(v)
+	return _u
+}
+
+// SetNillableCollabGeneration sets the "collab_generation" field if the given value is not nil.
+func (_u *ContentDraftUpdate) SetNillableCollabGeneration(v *int) *ContentDraftUpdate {
+	if v != nil {
+		_u.SetCollabGeneration(*v)
+	}
+	return _u
+}
+
+// AddCollabGeneration adds value to the "collab_generation" field.
+func (_u *ContentDraftUpdate) AddCollabGeneration(v int) *ContentDraftUpdate {
+	_u.mutation.AddCollabGeneration(v)
 	return _u
 }
 
@@ -558,6 +614,11 @@ func (_u *ContentDraftUpdate) check() error {
 			return &ValidationError{Name: "review_status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.review_status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CollabGeneration(); ok {
+		if err := contentdraft.CollabGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "collab_generation", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.collab_generation": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -650,6 +711,12 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 			sqljson.Append(u, contentdraft.FieldGuestComments, value)
 		})
 	}
+	if value, ok := _u.mutation.CalendarVersion(); ok {
+		_spec.SetField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCalendarVersion(); ok {
+		_spec.AddField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)
 	}
@@ -698,6 +765,9 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Scratchpad(); ok {
 		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.SuppressSlackOnPublish(); ok {
+		_spec.SetField(contentdraft.FieldSuppressSlackOnPublish, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.TagIds(); ok {
 		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)
 	}
@@ -720,6 +790,12 @@ func (_u *ContentDraftUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.SourceDraftIDCleared() {
 		_spec.ClearField(contentdraft.FieldSourceDraftID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CollabGeneration(); ok {
+		_spec.SetField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCollabGeneration(); ok {
+		_spec.AddField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)
@@ -965,6 +1041,27 @@ func (_u *ContentDraftUpdateOne) AppendGuestComments(v []map[string]string) *Con
 	return _u
 }
 
+// SetCalendarVersion sets the "calendar_version" field.
+func (_u *ContentDraftUpdateOne) SetCalendarVersion(v int) *ContentDraftUpdateOne {
+	_u.mutation.ResetCalendarVersion()
+	_u.mutation.SetCalendarVersion(v)
+	return _u
+}
+
+// SetNillableCalendarVersion sets the "calendar_version" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableCalendarVersion(v *int) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetCalendarVersion(*v)
+	}
+	return _u
+}
+
+// AddCalendarVersion adds value to the "calendar_version" field.
+func (_u *ContentDraftUpdateOne) AddCalendarVersion(v int) *ContentDraftUpdateOne {
+	_u.mutation.AddCalendarVersion(v)
+	return _u
+}
+
 // SetVersion sets the "version" field.
 func (_u *ContentDraftUpdateOne) SetVersion(v int) *ContentDraftUpdateOne {
 	_u.mutation.ResetVersion()
@@ -1126,6 +1223,20 @@ func (_u *ContentDraftUpdateOne) SetNillableScratchpad(v *string) *ContentDraftU
 	return _u
 }
 
+// SetSuppressSlackOnPublish sets the "suppress_slack_on_publish" field.
+func (_u *ContentDraftUpdateOne) SetSuppressSlackOnPublish(v bool) *ContentDraftUpdateOne {
+	_u.mutation.SetSuppressSlackOnPublish(v)
+	return _u
+}
+
+// SetNillableSuppressSlackOnPublish sets the "suppress_slack_on_publish" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableSuppressSlackOnPublish(v *bool) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetSuppressSlackOnPublish(*v)
+	}
+	return _u
+}
+
 // SetTagIds sets the "tag_ids" field.
 func (_u *ContentDraftUpdateOne) SetTagIds(v []string) *ContentDraftUpdateOne {
 	_u.mutation.SetTagIds(v)
@@ -1175,6 +1286,27 @@ func (_u *ContentDraftUpdateOne) SetNillablePlanTimeZone(v *string) *ContentDraf
 // ClearPlanTimeZone clears the value of the "plan_time_zone" field.
 func (_u *ContentDraftUpdateOne) ClearPlanTimeZone() *ContentDraftUpdateOne {
 	_u.mutation.ClearPlanTimeZone()
+	return _u
+}
+
+// SetCollabGeneration sets the "collab_generation" field.
+func (_u *ContentDraftUpdateOne) SetCollabGeneration(v int) *ContentDraftUpdateOne {
+	_u.mutation.ResetCollabGeneration()
+	_u.mutation.SetCollabGeneration(v)
+	return _u
+}
+
+// SetNillableCollabGeneration sets the "collab_generation" field if the given value is not nil.
+func (_u *ContentDraftUpdateOne) SetNillableCollabGeneration(v *int) *ContentDraftUpdateOne {
+	if v != nil {
+		_u.SetCollabGeneration(*v)
+	}
+	return _u
+}
+
+// AddCollabGeneration adds value to the "collab_generation" field.
+func (_u *ContentDraftUpdateOne) AddCollabGeneration(v int) *ContentDraftUpdateOne {
+	_u.mutation.AddCollabGeneration(v)
 	return _u
 }
 
@@ -1302,6 +1434,11 @@ func (_u *ContentDraftUpdateOne) check() error {
 			return &ValidationError{Name: "review_status", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.review_status": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.CollabGeneration(); ok {
+		if err := contentdraft.CollabGenerationValidator(v); err != nil {
+			return &ValidationError{Name: "collab_generation", err: fmt.Errorf(`ent: validator failed for field "ContentDraft.collab_generation": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -1411,6 +1548,12 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 			sqljson.Append(u, contentdraft.FieldGuestComments, value)
 		})
 	}
+	if value, ok := _u.mutation.CalendarVersion(); ok {
+		_spec.SetField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCalendarVersion(); ok {
+		_spec.AddField(contentdraft.FieldCalendarVersion, field.TypeInt, value)
+	}
 	if value, ok := _u.mutation.Version(); ok {
 		_spec.SetField(contentdraft.FieldVersion, field.TypeInt, value)
 	}
@@ -1459,6 +1602,9 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 	if value, ok := _u.mutation.Scratchpad(); ok {
 		_spec.SetField(contentdraft.FieldScratchpad, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.SuppressSlackOnPublish(); ok {
+		_spec.SetField(contentdraft.FieldSuppressSlackOnPublish, field.TypeBool, value)
+	}
 	if value, ok := _u.mutation.TagIds(); ok {
 		_spec.SetField(contentdraft.FieldTagIds, field.TypeJSON, value)
 	}
@@ -1481,6 +1627,12 @@ func (_u *ContentDraftUpdateOne) sqlSave(ctx context.Context) (_node *ContentDra
 	}
 	if _u.mutation.SourceDraftIDCleared() {
 		_spec.ClearField(contentdraft.FieldSourceDraftID, field.TypeString)
+	}
+	if value, ok := _u.mutation.CollabGeneration(); ok {
+		_spec.SetField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedCollabGeneration(); ok {
+		_spec.AddField(contentdraft.FieldCollabGeneration, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CollabState(); ok {
 		_spec.SetField(contentdraft.FieldCollabState, field.TypeBytes, value)

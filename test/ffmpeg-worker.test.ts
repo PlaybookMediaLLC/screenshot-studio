@@ -11,9 +11,9 @@ test("the served FFmpeg worker path matches the installed @ffmpeg/ffmpeg version
   assert.match(ENCODER_SOURCE, new RegExp(`FFMPEG_CLASS_WORKER_PATH = '/ffmpeg/${version.replace(/\./g, "\\.")}/worker\\.js'`));
 });
 
-test("the unbundled FFmpeg worker files are identical to the installed package", () => {
+test("the unbundled FFmpeg client and worker files are identical to the installed package", () => {
   // Upgrading @ffmpeg/ffmpeg without recopying would load a mismatched worker in production.
-  for (const file of ["worker.js", "const.js", "errors.js"]) {
+  for (const file of ["classes.js", "utils.js", "worker.js", "const.js", "errors.js"]) {
     assert.equal(
       readFileSync(path.join(process.cwd(), "public/ffmpeg", version, file), "utf8"),
       readFileSync(path.join(PACKAGE_DIR, "dist/esm", file), "utf8"),

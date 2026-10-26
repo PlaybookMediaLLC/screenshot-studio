@@ -1,4 +1,4 @@
-import { createCollabTokenContract } from '@/lib/api/contracts/content-drafts'
+import { createCollabTokenContract } from '@/lib/api/contracts/draft-collaboration'
 import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'

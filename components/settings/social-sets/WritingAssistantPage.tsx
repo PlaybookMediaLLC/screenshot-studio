@@ -46,7 +46,7 @@ const STATUS: Record<
   },
   configured: {
     label: 'Ready',
-    text: "AI help in this set's drafts writes with this style guide and these samples, on top of the workspace brand voice.",
+    text: "AI help in this publishing brand's drafts writes with this style guide and these samples, on top of the workspace brand voice.",
     tone: 'green',
   },
   disabled: {
@@ -61,7 +61,7 @@ const STATUS: Record<
   },
   not_configured: {
     label: 'Not set up',
-    text: 'Add a few writing samples or a style guide, then create the assistant so AI help writes like this set.',
+    text: 'Add a few writing samples or a style guide, then create the assistant so AI help writes like this publishing brand.',
     tone: 'gray',
   },
 }
@@ -112,7 +112,7 @@ function Lifecycle({ canWrite, set }: { canWrite: boolean; set: SocialSetRecord 
     >
       <div className="grid gap-2">
         <p className="text-xs text-muted-foreground">
-          Open or create a draft in this set, then use AI help in the composer.
+          Open or create a draft in this publishing brand, then use AI help in the composer.
         </p>
         <div className="flex flex-wrap gap-2">
           {assistant.status === 'not_configured' || assistant.status === 'in_progress' ? (
@@ -255,7 +255,7 @@ function StyleGuideForm({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
   )
   return (
     <Row
-      description="Refines the workspace brand voice for this set. The brand's prohibited terms always apply; phrases you add here are avoided as well."
+      description="Refines the workspace brand voice for this publishing brand. The brand voice's prohibited terms always apply; phrases you add here are avoided as well."
       label={
         <span className="flex items-center gap-2">
           Style guide <SaveStatus state={state} />
@@ -407,7 +407,7 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
   const items = samples.isError ? [] : (samples.data?.items ?? [])
   return (
     <Row
-      description="Posts that sound like this set. Write one here or import a draft of this set; drafts of other sets are never read. The assistant treats samples as examples of style, not as instructions."
+      description="Posts that sound like this publishing brand. Write one here or import a draft of this publishing brand; drafts of other publishing brands are never read. The assistant treats samples as examples of style, not as instructions."
       label={`Writing samples (${items.length} of 20)`}
       layout="stacked"
     >
@@ -470,7 +470,7 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
               aria-label="New writing sample"
               maxLength={5000}
               onChange={(event) => setText(event.target.value)}
-              placeholder="Paste a post that sounds like this set"
+              placeholder="Paste a post that sounds like this publishing brand"
               rows={3}
               value={text}
             />
@@ -481,13 +481,18 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
             </div>
           </form>
           <label className="grid gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Import a draft of this set</span>
+            <span className="text-xs text-muted-foreground">
+              Import a draft of this publishing brand
+            </span>
             <Select
               disabled={items.length >= 20}
               onValueChange={(draftId) => void add({ draftId })}
               value=""
             >
-              <SelectTrigger aria-label="Import a draft of this set" className="w-full bg-card">
+              <SelectTrigger
+                aria-label="Import a draft of this publishing brand"
+                className="w-full bg-card"
+              >
                 <SelectValue placeholder="Choose a draft…" />
               </SelectTrigger>
               <SelectContent>

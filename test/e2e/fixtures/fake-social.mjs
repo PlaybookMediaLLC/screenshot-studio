@@ -101,4 +101,4 @@ createServer(async (request, response) => {
   } catch {
     return reply(response, 422, { error: 'invalid social request or media' })
   }
-}).listen(8080, '0.0.0.0')
+}).listen(Number(process.env.SOCIAL_E2E_PORT ?? 8080), '0.0.0.0')

@@ -16,7 +16,7 @@ configureE2EFlow()
  * Write (RFC 025) end to end: the library, the composer, platform
  * versions, previews, properties, planning, scheduling, backups and
  * sharing, on a desktop and a phone. Posts are scheduled for later or fail
- * against the social API mock, so nothing reaches a real account.
+ * using fixture-only credentials; blocked or rejected provider requests never reach an authorized account.
  */
 
 /** A screenshot for the delivery report, once dialogs and sheets finish animating. */
@@ -170,6 +170,7 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
     await page.getByTestId('schedule-button').click()
     await expect(schedule).toBeVisible()
     await schedule.getByRole('button', { name: /^Tomorrow 9:00/ }).click()
+    await schedule.getByLabel('Open a new draft after scheduling').uncheck()
     await schedule.getByRole('button', { name: /^Confirm schedule/ }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     const posts = await draftPosts(draftId)
@@ -280,7 +281,7 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     const publish = page.getByTestId('publish-review')
     await expect(publish).toContainText('Publishing as')
     await expect(publish.getByTestId('review-destination')).toHaveCount(2)
-    await expect(publish.getByTestId('automation-auto-dm')).toContainText('direct-message access')
+    await expect(publish.getByTestId('automation-auto-dm')).toContainText('authorized X messaging')
     await expect(publish.getByTestId('automation-auto-dm').getByRole('switch')).toBeDisabled()
     await publish.getByTestId('automation-auto-rt').getByRole('switch').click()
     const autoRT = page.getByTestId('auto-rt-dialog')
@@ -295,15 +296,44 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     )
     await snap(page, 'write-publish-review')
 
-    // Publish now: the social API mock refuses posts, so both destinations fail.
+    // Commit through Publish now, then seed confirmed provider failures.
+    // Worker outcome semantics are covered by the Go state-machine tests;
+    // this browser case never sends fixture credentials to real providers.
     await publish.getByRole('button', { name: 'Publish now' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
-    await expect
-      .poll(async () => (await draftPosts(draftId)).map((post) => post.status).sort(), {
-        timeout: 180_000,
-      })
-      .toEqual(['FAILED', 'FAILED'])
+    const db = createE2EDatabase()
+    try {
+      await db.query(
+        // A running worker may already have claimed the posts.
+        `UPDATE scheduled_post SET status='FAILED' WHERE "contentDraftId"=$1 AND status IN ('SCHEDULED', 'PROCESSING')`,
+        [draftId]
+      )
+    } finally {
+      await db.end()
+    }
+    expect((await draftPosts(draftId)).map((post) => post.status).sort()).toEqual([
+      'FAILED',
+      'FAILED',
+    ])
     await page.reload()
+    const unknown = page.getByTestId('draft-post').filter({ hasText: 'Outcome unknown' })
+    while (await unknown.count()) {
+      const remaining = await unknown.count()
+      await expect(
+        unknown.first().getByRole('button', { name: 'Retry this destination' })
+      ).toHaveCount(0)
+      await unknown.first().getByRole('button', { name: 'I checked the account…' }).click()
+      // This fixture has no real provider credential, so publication is known not to exist.
+      await page.getByRole('button', { name: 'It is not there', exact: true }).click()
+      await expect
+        .poll(
+          async () =>
+            (await draftPosts(draftId)).filter((post) => post.status === 'UNKNOWN_DELIVERY').length
+        )
+        .toBe(remaining - 1)
+      await expect(unknown).toHaveCount(remaining - 1)
+    }
+    expect((await draftPosts(draftId)).map((post) => post.status)).toEqual(['FAILED', 'FAILED'])
     const failed = page.getByTestId('draft-post').filter({ hasText: 'did not publish' })
     await expect(failed).toHaveCount(2, { timeout: 60_000 })
     await snap(page, 'write-failed-destinations')
@@ -359,6 +389,25 @@ test('on a phone the library is the page, panels are sheets, and the review keep
     await expect(publish).toContainText('Publishing as')
     await expect(publish.getByTestId('review-destination').first()).toContainText('@shots_')
     await snap(page, 'write-phone-review')
+    await page.keyboard.press('Escape')
+    const previousId = page.url().match(/\/write\/([a-z0-9]+)/)![1]
+    const previous = (await apiRequest(page, `/api/v1/content-drafts/${previousId}`)).body as {
+      socialSetId: string
+    }
+    await page.getByTestId('mobile-new-draft').click()
+    await page.waitForURL(
+      (url) => /\/write\/[a-z0-9]+/.test(url.pathname) && !url.pathname.endsWith(previousId)
+    )
+    await expect(draftEditor(page)).toBeVisible({ timeout: 60_000 })
+    await expect(draftEditor(page)).not.toContainText('Written on a phone.')
+    const nextId = page.url().match(/\/write\/([a-z0-9]+)/)![1]
+    const next = (await apiRequest(page, `/api/v1/content-drafts/${nextId}`)).body as {
+      socialSetId: string
+    }
+    expect(next.socialSetId).toBe(previous.socialSetId)
+    expect(await draftPosts(nextId)).toHaveLength(0)
+    await page.goto(`/write/${previousId}`)
+    await expect(draftEditor(page)).toContainText('Written on a phone.')
   } finally {
     await workspace?.provider.close()
     await unbindTestGoOrganization(workspace?.organizationId ?? null)
@@ -438,9 +487,9 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     // A second set with the same name as the default stays a separate identity.
     // Sets are made in workspace settings (RFC 024); the switcher links there.
     const setName =
-      (await page.getByRole('button', { name: /^Brand: / }).textContent())?.trim() ?? ''
-    await page.getByRole('button', { name: /^Brand: / }).click()
-    await expect(page.getByRole('menuitem', { name: 'New brand…' })).toHaveAttribute(
+      (await page.getByRole('button', { name: /^Publishing brand: / }).textContent())?.trim() ?? ''
+    await page.getByRole('button', { name: /^Publishing brand: / }).click()
+    await expect(page.getByRole('menuitem', { name: 'New publishing brand…' })).toHaveAttribute(
       'href',
       /\/workspace\/social-sets$/
     )
@@ -456,7 +505,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     // Open the new set, then switch back to the default (listed first).
     const switchSet = async (index: number) => {
       await page.waitForLoadState('networkidle')
-      await page.getByRole('button', { name: /^Brand: / }).click()
+      await page.getByRole('button', { name: /^Publishing brand: / }).click()
       const item = page
         .getByRole('menuitem')
         .filter({ hasText: setName.replace(/▾$/, '').trim() })
@@ -466,10 +515,10 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
       await page.waitForLoadState('networkidle')
     }
     await page.goto(`/write?set=${secondSet}`)
-    await expect(page.getByText('No drafts in this set.')).toBeVisible()
+    await expect(page.getByText('No drafts in this publishing brand.')).toBeVisible()
     await switchSet(0)
     await rowMenu('Pricing')
-    await page.getByRole('menuitem', { name: 'Copy to brand' }).click()
+    await page.getByRole('menuitem', { name: 'Copy to publishing brand' }).click()
     await page.getByRole('menu').last().getByRole('menuitem').first().click()
     await page.getByRole('button', { name: 'Copy without tags' }).click()
     await expect(page.getByText(/Copied/).first()).toBeVisible()
@@ -527,9 +576,16 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
       .click()
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
     await page.goto(`/write/plan?week=${tomorrow}`)
-    await expect(page.locator(`[data-testid="calendar-planned"][href$="${planned}"]`)).toBeVisible({
-      timeout: 30_000,
-    })
+    const plannedCard = page
+      .getByTestId('calendar-planned')
+      .filter({ hasText: 'Planned, not scheduled', visible: true })
+    await expect(plannedCard).toBeVisible({ timeout: 30_000 })
+    await plannedCard.click()
+    await expect(page.getByRole('link', { name: 'Open in editor', exact: true })).toHaveAttribute(
+      'href',
+      `/write/${planned}`
+    )
+    await page.keyboard.press('Escape')
     await snap(page, 'write-plan')
   } finally {
     await workspace?.provider.close()
@@ -560,7 +616,8 @@ test('draft text survives replacement and navigation; details, filters, archive 
     await editor.click()
     await page.keyboard.press('ControlOrMeta+End')
     await page.getByRole('button', { name: 'Emoji', exact: true }).click()
-    await page.getByRole('button', { name: 'Insert 🚀', exact: true }).click()
+    await page.getByRole('combobox', { name: 'Search emoji' }).fill(':rocket')
+    await page.getByRole('option', { name: 'Rocket :rocket:', exact: true }).click()
     await expect(editor).toBeFocused()
     await page.keyboard.type(' after emoji')
     await expect(editor).toContainText('🚀 after emoji')
@@ -627,8 +684,14 @@ test('draft text survives replacement and navigation; details, filters, archive 
     await page.getByRole('button', { name: 'Clear filters', exact: true }).first().click()
     await expect(page.getByRole('button', { name: 'Remove Article filter' })).toHaveCount(0)
     await page.goto('/write/plan')
-    await page.getByRole('button', { name: 'Plan a post', exact: true }).last().click()
-    await expect(page.getByTestId('schedule-dialog')).toBeVisible()
+    await page
+      .getByRole('button', { name: /^Create draft / })
+      .first()
+      .click()
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: 'Plan a draft' })
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
     expect(await draftPosts(draftId)).toEqual([])
   } finally {
     await workspace?.provider.close()

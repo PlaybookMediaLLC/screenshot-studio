@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3'
-import { Pool, type QueryResultRow } from 'pg'
+import { Pool, types, type CustomTypesConfig, type QueryResultRow } from 'pg'
 import { createClient, type RedisClientType } from 'redis'
 
 function getRequiredEnvironment(name: string): string {
@@ -20,8 +20,17 @@ export function createE2EDatabase(): Pool {
   // `?schema=public` is a Prisma URL option that pg does not understand.
   const url = new URL(getRequiredEnvironment('E2E_DATABASE_URL'))
   url.searchParams.delete('schema')
-  return new Pool({ connectionString: url.toString() })
+  return new Pool({ connectionString: url.toString(), types: UTC_TIMESTAMPS })
 }
+
+// `timestamp without time zone` columns hold UTC. pg reads them in the runner's
+// local zone by default, which shifts every value off a UTC machine.
+const UTC_TIMESTAMPS = {
+  getTypeParser: (oid: number, format?: 'text' | 'binary') =>
+    oid === types.builtins.TIMESTAMP && format !== 'binary'
+      ? (value: string) => new Date(`${value.replace(' ', 'T')}Z`)
+      : types.getTypeParser(oid, format),
+} as CustomTypesConfig
 
 export async function queryRows<T extends QueryResultRow>(
   database: Pool,

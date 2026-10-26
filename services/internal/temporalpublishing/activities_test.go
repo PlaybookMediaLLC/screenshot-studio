@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 )
@@ -13,6 +14,29 @@ import (
 type activityStore struct {
 	retryAt *time.Time
 	unknown bool
+}
+
+type quoteReceiptStore struct {
+	activityStore
+	progress postoptions.ThreadProgress
+}
+
+func (s *quoteReceiptStore) RecordThread(_ context.Context, _ string, progress postoptions.ThreadProgress) error {
+	s.progress = progress
+	return nil
+}
+
+type quoteReceiptProvider struct{ directProvider }
+
+func (quoteReceiptProvider) PublishThread(context.Context, socialapi.PublishInput) (socialapi.Receipt, error) {
+	return socialapi.Receipt{PostID: "published-quote", Thread: postoptions.ThreadProgress{Quotes: []postoptions.QuoteReceipt{{PostID: "published-quote", State: "pending"}}}}, nil
+}
+func TestSinglePostQuoteReceiptIsRecordedWithoutRetryingPublication(t *testing.T) {
+	store := &quoteReceiptStore{}
+	result, err := NewActivities(store, quoteReceiptProvider{}).Submit(context.Background(), SubmitInput{Job: PreparedPublication{}})
+	if err != nil || result.Outcome != OutcomePublished || result.ProviderID != "published-quote" || len(store.progress.Quotes) != 1 || store.progress.Quotes[0].State != "pending" {
+		t.Fatalf("result=%#v progress=%#v err=%v", result, store.progress, err)
+	}
 }
 
 func (s *activityStore) CancelIneligible(context.Context, *ent.ScheduledPost, string, string) error {

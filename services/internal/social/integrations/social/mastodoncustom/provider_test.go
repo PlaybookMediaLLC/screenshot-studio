@@ -75,7 +75,7 @@ func TestCustomInstanceAuthorization(t *testing.T) {
 				r.Form.Get("code_verifier") != authParams().CodeVerifier || r.Form.Get("code") != "code-canary" || r.Form.Get("client_secret") != "secret-canary" {
 				t.Errorf("incorrect token exchange fields")
 			}
-			_, _ = io.WriteString(w, `{"access_token":"token-canary","token_type":"Bearer","scope":"read:accounts write:media write:statuses"}`)
+			_, _ = io.WriteString(w, `{"access_token":"token-canary","token_type":"Bearer","scope":"read:accounts write:media write:statuses read:search read:statuses"}`)
 		case "/api/v2/instance":
 			if r.Method != http.MethodGet || r.Header.Get("Authorization") != "" || r.URL.RawQuery != "" {
 				t.Fatal("public capability discovery received credentials")

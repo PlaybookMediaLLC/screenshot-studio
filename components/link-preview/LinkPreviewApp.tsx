@@ -116,7 +116,7 @@ const TAB_LABELS: Record<z.infer<typeof linkPreviewTabSchema>, string> = {
   fix: 'Fix',
   images: 'Images',
   opengraph: 'Open Graph',
-  overview: 'Overview',
+  overview: 'Result',
   previews: 'Previews',
   raw: 'Raw',
   share: 'Share',
@@ -129,6 +129,9 @@ const MODE_LABELS: Record<z.infer<typeof linkPreviewModeSchema>, string> = {
   compare: 'Compare',
   single: 'One link',
 }
+
+/** The result and what to do about it; the remaining tabs are diagnostics. */
+const PRIMARY_TABS = new Set<string>([TAB.overview, TAB.previews, TAB.fix, TAB.share])
 
 const TAB_LIST =
   'h-auto w-max min-w-full justify-start rounded-none border-b border-border bg-transparent p-0'
@@ -693,28 +696,57 @@ export function LinkPreviewApp() {
                 </a>
               </div>
               <Tabs value={tab} onValueChange={setTab} className="mt-6 gap-8">
-                <div className="overflow-x-auto">
-                  <p className="mb-2 text-xs text-muted-foreground sm:hidden">Swipe for more tabs →</p>
-                  <TabsList className={TAB_LIST}>
-                    {linkPreviewTabSchema.options.map((value) => (
-                      <TabsTrigger key={value} value={value} className={TAB_TRIGGER}>
-                        {TAB_LABELS[value]}
-                        {value === TAB.overview && flagged > 0 && (
-                          <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 text-[10px] text-amber-300">
-                            {flagged}
-                          </span>
-                        )}
-                        {value === TAB.fix && hasEdits && (
-                          <span className="ml-1.5 size-1.5 rounded-full bg-sky-400" />
-                        )}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
+                <div className="space-y-3">
+                  <div className="overflow-x-auto">
+                    <TabsList aria-label="Result" className={TAB_LIST}>
+                      {linkPreviewTabSchema.options
+                        .filter((value) => PRIMARY_TABS.has(value))
+                        .map((value) => (
+                          <TabsTrigger key={value} value={value} className={TAB_TRIGGER}>
+                            {TAB_LABELS[value]}
+                            {value === TAB.overview && flagged > 0 && (
+                              <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 text-[10px] text-amber-300">
+                                {flagged}
+                              </span>
+                            )}
+                            {value === TAB.fix && hasEdits && (
+                              <span className="ml-1.5 size-1.5 rounded-full bg-sky-400" />
+                            )}
+                          </TabsTrigger>
+                        ))}
+                    </TabsList>
+                  </div>
+                  <div className="flex items-center gap-2 overflow-x-auto">
+                    <span className="shrink-0 text-xs text-muted-foreground">Advanced</span>
+                    <TabsList aria-label="Advanced diagnostics" className="h-auto w-max justify-start gap-1 bg-transparent p-0">
+                      {linkPreviewTabSchema.options
+                        .filter((value) => !PRIMARY_TABS.has(value))
+                        .map((value) => (
+                          <TabsTrigger
+                            key={value}
+                            value={value}
+                            className="h-7 flex-none rounded-md border border-border bg-transparent px-2.5 text-xs text-muted-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                          >
+                            {TAB_LABELS[value]}
+                          </TabsTrigger>
+                        ))}
+                    </TabsList>
+                  </div>
                 </div>
                 <TabsContent value={TAB.overview} className="space-y-6">
-                  <HistoryCard entries={history} />
-                  <JavaScriptCheck key={preview.url} preview={preview} />
                   <OverviewPanel preview={preview} issues={issues} />
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setTab(TAB.previews)}>
+                      See how it unfurls on each platform
+                    </Button>
+                    {issues.length > 0 && (
+                      <Button size="sm" variant="outline" onClick={() => setTab(TAB.fix)}>
+                        Try fixes
+                      </Button>
+                    )}
+                  </div>
+                  <JavaScriptCheck key={preview.url} preview={preview} />
+                  <HistoryCard entries={history} />
                 </TabsContent>
                 <TabsContent value={TAB.previews} className="space-y-6">
                   {hasEdits && (

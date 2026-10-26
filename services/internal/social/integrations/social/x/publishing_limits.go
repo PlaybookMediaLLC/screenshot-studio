@@ -37,7 +37,7 @@ func publishingLimits(ctx context.Context, token string, in *ent.Integration) (s
 }
 
 func publishRejected(message string) error {
-	return temporalx.BadBody(identifier, "{}", "{}", message)
+	return temporalx.PublicationRejected(identifier, message)
 }
 
 // AccountMaxLength gives admission checks the stored, tenant-bound allowance.
@@ -59,7 +59,13 @@ func (p *Provider) AccountMaxLength(in *ent.Integration, settingsRaw json.RawMes
 }
 
 func checkPublishingContent(caps socialidentity.XCapabilities, message string, settings pendingSettings, mediaCount int, article bool) error {
-	if str(settings.QuoteTweetID) != "" {
+	if err := socialidentity.CheckXPhotoTagIDs(settings.TaggedUserIDs); err != nil {
+		return publishRejected(err.Error())
+	}
+	if len(settings.TaggedUserIDs) > 0 && (mediaCount == 0 || article) {
+		return publishRejected("Photo tags require static images on a regular X post.")
+	}
+	if str(settings.QuoteTweetID) != "" && !socialidentity.XEnterpriseQuotesEnabled() {
 		return publishRejected("X quote posts require verified Enterprise API access, which this connection has not established.")
 	}
 	if article {

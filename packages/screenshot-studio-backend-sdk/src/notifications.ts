@@ -2,6 +2,7 @@
 export type NotificationChannels = { inApp: boolean; email: boolean; slack: boolean }
 /** Workspace policy; generation invalidates queued work after configuration changes. */
 export type NotificationPolicy = {
+  socialSetSlackChannels?: Record<string,{channelId:string;channelName:string}>
   availability: NotificationChannels
   events: Record<string, NotificationChannels>
   generation: number

@@ -2,6 +2,7 @@ import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page, Pill } from '@/components/platform-ui'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
+import { publishLinks } from '@/lib/platform/navigation'
 import { getCampaign, listCampaigns } from '@/lib/tenant/campaigns'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
 import { CampaignLocalTime } from '@/components/campaigns/CampaignLocalTime'
@@ -29,18 +30,7 @@ export default async function CampaignDeliveries({
         title="Campaign deliveries"
         description="Campaign posts keep their original review and approval history. The Drafts calendar covers freeform writing; choose a campaign to inspect its delivery states."
       >
-        <AreaNavigation
-          label="Publish"
-          items={[
-            { href: `/write${scope}`, label: 'Drafts' },
-            { href: `/write/plan${scope}`, label: 'Calendar' },
-            { href: `/write/deliveries${scope}`, label: 'Campaign deliveries' },
-            {
-              href: `/link-preview?returnTo=${encodeURIComponent(`/write/deliveries${scope}`)}`,
-              label: 'Link checks',
-            },
-          ]}
-        />
+        <AreaNavigation label="Publish" items={publishLinks(scope, `/write/deliveries${scope}`)} />
         <nav aria-label="Choose campaign" className="flex flex-wrap gap-2">
           {campaigns.map((item) => (
             <SidebarLink

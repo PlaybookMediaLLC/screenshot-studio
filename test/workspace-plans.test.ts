@@ -66,7 +66,7 @@ test('expired and suspended plans fail closed before feature execution', () => {
   )
 })
 
-test('unknown plans and malformed overrides fall back to free-plan policy', () => {
+test('unknown plans fail closed, including basic scheduling', () => {
   const decision = evaluateWorkspaceFeature(
     { featureOverrides: { unknown: true }, plan: 'untrusted-tier', status: 'active' },
     'asset:delete'
@@ -76,6 +76,11 @@ test('unknown plans and malformed overrides fall back to free-plan policy', () =
     currentPlan: 'free',
     requiredPlan: 'pro',
   })
+  assert.equal(
+    evaluateWorkspaceFeature({ plan: 'untrusted-tier', status: 'active' }, 'content:drafts')
+      .allowed,
+    false
+  )
 })
 
 test('past-due workspaces retain access only during the explicit billing grace period', () => {
@@ -106,4 +111,15 @@ test('plan quotas increase for API writes and storage', () => {
     getWorkspaceQuota('business', 'storage:bytes') <
       getWorkspaceQuota('enterprise', 'storage:bytes')
   )
+})
+
+test('free grants basic scheduling with bounded usage but no AI, media or advanced queue', () => {
+  assert.equal(hasWorkspaceFeature('free', 'workspace:use'), true)
+  assert.equal(hasWorkspaceFeature('free', 'content:drafts'), true)
+  assert.equal(hasWorkspaceFeature('free', 'workspace:paid'), false)
+  assert.equal(hasWorkspaceFeature('free', 'content:scheduling-advanced'), false)
+  assert.equal(getWorkspaceQuota('free', 'posts:monthly'), 10)
+  assert.equal(getWorkspaceQuota('free', 'ai:credits:monthly'), 0)
+  assert.equal(getWorkspaceQuota('free', 'storage:bytes'), 0)
+  assert.equal(hasWorkspaceFeature('pro', 'content:scheduling-advanced'), true)
 })

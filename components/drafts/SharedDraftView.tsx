@@ -16,10 +16,14 @@ export type GuestComment = { createdAt: string; name: string; text: string }
  */
 export function SharedDraftView({
   comments: initialComments,
+  published = false,
+  publishedUrl,
   text,
   title,
   token,
 }: {
+  published?: boolean
+  publishedUrl?: string | null
   comments: GuestComment[]
   text: string
   title: string
@@ -56,8 +60,18 @@ export function SharedDraftView({
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-8 px-6 py-12 text-foreground">
       <header>
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
-          Draft shared for feedback
+          {published ? 'Published thread · reading view' : 'Draft shared for feedback'}
         </p>
+        {publishedUrl && (
+          <a
+            className="text-sm underline"
+            href={publishedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open original post
+          </a>
+        )}
         <h1 className="mt-1 text-xl font-medium text-foreground">{title}</h1>
       </header>
       <article

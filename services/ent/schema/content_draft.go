@@ -46,6 +46,7 @@ func (ContentDraft) Fields() []ent.Field {
 		field.String("share_token").StorageKey("shareToken").Optional().Nillable(),
 		// Comments left through that link: name, text and when.
 		field.JSON("guest_comments", []map[string]string{}).StorageKey("guestComments").Default([]map[string]string{}),
+		field.Int("calendar_version").StorageKey("calendarVersion").Default(1),
 		field.Int("version").StorageKey("version").Default(1),
 		// The set the draft belongs to (RFC 024), and what it copied from the
 		// set when it was created: copies, so changing the set's defaults
@@ -66,6 +67,8 @@ func (ContentDraft) Fields() []ent.Field {
 		field.JSON("article", &draftdoc.Article{}).StorageKey("article").Optional(),
 		// Internal: never part of a post.
 		field.String("scratchpad").StorageKey("scratchpad").Default(""),
+		// A delivery preference, never approval or publication content.
+		field.Bool("suppress_slack_on_publish").StorageKey("suppressSlackOnPublish").Default(false),
 		// Tags of the draft's set (content_draft_tag), by id.
 		field.JSON("tag_ids", []string{}).StorageKey("tagIds").Default([]string{}),
 		field.Time("pinned_at").StorageKey("pinnedAt").Optional().Nillable(),
@@ -74,6 +77,8 @@ func (ContentDraft) Fields() []ent.Field {
 		// The draft this one was duplicated, copied or recovered from.
 		field.String("source_draft_id").StorageKey("sourceDraftId").Optional().Nillable().Immutable(),
 		// Yjs document state, written only by the collaboration service.
+		// External body replacements invalidate cached rooms and projections.
+		field.Int("collab_generation").StorageKey("collabGeneration").Default(0).NonNegative(),
 		field.Bytes("collab_state").StorageKey("collabState").Optional().Nillable(),
 		field.String("created_by_user_id").StorageKey("createdByUserId").Optional().Nillable(),
 		field.String("updated_by_user_id").StorageKey("updatedByUserId").Optional().Nillable(),

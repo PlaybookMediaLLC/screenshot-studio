@@ -18,6 +18,7 @@ import {
 import { serviceBackend } from '@/lib/backend/sdk'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { isWorkspaceOperational } from '@/lib/workspace/access'
+import { withBoundedBody, RequestBodyTooLargeError } from '@/lib/security/request-body'
 
 /**
  * Only credential-bearing endpoints are throttled. Session reads run on
@@ -191,6 +192,19 @@ async function enforceAuthRateLimit(request: Request): Promise<Response | null> 
   }
 }
 
+function authFailureResponse(error: unknown): Response | null {
+  if (error instanceof RequestBodyTooLargeError) {
+    return Response.json({ error: error.message }, { status: 413 })
+  }
+  if (error instanceof AuthorizationError) {
+    return Response.json({ error: error.message }, { status: error.status })
+  }
+  if (error instanceof BackendSDKError && error.status === 409) {
+    return Response.json({ error: 'This record already exists.' }, { status: 409 })
+  }
+  return null
+}
+
 const handler = toNextJsHandler({
   handler: async (request: Request): Promise<Response> => {
     try {
@@ -200,6 +214,8 @@ const handler = toNextJsHandler({
       if (rateLimited) {
         return rateLimited
       }
+
+      request = await withBoundedBody(request)
 
       const unavailableWorkspace = await enforceOperationalOrganization(request)
       if (unavailableWorkspace) {
@@ -219,14 +235,8 @@ const handler = toNextJsHandler({
       }
       return response
     } catch (error) {
-      if (error instanceof AuthorizationError) {
-        return Response.json({ error: error.message }, { status: error.status })
-      }
-
-      if (error instanceof BackendSDKError && error.status === 409) {
-        return Response.json({ error: 'This record already exists.' }, { status: 409 })
-      }
-
+      const response = authFailureResponse(error)
+      if (response) return response
       throw error
     }
   },

@@ -241,6 +241,9 @@ smoke() {
     --aws-sigv4 "aws:amz:us-east-1:s3" --user "$RUSTFS_ACCESS_KEY:$RUSTFS_SECRET_KEY" >/dev/null
   wait_for_http "http://127.0.0.1:3000/api/health" "Screenshot Studio"
   wait_for_http "http://127.0.0.1:3000/api/auth/ok" "Better Auth"
+  # A cold editor compile can outlast the locale proxy's request
+  # deadline. Finish it before the one-shot public endpoint smoke checks.
+  wait_for_redirect_or_ok "http://127.0.0.1:3000/" "Screenshot Studio editor route"
   [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' --request POST \
     --header 'content-type: application/json' --data '{}' \
     http://127.0.0.1:3000/api/screenshot/invalidate)" == "401" ]]
@@ -352,6 +355,7 @@ run_e2e() {
       NEXT_PUBLIC_APP_URL="${app_url%/}" \
       SOCIAL_API_URL="${E2E_SOCIAL_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
       PLATFORM_SOCIAL_BLUESKY_ENABLED=true \
+      PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED=true \
       SCREENSHOT_API_URL="http://screenshot-mock:5678" \
       SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" \
       OPENROUTER_API_KEY="e2e-openrouter" \

@@ -4,6 +4,7 @@ import (
 	"context"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 )
@@ -11,8 +12,7 @@ import (
 // Mentions picked from the platform (RFC 025). A mention is looked up with
 // the set's own account, so it names something that account can tag: an X
 // user by exact username, a LinkedIn organization by its vanity name.
-// LinkedIn people are not looked up: the connection's API access has no
-// people search, so the composer says so instead of guessing.
+// Authorized Page followers use the separate restricted people lookup.
 
 // Mention is an account a post can tag. ProviderID is how the platform
 // writes it in a post: the X username, or a LinkedIn organization URN.
@@ -62,14 +62,31 @@ func mentionQuery(channel, query string) (string, error) {
 
 // LookupMentions finds what a set's account for a channel can mention.
 func (c *Configuration) LookupMentions(ctx context.Context, actor Actor, setID, channel, query string) ([]Mention, error) {
+	if actor.Kind == "api_key" {
+		if err := c.auth.AuthorizeAPIKeyScope(ctx, actor.OrganizationID, actor.KeyID, "artifact:read"); err != nil {
+			return nil, err
+		}
+	}
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
-	normalized, err := mentionQuery(channel, query)
+	set, err := visibleSocialSet(ctx, c.client, actor, setID)
 	if err != nil {
 		return nil, err
 	}
-	set, err := visibleSocialSet(ctx, c.client, actor, setID)
+	if len(query) > 200 {
+		return nil, invalid("Keep mention searches under 200 characters.")
+	}
+	if channel == "linkedin" {
+		recent, err := c.recentCompanyMentions(ctx, actor, set.ID, query)
+		if err != nil {
+			return nil, err
+		}
+		if len(recent) > 0 || strings.TrimSpace(query) == "" {
+			return recent, nil
+		}
+	}
+	normalized, err := mentionQuery(channel, query)
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +101,24 @@ func (c *Configuration) LookupMentions(ctx context.Context, actor Actor, setID, 
 	if !ok {
 		return nil, conflict("Mention lookup is not available on this server.")
 	}
-	return finder.Mentions(ctx, actor.OrganizationID, connection.ExternalAccountID, connection.Platform,
+	items, err := finder.Mentions(ctx, actor.OrganizationID, connection.ExternalAccountID, connection.Platform,
 		connection.SecretReference, normalized)
+	if err != nil {
+		return nil, err
+	}
+	// A provider call can be slow. Recheck before returning workspace-bound results.
+	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
+		return nil, err
+	}
+	if actor.Kind == "api_key" {
+		if err := c.auth.AuthorizeAPIKeyScope(ctx, actor.OrganizationID, actor.KeyID, "artifact:read"); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := visibleSocialSet(ctx, c.client, actor, setID); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 func channelLabel(channel string) string {
@@ -93,4 +126,85 @@ func channelLabel(channel string) string {
 		return "LinkedIn"
 	}
 	return "X"
+}
+
+// recentCompanyMentions reads the durable, set-scoped directory.
+func (c *Configuration) recentCompanyMentions(ctx context.Context, actor Actor, setID, query string) ([]Mention, error) {
+	return c.mentionDirectory(ctx, actor, setID, query, "organization")
+}
+
+func companyMentions(bodies [][]any, query string) []Mention {
+	return storedMentions(bodies, query, "organization")
+}
+
+var linkedInPersonURN = regexp.MustCompile(`^urn:li:person:[A-Za-z0-9_-]{1,100}$`)
+
+func storedMentions(bodies [][]any, query, kind string) []Mention {
+	out := []Mention{}
+	seen := map[string]bool{}
+	query = strings.ToLower(strings.TrimSpace(query))
+	var walk func(any)
+	walk = func(raw any) {
+		switch node := raw.(type) {
+		case []any:
+			for _, child := range node {
+				walk(child)
+			}
+		case map[string]any:
+			id, _ := node["providerId"].(string)
+			label, _ := node["label"].(string)
+			validIdentity := kind == "person" && node["kind"] == "person" && linkedInPersonURN.MatchString(id) || kind == "organization" && (node["kind"] == "organization" || node["kind"] == nil) && strings.HasPrefix(id, "urn:li:organization:") && numericID.MatchString(strings.TrimPrefix(id, "urn:li:organization:"))
+			if node["type"] == "social_mention" && node["platform"] == "linkedin" && validIdentity && strings.TrimSpace(label) != "" && utf8.RuneCountInString(label) <= 500 && !seen[id] && (query == "" || strings.Contains(strings.ToLower(label), query)) {
+				out = append(out, Mention{Kind: kind, Label: label, ProviderID: id})
+				seen[id] = true
+			}
+			walk(node["children"])
+		}
+	}
+	for _, body := range bodies {
+		walk(body)
+	}
+	return out
+}
+
+// PeopleMentionFinder is implemented only by an adapter with an authorized
+// native LinkedIn Page follower lookup; it never guesses person identities.
+type PeopleMentionFinder interface {
+	PeopleMentions(context.Context, string, string, string, string, string) ([]Mention, error)
+}
+
+// LookupPeopleMentions uses the same workspace/set boundary as organization
+// mentions. Recent people come from this set's own saved draft documents.
+func (c *Configuration) LookupPeopleMentions(ctx context.Context, actor Actor, setID, query string) ([]Mention, error) {
+	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
+		return nil, err
+	}
+	set, err := visibleSocialSet(ctx, c.client, actor, setID)
+	if err != nil {
+		return nil, err
+	}
+	query = strings.TrimSpace(query)
+	if len(query) > 200 {
+		return nil, invalid("Keep mention searches under 200 characters.")
+	}
+	recent, err := c.mentionDirectory(ctx, actor, set.ID, query, "person")
+	if err != nil {
+		return nil, err
+	}
+	if query == "" || len(recent) > 0 {
+		return recent, nil
+	}
+
+	connection, err := setAccount(ctx, c.client, set, "linkedin-page")
+	if ent.IsNotFound(err) {
+		return nil, conflict("Connect a LinkedIn Page with follower lookup access before searching people.")
+	}
+	if err != nil {
+		return nil, err
+	}
+	finder, ok := c.accounts.(PeopleMentionFinder)
+	if !ok {
+		return nil, conflict("People lookup is unavailable on this server.")
+	}
+	return finder.PeopleMentions(ctx, actor.OrganizationID, connection.ExternalAccountID, connection.Platform, connection.SecretReference, query)
 }

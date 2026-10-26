@@ -6,8 +6,29 @@ A changelog entry is a release note. It says what Typefully shipped. It does not
 
 | File | Content |
 |---|---|
-| [triage.md](triage.md) | Step 1 and Step 2 for all 109 entries: status, evidence, and epic |
-| [polls.md](polls.md) | The first epic, written with the template below. Use it as the model. |
+| [implementation-evidence.md](implementation-evidence.md) | Integration-branch implementation and verification evidence |
+| [coverage.md](coverage.md) | Current 109-entry implementation and verification matrix |
+| [execution.md](execution.md) | Executed checks, failures repaired, and release blockers |
+| [triage.md](triage.md) | Historical October 19 baseline; current status is in coverage.md |
+| [polls.md](polls.md) | POLL: cross-channel native polls |
+| [x-options.md](x-options.md) | XOPT: X options and eligibility |
+| [linkedin-options.md](linkedin-options.md) | LIOPT: comments, mentions, documents and reposts |
+| [channels.md](channels.md) | CHAN: account connections and identity providers |
+| [analytics.md](analytics.md) | ANALYTICS: stored observations, reports and exports |
+| [collaboration.md](collaboration.md) | COLLAB: notifications, history and collaboration |
+| [scheduling.md](scheduling.md) | SCHED: queues, calendar, timing and bulk workflows |
+| [quotes.md](quotes.md) | QUOTE: native quotes, replies and finishers |
+| [follow-ups.md](follow-ups.md) | FOLLOW: receipted follow-up automation |
+| [media.md](media.md) | MEDIA: assets, frames, descriptions and ordering |
+| [editor.md](editor.md) | EDITOR: paste, focus, numbering and performance |
+| [previews.md](previews.md) | PREVIEW: channel previews and sharing |
+| [organization.md](organization.md) | ORG: search, bulk operations and controlled experiments |
+| [ai.md](ai.md) | AI: assistant, preferences and voice memo transcription |
+| [agents.md](agents.md) | AGENT: APIs, MCP, webhooks and external clients |
+
+## Authorized expansion
+
+The 2026-10-24 assignment reopens the October 23 scheduling expansion. All 15 epics are in scope; historical P1/P5 rankings are not stopping boundaries. Existing API-key publishing/autonomous-approval restrictions, provider app review and deliberately controlled tags/pins remain in force. An **Exists** label requires feature-specific regression evidence; a local provider fixture is never a live certification. The original triage and changelog checkboxes are historical evidence, not the current completion record.
 
 ## Step 1: Triage each entry against Shots
 
@@ -15,11 +36,11 @@ Give each `TF-` entry one status. Write the evidence: a code path, or a line in 
 
 | Status | Meaning | Next action |
 |---|---|---|
-| Exists | Shots does it today. | Mark it `[x]` in the backlog. No work item. |
+| Exists | Shots does it today. | Execute meaningful regression checks and record the exact behavior in coverage.md. |
 | Partial | Shots does part of it. | Write a work item for the gap only. |
 | Missing | Shots does not do it. | Write a work item. |
-| Verify | The code does not show the answer. | Test it with a real account. Then set a status. |
-| Later | RFC 042 defers it. | Keep the reason. No work item now. |
+| Verify | The code does not show the answer. | Test locally and with a permitted real account where available; record external blockers. |
+| Later | RFC 042 defers it. | Record the product decision/dependency in the corresponding work item. |
 | Skip | It is about Typefully, not about the product. | Keep the reason. No work item. |
 
 ## Step 2: Shape the work items
@@ -86,7 +107,7 @@ Apply these rules from the RFCs to every item:
 ## Step 4: Set the order
 
 1. Put each epic in an RFC 042 priority (P1 to P5), or in "Later" with the reason.
-2. "Unranked" means that the epic needs a product decision before it joins the RFC 042 order.
+2. The reopened assignment includes previously unranked feasible work; only explicit product/security and provider boundaries remain blocked.
 3. Start provider app reviews first. RFC 042 says that the TikTok, Meta, and Google reviews take weeks.
 
 ## Step 5: Keep the items here

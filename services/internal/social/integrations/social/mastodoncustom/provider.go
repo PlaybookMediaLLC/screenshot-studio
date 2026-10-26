@@ -27,7 +27,7 @@ import (
 const identifier = "mastodon-custom"
 
 // read:accounts also works on instances predating Mastodon 4.3's profile scope.
-var scopes = []string{"read:accounts", "write:statuses", "write:media"}
+var scopes = []string{"read:accounts", "read:search", "read:statuses", "write:statuses", "write:media"}
 var accountID = regexp.MustCompile(`^[0-9]{1,80}$`)
 var accountName = regexp.MustCompile(`^[a-zA-Z0-9_]{1,64}$`)
 var errConnection = errors.New("Mastodon connection could not be verified; reconnect on the selected server")
@@ -148,7 +148,7 @@ func (p *Provider) Authenticate(ctx context.Context, params integrations.Authent
 	// Mastodon scopes are hierarchical: an existing broad read/write grant
 	// covers the narrowly requested account, status and media permissions.
 	granted := strings.Fields(token.Scope)
-	for _, required := range scopes {
+	for _, required := range []string{"read:accounts", "write:statuses", "write:media"} {
 		found := false
 		for _, scope := range granted {
 			if scope == required || scope == strings.SplitN(required, ":", 2)[0] {

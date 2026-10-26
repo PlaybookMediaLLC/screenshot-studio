@@ -1,5 +1,6 @@
 'use client'
 
+import { AccentColorSettings } from './AccentColorSettings'
 import { ChoiceGroup, useSaveState } from '@/components/settings/controls'
 import { type Preferences, usePreferences } from '@/components/settings/PreferencesProvider'
 
@@ -47,6 +48,7 @@ export function AppearanceSettings() {
         Your theme follows you throughout the workspace. Artwork and exported images keep their own
         colors.
       </p>
+      <AccentColorSettings />
       <ChoiceGroup<Preferences['navigation']>
         choices={[
           {

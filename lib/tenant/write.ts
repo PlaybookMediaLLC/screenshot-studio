@@ -39,10 +39,21 @@ export async function lookupSocialSetMentions(
   context: TenantContext,
   id: string,
   channel: 'x' | 'linkedin',
+  query: string,
+  kind?: 'person' | 'organization'
+) {
+  const result = await orNull(backendSDK(context).lookupSocialSetMentions(id, channel, query, kind))
+  return result ? result.items : null
+}
+
+/** Search communities through a visible set's connected X account. */
+export async function searchSocialSetCommunities(
+  context: TenantContext,
+  id: string,
   query: string
 ) {
-  const result = await orNull(backendSDK(context).lookupSocialSetMentions(id, channel, query))
-  return result ? result.items : null
+  const result = await orNull(backendSDK(context).searchSocialSetCommunities(id, query))
+  return result?.items ?? null
 }
 
 /** The social sets the caller may see, the workspace's default (oldest shared) first. */
@@ -132,7 +143,13 @@ export async function deleteDraftFinisher(
 export async function updateDraftProperties(
   context: TenantContext,
   id: string,
-  input: { addTagIds?: string[]; pinned?: boolean; removeTagIds?: string[]; scratchpad?: string }
+  input: {
+    addTagIds?: string[]
+    pinned?: boolean
+    removeTagIds?: string[]
+    scratchpad?: string
+    suppressSlackOnPublish?: boolean
+  }
 ) {
   const draft = await orNull(backendSDK(context).updateContentDraftProperties(id, input))
   return draft ? readDraft(draft) : null
@@ -142,10 +159,11 @@ export async function updateDraftProperties(
 export async function planContentDraft(
   context: TenantContext,
   id: string,
-  input: { plannedFor: string | null; timeZone?: string }
+  input: { baseCalendarVersion?: number; plannedFor: string | null; timeZone?: string }
 ) {
   const draft = await orNull(
     backendSDK(context).planContentDraft(id, {
+      baseCalendarVersion: input.baseCalendarVersion,
       plannedFor: input.plannedFor ? new Date(input.plannedFor) : null,
       timeZone: input.timeZone,
     })
@@ -159,8 +177,12 @@ function readCopy(copy: BackendDraftCopy) {
 }
 
 /** Duplicate a draft in its set; null when it is not visible. */
-export async function duplicateContentDraft(context: TenantContext, id: string) {
-  const copy = await orNull(backendSDK(context).duplicateContentDraft(id))
+export async function duplicateContentDraft(
+  context: TenantContext,
+  id: string,
+  requestKey?: string
+) {
+  const copy = await orNull(backendSDK(context).duplicateContentDraft(id, requestKey))
   return copy ? readCopy(copy) : null
 }
 

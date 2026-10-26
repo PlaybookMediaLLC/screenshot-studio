@@ -103,6 +103,12 @@ func (_u *PlatformNotificationPolicyUpdate) SetNillableSlackChannelName(v *strin
 	return _u
 }
 
+// SetSocialSetSlackChannels sets the "social_set_slack_channels" field.
+func (_u *PlatformNotificationPolicyUpdate) SetSocialSetSlackChannels(v map[string]map[string]string) *PlatformNotificationPolicyUpdate {
+	_u.mutation.SetSocialSetSlackChannels(v)
+	return _u
+}
+
 // SetEnabledAt sets the "enabled_at" field.
 func (_u *PlatformNotificationPolicyUpdate) SetEnabledAt(v time.Time) *PlatformNotificationPolicyUpdate {
 	_u.mutation.SetEnabledAt(v)
@@ -192,6 +198,9 @@ func (_u *PlatformNotificationPolicyUpdate) sqlSave(ctx context.Context) (_node 
 	}
 	if value, ok := _u.mutation.SlackChannelName(); ok {
 		_spec.SetField(platformnotificationpolicy.FieldSlackChannelName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.SocialSetSlackChannels(); ok {
+		_spec.SetField(platformnotificationpolicy.FieldSocialSetSlackChannels, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.EnabledAt(); ok {
 		_spec.SetField(platformnotificationpolicy.FieldEnabledAt, field.TypeTime, value)
@@ -291,6 +300,12 @@ func (_u *PlatformNotificationPolicyUpdateOne) SetNillableSlackChannelName(v *st
 	if v != nil {
 		_u.SetSlackChannelName(*v)
 	}
+	return _u
+}
+
+// SetSocialSetSlackChannels sets the "social_set_slack_channels" field.
+func (_u *PlatformNotificationPolicyUpdateOne) SetSocialSetSlackChannels(v map[string]map[string]string) *PlatformNotificationPolicyUpdateOne {
+	_u.mutation.SetSocialSetSlackChannels(v)
 	return _u
 }
 
@@ -413,6 +428,9 @@ func (_u *PlatformNotificationPolicyUpdateOne) sqlSave(ctx context.Context) (_no
 	}
 	if value, ok := _u.mutation.SlackChannelName(); ok {
 		_spec.SetField(platformnotificationpolicy.FieldSlackChannelName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.SocialSetSlackChannels(); ok {
+		_spec.SetField(platformnotificationpolicy.FieldSocialSetSlackChannels, field.TypeJSON, value)
 	}
 	if value, ok := _u.mutation.EnabledAt(); ok {
 		_spec.SetField(platformnotificationpolicy.FieldEnabledAt, field.TypeTime, value)

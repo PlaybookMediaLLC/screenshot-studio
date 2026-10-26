@@ -229,6 +229,8 @@ export const createReviewRequestSchema = z.object({
 /** `POST /api/store-screenshots/reviews` */
 export const createReviewContract = defineContract({
   body: createReviewRequestSchema,
+  // Up to 30 existing 8.5 MB base64 slides; this authenticated route needs a larger budget.
+  maxBodyBytes: 256 * 1024 * 1024,
   method: 'POST',
   name: 'store-screenshots.create-review',
   output: reviewSummarySchema,

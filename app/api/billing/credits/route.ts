@@ -9,7 +9,7 @@ export const POST = route(createCreditPackSessionContract, {
   auth: organizationAccess('billing:manage'),
   handler: async ({ access, body }) => {
     try {
-      await requireWorkspaceFeature(access, 'workspace:use')
+      await requireWorkspaceFeature(access, 'workspace:paid')
     } catch (error) {
       if (!(error instanceof WorkspaceEntitlementError)) throw error
       return errorResponse(403, 'Subscribe to a plan first.', {

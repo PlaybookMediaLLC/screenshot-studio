@@ -229,7 +229,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer retention.Close()
-		events := product.NewConfiguration(db.Client).WithCapturer(capture.FromEnvironment())
+		events := product.NewConfiguration(db.Client).WithCapturer(capture.FromEnvironment()).WithPostMetrics(provider).WithAnalytics(provider)
 		if objectStore != nil {
 			events.WithObjectStore(objectStore)
 		}
@@ -237,7 +237,7 @@ func main() {
 		if github != nil {
 			events.WithGitHubApp(github)
 		}
-		jobs := &maintenance.Store{Activity: notifications.New(db.SQL, db.Client), DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
+		jobs := &maintenance.Store{Analytics: events, Activity: notifications.New(db.SQL, db.Client), DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
 			Onboarding: &temporalonboarding.Client{Temporal: temporalClient},
 			Drains:     maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
 			Webhooks:   webhooks.NewDispatcher(db.SQL, cfg.WebhookEncryptionKey),
@@ -247,6 +247,14 @@ func main() {
 			MaxConcurrentActivityExecutionSize: 5, OnFatalError: func(err error) { slog.Error("maintenance worker failed"); stop() },
 		})
 		temporalmaintenance.Register(maintenanceWorker, temporalmaintenance.RunnerFunc(func(ctx context.Context, job string) (int, error) {
+			if job == "social-analytics" {
+				n, err := events.CollectDueAnalytics(ctx)
+				if err != nil {
+					return n, err
+				}
+				m, err := jobs.Run(ctx, job)
+				return n + m, err
+			}
 			if job == "scheduled-posts" {
 				return recovery.DispatchDue(ctx)
 			}

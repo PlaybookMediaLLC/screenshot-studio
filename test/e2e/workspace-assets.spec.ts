@@ -82,7 +82,7 @@ test('assets stay current across pagination, deletion, filters, and browser Back
   await expect(page.getByText('No videos saved yet', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Load more' })).toBeHidden()
   await page.getByRole('button', { name: 'Images', exact: true }).click()
-  await page.getByRole('combobox').click()
+  await page.getByRole('combobox', { name: 'Sort' }).click()
   await page.getByRole('option', { name: 'Oldest first' }).click()
   await expect(actions.first()).toHaveAccessibleName(`Actions for PNG image ${ids[0].slice(0, 8)}`)
   await expect(page).toHaveURL(/type=image&sort=oldest/)
@@ -96,7 +96,7 @@ test('assets stay current across pagination, deletion, filters, and browser Back
     'aria-pressed',
     'true'
   )
-  await expect(page.getByRole('combobox')).toContainText('Oldest first')
+  await expect(page.getByRole('combobox', { name: 'Sort' })).toContainText('Oldest first')
   await page.getByRole('button', { name: 'Load more' }).click()
   await expect(
     page.getByRole('button', { name: `Actions for PNG image ${added.slice(0, 8)}` })
@@ -109,6 +109,8 @@ test('assets stay current across pagination, deletion, filters, and browser Back
   await page.getByRole('button', { name: 'Confirm delete' }).click()
   await expect(removed).toBeHidden()
   await page.getByRole('link', { name: 'Open editor', exact: true }).click()
+  // Go back only once the editor has rendered, or Back races the client navigation.
+  await expect(page.getByRole('button', { name: 'Templates', exact: true })).toBeVisible()
   await page.goBack()
   await expect(actions).toHaveCount(24)
   await expect(removed).toBeHidden()

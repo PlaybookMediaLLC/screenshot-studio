@@ -54,7 +54,8 @@ export function draftIdOf(documentName: string): string | null {
   const id = documentName.startsWith(DOCUMENT_PREFIX)
     ? documentName.slice(DOCUMENT_PREFIX.length)
     : "";
-  return /^[a-z0-9-]{10,40}$/i.test(id) ? id : null;
+  const match = /^([a-z0-9-]{10,40})(?::[1-9][0-9]{0,9})?$/i.exec(id);
+  return match?.[1] ?? null;
 }
 
 /** A client for the backend, authenticated with the collaboration credential. */

@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ssrf"
@@ -20,6 +22,9 @@ func uncertainMutation() error {
 // receipt is an uncertain outcome, never permission to resend the same request.
 // Unlike the shared fetch helper, this does not retry responses or redirects.
 func (c *client) mutationJSON(ctx context.Context, endpoint string, body, out any) error {
+	if strings.TrimSpace(os.Getenv("X_API_KEY")) == "" || strings.TrimSpace(os.Getenv("X_API_SECRET")) == "" {
+		return publishRejected("X application credentials are not configured. No publication request was sent.")
+	}
 	var data []byte
 	var err error
 	if body != nil {

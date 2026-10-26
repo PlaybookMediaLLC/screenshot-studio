@@ -82,6 +82,26 @@ func (_u *ScheduledPostUpdate) ClearMetrics() *ScheduledPostUpdate {
 	return _u
 }
 
+// SetPublishedAt sets the "published_at" field.
+func (_u *ScheduledPostUpdate) SetPublishedAt(v time.Time) *ScheduledPostUpdate {
+	_u.mutation.SetPublishedAt(v)
+	return _u
+}
+
+// SetNillablePublishedAt sets the "published_at" field if the given value is not nil.
+func (_u *ScheduledPostUpdate) SetNillablePublishedAt(v *time.Time) *ScheduledPostUpdate {
+	if v != nil {
+		_u.SetPublishedAt(*v)
+	}
+	return _u
+}
+
+// ClearPublishedAt clears the value of the "published_at" field.
+func (_u *ScheduledPostUpdate) ClearPublishedAt() *ScheduledPostUpdate {
+	_u.mutation.ClearPublishedAt()
+	return _u
+}
+
 // SetMetricsAt sets the "metrics_at" field.
 func (_u *ScheduledPostUpdate) SetMetricsAt(v time.Time) *ScheduledPostUpdate {
 	_u.mutation.SetMetricsAt(v)
@@ -308,6 +328,12 @@ func (_u *ScheduledPostUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	if _u.mutation.MetricsCleared() {
 		_spec.ClearField(scheduledpost.FieldMetrics, field.TypeJSON)
 	}
+	if value, ok := _u.mutation.PublishedAt(); ok {
+		_spec.SetField(scheduledpost.FieldPublishedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PublishedAtCleared() {
+		_spec.ClearField(scheduledpost.FieldPublishedAt, field.TypeTime)
+	}
 	if value, ok := _u.mutation.MetricsAt(); ok {
 		_spec.SetField(scheduledpost.FieldMetricsAt, field.TypeTime, value)
 	}
@@ -470,6 +496,26 @@ func (_u *ScheduledPostUpdateOne) SetMetrics(v postoptions.Metrics) *ScheduledPo
 // ClearMetrics clears the value of the "metrics" field.
 func (_u *ScheduledPostUpdateOne) ClearMetrics() *ScheduledPostUpdateOne {
 	_u.mutation.ClearMetrics()
+	return _u
+}
+
+// SetPublishedAt sets the "published_at" field.
+func (_u *ScheduledPostUpdateOne) SetPublishedAt(v time.Time) *ScheduledPostUpdateOne {
+	_u.mutation.SetPublishedAt(v)
+	return _u
+}
+
+// SetNillablePublishedAt sets the "published_at" field if the given value is not nil.
+func (_u *ScheduledPostUpdateOne) SetNillablePublishedAt(v *time.Time) *ScheduledPostUpdateOne {
+	if v != nil {
+		_u.SetPublishedAt(*v)
+	}
+	return _u
+}
+
+// ClearPublishedAt clears the value of the "published_at" field.
+func (_u *ScheduledPostUpdateOne) ClearPublishedAt() *ScheduledPostUpdateOne {
+	_u.mutation.ClearPublishedAt()
 	return _u
 }
 
@@ -728,6 +774,12 @@ func (_u *ScheduledPostUpdateOne) sqlSave(ctx context.Context) (_node *Scheduled
 	}
 	if _u.mutation.MetricsCleared() {
 		_spec.ClearField(scheduledpost.FieldMetrics, field.TypeJSON)
+	}
+	if value, ok := _u.mutation.PublishedAt(); ok {
+		_spec.SetField(scheduledpost.FieldPublishedAt, field.TypeTime, value)
+	}
+	if _u.mutation.PublishedAtCleared() {
+		_spec.ClearField(scheduledpost.FieldPublishedAt, field.TypeTime)
 	}
 	if value, ok := _u.mutation.MetricsAt(); ok {
 		_spec.SetField(scheduledpost.FieldMetricsAt, field.TypeTime, value)

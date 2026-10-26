@@ -34,6 +34,20 @@ func (_c *UserPreferenceCreate) SetNillableTimeZone(v *string) *UserPreferenceCr
 	return _c
 }
 
+// SetAccentColor sets the "accent_color" field.
+func (_c *UserPreferenceCreate) SetAccentColor(v string) *UserPreferenceCreate {
+	_c.mutation.SetAccentColor(v)
+	return _c
+}
+
+// SetNillableAccentColor sets the "accent_color" field if the given value is not nil.
+func (_c *UserPreferenceCreate) SetNillableAccentColor(v *string) *UserPreferenceCreate {
+	if v != nil {
+		_c.SetAccentColor(*v)
+	}
+	return _c
+}
+
 // SetTheme sets the "theme" field.
 func (_c *UserPreferenceCreate) SetTheme(v userpreference.Theme) *UserPreferenceCreate {
 	_c.mutation.SetTheme(v)
@@ -213,6 +227,10 @@ func (_c *UserPreferenceCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *UserPreferenceCreate) defaults() {
+	if _, ok := _c.mutation.AccentColor(); !ok {
+		v := userpreference.DefaultAccentColor
+		_c.mutation.SetAccentColor(v)
+	}
 	if _, ok := _c.mutation.Theme(); !ok {
 		v := userpreference.DefaultTheme
 		_c.mutation.SetTheme(v)
@@ -261,6 +279,9 @@ func (_c *UserPreferenceCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *UserPreferenceCreate) check() error {
+	if _, ok := _c.mutation.AccentColor(); !ok {
+		return &ValidationError{Name: "accent_color", err: errors.New(`ent: missing required field "UserPreference.accent_color"`)}
+	}
 	if _, ok := _c.mutation.Theme(); !ok {
 		return &ValidationError{Name: "theme", err: errors.New(`ent: missing required field "UserPreference.theme"`)}
 	}
@@ -352,6 +373,10 @@ func (_c *UserPreferenceCreate) createSpec() (*UserPreference, *sqlgraph.CreateS
 	if value, ok := _c.mutation.TimeZone(); ok {
 		_spec.SetField(userpreference.FieldTimeZone, field.TypeString, value)
 		_node.TimeZone = &value
+	}
+	if value, ok := _c.mutation.AccentColor(); ok {
+		_spec.SetField(userpreference.FieldAccentColor, field.TypeString, value)
+		_node.AccentColor = value
 	}
 	if value, ok := _c.mutation.Theme(); ok {
 		_spec.SetField(userpreference.FieldTheme, field.TypeEnum, value)

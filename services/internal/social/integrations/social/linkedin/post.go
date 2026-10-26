@@ -1,10 +1,14 @@
 package linkedin
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediadocument"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
@@ -12,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ids"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/temporalx"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialidentity"
 )
 
 // pollInterval is the legacy Post loop's wait between checks (timer(20000)).
@@ -61,22 +66,22 @@ var linkedInPollDurations = map[int]string{1: "ONE_DAY", 3: "THREE_DAYS", 7: "SE
 
 // pollContent is a poll as the Posts API takes it: a question, 2 to 4
 // options, and one of its durations.
-func pollContent(poll *integrations.PollDetails) map[string]any {
+func pollContent(poll *integrations.PollDetails, media int) (map[string]any, error) {
 	minutes := poll.DurationMinutes
 	if minutes == 0 {
 		minutes = poll.Duration * 60
 	}
-	duration, ok := linkedInPollDurations[minutes/(24*60)]
-	if !ok || minutes%(24*60) != 0 {
-		duration = "SEVEN_DAYS"
+	if err := socialidentity.CheckLinkedInPoll(poll.Question, poll.Options, minutes, media, poll.Multiple); err != nil {
+		return nil, err
 	}
+	duration := linkedInPollDurations[minutes/(24*60)]
 	options := make([]map[string]string, 0, len(poll.Options))
 	for _, option := range poll.Options {
 		options = append(options, map[string]string{"text": option})
 	}
 	return map[string]any{"poll": map[string]any{
 		"question": poll.Question, "options": options, "settings": map[string]string{"duration": duration},
-	}}
+	}}, nil
 }
 
 func authorURN(postType, id string) string {
@@ -260,7 +265,20 @@ func (p *Provider) processMedia(ctx context.Context, media []mediaItem, accessTo
 		data := m.data
 		// Videos are never buffered: uploadPicture streams them.
 		if data == nil && !helpers.HasExtension(m.path, "mp4") {
-			if data, err = p.prepareMediaBuffer(ctx, m.path); err != nil {
+			if helpers.HasExtension(m.path, "pdf") {
+				// Native documents retain their bytes. Sending them through the image
+				// decoder rejects every uploaded PDF before document initialization.
+				data, err = p.ReadOrFetchBounded(ctx, m.path, int64(medialimits.Limits.PDFBytes))
+				if err == nil {
+					pages, valid := mediadocument.CountPages(bytes.NewReader(data))
+					if !valid || pages > medialimits.Limits.PDFPages {
+						err = errors.New("Choose a valid PDF document up to 100 MB and 300 pages.")
+					}
+				}
+			} else {
+				data, err = p.prepareMediaBuffer(ctx, m.path)
+			}
+			if err != nil {
 				return nil, nil, 0, err
 			}
 		}
@@ -363,22 +381,26 @@ func (p *Provider) createMainPost(ctx context.Context, data *pendingData, access
 		}
 	}
 	payload.Content = buildPostContent(data.IsPdf, mediaIDs, data.PdfTitle, alts...)
-	if data.Question != nil && len(data.Question.Options) >= 2 {
-		payload.Content = pollContent(data.Question)
+	if data.Question != nil {
+		content, err := pollContent(data.Question, len(mediaIDs))
+		if err != nil {
+			return "", temporalx.BadBody(p.identifier, "{}", "{}", err.Error())
+		}
+		if data.ReshareParent != "" {
+			return "", temporalx.BadBody(p.identifier, "{}", "{}", "A LinkedIn reshare cannot contain a poll.")
+		}
+		payload.Content = content
 	}
 	if data.ReshareParent != "" {
 		payload.ReshareContext = map[string]string{"parent": data.ReshareParent}
 	}
 	body, _ := json.Marshal(payload)
-	// Fetch only returns 200/201, so TypeScript's "Error posting to LinkedIn"
-	// status check cannot trigger here.
-	res, err := p.Fetch(ctx, APIURL+"/rest/posts", integrations.Request{
-		Method: http.MethodPost, Headers: Headers(accessToken, "application/json"), Body: body,
-	})
+	// Post creation must not use the generic retrying fetch helper.
+	res, err := p.mutate(ctx, "/rest/posts", accessToken, body)
 	if err != nil {
 		return "", err
 	}
-	return res.Header.Get("x-restli-id"), nil
+	return p.postReceipt(res)
 }
 
 // Repost reshares parent as author (urn:li:person:... or urn:li:organization:...).
@@ -386,41 +408,55 @@ func (p *Provider) Repost(ctx context.Context, accessToken, author, parent strin
 	payload := newPayload(author, "")
 	payload.ReshareContext = map[string]string{"parent": parent}
 	body, _ := json.Marshal(payload)
-	_, err := p.Fetch(ctx, APIURL+"/rest/posts", integrations.Request{
-		Method: http.MethodPost, Headers: Headers(accessToken, "application/json"), Body: body,
-	})
+	res, err := p.mutate(ctx, "/rest/posts", accessToken, body)
+	if err != nil {
+		return err
+	}
+	_, err = p.postReceipt(res)
 	return err
 }
 
 func (p *Provider) createCommentPost(ctx context.Context, id, accessToken string, post integrations.PostDetails, parentPostID, postType string) (string, error) {
+	if !postURN.MatchString(parentPostID) {
+		return "", temporalx.BadBody(p.identifier, "{}", "{}", "Choose a confirmed LinkedIn post for the first comment.")
+	}
 	body, _ := json.Marshal(map[string]any{
 		"actor":   authorURN(postType, id),
 		"object":  parentPostID,
-		"message": map[string]string{"text": FixText(post.Message)},
+		"message": map[string]string{"text": post.Message},
 	})
-	headers := Headers(accessToken, "application/json")
-	headers["LinkedIn-Version"] = "202306"
-	res, err := p.Fetch(ctx, APIURL+"/rest/socialActions/"+EncodeURIComponent(parentPostID)+"/comments", integrations.Request{
-		Method: http.MethodPost, Headers: headers, Body: body,
-	})
+	res, err := p.mutate(ctx, "/rest/socialActions/"+EncodeURIComponent(parentPostID)+"/comments", accessToken, body)
 	if err != nil {
 		return "", err
 	}
 	var out struct {
-		Object string `json:"object"`
+		Object     string `json:"object"`
+		ID         string `json:"id"`
+		CommentURN string `json:"commentUrn"`
 	}
 	if err := res.JSON(&out); err != nil {
-		return "", err
+		return "", temporalx.UnknownDelivery(p.identifier, "LinkedIn returned an unreadable comment receipt. Check the post before retrying.")
 	}
-	return out.Object, nil
+	if commentURN.MatchString(out.CommentURN) {
+		return out.CommentURN, nil
+	}
+	commentID := res.Header.Get("x-restli-id")
+	if commentID == "" {
+		commentID = out.ID
+	}
+	if organizationID.MatchString(commentID) && commentObject.MatchString(out.Object) {
+		return "urn:li:comment:(" + out.Object + "," + commentID + ")", nil
+	}
+	return "", temporalx.UnknownDelivery(p.identifier, "LinkedIn did not return a valid comment receipt. Check the post before retrying.")
 }
 
 func createPostResponse(postID, originalPostID string, isMainPost bool) integrations.PostResponse {
-	baseURL := "https://www.linkedin.com/embed/feed/update/"
-	if isMainPost {
-		baseURL = "https://www.linkedin.com/feed/update/"
+	link := "https://www.linkedin.com/feed/update/" + postID
+	if !isMainPost && commentURN.MatchString(postID) {
+		parent, _, _ := strings.Cut(strings.TrimPrefix(postID, "urn:li:comment:("), ",")
+		link = "https://www.linkedin.com/feed/update/" + parent + "?commentUrn=" + EncodeURIComponent(postID)
 	}
-	return integrations.PostResponse{Status: "posted", PostID: postID, ID: originalPostID, ReleaseURL: baseURL + postID}
+	return integrations.PostResponse{Status: "posted", PostID: postID, ID: originalPostID, ReleaseURL: link}
 }
 
 func (p *Provider) PostPending(ctx context.Context, id, accessToken string, posts []integrations.PostDetails, integration *ent.Integration) ([]integrations.PostResponse, error) {
@@ -436,6 +472,14 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 	}
 	first := posts[0]
 	settings := decodeSettings(first.Settings)
+	if first.Poll != nil {
+		if _, err := pollContent(first.Poll, len(first.Media)); err != nil {
+			return nil, temporalx.BadBody(p.identifier, "{}", "{}", err.Error())
+		}
+		if parent, _ := settings.ReshareParent.(string); parent != "" {
+			return nil, temporalx.BadBody(p.identifier, "{}", "{}", "A LinkedIn reshare cannot contain a poll.")
+		}
+	}
 	isPdf := integrations.AssetBoolean(settings.PostAsImagesCarousel)
 
 	var media []mediaItem

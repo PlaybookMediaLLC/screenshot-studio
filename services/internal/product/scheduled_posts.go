@@ -44,6 +44,11 @@ func (c *Configuration) CreateScheduledPost(ctx context.Context, actor Actor,
 	if input.ContentDraftID != "" && !actor.IsSession() {
 		return publishing.CreateScheduledPostResult{}, publishing.ErrForbidden
 	}
+	// The legacy variant scheduler stays paid; free content drafts use the
+	// versioned draft scheduling path with its account/seat and option checks.
+	if err := c.requireWorkspaceFeature(ctx, actor.OrganizationID, "workspace:paid"); err != nil {
+		return publishing.CreateScheduledPostResult{}, err
+	}
 	refund, err := c.ChargeMonthlyQuota(ctx, actor.OrganizationID, QuotaPosts, 1)
 	if err != nil {
 		return publishing.CreateScheduledPostResult{}, err

@@ -3,6 +3,7 @@ package authstore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -125,5 +126,47 @@ func TestAuthStoreRunsBetterAuthOperations(t *testing.T) {
 		if _, err := store.Execute(ctx, request); !errors.Is(err, ErrInvalid) {
 			t.Fatalf("%+v accepted: %v", request, err)
 		}
+	}
+}
+
+func TestSCIMLegacyProvidersAreInaccessible(t *testing.T) {
+	url := os.Getenv("PUBLISHING_TEST_DATABASE_URL")
+	if url == "" {
+		t.Skip("PUBLISHING_TEST_DATABASE_URL is not set")
+	}
+	ctx := context.Background()
+	db, err := database.Open(ctx, url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	var databaseName string
+	if err := db.SQL.QueryRowContext(ctx, `SELECT current_database()`).Scan(&databaseName); err != nil || !strings.Contains(databaseName, "test") {
+		t.Fatalf("refusing database %q", databaseName)
+	}
+	prefix := cuid.New()
+	defer db.SQL.ExecContext(ctx, `DELETE FROM "scimProvider" WHERE id LIKE $1`, prefix+"%")
+	for i, organization := range []any{nil, "", "org_security_test"} {
+		id := fmt.Sprintf("%s%d", prefix, i)
+		if _, err := db.SQL.ExecContext(ctx, `INSERT INTO "scimProvider" (id,"providerId","scimToken","organizationId") VALUES ($1,$1,$1,$2)`, id, organization); err != nil {
+			t.Fatal(err)
+		}
+	}
+	store := New(db.SQL)
+	where := []Where{{Field: "id", Operator: "starts_with", Value: prefix}}
+	visible, err := store.Execute(ctx, Request{Model: "scimProvider", Op: "findMany", Where: where})
+	if err != nil || len(visible.Rows) != 1 || visible.Rows[0]["organizationId"] != "org_security_test" {
+		t.Fatalf("legacy provider became visible: %v", err)
+	}
+	for _, op := range []string{"findOne", "update", "delete"} {
+		result, err := store.Execute(ctx, Request{Model: "scimProvider", Op: op,
+			Where: []Where{{Field: "id", Value: prefix + "0"}}, Data: map[string]any{"scimToken": "replacement"}})
+		if err != nil || result.Row != nil {
+			t.Fatalf("%s reached an unowned provider: %v", op, err)
+		}
+	}
+	var token string
+	if err := db.SQL.QueryRowContext(ctx, `SELECT "scimToken" FROM "scimProvider" WHERE id=$1`, prefix+"0").Scan(&token); err != nil || token != prefix+"0" {
+		t.Fatal("a legacy provider was modified or deleted")
 	}
 }

@@ -48,7 +48,7 @@ export function SocialSetSettings({
   const query = useSocialSet(id)
   const connected = useSearchParams().get('connected')
   useEffect(() => {
-    if (connected) toast.success(`${connected === 'instagram-standalone' ? 'Instagram' : connected} is connected to this set.`)
+    if (connected) toast.success(`${connected === 'instagram-standalone' ? 'Instagram' : connected} is connected to this publishing brand.`)
   }, [connected])
 
   const list = SETTINGS_SECTIONS.find((section) => section.id === 'social-sets')!
@@ -79,7 +79,7 @@ export function SocialSetSettings({
           <Pill tone={set.visibility === 'PRIVATE' ? 'purple' : 'gray'}>
             {set.visibility === 'PRIVATE' ? 'Private to you' : 'Shared with workspace'}
           </Pill>
-          <DeveloperId id={set.id} label="Brand" />
+          <DeveloperId id={set.id} label="Publishing brand" />
         </div>
         <nav aria-label={`${set.name} settings`} className="flex flex-wrap gap-1 border-b border-border">
           {SOCIAL_SET_PAGES.map((item) => (

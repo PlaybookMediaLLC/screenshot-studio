@@ -80,7 +80,19 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 	defer tx.Rollback()
 	var e occurrence
 	var raw []byte
-	err = tx.QueryRowContext(ctx, `SELECT id,"organizationId",type,"aggregateType","aggregateId",payload,"createdAt",notification_social_set_id FROM outbox_event WHERE notification_version=1 AND NOT notification_fanned ORDER BY "createdAt",id FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&e.id, &e.org, &e.kind, &e.resourceType, &e.resourceID, &raw, &e.createdAt, &e.sourceSocialSetID)
+	// Workspace writers lock the organization before membership or outbox rows.
+	// Take the same first lock before checking recipients: inserting a delivery
+	// later acquires an organization FK lock and must not invert that order.
+	// Skip busy workspaces so deletion or an entitlement change cannot stall
+	// notification processing for every other workspace.
+	err = tx.QueryRowContext(ctx, `SELECT o.id FROM organization o JOIN outbox_event e ON e."organizationId"=o.id WHERE e.notification_version=1 AND NOT e.notification_fanned ORDER BY e."createdAt",e.id FOR KEY SHARE OF o SKIP LOCKED LIMIT 1`).Scan(&e.org)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	err = tx.QueryRowContext(ctx, `SELECT id,"organizationId",type,"aggregateType","aggregateId",payload,"createdAt",notification_social_set_id FROM outbox_event WHERE "organizationId"=$1 AND notification_version=1 AND NOT notification_fanned ORDER BY "createdAt",id FOR UPDATE SKIP LOCKED LIMIT 1`, e.org).Scan(&e.id, &e.org, &e.kind, &e.resourceType, &e.resourceID, &raw, &e.createdAt, &e.sourceSocialSetID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -184,8 +196,12 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if !private && enabled(pol, defaultPreferences(), def, "slack") && pol.SlackConnectionID != "" && pol.SlackChannelID != "" {
-			_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_delivery(id,"organizationId",event_id,kind,channel,destination,policy_generation,connection_id) VALUES($1,$2,$3,$4,'slack',$5,$6,$7) ON CONFLICT DO NOTHING`, cuid.New(), e.org, e.id, e.kind, pol.SlackChannelID, pol.Generation, pol.SlackConnectionID)
+		destination, err := sharedDestination(ctx, tx, pol, e)
+		if err != nil {
+			return false, err
+		}
+		if !private && enabled(pol, defaultPreferences(), def, "slack") && pol.SlackConnectionID != "" && destination != "" {
+			_, err = tx.ExecContext(ctx, `INSERT INTO platform_notification_delivery(id,"organizationId",event_id,kind,channel,destination,policy_generation,connection_id) VALUES($1,$2,$3,$4,'slack',$5,$6,$7) ON CONFLICT DO NOTHING`, cuid.New(), e.org, e.id, e.kind, destination, pol.Generation, pol.SlackConnectionID)
 			if err != nil {
 				return false, err
 			}
@@ -463,9 +479,6 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 		}
 	}
 	if d.Channel == "slack" {
-		if def.Restricted || !test && !enabled(pol, defaultPreferences(), def, "slack") || pol.SlackConnectionID != d.connectionID || pol.SlackChannelID != d.Destination {
-			return skip("DESTINATION_CHANGED")
-		}
 		if !test {
 			private, e := s.privateEvent(ctx, occurrence{org: d.OrganizationID, resourceType: resourceType, resourceID: resourceID, sourceSocialSetID: sourceID})
 			if e != nil {
@@ -474,6 +487,16 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 			if private {
 				return skip("ACCESS_REMOVED")
 			}
+		}
+		destination := pol.SlackChannelID
+		if !test {
+			destination, err = sharedDestination(ctx, s.DB, pol, occurrence{org: d.OrganizationID, kind: d.Kind, resourceType: resourceType, resourceID: resourceID, sourceSocialSetID: sourceID})
+			if err != nil {
+				return env, Outcome{}, err
+			}
+		}
+		if def.Restricted || !test && !enabled(pol, defaultPreferences(), def, "slack") || pol.SlackConnectionID != d.connectionID || destination != d.Destination {
+			return skip("DESTINATION_CHANGED")
 		}
 	} else {
 		pref, e := preferences(ctx, s.DB, d.OrganizationID, d.Destination)

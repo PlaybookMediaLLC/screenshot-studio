@@ -1,5 +1,18 @@
 import { resolveLocalTime } from './zoned-time'
 
+/** Dragging an authored draft opens scheduling review; it never creates a job. */
+export const CALENDAR_DRAFT_DRAG = 'application/x-shots-calendar-draft'
+
+/** A move never guesses which occurrence of an ambiguous local time was intended. */
+export function calendarMoveTime(day: string, clock: string, zone: string): Date {
+  const time = resolveLocalTime(`${day}T${clock}`, zone)
+  if (time.kind !== 'exact')
+    throw new Error(
+      'This time is skipped or repeated by daylight saving. Choose a time in the schedule dialog.'
+    )
+  return time.at
+}
+
 /** Free future slots on a calendar day; repeated or skipped wall times need manual review. */
 export function availableDaySlots(
   day: string,
@@ -19,4 +32,37 @@ export function availableDaySlots(
       )
     })
     .sort()
+}
+
+/** Visible calendar days, including adjacent weeks in month view. */
+export function calendarRange(anchor: string, view: 'week' | 'month' | 'queue', firstWeekday = 1) {
+  const parsed = new Date(`${anchor}T12:00:00Z`)
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(anchor) ||
+    !Number.isFinite(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== anchor
+  ) {
+    throw new Error('Choose a valid calendar date.')
+  }
+  const start = new Date(parsed)
+  if (view === 'month') start.setUTCDate(1)
+  start.setUTCDate(start.getUTCDate() - ((start.getUTCDay() - firstWeekday + 7) % 7))
+  const days = view === 'month' ? 42 : 7
+  const end = new Date(start)
+  end.setUTCDate(end.getUTCDate() + days)
+  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10), days }
+}
+
+/** Navigate months from their first day so January 31 never skips February. */
+export function shiftCalendar(
+  anchor: string,
+  view: 'week' | 'month' | 'queue',
+  delta: number
+): string {
+  const date = new Date(`${anchor}T12:00:00Z`)
+  if (view === 'month') {
+    date.setUTCDate(1)
+    date.setUTCMonth(date.getUTCMonth() + delta)
+  } else date.setUTCDate(date.getUTCDate() + delta * 7)
+  return date.toISOString().slice(0, 10)
 }

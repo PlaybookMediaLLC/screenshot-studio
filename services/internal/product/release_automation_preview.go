@@ -61,7 +61,7 @@ type AutomationOverview struct {
 func (c *Configuration) automationActions(ctx context.Context, org string, executor AutomationExecutor) ([]AutomationActionAvailability, error) {
 	result := []AutomationActionAvailability{}
 	for _, action := range []struct{ kind, feature string }{{"create_release", "release:create"}, {"create_campaign", "campaign:workflow"}, {"generate_copy", "campaign:workflow"},
-		{"render_creatives", "campaign:workflow"}, {"create_canvas", "workspace:use"}, {"submit_review", "release:create"}, {"classify", "release:create"}} {
+		{"render_creatives", "campaign:workflow"}, {"create_canvas", "workspace:paid"}, {"submit_review", "release:create"}, {"classify", "release:create"}} {
 		item := AutomationActionAvailability{Type: action.kind, Available: true}
 		err := c.requireWorkspaceFeature(ctx, org, action.feature)
 		var entitlement *FeatureNotEntitledError

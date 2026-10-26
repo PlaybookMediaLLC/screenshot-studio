@@ -10,7 +10,7 @@ import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
  */
 
 const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'pro' },
+  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'free' },
 }
 /** A tag's colour. */
 export const tagColorSchema = z.enum([

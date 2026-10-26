@@ -1,6 +1,9 @@
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch'
 import { createTRPCContext } from '@/lib/trpc/context'
 import { appRouter } from '@/lib/trpc/router'
+import { errorResponse } from '@/lib/api/route'
+import { isCrossOriginCookieMutation } from '@/lib/security/request-origin'
+import { withBoundedBody, RequestBodyTooLargeError } from '@/lib/security/request-body'
 
 /**
  * campaign.generate runs an agent that captures pages and renders images;
@@ -8,7 +11,18 @@ import { appRouter } from '@/lib/trpc/router'
  */
 export const maxDuration = 300
 
-function handler(request: Request): Promise<Response> {
+async function handler(request: Request): Promise<Response> {
+  if (isCrossOriginCookieMutation(request)) {
+    return errorResponse(403, 'Cross-origin cookie-authenticated writes are not allowed.')
+  }
+  if (request.body) {
+    try {
+      request = await withBoundedBody(request)
+    } catch (error) {
+      if (error instanceof RequestBodyTooLargeError) return errorResponse(413, error.message)
+      throw error
+    }
+  }
   return fetchRequestHandler({
     createContext: () => createTRPCContext(request.headers),
     endpoint: '/api/trpc',

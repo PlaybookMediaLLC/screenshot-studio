@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -974,7 +973,7 @@ func (p *Provider) AnalyticsOn(ctx context.Context, id, token string, days int, 
 			} `json:"values"`
 		} `json:"data"`
 	}
-	if err := facebook.GetJSON(ctx, graph(host)+"/"+id+"/insights?metric=follower_count,reach&access_token="+accessToken+"&period=day&since="+since+"&until="+until, &first); err != nil {
+	if err := integrations.ReadInsightsJSON(ctx, graph(host)+"/"+id+"/insights?metric=follower_count,reach&access_token="+accessToken+"&period=day&since="+since+"&until="+until, &first); err != nil {
 		return nil, err
 	}
 
@@ -986,12 +985,12 @@ func (p *Provider) AnalyticsOn(ctx context.Context, id, token string, days int, 
 			} `json:"total_value"`
 		} `json:"data"`
 	}
-	if err := facebook.GetJSON(ctx, graph(host)+"/"+id+"/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&access_token="+accessToken+"&period=day&since="+since+"&until="+until, &second); err != nil {
+	if err := integrations.ReadInsightsJSON(ctx, graph(host)+"/"+id+"/insights?metric_type=total_value&metric=likes,views,comments,shares,saves,replies&access_token="+accessToken+"&period=day&since="+since+"&until="+until, &second); err != nil {
 		return nil, err
 	}
 	if second.Data == nil {
-		// the TypeError of `data2.map` when the insights call failed
-		return nil, errors.New("Cannot read properties of undefined (reading 'map')")
+		// An absent data envelope is not a measured zero.
+		return nil, errors.New("Instagram insights data unavailable")
 	}
 
 	analytics := []integrations.AnalyticsData{}
@@ -1000,14 +999,13 @@ func (p *Provider) AnalyticsOn(ctx context.Context, id, token string, days int, 
 		for _, v := range d.Values {
 			items = append(items, integrations.AnalyticsItem{Total: facebook.JSString(v.Value), Date: facebook.DayOf(v.EndTime)})
 		}
-		analytics = append(analytics, integrations.AnalyticsData{Label: setTitle(d.Name), PercentageChange: 5, Data: items})
+		analytics = append(analytics, integrations.AnalyticsData{Label: setTitle(d.Name), Data: items})
 	}
 	today := now.Format("2006-01-02")
 	for _, d := range second.Data {
 		analytics = append(analytics, integrations.AnalyticsData{
-			Label:            setTitle(d.Name),
-			PercentageChange: 5,
-			Data:             []integrations.AnalyticsItem{{Total: facebook.JSString(d.TotalValue.Value), Date: today}},
+			Label: setTitle(d.Name),
+			Data:  []integrations.AnalyticsItem{{Total: facebook.JSString(d.TotalValue.Value), Date: today}},
 		})
 	}
 	return analytics, nil
@@ -1111,9 +1109,8 @@ func (p *Provider) PostAnalyticsOn(ctx context.Context, _, token, postID string,
 			} `json:"values"`
 		} `json:"data"`
 	}
-	if err := facebook.GetJSON(ctx, graph(host)+"/"+postID+"/insights?metric=views,reach,saved,likes,comments,shares&access_token="+accessToken, &res); err != nil {
-		slog.Error("Error fetching Instagram post analytics:", "error", err)
-		return []integrations.AnalyticsData{}, nil
+	if err := integrations.ReadInsightsJSON(ctx, graph(host)+"/"+postID+"/insights?metric=views,reach,saved,likes,comments,shares&access_token="+accessToken, &res); err != nil {
+		return nil, err
 	}
 
 	result := []integrations.AnalyticsData{}

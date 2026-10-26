@@ -8,7 +8,7 @@ const content = {
 }
 
 /** One comment action; it cannot carry document, author, or permission fields. */
-export const draftCommentInputSchema = z.discriminatedUnion('action', [
+export const draftCommentInputSchema = z.xor([
   z.strictObject({
     action: z.literal('add'),
     baseVersion,
@@ -29,6 +29,20 @@ export const draftCommentInputSchema = z.discriminatedUnion('action', [
     baseVersion,
     threadId: commentId,
     resolved: z.boolean(),
+  }),
+  z.strictObject({ action: z.literal('delete_thread'), baseVersion, threadId: commentId }),
+  // Anchored and unanchored adds are exclusive: preserve the original wire alternative.
+  z.strictObject({
+    action: z.literal('add'),
+    baseVersion,
+    commentId,
+    threadId: commentId.optional(),
+    anchor: z.strictObject({
+      platform: z.enum(['x', 'linkedin', 'threads', 'mastodon', 'bluesky', 'instagram']),
+      postId: commentId,
+      quote: z.string().min(1).max(5000).optional(),
+    }),
+    ...content,
   }),
 ])
 

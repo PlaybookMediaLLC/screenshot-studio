@@ -32,6 +32,13 @@ func (s standings) Mentions(_ context.Context, _, destinationID, platform, _, qu
 	return []Mention{{Kind: "person", Label: destinationID, ProviderID: platform + ":" + query}}, nil
 }
 
+func (s standings) PeopleMentions(_ context.Context, _, destinationID, platform, _, query string) ([]Mention, error) {
+	if platform != "linkedin-page" {
+		return nil, errors.New("people lookup used a personal profile")
+	}
+	return []Mention{{Kind: "person", Label: destinationID + ":" + query, ProviderID: "urn:li:person:lookup123"}}, nil
+}
+
 // Planning, scheduling and publishing (RFC 025): the time is resolved in Go,
 // queue slots are reserved under a lock, each platform's settings are checked
 // against its own rules, an account is Premium only when its platform says
@@ -181,7 +188,7 @@ func TestWritePublishing(t *testing.T) {
 	t.Run("scheduling a planned draft clears its plan", func(t *testing.T) {
 		d := draft(ContentDraftInput{})
 		plan := time.Now().Add(72 * time.Hour)
-		if _, err := repo.PlanContentDraft(ctx, owner, d.ID, ContentDraftPlanInput{PlannedFor: &plan, TimeZone: "UTC"}); err != nil {
+		if _, err := repo.PlanContentDraft(ctx, owner, d.ID, ContentDraftPlanInput{BaseCalendarVersion: d.CalendarVersion, PlannedFor: &plan, TimeZone: "UTC"}); err != nil {
 			t.Fatal(err)
 		}
 		result, err := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{ScheduledFor: plan, Targets: target("planned", x), Version: 1})
@@ -328,13 +335,13 @@ func TestWritePublishing(t *testing.T) {
 			mime  string
 			bytes int
 		}{
-			"png": {"image/png", 5_000_000}, "oversized": {"image/png", 5_000_001},
+			"png": {"image/png", 5_000_000}, "oversized": {"image/png", 20_000_001},
 			"gif": {"image/gif", 15_000_000}, "video": {"video/mp4", 1_000}, "pdf": {"application/pdf", 100},
 		}
 		for name, info := range assets {
 			id := cuid.New()
 			assetIDs[name] = id
-			w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,'UPLOADED',now(),now())`,
+			w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,'UPLOADED',1,1,now(),now())`,
 				id, w.org, "org/"+w.org+"/"+name, info.mime, info.bytes)
 		}
 		for _, item := range []struct {
@@ -429,10 +436,62 @@ func TestWritePublishing(t *testing.T) {
 		}
 	})
 
+	t.Run("P39 cross-provider partial success retains the confirmed receipt when retrying the failed target", func(t *testing.T) {
+		d := draft(ContentDraftInput{PlainText: "partial publication"})
+		result, e := repo.ScheduleContentDraft(ctx, owner, d.ID, ScheduleContentDraftInput{PublishNow: true, Version: d.Version, Targets: append(target("X succeeded", x), target("LinkedIn failed", linkedin)...)})
+		if e != nil {
+			t.Fatal(e)
+		}
+		queue := publishing.NewRepository(w.db.Client)
+		for i, post := range result.Scheduled {
+			run := "partial-" + post.ID
+			claimed, e := queue.Claim(ctx, post.ID, run, time.Now().Add(time.Second))
+			if e != nil || !claimed {
+				t.Fatalf("claim=%v %v", claimed, e)
+			}
+			attempt, e := queue.StartAttempt(ctx, post, run, 1)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if i == 0 {
+				e = queue.Complete(ctx, post, attempt, "confirmed-x-receipt", run)
+			} else {
+				e = queue.Fail(ctx, post, attempt, "PROVIDER_REJECTED", nil, run)
+			}
+			if e != nil {
+				t.Fatal(e)
+			}
+		}
+		rows := posts(d.ID)
+		if len(rows) != 2 {
+			t.Fatalf("rows=%+v", rows)
+		}
+		var failedID string
+		for _, row := range rows {
+			if row.ChannelConnectionID == x {
+				if row.Status != "PUBLISHED" || row.URL == nil || *row.URL != "https://x.com/i/status/confirmed-x-receipt" {
+					t.Fatalf("success lost=%+v", row)
+				}
+			} else {
+				if row.Status != "FAILED" {
+					t.Fatal(row.Status)
+				}
+				failedID = row.ID
+			}
+		}
+		if _, e = repo.RetryContentDraftPost(ctx, owner, failedID); e != nil {
+			t.Fatal(e)
+		}
+		count, e := w.db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(d.ID), scheduledpost.ChannelConnectionID(x), scheduledpost.StatusEQ(scheduledpost.StatusPUBLISHED), scheduledpost.RemotePostID("confirmed-x-receipt")).Count(ctx)
+		if e != nil || count != 1 {
+			t.Fatalf("successful publication changed count=%d %v", count, e)
+		}
+	})
+
 	t.Run("an image's description is kept on it and limited to X's length", func(t *testing.T) {
 		image, pdf := "img_"+w.id, "pdf_"+w.id
-		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',68,'UPLOADED',now(),now())`, image, w.org, "org/"+w.org+"/alt.png")
-		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$3,'application/pdf',68,'UPLOADED',now(),now())`, pdf, w.org, "org/"+w.org+"/alt.pdf")
+		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,'image/png',68,'UPLOADED',1,1,now(),now())`, image, w.org, "org/"+w.org+"/alt.png")
+		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,width,height,"createdAt","updatedAt") VALUES ($1,$2,$3,'application/pdf',68,'UPLOADED',1,1,now(),now())`, pdf, w.org, "org/"+w.org+"/alt.pdf")
 		saved, err := repo.SetAssetAltText(ctx, owner, image, "  A chart of weekly signups  ")
 		if err != nil || saved.AltText == nil || *saved.AltText != "A chart of weekly signups" {
 			t.Fatalf("saved=%+v err=%v", saved, err)
@@ -466,6 +525,39 @@ func TestWritePublishing(t *testing.T) {
 		}
 		if _, err := repo.LookupMentions(ctx, w.actor("viewer"), sets.Items[0].ID, "x", "someone"); err == nil {
 			t.Fatal("a viewer looked up mentions")
+		}
+	})
+
+	t.Run("people lookups and recent identities stay inside the authorized Page and social set", func(t *testing.T) {
+		pageSet, err := repo.CreateSocialSet(ctx, owner, SocialSetInput{Name: "Private Page", Visibility: "PRIVATE"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		connect("linkedin-page", "page-"+w.id, &pageSet.ID)
+		found, err := repo.LookupPeopleMentions(ctx, owner, pageSet.ID, "Anne")
+		if err != nil || len(found) != 1 || found[0].Label != "page-"+w.id+":Anne" || found[0].ProviderID != "urn:li:person:lookup123" {
+			t.Fatalf("people=%+v err=%v", found, err)
+		}
+		body := []any{map[string]any{"type": "p", "children": []any{map[string]any{"type": "social_mention", "platform": "linkedin", "kind": "person", "providerId": "urn:li:person:lookup123", "label": "Anne Doe", "children": []any{map[string]any{"text": ""}}}}}}
+		if _, err = repo.CreateContentDraft(ctx, owner, ContentDraftInput{SocialSetID: pageSet.ID, Body: body}); err != nil {
+			t.Fatal(err)
+		}
+		if recent, err := repo.LookupPeopleMentions(ctx, owner, pageSet.ID, ""); err != nil || len(recent) != 1 || recent[0].Label != "Anne Doe" {
+			t.Fatalf("recent=%+v err=%v", recent, err)
+		}
+		if recent, err := repo.LookupPeopleMentions(ctx, owner, premiumSet.ID, ""); err != nil || len(recent) != 0 {
+			t.Fatalf("other set leaked recent people: %+v %v", recent, err)
+		}
+		for _, query := range []string{"", "Anne"} {
+			if _, err := repo.LookupPeopleMentions(ctx, w.actor("viewer"), pageSet.ID, query); err == nil {
+				t.Fatal("viewer read private people")
+			}
+			if _, err := repo.LookupPeopleMentions(ctx, w.actor("member"), pageSet.ID, query); err == nil {
+				t.Fatal("another member read private people")
+			}
+		}
+		if _, err := repo.LookupPeopleMentions(ctx, owner, premiumSet.ID, "Anne"); err == nil {
+			t.Fatal("personal profile used Page directory")
 		}
 	})
 

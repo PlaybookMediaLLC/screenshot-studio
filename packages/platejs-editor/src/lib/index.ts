@@ -1,5 +1,6 @@
 /* biome-ignore-all lint/performance/noBarrelFile: this file intentionally defines the shared utility public API surface. */
 export { downloadFile } from "./download-file";
+export { searchEmoji, type SearchEmoji } from "./emoji-search";
 export {
   dispatchEditorAIComment,
   dispatchEditorAIQuality,
@@ -16,10 +17,7 @@ export {
   type EditorProposalAction,
   type EditorToolName,
 } from "./ai-editor";
-export {
-  type CopilotContext,
-  getCopilotContext,
-} from "./copilot-context";
+export { type CopilotContext, getCopilotContext } from "./copilot-context";
 export { MarkdownJoiner, markdownJoinerTransform } from "./markdown-streaming";
 export { nid } from "./nid";
 export { isSafeUrl, openSafeUrl } from "./safe-url";

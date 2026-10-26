@@ -73,10 +73,11 @@ func RegisterSearchAttributes(ctx context.Context, c client.Client) error {
 // Failure types thrown by providers. They are
 // non-retryable: the post workflow decides what to do with each.
 const (
-	TypeRefreshToken    = "refresh_token"
-	TypeBadBody         = "bad_body"
-	TypeDisconnect      = "disconnect"
-	TypeUnknownDelivery = temporalpublishing.FailureUnknownDelivery
+	TypeRefreshToken        = "refresh_token"
+	TypeBadBody             = "bad_body"
+	TypePublicationRejected = "publication_rejected"
+	TypeDisconnect          = "disconnect"
+	TypeUnknownDelivery     = temporalpublishing.FailureUnknownDelivery
 )
 
 // Temporal ships failures through gRPC with a 4MB frame limit, so every
@@ -132,6 +133,12 @@ func RefreshToken(identifier string, jsonBody, body any, message string) error {
 // BadBody reports a request the platform rejected; message is shown to users.
 func BadBody(identifier string, jsonBody, body any, message string) error {
 	return failure(TypeBadBody, identifier, jsonBody, body, message)
+}
+
+// PublicationRejected means validation or a definite rejection proves no post was created.
+// Legacy BadBody is not sufficient evidence: some adapters use it for ambiguity.
+func PublicationRejected(identifier, message string) error {
+	return failure(TypePublicationRejected, identifier, "{}", "{}", message)
 }
 
 // UnknownDelivery stops retries when a mutation may have committed remotely.

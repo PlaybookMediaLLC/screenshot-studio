@@ -391,6 +391,11 @@ func (c *Client) getJSON(ctx context.Context, token, relative string, target any
 }
 
 func (c *Client) Publish(ctx context.Context, input PublishInput) (string, error) {
+	for _, reply := range input.Replies {
+		if reply.Poll != nil {
+			return "", NewError(http.StatusUnprocessableEntity, false, "thread polls require the direct publishing adapter")
+		}
+	}
 	if !publishing.IsSecretReference(input.SecretReference) {
 		return "", &Error{message: "invalid social API credential reference"}
 	}

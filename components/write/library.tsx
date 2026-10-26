@@ -1,5 +1,8 @@
 'use client'
 
+import { BulkImportDialog } from './bulk-import'
+import { BulkScheduleDialog } from './bulk-schedule'
+
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
@@ -50,6 +53,7 @@ import { writeApi } from '@/lib/write/client'
 import type { DraftKind } from '@/lib/write/document'
 import type { ContentDraftSort } from '@/lib/write/wire'
 import { cn } from '@/lib/utils'
+import { publishLinks } from '@/lib/platform/navigation'
 import { SetDot, SocialSetSwitcher } from './sets'
 import { TagChip, TagManager } from './tags'
 import { draftHref, type LibraryDraft, since, useWrite } from './write-context'
@@ -96,6 +100,7 @@ export function WriteRail() {
   const [selected, setSelected] = React.useState<string[]>([])
   const [lastClicked, setLastClicked] = React.useState<string | null>(null)
   const [managingTags, setManagingTags] = React.useState(false)
+  const [importing, setImporting] = React.useState(false)
   const tab = data.query.tab
   const select = (id: string, range: boolean) => {
     setSelected((current) => {
@@ -124,31 +129,26 @@ export function WriteRail() {
         </div>
         <Link
           className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
-          href={data.activeSet ? `/write/plan?set=${data.activeSet.id}` : '/write/plan'}
-        >
-          Calendar
-        </Link>
-        <Link
-          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
           href={data.activeSet ? `/write/settings?set=${data.activeSet.id}` : '/write/settings'}
         >
           Settings
         </Link>
       </div>
+      {canEdit && (
+        <Button className="mx-3" variant="ghost" size="sm" onClick={() => setImporting(true)}>
+          Bulk import
+        </Button>
+      )}
+      {importing && <BulkImportDialog onClose={() => setImporting(false)} />}
       <nav
         aria-label="Publishing utilities"
         className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
       >
-        <Link
-          href={`/link-preview?returnTo=${encodeURIComponent(data.activeSet ? `/write?set=${data.activeSet.id}` : '/write')}`}
-        >
-          Link checks
-        </Link>
-        <Link
-          href={data.activeSet ? `/write/deliveries?set=${data.activeSet.id}` : '/write/deliveries'}
-        >
-          Campaign deliveries
-        </Link>
+        {publishLinks(data.activeSet ? `?set=${data.activeSet.id}` : '').map((item) => (
+          <Link href={item.href} key={item.label}>
+            {item.label}
+          </Link>
+        ))}
       </nav>
       <div className="px-3" role="tablist" aria-label="Library">
         <div className="grid grid-cols-4 rounded-lg bg-white/[0.04] p-0.5">
@@ -229,8 +229,8 @@ export function WriteRail() {
               ? 'No drafts match these filters.'
               : {
                   archived: 'Nothing archived.',
-                  drafts: 'No drafts in this set. Start one above.',
-                  posted: 'Nothing posted from this set yet.',
+                  drafts: 'No drafts in this publishing brand. Start one above.',
+                  posted: 'Nothing posted from this publishing brand yet.',
                   queue: '',
                 }[tab]}
             {data.query.q || data.query.tag || data.query.kind ? (
@@ -391,7 +391,10 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
   const channels = new Set(data.activeSet?.accounts.map((account) => account.channel) ?? [])
   const kinds: NewKind[] = [
     ...(channels.has('x') ? [{ kind: 'article' as const, label: 'X Article' }] : []),
-    ...(channels.has('x') || channels.has('linkedin')
+    ...(channels.has('x') ||
+    channels.has('linkedin') ||
+    channels.has('bluesky') ||
+    channels.has('mastodon')
       ? [{ kind: 'quote' as const, label: 'Quote a post', needs: 'url' as const }]
       : []),
     ...(channels.has('x')
@@ -488,10 +491,10 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
 }
 
 const POST_URL =
-  /^https:\/\/(?:www\.|mobile\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:(?:share|ugcPost|activity):\d+)/
+  /^https:\/\/(?:www\.|mobile\.)?(?:(?:x|twitter)\.com\/[^/]+\/status\/\d+|linkedin\.com\/.*urn:li:(?:share|ugcPost|activity):\d+|bsky\.app\/profile\/[^/]+\/post\/[A-Za-z0-9._~:-]+)/
 
 /** Ask for the post a quote or reply answers, or the published post a draft repurposes. */
-function TargetDialog({
+export function TargetDialog({
   kind,
   onClose,
   onCreate,
@@ -512,7 +515,14 @@ function TargetDialog({
       .then((body: { items: { id: string; title: string }[] }) => setPosted(body.items))
       .catch(() => setPosted([]))
   }, [data.activeSet, kind.needs])
-  const valid = kind.needs === 'source' ? /^https:\/\//.test(url) : POST_URL.test(url.trim())
+  const valid =
+    kind.needs === 'source'
+      ? /^https:\/\//.test(url)
+      : POST_URL.test(url.trim()) ||
+        (kind.kind === 'quote' &&
+          /^https:\/\/[^/@:]+\/(?:@[^/]+\/|users\/[^/]+\/statuses\/|statuses\/)\d+$/.test(
+            url.trim()
+          ))
   return (
     <Dialog onOpenChange={(open) => !open && onClose()} open>
       <DialogContent className="max-w-md">
@@ -520,7 +530,7 @@ function TargetDialog({
           <DialogTitle>{kind.label}</DialogTitle>
           <DialogDescription>
             {kind.needs === 'source'
-              ? 'Start from a post this set published, or paste the URL of any published post.'
+              ? 'Start from a post this publishing brand published, or paste the URL of any published post.'
               : 'Paste the post’s URL. It is stored as the draft’s target, not as text in the post.'}
           </DialogDescription>
         </DialogHeader>
@@ -584,7 +594,7 @@ function DraftRow({
   selected: boolean
   selecting: boolean
 }) {
-  const { data, saved } = useWrite()
+  const { data, saved, canEdit } = useWrite()
   const hydrated = useHydrated()
   const shown = { ...draft, ...saved[draft.id] }
   const channels = [
@@ -609,6 +619,11 @@ function DraftRow({
         aria-current={active ? 'page' : undefined}
         className="block px-4 py-3 pr-10"
         href={draftHref(draft.id, data.activeSet?.id)}
+        draggable={canEdit && draft.status === 'draft' && draft.queuedPosts === 0}
+        onDragStart={(event) => {
+          event.dataTransfer.setData('application/x-shots-library-draft', draft.id)
+          event.dataTransfer.effectAllowed = 'copy'
+        }}
         onClick={(event) => {
           if (event.shiftKey || selecting) {
             event.preventDefault()
@@ -775,7 +790,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                 Duplicate
               </DropdownMenuItem>
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger>Copy to brand</DropdownMenuSubTrigger>
+                <DropdownMenuSubTrigger>Copy to publishing brand</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-60">
                   {data.sets
                     .filter((set) => set.id !== data.activeSet?.id)
@@ -853,11 +868,20 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
           <DropdownMenuItem
             onSelect={() => {
               void navigator.clipboard.writeText(internalLink())
-              toast.success('Internal link copied. Only members who can see this set can open it.')
+              toast.success('Internal link copied. Only members who can see this publishing brand can open it.')
             }}
           >
             Copy internal link
           </DropdownMenuItem>
+          {draft.publishedPosts > 0 ? <DropdownMenuItem onSelect={() => void (async () => {
+            try {
+              const result = await draftsApi.posts(draft.id)
+              const urls = result.posts.filter((post) => post.status === 'PUBLISHED' && post.url).map((post) => post.url)
+              if (!urls.length) throw new Error('Published links are not available yet.')
+              await navigator.clipboard.writeText(urls.join('\n'))
+              toast.success('Published post links copied.')
+            } catch (error) { toast.error(error instanceof Error ? error.message : 'The links could not be copied.') }
+          })()}>Copy published links</DropdownMenuItem> : null}
           {canEdit ? (
             <DropdownMenuItem onSelect={() => setConfirm('share')}>
               Share & copy public link…
@@ -875,7 +899,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                         baseVersion: current.version,
                         status: 'draft',
                       })
-                    }, 'Restored to drafts.')
+                    }, 'Restored from archive.')
                   }
                 >
                   Restore draft
@@ -1004,7 +1028,8 @@ function CopyDialog({
 /** Actions on several selected drafts. */
 function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] }) {
   const router = useWriteRouter()
-  const { activeId, beforeLeaveRef, data, hideDraft } = useWrite()
+  const { activeId, beforeLeaveRef, data, hideDraft, canPublish } = useWrite()
+  const [scheduling, setScheduling] = React.useState(false)
   const [confirm, setConfirm] = React.useState(false)
   const [progress, setProgress] = React.useState<number | null>(null)
   const run = async (label: string, work: (id: string) => Promise<unknown>) => {
@@ -1046,6 +1071,14 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
       role="toolbar"
       aria-label="Selected drafts"
     >
+      {scheduling && (
+        <BulkScheduleDialog selected={selected} onClose={() => setScheduling(false)} />
+      )}
+      {canPublish && (
+        <Button size="sm" variant="ghost" onClick={() => setScheduling(true)}>
+          Schedule
+        </Button>
+      )}
       <span className="mr-auto text-sky-200">
         {progress === null
           ? `${selected.length} selected`
@@ -1126,7 +1159,7 @@ function QueueList() {
   if (data.queue.length === 0) {
     return (
       <p className="px-4 py-6 text-xs text-neutral-400">
-        Nothing queued or planned for this set. Schedule a draft, add it to the queue, or plan it.
+        Nothing queued or planned for this publishing brand. Schedule a draft, add it to the queue, or plan it.
       </p>
     )
   }

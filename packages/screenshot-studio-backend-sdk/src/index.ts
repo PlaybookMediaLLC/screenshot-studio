@@ -1,3 +1,5 @@
+import { socialObservationSchema } from './social-analytics.ts'
+export * from './social-analytics.ts'
 import {
   workspaceMemberSchema,
   workspaceMembersSchema,
@@ -617,6 +619,7 @@ export type BackendAssetListItem = {
 export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
 
 export type BackendAssetUploadInput = {
+  parentAssetId?: string
   projectId?: string
   bytes: number
   classification?: 'capture' | 'derived' | 'export' | 'input'
@@ -863,6 +866,7 @@ export type BackendContentDraftStatus = 'draft' | 'scheduled' | 'archived'
 
 /** A post written by hand in the document editor (RFC 013). */
 export type BackendContentDraft = {
+  collabGeneration?: number
   assetIds: string[]
   /** Plate JSON: the editor's value, a list of block nodes. */
   body: unknown[]
@@ -881,6 +885,7 @@ export type BackendContentDraft = {
   updatedAt: string
   updatedByUserId: string | null
   /** Every update is based on this; a stale one is refused with 409 and `currentVersion`. */
+  calendarVersion: number
   version: number
   /** Review before scheduling; approval holds for `approvedVersion` only. */
   approvedVersion: number | null
@@ -914,6 +919,7 @@ export type BackendContentDraft = {
   /** The draft's social set and what it copied from the set when created (RFC 024). */
   engagement: Engagement
   naturalPostingTime: boolean
+  suppressSlackOnPublish?: boolean
   /** A planned time puts the draft on the calendar; nothing publishes from it (an experiment). */
   plannedFor: string | null
   /** The platform the body is written for. */
@@ -1013,10 +1019,19 @@ export type BackendContentDraftSettings = {
 }
 
 /** A draft post on the calendar or in the queue, with its draft's title. */
-export type BackendCalendarPost = BackendContentDraftPost & { draftId: string; draftTitle: string }
+export type BackendCalendarPost = BackendContentDraftPost & {
+  campaignId?: string | null
+  campaignTitle?: string
+  draftId: string
+  draftTitle: string
+  socialSetId: string | null
+  version: number
+  calendarVersion: number
+  tagIds: string[]
+}
 
 /** A suggested posting time and why. */
-export type BackendBestTime = { at: string; reason: string }
+export type BackendBestTime = { at: string; reason: string; score?: number; samplePosts: number }
 
 /** A saved point in a draft's history; `body` only when one is read. */
 export type BackendContentDraftRevision = {
@@ -1035,6 +1050,9 @@ export type BackendContentDraftRevision = {
 
 /** What a share link shows a guest. */
 export type BackendSharedContentDraft = {
+  imageAssetId?: string | null
+  published?: boolean
+  publishedUrl?: string | null
   body: unknown[]
   guestComments: { createdAt: string; name: string; text: string }[]
   plainText: string
@@ -1091,7 +1109,11 @@ export type BackendPostAutomation = {
 }
 
 /** A poll on a post (X): 2 to 4 choices, open 5 minutes to 7 days. */
-export type BackendPoll = { durationMinutes: number; options: string[] }
+export type BackendPoll = {
+  multiple?: boolean
+  durationMinutes: number
+  options: string[]
+}
 
 /** The fields a draft is created or updated with. */
 export type BackendContentDraftFields = {
@@ -1109,6 +1131,8 @@ export type BackendContentDraftFields = {
 
 /** A new draft: without channels it starts with its set's default platforms. */
 export type BackendContentDraftCreate = BackendContentDraftFields & {
+  importKey?: string
+  requestKey?: string
   kind?: BackendDraftKind
   scratchpad?: string
   socialSetId?: string
@@ -1117,7 +1141,9 @@ export type BackendContentDraftCreate = BackendContentDraftFields & {
 }
 
 export type BackendContentDraftUpdate = BackendContentDraftFields & {
+  collabGeneration?: number
   baseVersion: number
+  baseCalendarVersion?: number
   status?: Exclude<BackendContentDraftStatus, 'scheduled'>
   naturalPostingTime?: boolean
   /** RFC 3339, or an empty string to clear (an experiment). */
@@ -1140,7 +1166,7 @@ export type BackendContentDraftPost = {
   url: string | null
   /** A thread: its reply count and how many went out. */
   replies: number
-  threadProgress: { lastReplyId?: string; posted: number; total: number }
+  threadProgress: { lastReplyId?: string; posted: number; total: number; quotes?: {postId: string; state: string}[] }
   /** Its follow-ups once live, each with its receipt (RFC 025). */
   automations?: BackendPostAutomation[]
   /** How the instant was chosen (RFC 024). */
@@ -1158,7 +1184,12 @@ export type BackendContentDraftScheduleTarget = {
   caption: string
   channelConnectionId: string
   /** A thread's later posts, posted as replies to the first, each with its settings. */
-  replies?: { assetIds: string[]; caption: string; options?: BackendPublishOptions }[]
+  replies?: {
+    assetIds: string[]
+    caption: string
+    options?: BackendPublishOptions
+    poll?: { durationMinutes: number; options: string[]; multiple?: boolean }
+  }[]
   autoActions?: BackendAutoActions
   poll?: BackendPoll
   /** The first post's settings beyond its text (RFC 025). */
@@ -1169,8 +1200,18 @@ export type BackendContentDraftScheduleTarget = {
 
 /** A post's settings beyond its text, as a scheduled post keeps them (RFC 025). */
 export type BackendPublishOptions = {
+  photoTagIds?: string[]
+  taggedUserIds?: string[]
   articleCoverAssetId?: string
   articleTitle?: string
+  linkPreview?: {
+    url: string
+    title?: string
+    description?: string
+    image?: string
+    removed?: boolean
+  }
+  articleHtml?: string
   communityId?: string
   documentAssetId?: string
   documentTitle?: string
@@ -1192,6 +1233,7 @@ export type BackendScheduleTiming = {
   naturalPostingTime?: boolean
   publishNow?: boolean
   queue?: boolean
+  expectedQueueSlot?: string
   scheduledFor?: Date
   timeZone?: string
 }
@@ -2685,7 +2727,7 @@ export class ScreenshotStudioBackendSDK {
   /** Schedules at `scheduledFor`, or with `queue` at the set's next free slot, which the backend reserves. */
   async scheduleContentDraft(
     id: string,
-    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number }
+    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number; baseCalendarVersion?: number }
   ) {
     return this.request<{
       created: boolean
@@ -2761,9 +2803,21 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** What the set's account for a channel can mention (RFC 025). */
-  async lookupSocialSetMentions(id: string, channel: 'x' | 'linkedin', query: string) {
+  async lookupSocialSetMentions(
+    id: string,
+    channel: 'x' | 'linkedin',
+    query: string,
+    kind?: 'person' | 'organization'
+  ) {
     return this.request<{ items: BackendSocialMention[] }>(
-      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query })}`
+      `v1/social-sets/${encodeURIComponent(id)}/mentions?${new URLSearchParams({ channel, q: query, ...(kind ? { kind } : {}) })}`
+    )
+  }
+
+  /** Search communities through the social set's verified X account. */
+  async searchSocialSetCommunities(id: string, query: string) {
+    return this.request<{ items: { id: string; name: string }[] }>(
+      `v1/social-sets/${encodeURIComponent(id)}/communities?${new URLSearchParams({ q: query })}`
     )
   }
 
@@ -2834,7 +2888,7 @@ export class ScreenshotStudioBackendSDK {
   /** Pin, tag or annotate a draft; its version and approval stay. */
   async updateContentDraftProperties(
     id: string,
-    input: { addTagIds?: string[]; pinned?: boolean; removeTagIds?: string[]; scratchpad?: string }
+    input: { addTagIds?: string[]; pinned?: boolean; removeTagIds?: string[]; scratchpad?: string; suppressSlackOnPublish?: boolean }
   ) {
     return this.request<BackendContentDraft>(
       `v1/content-drafts/${encodeURIComponent(id)}/properties`,
@@ -2846,15 +2900,33 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Plan a draft on the calendar, or clear its plan with null. Nothing publishes from a plan. */
-  async planContentDraft(id: string, input: { plannedFor: Date | null; timeZone?: string }) {
+  async mutateCalendar(input: unknown) {
+    return this.request<unknown>('v1/calendar/mutations', { body: input, method: 'POST' })
+  }
+  async getAnalytics(id: string, query: Record<string, string | number | undefined>) {
+    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}?${params}`)
+  }
+  async refreshAnalytics(id: string) {
+    return this.request<{ refreshed: boolean }>(`v1/analytics/${encodeURIComponent(id)}/refresh`, { method: 'POST', body: {} })
+  }
+  async updateAnalyticsSettings(id: string, input: unknown) {
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}/settings`, { method: 'PUT', body: input })
+  }
+  async getPublicAnalytics(token: string, query: Record<string, string | number | undefined>) {
+    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    return this.request<unknown>(`v1/internal/analytics/${encodeURIComponent(token)}?${params}`)
+  }
+
+  async planContentDraft(id: string, input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/plan`, {
       body: input,
       method: 'POST',
     })
   }
 
-  async duplicateContentDraft(id: string) {
-    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate`, {
+  async duplicateContentDraft(id: string, requestKey?: string) {
+    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`, {
       body: {},
       method: 'POST',
     })
@@ -2881,10 +2953,34 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** Atomically exchange two queued post times; never publishes immediately. */
+  async swapContentDraftPostTimes(first: string, second: string) {
+    return this.request<{ posts: Array<{ post: BackendContentDraftPost }> }>(
+      'v1/content-draft-posts/swap',
+      { body: { first, second }, method: 'POST' }
+    )
+  }
+
   async moveContentDraftPost(id: string, scheduledFor: Date) {
     return this.request<{ post: BackendContentDraftPost }>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/move`,
       { body: { scheduledFor }, method: 'POST' }
+    )
+  }
+
+  /** Atomically swap two queued posts on the same account. */
+  async swapContentDraftPosts(id: string, withId: string) {
+    return this.request<{ posts: BackendContentDraftPost[] }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/swap`,
+      { body: { withId }, method: 'POST' }
+    )
+  }
+
+  /** Publish the immutable queued snapshot once, immediately. */
+  async publishQueuedContentDraftPost(id: string) {
+    return this.request<{ post: BackendContentDraftPost }>(
+      `v1/content-draft-posts/${encodeURIComponent(id)}/publish-now`,
+      { body: {}, method: 'POST' }
     )
   }
 
@@ -2920,6 +3016,42 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
+  /** Read bounded, timestamped analytics for a visible social set. */
+  async previewDraftBatchTimes(input: {
+    socialSetId: string
+    count: number
+    mode: 'queue' | 'spread'
+    localTime?: string
+    postsPerDay?: number
+    spacingMinutes?: number
+    shiftMinutes?: number
+    seed: string
+  }) {
+    return this.request<{ times: string[] }>('v1/content-draft-batch/times', {
+      method: 'POST',
+      body: input,
+    })
+  }
+
+  /** Validate a schedule without revisions, quota charges or publication. */
+  async validateContentDraftSchedule(
+    id: string,
+    input: BackendScheduleTiming & { version: number; targets: BackendContentDraftScheduleTarget[] }
+  ) {
+    return this.request<{ valid: true }>(
+      `v1/content-drafts/${encodeURIComponent(id)}/schedule/validate`,
+      { method: 'POST', body: input }
+    )
+  }
+
+  /** Read stored provider observations for a visible set. */
+  async listSocialAnalytics(query: { socialSetId: string; from: string; to: string }) {
+    const result = await this.request<{ items: unknown[] }>(
+      `v1/social-analytics?${new URLSearchParams(query)}`
+    )
+    return { items: result.items.map((item) => socialObservationSchema.parse(item)) }
+  }
+
   async refreshContentDraftPostMetrics(id: string) {
     return this.request<BackendContentDraftPost>(
       `v1/content-draft-posts/${encodeURIComponent(id)}/metrics`,
@@ -2938,6 +3070,12 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Apply a comment-only action with revision conflict protection. */
+  /** Read the existing discussion document with optional lifecycle and platform filters. */
+  async listContentDraftComments(id: string, query: {status?: 'all'|'open'|'resolved'; platform?: string} = {}) {
+    const params = new URLSearchParams(Object.fromEntries(Object.entries(query).filter(([,value])=>value !== undefined)) as Record<string,string>)
+    return this.request<{id:string;version:number;discussions: Record<string,unknown>}>(`v1/content-drafts/${encodeURIComponent(id)}/comments?${params}`)
+  }
+
   async mutateContentDraftComment(id: string, input: DraftCommentInput) {
     return this.request<BackendContentDraft>(
       `v1/content-drafts/${encodeURIComponent(id)}/comments`,
@@ -2965,6 +3103,11 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** A guest's view of a shared draft (service credential). */
+  /** Read only the current shared image; the share token is checked again after storage. */
+  async readSharedDraftImage(token: string) {
+    return this.request<Uint8Array>(`v1/internal/content-draft-shares/${encodeURIComponent(token)}/image`, {responseType: 'bytes'})
+  }
+
   async getSharedContentDraft(token: string) {
     return this.request<BackendSharedContentDraft>(
       `v1/internal/content-draft-shares/${encodeURIComponent(token)}`
@@ -3026,6 +3169,11 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'PATCH',
     })
+  }
+
+  /** Change future queue defaults without moving existing deliveries. */
+  async updateSocialSetQueue(id: string, input: Pick<SocialSetUpdate, 'baseVersion' | 'timeZone' | 'postingSlots' | 'naturalPostingTimes'>) {
+    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}/queue`, { body: input, method: 'PATCH' })
   }
 
   /** Deletes a set; `confirmation` is its name. */
@@ -3178,8 +3326,9 @@ export class ScreenshotStudioBackendSDK {
     )
   }
 
-  async deleteContentDraft(id: string) {
-    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}`, {
+  async deleteContentDraft(id: string, expected?: { version?: number; calendarVersion?: number }) {
+    const params = new URLSearchParams(Object.entries(expected ?? {}).filter(([,v]) => v !== undefined).map(([k,v]) => [k,String(v)]))
+    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}?${params}`, {
       method: 'DELETE',
     })
   }

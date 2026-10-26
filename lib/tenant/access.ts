@@ -19,7 +19,7 @@ export async function requireTenantAccess(
       ? await requireSensitiveActiveOrganizationPermission(headers, requirement.permission)
       : await requireActiveOrganizationPermission(headers, requirement.permission)
 
-  // There is no free plan: every tenant operation needs an active subscription.
+  // Basic workspace access precedes the operation-specific feature gate.
   await requireWorkspaceFeature(context, 'workspace:use')
   if (requirement.feature) {
     await requireWorkspaceFeature(context, requirement.feature)

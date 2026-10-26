@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
-import { createE2EDatabase } from './services'
+import { createE2EDatabase, grantWorkspacePlan } from './services'
 import type { E2EIdentity } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
 import {
@@ -23,7 +23,8 @@ import {
 export const socialMockPort = Number(process.env.E2E_SOCIAL_MOCK_PORT ?? 5679)
 
 /** Credential-free standard X identity supplied only by the local protocol fixture. */
-const xVerification = {
+/** A verified read-write X profile; the backend requires it before saving an X connection. */
+export const xVerification = {
   accountKey: 'x:123456789',
   accountKind: 'profile',
   grantedScopes: ['read-write'],
@@ -47,6 +48,59 @@ const xVerification = {
   },
 }
 
+/** Native identity snapshots used by local tests; these never authorize real accounts. */
+const nativeVerification: Record<string, { nativeId: string; verification: object }> = {
+  x: { nativeId: '123456789', verification: xVerification },
+  bluesky: {
+    nativeId: 'did:plc:abcdefghijklmnopqrstuvwx',
+    verification: {
+      accountKey: 'bluesky:did:plc:abcdefghijklmnopqrstuvwx',
+      accountKind: 'profile',
+      grantedScopes: ['com.atproto.appPass'],
+      capabilities: {
+        version: 1,
+        bluesky: {
+          maxTextGraphemes: 300,
+          maxTextBytes: 3000,
+          maxImages: 4,
+          imageMaxBytes: 2000000,
+          maxVideos: 1,
+          videoMaxBytes: 300000000,
+          blobUploadLimit: null,
+          videoCanUpload: null,
+        },
+      },
+    },
+  },
+  'mastodon-custom': {
+    nativeId: 'mastodon:fixture.social:123',
+    verification: {
+      accountKey: 'mastodon:fixture.social:123',
+      accountKind: 'profile',
+      grantedScopes: ['read', 'write'],
+      capabilities: {
+        version: 1,
+        mastodonApiVersion: 7,
+        maxCharacters: 500,
+        maxMediaAttachments: 4,
+        charactersReservedPerUrl: 23,
+        mediaMimeTypes: ['image/png', 'video/mp4'],
+        imageSizeLimit: 10000000,
+        videoSizeLimit: 40000000,
+        imageMatrixLimit: 16777216,
+        videoMatrixLimit: 2304000,
+        videoFrameRateLimit: 60,
+        polls: {
+          maxOptions: 6,
+          maxOptionCharacters: 80,
+          minDurationSeconds: 300,
+          maxDurationSeconds: 604800,
+        },
+      },
+    },
+  },
+}
+
 export type DraftWorkspace = {
   channels: Record<string, string>
   organizationId: string
@@ -56,24 +110,46 @@ export type DraftWorkspace = {
 export async function createDraftWorkspace(
   identity: E2EIdentity,
   page: Page,
-  platforms: readonly string[] = ['x', 'linkedin']
+  platforms: readonly string[] = ['x', 'linkedin'],
+  planOrOptions: 'free' | 'pro' | { verifiedStandardVideo?: boolean } = 'pro'
 ): Promise<DraftWorkspace> {
+  const plan = typeof planOrOptions === 'string' ? planOrOptions : 'pro'
+  const options = typeof planOrOptions === 'object' ? planOrOptions : {}
   let organizationId = ''
+  const verifiedX = options.verifiedStandardVideo
+    ? {
+        ...xVerification,
+        capabilities: {
+          ...xVerification.capabilities,
+          x: {
+            ...xVerification.capabilities.x,
+            subscriptionType: 'None',
+            articles: false,
+            videoMaxBytes: 8_000_000_000,
+            videoMaxDurationSeconds: 1200,
+          },
+        },
+      }
+    : xVerification
   const provider = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/me') {
       return { body: { organization: { id: `go-${organizationId}` } } }
     }
-    if (request.url === `/api/public/v1/integrations/social-${organizationId}-x/identity`) {
+    const nativePlatform = platforms.find(
+      (platform) =>
+        request.url === `/api/public/v1/integrations/social-${organizationId}-${platform}/identity`
+    )
+    if (nativePlatform && nativeVerification[nativePlatform]) {
       return {
         body: {
-          id: `social-${organizationId}-x`,
-          provider: 'x',
-          nativeId: '123456789',
-          name: 'Shots on X',
-          handle: 'shots_x',
+          id: `social-${organizationId}-${nativePlatform}`,
+          provider: nativePlatform,
+          name: `Shots on ${nativePlatform}`,
+          handle: `shots_${nativePlatform}`,
           active: true,
           verifiedAt: new Date().toISOString(),
-          verification: xVerification,
+          ...nativeVerification[nativePlatform],
+          ...(nativePlatform === 'x' ? { verification: verifiedX } : {}),
         },
       }
     }
@@ -95,6 +171,7 @@ export async function createDraftWorkspace(
   // Connecting a channel and cancelling a post are sensitive actions.
   await enablePublishingTwoFactor(page, identity.password)
   organizationId = await bindTestGoOrganization(page)
+  if (plan === 'free') await grantWorkspacePlan(organizationId, plan)
   // The product checks actual provider credentials in the shared database.
   // The HTTP fixture still owns destination verification; neither path bypasses health.
   const database = createE2EDatabase()
@@ -109,17 +186,21 @@ export async function createDraftWorkspace(
          VALUES ($1,$1,$2,$3,$3,'social','fixture-only-credential')`,
         [`social-${organizationId}-${platform}`, `go-${organizationId}`, platform]
       )
-      if (platform === 'x') {
+      const native = nativeVerification[platform]
+      if (native) {
+        const verification =
+          platform === 'x' ? verifiedX : (native.verification as typeof xVerification)
         await database.query(
-          `UPDATE "Integration" SET "internalId"='123456789', "verifiedAccountKey"=$2,
-          "verifiedAccountKind"=$3, "verifiedScopes"=$4, "verifiedCapabilities"=$5, "identityVerifiedAt"=now()
+          `UPDATE "Integration" SET "internalId"=$2, "verifiedAccountKey"=$3,
+          "verifiedAccountKind"=$4, "verifiedScopes"=$5, "verifiedCapabilities"=$6, "identityVerifiedAt"=now()
           WHERE id=$1`,
           [
-            `social-${organizationId}-x`,
-            xVerification.accountKey,
-            xVerification.accountKind,
-            JSON.stringify(xVerification.grantedScopes),
-            JSON.stringify(xVerification.capabilities),
+            `social-${organizationId}-${platform}`,
+            native.nativeId,
+            verification.accountKey,
+            verification.accountKind,
+            JSON.stringify(verification.grantedScopes),
+            JSON.stringify(verification.capabilities),
           ]
         )
       }

@@ -73,6 +73,7 @@ type MediaContent struct {
 }
 
 type PollDetails struct {
+	Multiple bool     `json:"multiple,omitempty"`
 	Options  []string `json:"options"`
 	Duration int      `json:"duration"` // hours
 	// DurationMinutes, when set, is the exact length (X takes minutes).
@@ -94,6 +95,7 @@ type PostDetails struct {
 // PostResponse: Status "pending" means the workflow must poll
 // CheckPostStatus/FinalizePost with PendingData, which only the provider reads.
 type PostResponse struct {
+	QuoteState  string          `json:"quoteState,omitempty"`
 	ID          string          `json:"id"`
 	PostID      string          `json:"postId"`
 	ReleaseURL  string          `json:"releaseURL"`
@@ -105,6 +107,7 @@ type PostResponse struct {
 // FinalizePost), completed (PostID/ReleaseURL are final). Once finalize's
 // mutations went through, CheckPostStatus must answer completed, never ready.
 type PendingCheckResponse struct {
+	QuoteState  string          `json:"quoteState,omitempty"`
 	Status      string          `json:"status"`
 	PendingData json.RawMessage `json:"pendingData,omitempty"`
 	PostID      string          `json:"postId,omitempty"`
@@ -152,6 +155,7 @@ type ExtensionCookie struct {
 }
 
 type MentionResult struct {
+	NativeID   string `json:"nativeId,omitempty"`
 	ID         string `json:"id"`
 	Label      string `json:"label"`
 	Image      string `json:"image"`

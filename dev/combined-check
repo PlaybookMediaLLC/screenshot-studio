@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Starts the production backend image with its default entry point (the social
-# API, product API, and product worker in one container) and waits until its
+# Starts the production backend image with its default entry point (the product
+# API and product worker in one container) and waits until its
 # readiness endpoint passes. Production runs this layout; the other stacks run
 # each binary in its own container.
 
@@ -20,7 +20,7 @@ chmod 600 "$COMBINED_ENV"
 
 combined_compose() {
   docker compose --env-file .local/dev.env --file dev/compose.yaml --file dev/compose.combined.yaml \
-    --project-name screenshot-studio-combined --profile social --profile combined "$@"
+    --project-name screenshot-studio-combined --profile combined "$@"
 }
 
 cleanup() {
@@ -40,7 +40,7 @@ trap cleanup EXIT
 combined_compose up --detach --build combined-backend
 for _ in $(seq 1 120); do
   if curl --fail --silent --output /dev/null http://127.0.0.1:3303/readyz; then
-    echo 'Combined backend is ready: social API, product API, and product worker.'
+    echo 'Combined backend is ready: product API and product worker.'
     exit 0
   fi
   sleep 2

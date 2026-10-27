@@ -16,11 +16,17 @@ from urllib.parse import urlsplit
 BACKEND = "screenshot-studio-backend"
 MIGRATION_JOB = "platform-migrate"
 RETIRED_BACKEND_KEYS = {"TENANT_STORAGE_SERVICE_KEY", "TENANT_STORAGE_API_URL", "TENANT_STORAGE_BUCKET"}
+# The social API process is gone: the product API connects channels and serves
+# MCP in process. Its own database, Redis, Temporal and listener settings are
+# unused. JWT_SECRET, provider credentials and storage settings stay; the
+# product API reads them.
+RETIRED_SOCIAL_KEYS = {"DATABASE_URL", "REDIS_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "TEMPORAL_API_KEY",
+                       "TEMPORAL_TLS", "TEMPORAL_SOCIAL_TASK_QUEUE", "PORT", "ORCHESTRATOR_PORT", "RUN_WORKER",
+                       "RUN_CRON", "BACKEND_INTERNAL_URL", "MAIN_URL", "NEXT_PUBLIC_BACKEND_URL",
+                       "TENANT_SOCIAL_API_URL"}
 IMAGE = {"registry_type": "GHCR", "registry": "playbookmediallc", "repository": "screenshot-studio"}
 SOCIAL_SECRET_SOURCES = {
-    "REDIS_URL": "SOCIAL_REDIS_URL",
     "JWT_SECRET": "SOCIAL_JWT_SECRET",
-    "TEMPORAL_API_KEY": "SOCIAL_TEMPORAL_API_KEY",
     "X_API_KEY": "SOCIAL_X_API_KEY",
     "X_API_SECRET": "SOCIAL_X_API_SECRET",
     "FACEBOOK_APP_ID": "SOCIAL_FACEBOOK_APP_ID",
@@ -151,14 +157,6 @@ def refresh_secrets(envs, secrets):
         if not secrets.get(source):
             raise ValueError(f"Missing Infisical secret: {source}")
         item["value"] = secrets[source]
-
-
-def shared_database(backend, secrets=None):
-    envs = {item["key"]: item for item in backend["envs"]}
-    value = secrets.get("DATABASE_URL") if secrets is not None else envs["TENANT_DATABASE_URL"]["value"]
-    if not value:
-        raise ValueError("DATABASE_URL is required for the shared backend database")
-    set_secret_env(backend["envs"], "DATABASE_URL", value)
 
 
 def platform_migration(spec, image, secrets=None):
@@ -312,9 +310,13 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
         raise ValueError("Production topology changed; inspect the app before deploying")
     spec["services"] = [item for item in spec["services"] if item["name"] != "storage"]
     rules = spec.setdefault("ingress", {}).setdefault("rules", [])
-    rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") != "storage"]
+    rules[:] = [rule for rule in rules if rule.get("component", {}).get("name") != "storage"
+                and rule.get("match", {}).get("path", {}).get("prefix") != "/postiz"]
     backend = services[BACKEND]
-    backend["envs"] = [item for item in backend["envs"] if item["key"] not in RETIRED_BACKEND_KEYS]
+    retired = RETIRED_BACKEND_KEYS | RETIRED_SOCIAL_KEYS
+    backend["envs"] = [item for item in backend["envs"] if item["key"] not in retired]
+    web = services["web"]
+    web["envs"] = [item for item in web.get("envs", []) if item["key"] != "SOCIAL_API_URL"]
     if backend.get("image", {}).get("registry_type") != "GHCR":
         raise ValueError("Combined backend image source changed")
     configure_collab(spec, backend, secrets, collab_tag)
@@ -326,7 +328,6 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
                              secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
     configure_product_api(backend, secrets)
     backend["image"] = image
-    shared_database(backend, secrets)
     platform_migration(spec, image, secrets)
     return spec
 

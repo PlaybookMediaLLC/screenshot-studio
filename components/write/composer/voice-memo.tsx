@@ -31,7 +31,7 @@ export function VoiceMemo({draftId,channel,onUse}: {draftId:string;channel:Draft
       setTranscript(result.transcript)
     } catch (cause) {setError(cause instanceof Error ? cause.message : 'Transcription failed. Your draft is unchanged.')} finally {setBusy(false)}
   }
-  return <details className="rounded-lg border border-white/[0.06] p-3">
+  return <details className="rounded-lg border border-border p-3">
     <summary className="cursor-pointer">Voice memo</summary>
     <p className="my-2 text-xs text-muted-foreground">Upload up to 10 MB of audio. Transcription uses workspace AI credits. Review the text before sending it to the assistant.</p>
     <input aria-label="Voice memo audio" type="file" accept=".mp3,.wav,.m4a,.ogg" disabled={busy} className="max-w-full text-xs" onChange={event => {setFile(event.target.files?.[0] ?? null);setTranscript('');setError('')}} />

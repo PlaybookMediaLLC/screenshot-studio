@@ -1,5 +1,6 @@
-import { ImagesIcon as Album02Icon } from '@phosphor-icons/react/dist/ssr/Images'
-import { CaretDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr/CaretDown'
+import { LibraryIcon as Album02Icon } from '@/components/platform-shell/icons'
+import { CreateScene } from '@/components/platform-ui/empty-scenes'
+import { ChevronDownIcon as ArrowDown01Icon } from '@/components/platform-shell/icons'
 import type { ReactNode } from 'react'
 import { RevisePanel } from '@/components/launch/RevisePanel'
 import { ApproveVisualButton } from '@/components/launch/assets/ApproveVisualButton'
@@ -446,6 +447,7 @@ export function AssetBoard({
   if (visuals.length === 0 && captures.length === 0) {
     return (
       <EmptyState
+        scene={<CreateScene />}
         description="Produce the campaign to capture the product, then design and review each visual in the plan."
         icon={Album02Icon}
         title="Nothing produced yet"

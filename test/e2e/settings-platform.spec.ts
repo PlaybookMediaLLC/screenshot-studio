@@ -146,7 +146,7 @@ test('a webhook secret shows once, and private addresses are refused', async ({
   await expect(page.getByText(secret)).toHaveCount(0)
 })
 
-test('social sets keep their own names, schedules and settings beside the composer', async ({
+test('publishing brands keep their own names, schedules and settings beside the composer', async ({
   identity,
   page,
 }) => {

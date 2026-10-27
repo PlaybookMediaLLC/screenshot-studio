@@ -2,6 +2,7 @@ import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
 import { AreaNavigation, AUTOMATE_LINKS } from '@/components/platform-hub/AreaNavigation'
 import type { Metadata } from 'next'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page } from '@/components/platform-ui'
 import { WorkflowsDashboard } from '@/components/workflows/WorkflowsDashboard'
@@ -27,10 +28,24 @@ export default async function WorkflowsPage({ params }: WorkflowsPageProps) {
             {access.canManage ? <ButtonLink href="/workflows/new">New workflow</ButtonLink> : null}
           </>
         }
-        description="Turn shipped changes into reviewable campaigns. Every run, decision, and output stays inspectable."
+        tagline="Shipped changes become reviewable campaigns."
         title="Automate"
       >
         <ReturnToWork />
+        {access.hasPaidPlan ? null : (
+          // Open on free basic scheduling, but its runs create releases and campaigns.
+          <Alert>
+            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+              <span>
+                You can build workflows on free basic scheduling. Running them creates releases and
+                campaign drafts, which need Pro.
+              </span>
+              <ButtonLink href="/upgrade?from=%2Fworkflows" size="sm">
+                See plans
+              </ButtonLink>
+            </AlertDescription>
+          </Alert>
+        )}
         <AreaNavigation label="Automate" items={AUTOMATE_LINKS} />
         <WorkflowsDashboard canManage={access.canManage} key={access.organization.id} />
       </Page>

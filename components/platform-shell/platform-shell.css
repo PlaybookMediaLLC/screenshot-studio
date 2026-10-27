@@ -1,7 +1,9 @@
-/* Authenticated chrome. Keep these rules out of canvas and export geometry. */
+/* Authenticated chrome: the landing page's global tokens, pill navigation and
+   pill actions, with Polar's typography. Keep these rules out of canvas and
+   export geometry. */
 .platform-shell,
 .platform-overlay {
-  --platform-nav-expanded: 16rem;
+  --platform-nav-expanded: 15rem;
   --platform-nav-compact: 4.75rem;
   --platform-header-height: 3.5rem;
   --platform-form-width: 55rem;
@@ -21,7 +23,6 @@
 .platform-shell [data-platform-scroll] {
   isolation: isolate;
   scroll-padding-block: 2rem;
-  box-shadow: 0 2px 8px rgb(0 0 0 / 3%);
 }
 
 .platform-shell[data-platform-variant='editor'] {
@@ -42,42 +43,78 @@
 
 [data-platform-sidebar] :where([data-platform-nav], [data-platform-action]) {
   min-width: 0;
-  border-radius: var(--platform-control-radius);
-  font-size: 0.8125rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.4;
-  letter-spacing: -0.01em;
   transition:
     background-color var(--platform-duration) var(--platform-ease),
     border-color var(--platform-duration) var(--platform-ease),
-    color var(--platform-duration) var(--platform-ease),
-    box-shadow var(--platform-duration) var(--platform-ease);
+    color var(--platform-duration) var(--platform-ease);
 }
 
+/* Like the landing navigation: muted until hovered, the current page lit. */
 [data-platform-sidebar] [data-platform-nav] {
   border: 1px solid transparent;
   color: var(--muted-foreground);
 }
 
 [data-platform-sidebar] [data-platform-nav][aria-current='page'] {
-  border-color: var(--border);
-  background: var(--card);
+  background: color-mix(in srgb, var(--foreground) 7%, transparent);
   color: var(--foreground);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
 }
 
 [data-platform-sidebar] :where(button, a) > svg {
   flex-shrink: 0;
 }
 
-[data-platform-sidebar] [data-platform-nav][aria-current='page'] svg {
-  color: var(--foreground);
-}
-
 .platform-workspace-trigger {
   border: 1px solid var(--border);
   background: var(--card);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+/* Polar's section labels: small, medium weight, muted, sentence case. */
+.platform-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+/* Polar's type (see platform-font.ts): 450 body weight, open tracking, and
+   medium-weight headings without tightening. Set on body for portaled overlays. */
+body:has([data-platform-shell]) {
+  --font-sans: var(--font-platform), Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
+  font-optical-sizing: auto;
+  font-weight: 450;
+  letter-spacing: 0.015em;
+  text-rendering: optimizeLegibility;
+}
+
+body:has([data-platform-shell]) :where(h1, h2, h3, h4) {
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+/* Polar's labels are sentence case: uppercase utility labels inside the app
+   render as written, without the wide tracking that went with them. */
+body:has([data-platform-shell]) .uppercase {
+  text-transform: none;
+}
+body:has([data-platform-shell])
+  .uppercase:is(.tracking-wide, .tracking-wider, .tracking-widest, [class*='tracking-[0.']) {
+  letter-spacing: inherit;
+}
+
+/* No zoom: dialogs, menus, popovers and tooltips only fade, and a pressed
+   button keeps its size. */
+body:has([data-platform-shell]) :is([class*='zoom-in'], [class*='zoom-out']) {
+  --tw-enter-scale: 1;
+  --tw-exit-scale: 1;
+}
+
+body:has([data-platform-shell]) [data-slot='button']:active {
+  scale: none;
 }
 
 .platform-mobile-header {
@@ -167,20 +204,35 @@
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  [data-slot='button']:not([data-variant='custom']):not([data-variant='integration']) {
+  :is([data-slot='button'], [data-slot$='-trigger'][data-variant]):not([data-variant='custom']):not(
+    [data-variant='integration']
+  ) {
   border-radius: var(--platform-control-radius);
   font-weight: 500;
-  letter-spacing: -0.01em;
   transition-property: background-color, border-color, color, box-shadow;
   transition-duration: var(--platform-duration);
   transition-timing-function: var(--platform-ease);
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  [data-slot='button']:is([data-variant='outline'], [data-variant='secondary']) {
+  :is([data-slot='button'], [data-slot$='-trigger'][data-variant]):is(
+    [data-variant='outline'],
+    [data-variant='secondary']
+  ) {
   border-color: var(--border);
   background: var(--card);
   box-shadow: 0 1px 2px rgb(0 0 0 / 3%);
+}
+
+/* One-line actions are the landing page's pills; card-sized buttons keep corners.
+   A button that opens a dialog, sheet or popover carries the trigger's slot
+   (Radix replaces data-slot), so it is matched by its button variant instead. */
+:where(.platform-shell[data-platform-variant='page'], .platform-overlay)
+  :is([data-slot='button'], [data-slot$='-trigger'][data-variant]):not(
+    [data-variant='custom'],
+    [data-variant='integration']
+  ):not([class*='h-auto'], [class*='h-full'], [class*='whitespace-normal']) {
+  border-radius: 999px;
 }
 
 .platform-shell[data-platform-variant='page'] :where(th, td, time) {
@@ -206,8 +258,7 @@
 
 @media (hover: hover) {
   [data-platform-sidebar] [data-platform-nav]:not([aria-current='page']):hover {
-    background: var(--sidebar-accent);
-    color: var(--sidebar-accent-foreground);
+    color: var(--foreground);
   }
 
   .platform-workspace-trigger:hover {
@@ -233,8 +284,8 @@
       :disabled,
       [aria-disabled='true']
     ):hover {
-    border-color: color-mix(in srgb, var(--foreground) 20%, var(--border));
-    background: var(--muted);
+    border-color: color-mix(in srgb, var(--foreground) 30%, transparent);
+    background: color-mix(in srgb, var(--foreground) 4%, transparent);
   }
 }
 
@@ -279,4 +330,61 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Polish taken from Kaneo's app styles. Hairline borders that firm up on
+   hover, 44px touch targets for small controls without changing their size,
+   fades without slides under reduced motion, autofill that keeps a field's own
+   colours, and thin scrollbars on inner scroll areas. */
+.platform-shell {
+  --hairline: color-mix(in srgb, var(--foreground) 9%, transparent);
+  --hairline-strong: color-mix(in srgb, var(--foreground) 20%, transparent);
+}
+.platform-shell [data-slot='button'][data-variant='outline'] {
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+.platform-shell [data-slot='button'][data-variant='outline']:hover {
+  border-color: var(--hairline-strong);
+}
+.touch-hitbox {
+  position: relative;
+}
+@media (pointer: coarse) {
+  .touch-hitbox::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    content: '';
+    transform: translate(-50%, -50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body:has([data-platform-shell])
+    :is(
+      [data-slot='sheet-content'],
+      [data-slot='dialog-content'],
+      [data-slot='popover-content'],
+      [data-slot='dropdown-menu-content'],
+      [data-slot='select-content'],
+      [data-slot='tooltip-content']
+    ) {
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+  }
+}
+body:has([data-platform-shell]) input:-webkit-autofill {
+  -webkit-text-fill-color: var(--foreground);
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+:where(.platform-shell [data-platform-scroll] *) {
+  scrollbar-color: var(--hairline-strong) transparent;
+  scrollbar-width: thin;
 }

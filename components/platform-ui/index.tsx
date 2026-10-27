@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { Stage } from '@/components/platform-landing/primitives'
 
 /**
  * Page building blocks for the signed-in platform, after Polar's dashboard:
@@ -10,33 +11,46 @@ import { cn } from '@/lib/utils'
 
 const PAGE_WIDTH = { md: 'max-w-3xl', sm: 'max-w-2xl', full: 'max-w-none' } as const
 
+/**
+ * A page with Polar's headline: the title in large type, an optional short
+ * tagline beside it in muted type at the same size, then any longer
+ * description at reading size. Pages span the full panel width.
+ */
 export function Page({
   actions,
   children,
   description,
+  tagline,
   title,
   width = 'full',
 }: {
   actions?: ReactNode
   children: ReactNode
   description?: ReactNode
+  /** A few words that finish the title's thought, shown in its size. */
+  tagline?: string
   title: string
   width?: keyof typeof PAGE_WIDTH
 }) {
   return (
     <main
       className={cn(
-        'mx-auto flex w-full min-w-0 flex-col gap-8 px-5 pt-7 pb-[max(4rem,env(safe-area-inset-bottom))] sm:px-8 md:pt-9 lg:gap-10 lg:px-10',
+        'mx-auto flex w-full min-w-0 flex-col gap-10 px-5 pt-9 pb-[max(4rem,env(safe-area-inset-bottom))] sm:px-8 md:pt-14 lg:gap-12 lg:px-12',
         PAGE_WIDTH[width]
       )}
     >
-      <header className="flex min-w-0 flex-wrap items-start justify-between gap-x-6 gap-y-5">
+      <header className="flex min-w-0 flex-wrap items-end justify-between gap-x-8 gap-y-6">
         <div className="min-w-0">
-          <h1 className="text-2xl leading-tight font-semibold tracking-tight text-foreground [overflow-wrap:anywhere]">
+          <h1 className="text-[clamp(1.75rem,2.6vw,2.375rem)] leading-[1.1] font-normal tracking-[-0.02em] text-foreground [overflow-wrap:anywhere]">
             {title}
           </h1>
+          {tagline ? (
+            <p className="text-[clamp(1.75rem,2.6vw,2.375rem)] leading-[1.1] tracking-[-0.02em] text-muted-foreground">
+              {tagline}
+            </p>
+          ) : null}
           {description ? (
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-pretty text-muted-foreground">
+            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-pretty text-muted-foreground">
               {description}
             </p>
           ) : null}
@@ -67,7 +81,7 @@ export function Section({
     <section className="flex min-w-0 scroll-mt-8 flex-col gap-4" id={id}>
       <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-6">
         <div className="min-w-0">
-          <h2 className="text-base leading-6 font-semibold tracking-tight text-foreground [overflow-wrap:anywhere]">
+          <h2 className="text-base leading-6 font-medium text-foreground [overflow-wrap:anywhere]">
             {title}
           </h2>
           {description ? (
@@ -181,27 +195,35 @@ export function EmptyState({
   action,
   description,
   icon: Icon,
+  scene,
   title,
 }: {
   action?: ReactNode
   description: ReactNode
   icon: ComponentType<{ className?: string; size?: number }>
+  /** A small product scene for the area (see empty-scenes.tsx), drawn beside the message. */
+  scene?: ReactNode
   title: string
 }) {
+  // A dark window on the landing page's grain stage, in both themes: the
+  // `dark` scope keeps its buttons and text on the dark token set.
   return (
-    <div className="flex min-w-0 flex-col items-center justify-center gap-5 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-14 text-center sm:py-20">
-      <span className="grid size-12 place-items-center rounded-xl border border-border bg-card text-muted-foreground shadow-xs">
-        <Icon size={24} aria-hidden="true" />
-      </span>
-      <div className="min-w-0">
-        <h3 className="text-base font-semibold tracking-tight text-foreground">{title}</h3>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-pretty text-muted-foreground">
-          {description}
-        </p>
+    <Stage className="min-h-[22rem] rounded-2xl px-5 py-12 sm:py-16">
+      <div className="flex w-full max-w-4xl flex-col items-center justify-center gap-10 md:flex-row">
+        {scene ? <div className="hidden sm:block">{scene}</div> : null}
+        <div className="dark flex w-full max-w-md min-w-0 flex-col items-center gap-5 rounded-2xl border border-[#1f1f1f] bg-[#090909]/95 px-6 py-8 text-center text-white shadow-[0_16px_40px_-12px_rgba(0,0,0,0.75)] sm:px-8">
+          <span className="grid size-11 place-items-center rounded-xl border border-white/10 text-white/70">
+            <Icon size={22} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-lg font-normal text-white">{title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-pretty text-[#a3a3a3]">{description}</p>
+          </div>
+          {action ? (
+            <div className="flex max-w-full flex-wrap justify-center gap-2">{action}</div>
+          ) : null}
+        </div>
       </div>
-      {action ? (
-        <div className="flex max-w-full flex-wrap justify-center gap-2">{action}</div>
-      ) : null}
-    </div>
+    </Stage>
   )
 }

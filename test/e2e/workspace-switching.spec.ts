@@ -38,7 +38,8 @@ async function switchWorkspace(
   page: Parameters<typeof browserRequest>[0],
   workspaceName: string
 ): Promise<void> {
-  await page.getByRole('button', { name: /^Workspace:/ }).click()
+  // One menu holds workspace switching and the account, as in Polar's sidebar footer.
+  await page.getByRole('button', { name: 'Open account menu' }).click()
   await Promise.all([
     page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
     page.getByRole('button', { name: `Switch to ${workspaceName}` }).click(),

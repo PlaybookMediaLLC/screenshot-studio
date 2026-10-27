@@ -23,11 +23,20 @@ test('free scheduling creates an explicit commitment while queue and paid capabi
     await expect(page.getByRole('heading', { name: 'Free basic scheduling' })).toBeVisible()
     await page.getByRole('link', { name: 'Continue with free scheduling' }).click()
     await expect(page).toHaveURL(/\/write(?:\?|$)/)
-    // Signing in lands on Home; a free workspace must reach Write, not bounce to pricing.
+    // Signing in lands on Home, which a free workspace keeps instead of bouncing to pricing.
+    // Paid areas say Pro before they are opened and lead to the in-app plan page.
     for (const landing of ['/sign-in', '/home', '/']) {
       await page.goto(landing)
-      await expect(page).toHaveURL(/\/write(?:\?|$)/)
+      await expect(page).toHaveURL(/\/home(?:\?|$)/)
     }
+    const sidebar = page.getByRole('complementary', { name: 'Primary navigation' })
+    await expect(sidebar.getByRole('link', { name: 'Create (Pro)' })).toBeVisible()
+    await sidebar.getByRole('link', { name: 'Library (Pro)' }).click()
+    await expect(page).toHaveURL(/\/upgrade\?from=%2Flibrary/)
+    await expect(page.getByRole('heading', { name: 'Library is on Pro' })).toBeVisible()
+    await expect(sidebar).toBeVisible()
+    await page.getByRole('link', { name: 'Back to Publish' }).click()
+    await expect(page).toHaveURL(/\/write(?:\?|$)/)
     const id = await openNewDraft(page)
     await draftEditor(page).pressSequentially('Free basic scheduling saves a real commitment.')
     await expectSaved(page)

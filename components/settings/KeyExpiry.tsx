@@ -11,7 +11,9 @@ import {
 export function KeyExpiry({ id }: { id: string }) {
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>Expires in</Label>
+      <Label className="text-xs font-medium text-foreground/65" htmlFor={id}>
+        Expires in
+      </Label>
       <Select name="expiresInDays" defaultValue="30">
         <SelectTrigger id={id}>
           <SelectValue />

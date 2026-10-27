@@ -299,3 +299,22 @@ export async function openSchedule(page: Page): Promise<Locator> {
   await expect(dialog).toBeVisible()
   return dialog
 }
+
+/**
+ * Put the caret at the end of the draft's last text, as after reopening the
+ * editor from a dialog. Waits out slate's selection sync like caretAtEndOf.
+ */
+export async function caretAtDocumentEnd(page: Page): Promise<void> {
+  await draftEditor(page).focus()
+  await draftEditor(page).evaluate((editor) => {
+    const strings = editor.querySelectorAll('[data-slate-string]')
+    const text = strings[strings.length - 1]?.firstChild
+    if (!text) return
+    const range = document.createRange()
+    range.setStart(text, text.textContent?.length ?? 0)
+    range.collapse(true)
+    window.getSelection()?.removeAllRanges()
+    window.getSelection()?.addRange(range)
+  })
+  await page.waitForTimeout(300)
+}

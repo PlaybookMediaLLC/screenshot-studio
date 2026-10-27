@@ -1,5 +1,21 @@
+import { draftChannelSchema } from '@/lib/write/document'
+
 /** One CSV import row: an existing asset ID or a selected filename, never a remote URL. */
 export type ImportRow = { caption: string; asset: string; channels: string[] }
+
+/**
+ * What to fix in a row's channels before it can become a draft in a brand
+ * with `connected` channels, or undefined. No channels is a valid unassigned
+ * draft; a named channel must be supported and connected in the brand.
+ */
+export function channelProblem(channels: string[], connected: readonly string[]) {
+  const unknown = channels.filter((channel) => !draftChannelSchema.safeParse(channel).success)
+  if (unknown.length)
+    return `Unknown channel ${unknown.join(', ')}. Use ${draftChannelSchema.options.join(', ')}, separated by semicolons.`
+  const missing = channels.filter((channel) => !connected.includes(channel))
+  if (missing.length)
+    return `No connected ${missing.join(', ')} account in this publishing brand. Connect it, or remove it from this row's channels.`
+}
 
 /** Parse quoted CSV, including embedded newlines and escaped quotes, with strict bounds. */
 export function parseDraftCSV(input: string): ImportRow[] {

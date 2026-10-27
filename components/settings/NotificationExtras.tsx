@@ -62,7 +62,7 @@ export function SocialSetNotifications({
   return (
     <div className="grid gap-3">
       <div>
-        <h3 className="text-sm font-medium text-foreground">By social set</h3>
+        <h3 className="text-sm font-medium text-foreground">By publishing brand</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Choose each channel independently. These choices override publishing defaults for this
           set. A private set&apos;s activity reaches only its owner. Workspace rules and your email
@@ -71,14 +71,14 @@ export function SocialSetNotifications({
       </div>
       {sets.isPending ? (
         <p className="text-sm text-muted-foreground" role="status">
-          Loading social sets…
+          Loading publishing brands…
         </p>
       ) : sets.isError ? (
         <p className="text-sm text-red-700 dark:text-red-300" role="alert">
           {settingsErrorMessage(sets.error)}
         </p>
       ) : sets.data.items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No social sets yet.</p>
+        <p className="text-sm text-muted-foreground">No publishing brands yet.</p>
       ) : (
         <Group>
           {sets.data.items.map((set) => (

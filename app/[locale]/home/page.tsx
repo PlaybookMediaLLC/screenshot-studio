@@ -2,18 +2,21 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { platformHref } from '@/lib/platform/navigation'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { ArrowRightIcon as ArrowRight } from '@phosphor-icons/react/dist/ssr/ArrowRight'
-import { ArrowUpRightIcon as ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
-import { ImageIcon as ImagePlus } from '@phosphor-icons/react/dist/ssr/Image'
-import { PenIcon as PenLine } from '@phosphor-icons/react/dist/ssr/Pen'
-import { MegaphoneIcon as Megaphone } from '@phosphor-icons/react/dist/ssr/Megaphone'
-import { FlowArrowIcon as Workflow } from '@phosphor-icons/react/dist/ssr/FlowArrow'
-import { ShapesIcon as Shapes } from '@phosphor-icons/react/dist/ssr/Shapes'
+import { Page } from '@/components/platform-ui'
+import { Stage } from '@/components/platform-landing/primitives'
+import { ArrowForwardIcon as ArrowRight } from '@/components/platform-shell/icons'
+import { OutwardIcon as ArrowUpRight } from '@/components/platform-shell/icons'
+import { ImageIcon as ImagePlus } from '@/components/platform-shell/icons'
+import { EditIcon as PenLine } from '@/components/platform-shell/icons'
+import { CampaignsIcon as Megaphone } from '@/components/platform-shell/icons'
+import { AutomateIcon as Workflow } from '@/components/platform-shell/icons'
+import { CategoryIcon as Shapes } from '@/components/platform-shell/icons'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { NeedsAttention } from '@/components/platform-hub/NeedsAttention'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
-import { requirePaidPageAccess, unpaidLandingPath } from '@/lib/auth/page-access'
+import { TemplateHighlights } from '@/components/platform-hub/TemplateBrowser'
+import { requirePaidPageAccess } from '@/lib/auth/page-access'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 export const metadata = { title: 'Home' }
@@ -34,14 +37,17 @@ export default async function HomePage({
     }
     redirect(platformHref(locale === 'en' ? '/' : `/${locale}`, `/?${search}`))
   }
+  // Free basic scheduling gets Home too; paid starters say so and lead to the plan page.
   const access = await requirePaidPageAccess(await headers(), locale, '/home', 'content:drafts')
-  if (!access.hasPaidPlan) redirect(unpaidLandingPath(locale, access))
+  const paid = access.hasPaidPlan
+  const gated = (href: string) => (paid ? href : `/upgrade?from=${encodeURIComponent(href)}`)
   const starters = [
     {
       title: 'Create a visual',
       description: 'Screenshots, mockups, and designs.',
-      href: '/create',
+      href: gated('/create'),
       icon: ImagePlus,
+      pro: !paid,
     },
     ...(contentDraftsEnabled()
       ? [
@@ -58,60 +64,59 @@ export default async function HomePage({
           {
             title: 'Plan a campaign',
             description: 'Organize your next product launch.',
-            href: '/campaigns/new',
+            href: gated('/campaigns/new'),
             icon: Megaphone,
+            pro: !paid,
           },
         ]
       : []),
     {
       title: 'Build a workflow',
       description: 'Automate repeatable tasks.',
+      // Automate opens on free plans and says there that its runs need Pro.
       href: '/workflows',
       icon: Workflow,
+      pro: !paid,
     },
-  ]
+  ] as { title: string; description: string; href: string; icon: typeof Workflow; pro?: boolean }[]
   return (
     <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization?.name}
     >
-      <main className="platform-home mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-10">
-        <header className="home-topbar">
-          <h1 className="text-sm font-semibold">Home</h1>
-          <span className="truncate text-xs text-muted-foreground">
-            {access.organization?.name ?? 'Your workspace'}
-          </span>
-        </header>
-
-        <section aria-labelledby="home-welcome" className="home-start">
-          <div className="home-intro">
-            <div className="min-w-0">
-              <h2 id="home-welcome" className="home-title">
-                What will you make today?
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                Start something new, or pick up where you left off.
-              </p>
-            </div>
-            <ButtonLink
-              href="/library?view=templates"
-              variant="outline"
-              className="w-fit shrink-0 gap-2"
-            >
+      <Page
+        title="Home"
+        tagline="What will you make today?"
+        actions={
+          paid ? (
+            <ButtonLink href="/library?view=templates" variant="outline" className="gap-2">
               <Shapes size={16} aria-hidden="true" /> Explore templates{' '}
               <ArrowUpRight size={15} aria-hidden="true" />
             </ButtonLink>
-          </div>
+          ) : (
+            <ButtonLink href="/upgrade" variant="outline" className="gap-2">
+              Free basic scheduling · See plans <ArrowUpRight size={15} aria-hidden="true" />
+            </ButtonLink>
+          )
+        }
+      >
+        <section aria-label="Start something new" className="platform-home">
           <ul className="home-actions">
-            {starters.map(({ title, description, href, icon: Icon }) => (
+            {starters.map(({ title, description, href, icon: Icon, pro }, index) => (
               <li key={href}>
                 <SidebarLink href={href} className="home-action group">
-                  <span className="home-action-icon">
-                    <Icon size={19} aria-hidden="true" />
-                  </span>
+                  {/* A small grain stage, like the gallery's covers. */}
+                  <Stage className="size-12 shrink-0 rounded-lg" variant={index}>
+                    <span className="grid size-7 place-items-center rounded-md bg-[#090909]/90 text-white ring-1 ring-white/10">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                  </Stage>
                   <span className="min-w-0">
-                    <span className="block text-[13px] font-medium text-foreground">{title}</span>
-                    <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      {title}
+                      {pro ? <span className="platform-pro-badge">Pro</span> : null}
+                    </span>
+                    <span className="mt-1 block text-[13px] leading-relaxed text-muted-foreground">
                       {description}
                     </span>
                   </span>
@@ -122,21 +127,47 @@ export default async function HomePage({
           </ul>
         </section>
 
-        <div className="home-work">
+        <div className="home-work platform-home">
           <RecentWork
             organizationId={access.organization!.id}
             draftsEnabled={contentDraftsEnabled()}
+            paidPlan={paid}
           />
           <NeedsAttention />
         </div>
 
-        <SidebarLink href="/library?view=brand" className="home-brand group">
+        {paid ? (
+          <section aria-labelledby="home-templates" className="platform-home grid gap-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-normal tracking-[-0.01em]" id="home-templates">
+                  Start from a template
+                </h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Finished looks for your next screenshot.
+                </p>
+              </div>
+              <SidebarLink
+                href="/library?view=templates"
+                className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                All templates <ArrowUpRight size={14} aria-hidden="true" />
+              </SidebarLink>
+            </div>
+            <TemplateHighlights />
+          </section>
+        ) : null}
+
+        <SidebarLink href={gated('/library?view=brand')} className="platform-home home-brand group">
           <span className="flex items-center gap-3">
             <span className="grid size-8 shrink-0 place-items-center">
               <Shapes size={19} className="text-muted-foreground" aria-hidden="true" />
             </span>
             <span>
-              <span className="block text-sm font-medium">Brand resources</span>
+              <span className="flex items-center gap-2 text-sm font-medium">
+                Brand resources
+                {paid ? null : <span className="platform-pro-badge">Pro</span>}
+              </span>
               <span className="mt-1 block text-xs text-muted-foreground">
                 Manage your brand kit, voice, and products.
               </span>
@@ -146,7 +177,7 @@ export default async function HomePage({
             Manage brand <ArrowRight size={15} aria-hidden="true" />
           </span>
         </SidebarLink>
-      </main>
+      </Page>
     </PlatformShell>
   )
 }

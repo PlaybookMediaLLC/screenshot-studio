@@ -3,7 +3,7 @@ import 'server-only'
 import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { getRequestId, type TenantContext } from '@/lib/auth/access'
-import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
+import { getLocalizedPath, getPageAccess, upgradePath } from '@/lib/auth/page-access'
 
 /**
  * Shared guard for the campaign pages: signed in, in an operational
@@ -18,7 +18,7 @@ export async function requireCampaignPageAccess(locale: string) {
     redirect(getLocalizedPath(locale, '/onboarding'))
   }
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
-  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
+  if (!access.hasPaidPlan) redirect(upgradePath(locale, '/campaigns'))
   if (!access.campaignWorkflowEnabled) notFound()
   // Tenant reads run as the signed-in session, scoped to the active workspace.
   const tenant: TenantContext = {

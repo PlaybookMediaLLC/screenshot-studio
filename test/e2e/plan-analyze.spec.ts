@@ -84,7 +84,7 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       ).toBeVisible()
     })
     await test.step('P03 P05 P06 all mixed and none selection use stable account IDs', async () => {
-      const all = page.getByRole('checkbox', { name: 'All social sets' })
+      const all = page.getByRole('checkbox', { name: 'All publishing brands' })
       await expect(all).toBeChecked()
       await page.getByRole('checkbox', { name: 'Show Same name linkedin', exact: true }).uncheck()
       expect(await all.evaluate((node: HTMLInputElement) => node.indeterminate)).toBe(true)
@@ -127,11 +127,18 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       await page.getByRole('button', { name: 'Posted', exact: true }).click()
       await expect(page.getByRole('link', { name: /Picker source draft/ })).toHaveCount(0)
       await expect(page.getByRole('combobox', { name: 'Calendar view' })).toHaveValue('month')
-      await page.getByRole('button', { name: 'Back to social sets' }).click()
+      await page.getByRole('button', { name: 'Back to publishing brands' }).click()
     })
     await test.step('P10 P11 P12 P13 P14 P15 view controls and keyboard keep a usable period', async () => {
       await page.getByRole('combobox', { name: 'Calendar view' }).selectOption('week')
       await expect(page.getByRole('button', { name: '00:00', exact: true })).toHaveCount(7)
+      // CAL-01: today's badge must not move its hour grid off the other days'.
+      await page.getByRole('button', { name: 'Today', exact: true }).click()
+      await expect(page.locator('time[aria-current="date"]')).toBeVisible()
+      const midnights = await page
+        .getByRole('button', { name: '00:00', exact: true })
+        .evaluateAll((buttons) => buttons.map((button) => button.getBoundingClientRect().top))
+      expect(new Set(midnights).size, midnights.join(', ')).toBe(1)
       await page.keyboard.press('m')
       await expect(page.getByRole('combobox', { name: 'Calendar view' })).toHaveValue('month')
       await page.getByRole('button', { name: 'Next month', exact: true }).click()

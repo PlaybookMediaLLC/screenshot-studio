@@ -1,8 +1,9 @@
 'use client'
 
-import { ListChecksIcon as CheckListIcon } from '@phosphor-icons/react/dist/ssr/ListChecks'
-import { LaptopIcon as LaptopIcon } from '@phosphor-icons/react/dist/ssr/Laptop'
-import { DeviceMobileIcon as SmartPhone01Icon } from '@phosphor-icons/react/dist/ssr/DeviceMobile'
+import { ChecklistIcon as CheckListIcon } from '@/components/platform-shell/icons'
+import { CampaignsScene } from '@/components/platform-ui/empty-scenes'
+import { LaptopIcon as LaptopIcon } from '@/components/platform-shell/icons'
+import { StoreIcon as SmartPhone01Icon } from '@/components/platform-shell/icons'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { type ReactNode, useState, useTransition } from 'react'
@@ -195,6 +196,7 @@ export function PlanView({
   if (!plan) {
     return (
       <EmptyState
+        scene={<CampaignsScene />}
         action={
           runButton ? (
             <div className="flex flex-col items-center gap-2">

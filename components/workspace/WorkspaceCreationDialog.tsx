@@ -163,7 +163,7 @@ export function WorkspaceCreationDialog({
           <DialogDescription>
             {created
               ? `${created.name} is ready. Your current workspace is still selected.`
-              : 'Share social sets with colleagues or clients for writing, review, and scheduling. Each workspace has its own members and plan.'}
+              : 'Share publishing brands with colleagues or clients for writing, review, and scheduling. Each workspace has its own members and plan.'}
           </DialogDescription>
         </DialogHeader>
         {created ? (
@@ -179,7 +179,7 @@ export function WorkspaceCreationDialog({
               Invite members
             </Button>
             <Button disabled aria-describedby="workspace-move-unavailable" variant="outline">
-              Move a personal social set
+              Move a personal publishing brand
             </Button>
             <p id="workspace-move-unavailable" className="text-sm text-muted-foreground">
               Moving existing sets between workspaces is not available yet.

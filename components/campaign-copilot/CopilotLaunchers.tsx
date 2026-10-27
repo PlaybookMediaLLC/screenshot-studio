@@ -85,19 +85,21 @@ export function ShipInput({
   return (
     <>
       <form
-        className="flex flex-col gap-2 rounded-2xl bg-foreground/[0.02] p-4 ring-1 ring-foreground/[0.06]"
+        className="flex flex-col gap-4 rounded-2xl bg-card p-5 ring-1 ring-border sm:p-6"
         onSubmit={submit}
       >
-        <Label className="text-sm font-medium text-foreground" htmlFor="ship-input">
+        <Label
+          className="text-lg leading-snug font-normal tracking-[-0.01em] text-foreground"
+          htmlFor="ship-input"
+        >
           What did you ship?
         </Label>
-        {products.length > 0 ? (
-          <Label className="grid gap-1">
-            Product
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          {products.length > 0 ? (
             <Select value={productSlug} onValueChange={setProductSlug} disabled={busy}>
               <SelectTrigger
                 aria-label="Product for quick draft"
-                className="h-10 w-full rounded-lg bg-background"
+                className="h-11 w-full rounded-full bg-background px-4 md:w-56"
               >
                 <SelectValue placeholder="Choose a product" />
               </SelectTrigger>
@@ -109,11 +111,9 @@ export function ShipInput({
                 ))}
               </SelectContent>
             </Select>
-          </Label>
-        ) : null}
-        <div className="flex flex-col gap-2 md:flex-row">
+          ) : null}
           <Input
-            className="h-10 w-full rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"
+            className="h-11 w-full flex-1 rounded-full bg-background px-4 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"
             disabled={busy}
             id="ship-input"
             maxLength={4_000}
@@ -121,7 +121,7 @@ export function ShipInput({
             placeholder="We just shipped recurring invoices. Market it."
             value={value}
           />
-          <Button className="h-10 rounded-lg" disabled={busy || !value.trim()} type="submit">
+          <Button className="h-11 rounded-full px-5" disabled={busy || !value.trim()} type="submit">
             {busy ? <LoaderCircle aria-hidden className="animate-spin" /> : null}
             Draft a campaign
           </Button>

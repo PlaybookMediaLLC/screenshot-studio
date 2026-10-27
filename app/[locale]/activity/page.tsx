@@ -2,8 +2,9 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
+import { Page } from '@/components/platform-ui'
 import { WorkspaceActivity } from '@/components/workspace/WorkspaceActivity'
-import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
+import { getLocalizedPath, getPageAccess, upgradePath } from '@/lib/auth/page-access'
 
 export const metadata: Metadata = { title: 'Activity' }
 
@@ -19,22 +20,20 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
     redirect(getLocalizedPath(locale, '/onboarding'))
   }
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
-  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
+  if (!access.hasPaidPlan) redirect(upgradePath(locale, '/activity'))
 
   return (
     <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization.name}
     >
-      <main className="w-full px-6 py-10">
-        <header className="mb-8">
-          <h1 className="text-2xl font-medium tracking-tight">Activity</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Releases, campaigns, announcements, and scheduled posts in this workspace.
-          </p>
-        </header>
+      <Page
+        title="Activity"
+        tagline="Everything moving in this workspace."
+        description="Releases, campaigns, announcements, and scheduled posts."
+      >
         <WorkspaceActivity />
-      </main>
+      </Page>
     </PlatformShell>
   )
 }

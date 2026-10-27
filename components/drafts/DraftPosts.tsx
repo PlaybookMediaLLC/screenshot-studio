@@ -172,7 +172,7 @@ export function DraftPosts({
                 </div>
               </div>
               {post.status === 'FAILED' ? (
-                <p className="flex flex-wrap items-center gap-2 text-xs text-red-300" role="status">
+                <p className="flex flex-wrap items-center gap-2 text-xs text-red-700 dark:text-red-300" role="status">
                   This destination did not publish; the draft’s other posts are unaffected.
                   {canSchedule ? (
                     <Button
@@ -194,7 +194,7 @@ export function DraftPosts({
               ) : null}
               {post.status === 'UNKNOWN_DELIVERY' ? (
                 <div
-                  className="flex flex-wrap items-center gap-2 text-xs text-amber-300"
+                  className="flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-300"
                   role="status"
                 >
                   The platform did not confirm whether this went out. Check the account before doing
@@ -347,7 +347,7 @@ function FollowUps({
 }) {
   return (
     <div className="grid gap-1 text-xs" data-testid="follow-ups">
-      <p className="flex items-center justify-between text-neutral-400">
+      <p className="flex items-center justify-between text-muted-foreground">
         After it went live
         {onStop ? (
           <Button disabled={busy} onClick={onStop} size="sm" variant="outline">
@@ -358,16 +358,16 @@ function FollowUps({
       <ul className="grid gap-0.5">
         {post.automations.map((item) => (
           <li
-            className="flex items-center gap-2 text-neutral-500"
+            className="flex items-center gap-2 text-muted-foreground"
             data-testid="follow-up"
             key={item.key}
           >
-            <span className="text-neutral-300">{FOLLOW_UP_LABELS[item.kind]}</span>
+            <span className="text-foreground">{FOLLOW_UP_LABELS[item.kind]}</span>
             <LocalTime value={item.dueAt} />
             <span
               className={cn(
-                item.status === 'failed' && 'text-red-300',
-                item.status === 'done' && 'text-emerald-300'
+                item.status === 'failed' && 'text-red-700 dark:text-red-300',
+                item.status === 'done' && 'text-emerald-700 dark:text-emerald-300'
               )}
             >
               {FOLLOW_UP_STATUS[item.status]}
@@ -397,7 +397,7 @@ function Reconcile({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="grid w-80 gap-2 p-3 text-sm">
-        <p className="text-neutral-200">Is the post on the account?</p>
+        <p className="text-foreground">Is the post on the account?</p>
         <Input
           aria-label="The post's URL"
           onChange={(event) => setUrl(event.target.value)}

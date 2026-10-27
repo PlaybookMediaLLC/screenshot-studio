@@ -283,7 +283,7 @@ export default function ConnectionDialog({
           {provider
             ? `${intent.operation === 'RECONNECT' ? 'Reconnect' : 'Connect'} ${label} account`
             : creating
-              ? 'Create a social set'
+              ? 'Create a publishing brand'
               : `Add account to “${target?.name ?? 'this brand'}”`}
         </DialogTitle>
         <DialogDescription>

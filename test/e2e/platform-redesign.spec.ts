@@ -457,14 +457,16 @@ test('sidebar choices persist across client navigation and content scrolls insid
   }
   expect(documents).toEqual([])
   await expect(sidebar).toHaveCSS('border-right-width', '0px')
+  // Polar's dashboard icons: Material Icons Outlined, on a 24-unit viewBox.
   await expect(
     sidebar.getByRole('link', { name: 'Home', exact: true }).locator('svg')
-  ).toHaveAttribute('viewBox', '0 0 256 256')
+  ).toHaveAttribute('viewBox', '0 0 24 24')
+  // The collapse control shares the footer row with the theme switch, above the switcher.
   const toggle = sidebar.getByRole('button', { name: 'Collapse navigation' })
-  const workspace = sidebar.getByRole('button', { name: /^Workspace:/ })
-  expect(
-    Math.abs((await toggle.boundingBox())!.y - (await workspace.boundingBox())!.y)
-  ).toBeLessThan(12)
+  const theme = sidebar.getByRole('button', { name: /^Switch to (light|dark) mode$/ })
+  const account = sidebar.getByRole('button', { name: 'Open account menu' })
+  expect(Math.abs((await toggle.boundingBox())!.y - (await theme.boundingBox())!.y)).toBeLessThan(4)
+  expect((await toggle.boundingBox())!.y).toBeLessThan((await account.boundingBox())!.y)
   await toggle.click()
   await expect(sidebar).toHaveAttribute('data-navigation', 'compact')
   await sidebar.getByRole('link', { name: 'Home', exact: true }).click()

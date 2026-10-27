@@ -45,8 +45,8 @@ export function ImportDraft({
     >
       <h1 className="font-medium">Import draft</h1>
       <p className="text-sm text-muted-foreground">
-        Review this text before saving it to your social set. A line containing --- or four newlines
-        separates posts.
+        Review this text before saving it to your publishing brand. A line containing --- or four
+        newlines separates posts.
       </p>
       <Textarea
         aria-label="Imported draft text"

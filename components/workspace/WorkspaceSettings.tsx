@@ -55,7 +55,7 @@ export function WorkspaceSettings({ section, ...props }: WorkspaceSettingsProps)
 
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0]!
   return (
-    <Page title="Settings">
+    <Page title="Settings" tagline="Your account, workspace and publishing.">
       <ReturnToWork />
       <div className="flex flex-col gap-6 lg:flex-row lg:gap-10">
         <SettingsNav />

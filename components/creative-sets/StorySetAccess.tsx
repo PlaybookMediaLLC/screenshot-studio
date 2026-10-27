@@ -58,9 +58,7 @@ export function StorySetAccess() {
         </p>
       </div>
       <div aria-label="Example Story Set" className="border-t pt-5">
-        <p className="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Example · Your team’s work, together
-        </p>
+        <p className="platform-eyebrow mb-4">Example · Your team’s work, together</p>
         <div className="max-w-3xl">
           <StorySetFormatPreview setId="example" revision={1} document={exampleStorySet} />
         </div>

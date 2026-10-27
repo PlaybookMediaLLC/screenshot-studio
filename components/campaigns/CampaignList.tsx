@@ -1,13 +1,12 @@
 'use client'
 
 import type { CampaignStatus } from '@/lib/tenant/campaign-status'
-import { CaretRightIcon as ArrowRight01Icon } from '@phosphor-icons/react/dist/ssr/CaretRight'
-import { MagnifyingGlassIcon as Search01Icon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
+import { SearchIcon as Search01Icon } from '@/components/platform-shell/icons'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useMemo, useState } from 'react'
-import { Group } from '@/components/platform-ui'
+import { Stage, Window } from '@/components/platform-landing/primitives'
 import { CAMPAIGN_STATUSES, CampaignStatusPill, campaignStatusLabel } from './CampaignStatusPill'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -36,7 +35,7 @@ function updatedLabel(iso: string): string {
   return Math.abs(days) < 7 ? RELATIVE.format(days, 'day') : new Date(iso).toLocaleDateString()
 }
 
-/** Polar-style list: a toolbar to narrow it down, then one quiet row per campaign. */
+/** A studio grid of campaigns, each on a grain stage like the landing page's product shots. */
 export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
   const [query, setQuery] = useState('')
   const searchParams = useSearchParams()
@@ -75,7 +74,7 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
             size={15}
           />
           <Input
-            className="h-9 w-full rounded-lg bg-foreground/[0.03] pr-3 pl-9 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"
+            className="h-9 w-full rounded-full bg-foreground/[0.03] pr-3 pl-9 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none placeholder:text-muted-foreground/75 focus:ring-foreground/20"
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search"
             type="search"
@@ -88,7 +87,7 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
             onValueChange={(nextValue) => setStatus(nextValue as CampaignStatus | 'ALL')}
             value={status}
           >
-            <SelectTrigger className="h-9 w-full rounded-lg bg-foreground/[0.03] px-3 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none md:w-auto">
+            <SelectTrigger className="h-9 w-full rounded-full bg-foreground/[0.03] px-4 text-sm text-foreground ring-1 ring-foreground/[0.08] outline-none md:w-auto">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -118,39 +117,45 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
           </Button>
         </div>
       ) : (
-        <Group>
-          {visible.map((campaign) => (
-            <Link
-              className="group flex items-center justify-between gap-6 px-5 py-4 transition-colors hover:bg-foreground/[0.025]"
-              href={`/campaigns/${campaign.id}`}
-              key={campaign.id}
-            >
-              <span className="flex min-w-0 items-center gap-4">
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-foreground">
-                    {campaign.name}
-                  </span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                    {campaign.productName ??
-                      (campaign.releaseTitle
-                        ? `Release · ${campaign.releaseTitle}`
-                        : (campaign.objective ?? 'No release linked'))}
-                  </span>
+        <ul className="studio-grid">
+          {visible.map((campaign, index) => (
+            <li className="studio-shot" key={campaign.id}>
+              <Link className="group block" href={`/campaigns/${campaign.id}`}>
+                <span className="studio-shot-media">
+                  {/* The landing page's grain stage, a different light per card. */}
+                  <Stage className="size-full rounded-none" variant={index}>
+                    <Window
+                      className="w-[78%] transition-transform duration-300 group-hover:-translate-y-1"
+                      title={campaign.productName ?? 'Campaign'}
+                    >
+                      <span className="block px-4 py-5">
+                        <span className="line-clamp-2 block text-[17px] leading-snug text-white">
+                          {campaign.name}
+                        </span>
+                        <span className="mt-2 block truncate text-xs text-[#858585]">
+                          {campaign.releaseTitle
+                            ? `Release · ${campaign.releaseTitle}`
+                            : (campaign.objective ?? 'No release linked')}
+                        </span>
+                      </span>
+                    </Window>
+                  </Stage>
                 </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-4 md:gap-6">
-                <CampaignStatusPill status={campaign.status} />
-                <span className="hidden w-24 text-right text-xs text-muted-foreground md:block">
-                  {updatedLabel(campaign.updatedAt)}
+                <span className="studio-shot-meta">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium text-foreground">
+                      {campaign.name}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {campaign.productName ?? 'No product'} · {updatedLabel(campaign.updatedAt)}
+                    </span>
+                  </span>
+                  <CampaignStatusPill status={campaign.status} />
                 </span>
-                <ArrowRight01Icon
-                  className="text-muted-foreground/75 transition-colors group-hover:text-foreground/80"
-                  size={16}
-                />
-              </span>
-            </Link>
+              </Link>
+            </li>
           ))}
-        </Group>
+        </ul>
       )}
     </div>
   )

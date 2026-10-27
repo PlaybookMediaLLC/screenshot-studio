@@ -12,11 +12,18 @@ export function WorkspaceRolesSettings() {
           <caption className="sr-only">Workspace role capabilities</caption>
           <thead>
             <tr>
-              <th className="p-4" scope="col">
+              <th
+                className="p-4 align-bottom text-xs font-medium text-muted-foreground"
+                scope="col"
+              >
                 Role
               </th>
               {roleCapabilities.map(({ label }) => (
-                <th className="p-4" scope="col" key={label}>
+                <th
+                  className="p-4 align-bottom text-xs font-medium text-muted-foreground"
+                  scope="col"
+                  key={label}
+                >
                   {label}
                 </th>
               ))}
@@ -25,7 +32,7 @@ export function WorkspaceRolesSettings() {
           <tbody>
             {organizationRoles.map((role) => (
               <tr className="border-t border-border" key={role}>
-                <th className="max-w-64 p-4 font-normal" scope="row">
+                <th className="min-w-56 max-w-72 p-4 font-normal" scope="row">
                   <span className="font-medium capitalize">{roleLabels[role]}</span>
                   <p className="mt-1 text-xs text-muted-foreground">{roleSummaries[role]}</p>
                 </th>

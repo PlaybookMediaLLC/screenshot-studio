@@ -118,7 +118,7 @@ export default function CommandPalette({
                 value={`draft ${draft.id} ${draft.title} ${draft.plainText}`}
               >
                 <span className="truncate">{draft.title}</span>
-                <span className="ml-2 truncate text-xs text-neutral-400">
+                <span className="ml-2 truncate text-xs text-muted-foreground">
                   {draft.plainText.slice(0, 60)}
                 </span>
               </CommandItem>
@@ -204,7 +204,7 @@ export default function CommandPalette({
               value={`set ${set.id} ${set.name}`}
             >
               {set.name}
-              <span className="ml-2 text-xs text-neutral-400">
+              <span className="ml-2 text-xs text-muted-foreground">
                 {set.accounts
                   .map((connection) => connection.handle ?? connection.platform)
                   .join(' · ')}

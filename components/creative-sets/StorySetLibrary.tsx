@@ -6,6 +6,9 @@ import { useSearchParams } from 'next/navigation'
 import { MagnifyingGlassIcon as Search01Icon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/platform-ui'
+import { PageSpread } from '@/components/platform-ui/page-spread'
+import { CanvasIcon as StackIcon } from '@/components/platform-shell/icons'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Label } from '@/components/ui/label'
@@ -74,13 +77,11 @@ export function StorySetLibrary({
   }, [search, query])
   if (creating) return <StorySetIntake onCancel={() => setCreating(false)} />
   return (
-    <Root className="w-full space-y-8 p-4 sm:p-8">
+    <Root className={embedded ? 'w-full space-y-8' : 'w-full space-y-8 p-4 sm:p-8'}>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs uppercase tracking-[0.16em] text-emerald-400">
-            Product evidence, connected
-          </p>
-          <Heading className="text-3xl font-semibold tracking-tight">Story Sets</Heading>
+          <p className="platform-eyebrow mb-2">Product evidence, connected</p>
+          <Heading className="text-3xl font-normal tracking-tight">Story Sets</Heading>
           <p className="mt-2 max-w-xl text-muted-foreground">
             Product benefits, editable formats and connected evidence. Keep your launch creative
             current as your product changes.
@@ -158,21 +159,37 @@ export function StorySetLibrary({
         </p>
       ) : null}
       {!busy && !error && !items.length ? (
-        <section className="space-y-3 rounded-xl border p-8 text-center">
-          <h2 className="font-medium">{query ? 'No matching Story Sets' : 'No Story Sets yet'}</h2>
-          <p className="break-words text-sm text-muted-foreground">
-            {query
+        <EmptyState
+          icon={StackIcon}
+          title={query ? 'No matching Story Sets' : 'No Story Sets yet'}
+          description={
+            query
               ? `No Story Sets match “${query}”.`
               : canCreate && canEdit
                 ? 'Start with a screenshot and the benefit it proves.'
-                : 'Your saved Story Sets will appear here.'}
-          </p>
-          {query ? (
-            <Button variant="outline" onClick={() => updateFilter('search', '')}>
-              Clear search
-            </Button>
-          ) : null}
-        </section>
+                : 'Your saved Story Sets will appear here.'
+          }
+          scene={
+            // One benefit in its three connected formats: wide, square and portrait.
+            <span className="block w-96">
+              <PageSpread
+                frame={16 / 9}
+                pages={[
+                  { kind: 'hero', ratio: '16:9' },
+                  { kind: 'hero', ratio: '1:1' },
+                  { kind: 'hero', ratio: '4:5' },
+                ]}
+              />
+            </span>
+          }
+          action={
+            query ? (
+              <Button variant="outline" onClick={() => updateFilter('search', '')}>
+                Clear search
+              </Button>
+            ) : null
+          }
+        />
       ) : null}
       <div aria-busy={busy} className="grid gap-6 lg:grid-cols-2">
         {items.map((item) => (

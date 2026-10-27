@@ -121,7 +121,7 @@ export function MediaTools({
               >
                 <h3 className="mb-2 text-sm">Post {post + 1}</h3>
                 {attachments.length === 0 ? (
-                  <p className="text-xs text-neutral-400">Drop an attachment here.</p>
+                  <p className="text-xs text-muted-foreground">Drop an attachment here.</p>
                 ) : null}
                 {attachments.map(({ node }, position) => (
                   <AttachmentRow
@@ -207,7 +207,7 @@ function AttachmentRow({
   const video = node.type === 'video'
   return (
     <div
-      className="my-2 flex flex-wrap items-center gap-2 rounded bg-white/5 p-2"
+      className="my-2 flex flex-wrap items-center gap-2 rounded bg-foreground/5 p-2"
       draggable
       onDragStart={(event) => {
         // Keep Plate's window-level HTML5 backend from cancelling this native drag.

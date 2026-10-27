@@ -10,7 +10,7 @@ import { configureE2EFlow, test } from './framework/flow'
 import { unbindTestGoOrganization } from './framework/publishing'
 configureE2EFlow()
 
-test('scheduling opens a fresh draft in the same social set and keeps the commitment in Queue', async ({
+test('scheduling opens a fresh draft in the same publishing brand and keeps the commitment in Queue', async ({
   identity,
   page,
 }) => {

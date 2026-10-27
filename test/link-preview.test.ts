@@ -567,6 +567,28 @@ test('URL lists preserve lines, reject malformed inputs, and keep query punctuat
   assert.equal(normalizeUrl('localhost:3000'), 'https://localhost:3000/')
 })
 
+test('NAV-03: a finished check keeps a safe way back and the brand, never an external one', async () => {
+  const { checkAddress } = await import('@/components/link-preview/client')
+  const opened = `https://shots.test/link-preview?returnTo=${encodeURIComponent('/write/deliveries?set=brand')}&set=brand&url=old`
+  const address = new URL(checkAddress(opened, 'https://linear.app/', 'facebook'))
+  assert.equal(address.pathname, '/link-preview')
+  assert.equal(address.searchParams.get('returnTo'), '/write/deliveries?set=brand')
+  assert.equal(address.searchParams.get('set'), 'brand')
+  assert.equal(address.searchParams.get('url'), 'https://linear.app/')
+  assert.equal(address.searchParams.get('agent'), 'facebook')
+  for (const unsafe of ['https://evil.test/', '//evil.test/', '/\\evil.test'])
+    assert.equal(
+      new URL(
+        checkAddress(
+          `https://shots.test/link-preview?returnTo=${encodeURIComponent(unsafe)}`,
+          'https://linear.app/',
+          'default'
+        )
+      ).search,
+      `?url=${encodeURIComponent('https://linear.app/')}`
+    )
+})
+
 test('invalid edited images are reported and never exported into snippets', async () => {
   const { isHttpUrl } = await import('@/lib/link-preview/urls')
   for (const image of [

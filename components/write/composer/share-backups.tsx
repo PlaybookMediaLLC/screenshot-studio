@@ -82,7 +82,7 @@ export function ShareDialog({
               : 'Access: everyone in this workspace, by their role.'}
           </DialogDescription>
         </DialogHeader>
-        <Label className="grid gap-1 text-xs text-neutral-400">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           Internal link
           <span className="flex gap-2">
             <Input
@@ -103,11 +103,11 @@ export function ShareDialog({
             </Button>
           </span>
         </Label>
-        <div className="grid gap-2 rounded-lg border border-white/[0.06] p-3">
-          <Label className="flex items-center justify-between gap-3 text-sm text-neutral-200">
+        <div className="grid gap-2 rounded-lg border border-border p-3">
+          <Label className="flex items-center justify-between gap-3 text-sm text-foreground">
             <span>
               Public link
-              <span className="block text-[11px] text-neutral-400">
+              <span className="block text-[11px] text-muted-foreground">
                 Anyone with the link can read and comment. After publication it shows the delivered
                 thread, including confirmed replies.
               </span>
@@ -137,7 +137,7 @@ export function ShareDialog({
               </Button>
             </span>
           ) : (
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-muted-foreground">
               Off: nobody outside the workspace can open this draft.
             </p>
           )}
@@ -284,9 +284,9 @@ export function BackupsBrowser({
             year. Recovering makes a new draft; this one stays as it is.
           </DialogDescription>
         </DialogHeader>
-        {items === null ? <p className="text-sm text-neutral-400">Loading…</p> : null}
+        {items === null ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
         {items?.length === 0 ? (
-          <p className="text-sm text-neutral-400">No backups yet: they start with edits.</p>
+          <p className="text-sm text-muted-foreground">No backups yet: they start with edits.</p>
         ) : null}
         {items && items.length > 0 ? (
           <>
@@ -300,10 +300,10 @@ export function BackupsBrowser({
               >
                 ← Prev
               </Button>
-              <span className="text-center text-xs text-neutral-400" data-testid="backup-time">
+              <span className="text-center text-xs text-muted-foreground" data-testid="backup-time">
                 <LocalTime value={items[index].createdAt} /> · version {items[index].version} ·{' '}
                 {REASONS[items[index].reason]}
-                <span className="block text-[11px] text-neutral-600">
+                <span className="block text-[11px] text-muted-foreground">
                   {index + 1} of {items.length}
                 </span>
               </span>
@@ -324,8 +324,8 @@ export function BackupsBrowser({
                   className={cn(
                     'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs',
                     item === channel
-                      ? 'border-white/30 text-white'
-                      : 'border-white/10 text-neutral-400'
+                      ? 'border-foreground/40 text-foreground'
+                      : 'border-border text-muted-foreground'
                   )}
                   key={item}
                   onClick={() => setChannel(item)}
@@ -337,7 +337,7 @@ export function BackupsBrowser({
                   {CHANNEL_META[item].label}
                 </Button>
               ))}
-              <Label className="ml-auto flex items-center gap-2 text-xs text-neutral-400">
+              <Label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
                 Compare with now
                 <Switch
                   aria-label="Compare with now"
@@ -349,15 +349,17 @@ export function BackupsBrowser({
             {revision ? (
               compare ? (
                 <pre
-                  className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm"
+                  className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-foreground/[0.03] p-3 font-sans text-sm"
                   data-testid="backup-diff"
                 >
                   {lineDiff(then, now).map((line, at) => (
                     <span
                       className={cn(
                         'block',
-                        line.kind === 'removed' && 'bg-red-500/15 text-red-200 line-through',
-                        line.kind === 'added' && 'bg-emerald-500/15 text-emerald-200'
+                        line.kind === 'removed' &&
+                          'bg-red-500/15 text-red-700 dark:text-red-200 line-through',
+                        line.kind === 'added' &&
+                          'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'
                       )}
                       key={at}
                     >
@@ -368,14 +370,14 @@ export function BackupsBrowser({
                 </pre>
               ) : (
                 <pre
-                  className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm text-neutral-200"
+                  className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-foreground/[0.03] p-3 font-sans text-sm text-foreground"
                   data-testid="backup-content"
                 >
                   {then || 'Empty'}
                 </pre>
               )
             ) : (
-              <p className="text-sm text-neutral-400">Loading this version…</p>
+              <p className="text-sm text-muted-foreground">Loading this version…</p>
             )}
           </>
         ) : null}

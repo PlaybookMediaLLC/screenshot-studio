@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import {
+  caretAtDocumentEnd,
   createDraftWorkspace,
   draftEditor,
   expectSaved,
@@ -38,7 +39,7 @@ test('emoji preserves the caret and rich pasted text becomes a persisted, undoab
     await search.press('Enter')
     await expect(editor).toContainText('Before 🚀after')
     await page.waitForTimeout(300)
-    await page.keyboard.press('ControlOrMeta+End')
+    await caretAtDocumentEnd(page)
     await page.waitForTimeout(300)
     await page.keyboard.type(' :rocket')
     await page.getByText('Rocket', { exact: true }).click()
@@ -59,7 +60,7 @@ test('emoji preserves the caret and rich pasted text becomes a persisted, undoab
         }),
       ])
     })
-    await page.keyboard.press('ControlOrMeta+End')
+    await caretAtDocumentEnd(page)
     await page.keyboard.press('Enter')
     await page.keyboard.press('ControlOrMeta+V')
     await expect(editor.locator('strong')).toContainText('Bold words')
@@ -88,7 +89,7 @@ test('emoji preserves the caret and rich pasted text becomes a persisted, undoab
     await page.getByLabel('Split automatically on paste').check()
     await editor.click()
     await page.waitForTimeout(300)
-    await page.keyboard.press('ControlOrMeta+End')
+    await caretAtDocumentEnd(page)
     await page.keyboard.press('Enter')
     await page.waitForTimeout(300)
     await page.evaluate(() =>

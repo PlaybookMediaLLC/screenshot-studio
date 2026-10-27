@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseDraftCSV } from '@/lib/write/bulk-import'
+import { channelProblem, parseDraftCSV } from '@/lib/write/bulk-import'
 
 test('CSV preserves multiline captions, Unicode, literal formulas, and escaped quotes', () => {
   assert.deepEqual(
@@ -25,4 +25,16 @@ test('CSV rejects malformed input and accepts exactly fifty rows', () => {
     assert.throws(() => parseDraftCSV(text))
   assert.equal(parseDraftCSV('caption\n' + Array(50).fill('item').join('\n')).length, 50)
   assert.throws(() => parseDraftCSV('caption\n' + Array(51).fill('item').join('\n')), /50/)
+})
+test('IMPORT-01: review flags unknown and unconnected channels, never unassigned rows', () => {
+  const [unknown, unconnected, unassigned, connected] = parseDraftCSV(
+    'caption,asset,channels\nA,,not-a-channel\nB,,x\nC,,\nD,,LinkedIn'
+  )
+  assert.match(
+    channelProblem(unknown.channels, ['linkedin']) ?? '',
+    /Unknown channel not-a-channel/
+  )
+  assert.match(channelProblem(unconnected.channels, ['linkedin']) ?? '', /No connected x account/)
+  assert.equal(channelProblem(unassigned.channels, []), undefined)
+  assert.equal(channelProblem(connected.channels, ['linkedin']), undefined)
 })

@@ -51,7 +51,7 @@ export function WorkflowSources({
         </p>
       )}
       <Section
-        description="Activation switches a repository to automation mode. Disabling every workflow keeps it there; unmatched events never fall back to legacy release intake."
+        description="Once a workflow is active, workflows handle this repository's merged changes. Pausing them does not send changes back to manual release intake."
         title="Watched repositories"
       >
         <Group>
@@ -110,7 +110,7 @@ function SourceRow({
       layout="stacked"
     >
       {!connected ? (
-        <p className="text-sm text-amber-300">
+        <p className="text-sm text-amber-700 dark:text-amber-300">
           Restore access in GitHub, reconnect the installation above, and watch this repository
           again. Runs cancelled by the outage stay cancelled; history is kept.
         </p>
@@ -171,7 +171,9 @@ function SourceRow({
             type="button"
             variant="outline"
           >
-            {source.mode === 'automation' ? 'Switch to legacy intake' : 'Use automation mode'}
+            {source.mode === 'automation'
+              ? 'Return to manual release intake'
+              : 'Let workflows handle releases'}
           </Button>
           <Button
             disabled={busy}

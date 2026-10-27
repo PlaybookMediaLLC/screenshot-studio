@@ -606,3 +606,53 @@ async function otherWorkspace(browser: Browser, identity: E2EIdentity) {
   )
   return page
 }
+
+test('F: the Library page manager reorders, duplicates, deletes and adds pages in one save', async ({
+  identity,
+  page,
+}) => {
+  await setUp(identity, page)
+  await page.goto(getE2EUrl('/canvas/new?recipe=product-launch'))
+  await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
+  const canvasId = canvasIdOf(page)
+  const before = (await stored(page, canvasId)).document.artboards.map((board) => board.name)
+  expect(before).toHaveLength(5)
+
+  await page.goto(getE2EUrl('/library?type=canvas'))
+  await page.getByRole('button', { name: /^Manage the pages of / }).click()
+  const dialog = page.getByRole('dialog')
+  const pages = dialog.getByRole('list', { name: 'Pages' }).locator(':scope > li[draggable]')
+  await expect(pages).toHaveCount(5)
+  // Drag the last page in front of the first, then use the keyboard-reachable arrows.
+  await pages.nth(4).dragTo(pages.nth(0), { targetPosition: { x: 8, y: 40 } })
+  await dialog.getByRole('button', { name: 'Move page 2 later' }).click()
+  await dialog.getByRole('button', { name: 'Duplicate page 1' }).click()
+  await dialog.getByRole('button', { name: 'Delete page 3' }).click()
+  await dialog.getByRole('button', { name: 'Add page' }).click()
+  await expect(dialog.getByText('6 pages · Unsaved changes')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Save pages' }).click()
+  await expect(dialog).toBeHidden({ timeout: 30_000 })
+  const saved = await stored(page, canvasId)
+  expect(saved.document.artboards.map((board) => board.name)).toEqual([
+    before[4],
+    `${before[4]} (copy)`,
+    before[0],
+    before[2],
+    before[3],
+    'Page 6',
+  ])
+  await expect(page.getByRole('group', { name: /artboards$/ })).toContainText('+2')
+
+  // A save based on an older revision is refused and nothing is lost.
+  await page.getByRole('button', { name: /^Manage the pages of / }).click()
+  await dialog.getByRole('button', { name: 'Delete page 6' }).click()
+  const elsewhere = await trpcMutation(page, 'canvas.updateDocument', {
+    canvasId,
+    baseRevision: saved.revision,
+    document: saved.document,
+  })
+  expect(elsewhere.status).toBe(200)
+  await dialog.getByRole('button', { name: 'Save pages' }).click()
+  await expect(dialog.getByRole('alert')).toHaveText(/changed somewhere else/)
+  expect((await stored(page, canvasId)).document.artboards).toHaveLength(6)
+})

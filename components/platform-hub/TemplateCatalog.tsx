@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { useNearViewport } from '@/components/design/DocumentPreview'
 import { ImageTemplatePreview } from '@/components/templates/ImageTemplateGallery'
@@ -42,29 +41,54 @@ function PreviewCard({
 }) {
   const [ref, near] = useNearViewport<HTMLDivElement>()
   return (
-    <li className="flex min-w-0 flex-col overflow-hidden rounded-xl border bg-card">
-      <div
-        ref={ref}
-        role="img"
-        aria-label={`Preview of ${name}`}
-        className="flex min-h-48 items-center justify-center overflow-hidden border-b bg-muted/30 p-3"
-      >
-        {near ? (
-          <div className="w-full" aria-hidden="true">
-            {children}
-          </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">Preview loads as you scroll</span>
-        )}
+    <li className="studio-shot">
+      <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="studio-shot-media">
+        <div className="grid size-full place-items-center p-3">
+          {near ? (
+            <div className="w-full" aria-hidden="true">
+              {children}
+            </div>
+          ) : (
+            <span className="text-sm text-muted-foreground">Preview loads as you scroll</span>
+          )}
+        </div>
+        <span aria-hidden="true" className="studio-shot-overlay">
+          {description}
+        </span>
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <h3 className="font-medium">{name}</h3>
-        <p className="flex-1 text-sm text-muted-foreground">{description}</p>
-        <SidebarLink href={href} className="self-start text-sm underline underline-offset-4">
+      <div className="studio-shot-meta">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-medium">{name}</h3>
+          <p className="truncate text-xs text-muted-foreground">{description}</p>
+        </div>
+        <SidebarLink
+          aria-label={`${action}: ${name}`}
+          href={href}
+          className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-foreground/[0.04]"
+        >
           {action}
         </SidebarLink>
       </div>
     </li>
+  )
+}
+
+/** A short row of screenshot templates for Home, opening the same editor. */
+export function TemplateStrip({ count = 4 }: { count?: number }) {
+  return (
+    <ul className="studio-grid studio-strip">
+      {IMAGE_TEMPLATES.slice(0, count).map((template) => (
+        <PreviewCard
+          key={template.preset.id}
+          name={template.preset.name}
+          description={template.preset.description}
+          href="/"
+          action="Use template"
+        >
+          <ImageTemplatePreview template={template} />
+        </PreviewCard>
+      ))}
+    </ul>
   )
 }
 
@@ -93,16 +117,22 @@ export default function TemplateCatalog() {
   }, [category])
   return (
     <section aria-label="Template previews" className="space-y-5">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Template categories">
+      <div className="platform-tabs" role="group" aria-label="Template categories">
         {CATEGORIES.map((item) => (
-          <Button
+          <button
             key={item}
-            variant={category === item ? 'secondary' : 'ghost'}
+            aria-current={category === item ? 'page' : undefined}
             aria-pressed={category === item}
+            className={
+              category === item
+                ? 'platform-tab text-foreground'
+                : 'platform-tab text-muted-foreground hover:text-foreground'
+            }
             onClick={() => setCategory(item)}
+            type="button"
           >
             {item}
-          </Button>
+          </button>
         ))}
       </div>
       <p className="text-sm text-muted-foreground">
@@ -120,7 +150,7 @@ export default function TemplateCatalog() {
           category to retry.
         </p>
       ) : null}
-      <ul key={category} className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <ul key={category} className="studio-grid">
         {category === 'Screenshots'
           ? IMAGE_TEMPLATES.map((template) => (
               <PreviewCard
@@ -128,7 +158,7 @@ export default function TemplateCatalog() {
                 name={template.preset.name}
                 description={template.preset.description}
                 href="/"
-                action="Open screenshot editor"
+                action="Use template"
               >
                 <ImageTemplatePreview template={template} />
               </PreviewCard>
@@ -141,7 +171,7 @@ export default function TemplateCatalog() {
                 name={template.name}
                 description={template.description}
                 href="/"
-                action="Open animation templates"
+                action="Use template"
               >
                 <AnimatedTemplatePreview template={template} active={false} />
               </PreviewCard>
@@ -156,7 +186,7 @@ export default function TemplateCatalog() {
                   name={template.name}
                   description={template.description}
                   href="/"
-                  action="Open screenshot editor"
+                  action="Use template"
                 >
                   <DesignTemplatePreview id={template.id} />
                 </PreviewCard>
@@ -169,7 +199,7 @@ export default function TemplateCatalog() {
                 name={CANVAS_RECIPES[recipe].name}
                 description={CANVAS_RECIPES[recipe].description}
                 href={`/canvas/new?start=template&recipe=${recipe}`}
-                action="Customize this Canvas"
+                action="Use template"
               >
                 <RecipePreview recipe={recipe} />
               </PreviewCard>
@@ -182,7 +212,7 @@ export default function TemplateCatalog() {
                 name={template.name}
                 description={template.description}
                 href="/?editor=app-store"
-                action="Open store studio"
+                action="Use template"
               >
                 <StoreTemplatePreview template={template} />
               </PreviewCard>
@@ -195,7 +225,7 @@ export default function TemplateCatalog() {
                 name={template.name}
                 description={template.description}
                 href="/workflows/new"
-                action="Configure a workflow"
+                action="Use template"
               >
                 <WorkflowTemplatePreview
                   name={template.name}

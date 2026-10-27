@@ -396,11 +396,11 @@ export function DraftCalendar({
         </select>
         {workspaceScope ? (
           <select
-            aria-label="Calendar social set"
+            aria-label="Calendar publishing brand"
             value={filteredSet}
             onChange={(event) => setFilter('calendarSet', event.target.value)}
           >
-            <option value="all">All social sets</option>
+            <option value="all">All publishing brands</option>
             {sets.map((set) => (
               <option key={set.id} value={set.id}>
                 {set.name}
@@ -425,7 +425,7 @@ export function DraftCalendar({
         <Link
           href={`/write/plan?${new URLSearchParams({ ...Object.fromEntries(params), scope: workspaceScope ? 'set' : 'workspace' })}`}
         >
-          {workspaceScope ? 'Show this social set' : 'All social sets'}
+          {workspaceScope ? 'Show this publishing brand' : 'All publishing brands'}
         </Link>
         <Link href={`/write/settings${socialSetId ? `?set=${socialSetId}` : ''}`}>
           Schedule settings

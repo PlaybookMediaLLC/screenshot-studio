@@ -6,7 +6,7 @@ import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { AreaNavigation, LIBRARY_LINKS } from '@/components/platform-hub/AreaNavigation'
 import { Page } from '@/components/platform-ui'
 import { WorkspaceAssets } from '@/components/workspace/WorkspaceAssets'
-import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
+import { getLocalizedPath, getPageAccess, upgradePath } from '@/lib/auth/page-access'
 
 export const metadata: Metadata = { title: 'Assets' }
 
@@ -22,7 +22,7 @@ export default async function AssetsPage({ params }: AssetsPageProps) {
     redirect(getLocalizedPath(locale, '/onboarding'))
   }
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
-  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
+  if (!access.hasPaidPlan) redirect(upgradePath(locale, '/assets'))
 
   return (
     <PlatformShell

@@ -14,7 +14,7 @@ import { isAiEnabled } from '@/lib/trpc/routers/launch'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
 import { loadWrite } from '../write-data'
 
-export const metadata: Metadata = { title: 'Write' }
+export const metadata: Metadata = { title: 'Publish' }
 
 type WriteDraftPageProps = {
   params: Promise<{ draftId: string; locale: string }>

@@ -121,6 +121,9 @@ orchestrator also requires:
   (and optional `R2_REGION`, `R2_BROWSER_ENDPOINT`) for private tenant media
 - `SOCIAL_API_URL` and an allow-listed API key reference for social OAuth and
   destination verification. They are held by the product backend, not the web.
+  Without `SOCIAL_API_URL` the product API connects channels in process
+  (`internal/socialconnect`) with the social provider settings,
+  `PLATFORM_SOCIAL_ENCRYPTION_KEY`, `REDIS_URL`, and `STORAGE_PROVIDER`.
   The publishing worker reads social integration rows from the shared database
   and signs the canonical private asset when due.
 

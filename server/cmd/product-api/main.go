@@ -26,6 +26,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/tenantpublishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialconnect"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 	"github.com/getsentry/sentry-go"
@@ -130,9 +131,23 @@ func main() {
 	if client := platformai.FromEnvironment(); client != nil {
 		model = client
 	}
+	// SOCIAL_API_URL keeps the HTTP social API (the browser e2e suite mocks it);
+	// otherwise channels connect in process.
+	var verifier httpapi.DestinationVerifier
+	if socialURL := os.Getenv("SOCIAL_API_URL"); socialURL != "" {
+		verifier = socialapi.New(socialURL, &http.Client{Timeout: 20 * time.Second}, nil)
+	} else {
+		connector, closeConnector, err := socialconnect.Open(ctx, cfg.DatabaseURL, db.Client)
+		if err != nil {
+			slog.Error("social connections unavailable", "error", err)
+			os.Exit(1)
+		}
+		defer closeConnector()
+		verifier = connector
+	}
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.Port),
-		Handler: httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, socialapi.New(os.Getenv("SOCIAL_API_URL"), &http.Client{Timeout: 20 * time.Second}, nil), cfg.ServiceToken, configuration,
+		Handler: httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, verifier, cfg.ServiceToken, configuration,
 			&onboarding.Service{Background: &temporalonboarding.Client{SeedSurfaces: os.Getenv("PLATFORM_ONBOARDING_SURFACES") == "enabled", Temporal: temporalClient},
 				FastPath: &onboarding.FastPath{Fetcher: onboarding.NewFetcher(), Model: model}, Store: configuration}),
 		ReadHeaderTimeout: 5 * time.Second,

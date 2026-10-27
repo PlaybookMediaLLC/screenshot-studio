@@ -66,7 +66,7 @@ func oauthIdentity(w http.ResponseWriter, r *http.Request) (publishing.Actor, st
 
 func validOAuthProvider(provider string) bool {
 	return provider == "x" || provider == "instagram" || provider == "instagram-standalone" || provider == "linkedin" ||
-		provider == "threads" || provider == "mastodon" || provider == "mastodon-custom"
+		provider == "threads" || provider == "mastodon" || provider == "mastodon-custom" || e2eAuthorizationHost(provider) != ""
 }
 
 func decodeOAuthRequest(w http.ResponseWriter, r *http.Request, requireState, requireIntegration bool) (oauthRequest, bool) {
@@ -82,12 +82,13 @@ func decodeOAuthRequest(w http.ResponseWriter, r *http.Request, requireState, re
 
 func validatedAuthorizationURL(raw, provider string, instanceOrigin ...string) (string, string, error) {
 	u, err := url.Parse(raw)
-	if err != nil || u == nil || u.Scheme != "https" || u.User != nil || u.Fragment != "" {
+	e2eHost := e2eAuthorizationHost(provider)
+	if err != nil || u == nil || (u.Scheme != "https" && e2eHost == "") || u.User != nil || u.Fragment != "" {
 		return "", "", errors.New("invalid authorization URL")
 	}
 	host := map[string]string{
 		"x": "api.x.com", "instagram": "www.facebook.com", "instagram-standalone": "www.instagram.com", "linkedin": "www.linkedin.com",
-		"threads": "www.threads.net", "mastodon": "mastodon.social",
+		"threads": "www.threads.net", "mastodon": "mastodon.social", "e2e": e2eHost,
 	}[provider]
 	if provider == "mastodon-custom" {
 		if len(instanceOrigin) != 1 {

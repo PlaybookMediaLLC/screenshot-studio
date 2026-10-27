@@ -165,10 +165,11 @@ cancel signal, and rate-limit retry. Configure a social key only when testing an
 actual publication. Compose exposes Temporal gRPC on port 7233 and
 its local UI on http://localhost:8233.
 
-The Go social API is a separate optional profile with its own database,
-Redis, and Temporal server. Run `make social-up` and see
+The product API connects social channels in process and serves the MCP
+server at http://localhost:3100/mcp. Put provider credentials in the ignored
+`.local/social.env`; see
 [Screenshot Studio backend and orchestrator](social-backend-deployment.md) for the
-local API key and production configuration.
+workspace binding and production configuration.
 
 The RustFS bucket is private. The Go backend creates object keys under
 `org/<organization-id>/<classification>/<asset-id>/<revision>/` and signs every

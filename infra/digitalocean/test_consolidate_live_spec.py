@@ -35,7 +35,9 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
             ],
             "jobs": [{"name": "platform-migrate", "image": image, "run_command": "/platform-migrate", "envs": [env("DATABASE_URL", "EV[migration-owner]")]},
                      {"name": "postiz-migrate", "image": image, "run_command": "/postiz-migrate", "envs": [env("DATABASE_URL")]}],
-            "ingress": {"rules": [{"component": {"name": "screenshot-studio-backend"}}, {"component": {"name": "web"}}]},
+            "ingress": {"rules": [{"component": {"name": "screenshot-studio-backend"}},
+                                  {"match": {"path": {"prefix": "/postiz"}}, "component": {"name": "screenshot-studio-backend"}},
+                                  {"component": {"name": "web"}}]},
         }}
         self.digest = "sha256:" + "a" * 64
 
@@ -52,9 +54,10 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         values = {item["key"]: item for item in backend["envs"]}
         self.assertEqual(values["TENANT_AUDIT_RETENTION_DATABASE_URL"]["value"], "EV[encrypted]")
         self.assertEqual(values["TENANT_PUBLISHING_SERVICE_TOKEN"]["type"], "SECRET")
-        self.assertEqual(values["DATABASE_URL"]["value"], values["TENANT_DATABASE_URL"]["value"])
         self.assertEqual(values["SOCIAL_PRIVATE_MEDIA"]["value"], "false")
-        self.assertEqual(values["TENANT_SOCIAL_API_URL"]["value"], "http://127.0.0.1:3000/public/v1")
+        # The social API process is gone; its own settings are retired.
+        self.assertFalse(set(values) & cutover.RETIRED_SOCIAL_KEYS)
+        self.assertIn("TENANT_DATABASE_URL", values)
         # A pin to the legacy queue would keep new posts off the social queue.
         self.assertNotIn("TEMPORAL_SOCIAL_TASK_QUEUE", values)
         self.assertFalse(set(values) & cutover.RETIRED_BACKEND_KEYS)
@@ -62,8 +65,9 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertFalse({key for key in keys if "POSTIZ" in key})
         web_env = {item["key"]: item for item in services["web"]["envs"]}
         self.assertEqual(web_env["PUBLISHING_API_URL"]["value"], "http://screenshot-studio-backend:8082")
-        self.assertEqual(web_env["SOCIAL_API_URL"]["value"], "http://screenshot-studio-backend:3000/public/v1")
+        self.assertNotIn("SOCIAL_API_URL", web_env)
         self.assertEqual(spec["ingress"]["rules"][0]["component"]["name"], "screenshot-studio-backend")
+        self.assertFalse([rule for rule in spec["ingress"]["rules"] if rule.get("match", {}).get("path", {}).get("prefix") == "/postiz"])
         platform = spec["jobs"][0]
         self.assertEqual((platform["name"], platform["run_command"]), ("platform-migrate", "/platform-migrate"))
         self.assertEqual(platform["image"]["digest"], self.digest)
@@ -145,7 +149,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         spec = cutover.consolidate(self.base, self.digest, secrets)
         backend = next(item for item in spec["services"] if item["name"] == "screenshot-studio-backend")
         values = {item["key"]: item["value"] for item in backend["envs"]}
-        self.assertEqual(values["DATABASE_URL"], "infisical-DATABASE_URL")
+        self.assertNotIn("DATABASE_URL", values)
         self.assertEqual(values["TENANT_DATABASE_URL"], "infisical-DATABASE_URL")
         # Migration jobs run as the migration owner, never the runtime role.
         self.assertEqual(next(item for item in spec["jobs"] if item["name"] == "platform-migrate")["envs"][0]["value"], "infisical-MIGRATION_DATABASE_URL")
@@ -168,7 +172,7 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         retired_initial = cutover.consolidate(self.base, self.digest, withdrawn)
         retired_initial_backend = next(item for item in retired_initial["services"] if item["name"] == "screenshot-studio-backend")
         self.assertNotIn("FACEBOOK_APP_SECRET", {item["key"] for item in retired_initial_backend["envs"]})
-        with self.assertRaisesRegex(ValueError, "DATABASE_URL"):
+        with self.assertRaisesRegex(ValueError, "Missing Infisical secret"):
             cutover.consolidate(self.base, self.digest, {})
 
     def test_every_backend_secret_comes_from_infisical(self):

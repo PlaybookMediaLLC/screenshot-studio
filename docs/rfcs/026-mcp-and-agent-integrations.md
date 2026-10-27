@@ -7,7 +7,7 @@
 > historical wherever it conflicts with that order or the audited architecture.
 
 **Status:** Partially implemented (Go MCP server, tool surface and OAuth present)
-**Status note (2026-10-23):** Implementation exists in server/internal/social/chat/mcp. Older server-inventory text is historical; current code and the release-readiness index govern extensions.
+**Status note (2026-10-23):** Implementation exists in server/internal/mcp. Older server-inventory text is historical; current code and the release-readiness index govern extensions.
 **Date:** 2026-10-17  
 **Owners:** Platform Engineering  
 **Historical dependencies:** RFC 009, RFC 027, RFC 012, RFC 030, RFC 014, RFC 023

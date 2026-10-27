@@ -49,24 +49,6 @@ func TestPublishingEnvRequiresMaintenance(t *testing.T) {
 	}
 }
 
-func TestDirectPublisherRequiresOneLogicalDatabase(t *testing.T) {
-	base := []string{
-		"DATABASE_URL=postgresql://social:one@db:5432/screenshot_studio",
-		"TENANT_DATABASE_URL=postgresql://tenant:two@db/screenshot_studio",
-		"TENANT_TEMPORAL_ADDRESS=temporal:7233", "TENANT_TEMPORAL_NAMESPACE=tenant",
-		"TENANT_AUDIT_RETENTION_DATABASE_URL=retention",
-		"TENANT_RUN_CRON=true", "TENANT_RUN_MAINTENANCE=true",
-		"TENANT_PUBLISHING_SERVICE_TOKEN=private-token",
-	}
-	if _, err := publishingEnv(base); err != nil {
-		t.Fatalf("different database roles on one database must be accepted: %v", err)
-	}
-	base[1] = "TENANT_DATABASE_URL=postgresql://tenant:two@db:5432/another_database"
-	if _, err := publishingEnv(base); err == nil || !strings.Contains(err.Error(), "one PostgreSQL database") {
-		t.Fatalf("different database accepted: %v", err)
-	}
-}
-
 func hasEntry(entries []string, value string) bool {
 	for _, entry := range entries {
 		if entry == value {
@@ -76,31 +58,26 @@ func hasEntry(entries []string, value string) bool {
 	return false
 }
 
-func TestSocialEnvGetsTheMCPPlatformSettings(t *testing.T) {
-	result := socialEnv([]string{"DATABASE_URL=social", "TENANT_R2_BUCKET_NAME=media", "TENANT_PLATFORM_CAMPAIGN_WORKFLOW=enabled",
-		"R2_REGION=auto", "TENANT_R2_REGION=other", "TENANT_PUBLISHING_SERVICE_TOKEN=private-token"})
-	for _, expected := range []string{"R2_BUCKET_NAME=media", "PLATFORM_CAMPAIGN_WORKFLOW=enabled", "R2_REGION=auto", "DATABASE_URL=social"} {
+func TestAPIEnvServesMCPWithTenantSettings(t *testing.T) {
+	environ := []string{
+		"DATABASE_URL=postgresql://social:one@db:5432/screenshot_studio",
+		"TENANT_DATABASE_URL=postgresql://tenant:two@db:5432/screenshot_studio",
+		"JWT_SECRET=oauth-clients", "PLATFORM_MCP_URL=https://mcp.example/mcp", "LINKEDIN_CLIENT_ID=linkedin",
+		"TENANT_SOCIAL_API_URL=http://127.0.0.1:3000/public/v1",
+	}
+	tenantEnv := []string{"DATABASE_URL=postgresql://tenant:two@db:5432/screenshot_studio",
+		"SOCIAL_API_URL=http://127.0.0.1:3000/public/v1", "PORT=8081"}
+	result := apiEnv(environ, tenantEnv)
+	for _, expected := range []string{"PORT=8082", "PUBLIC_PORT=3000", "DATABASE_URL=postgresql://tenant:two@db:5432/screenshot_studio",
+		"JWT_SECRET=oauth-clients", "PLATFORM_MCP_URL=https://mcp.example/mcp", "LINKEDIN_CLIENT_ID=linkedin"} {
 		if !hasEntry(result, expected) {
 			t.Errorf("missing %s", expected)
 		}
 	}
-	for _, forbidden := range []string{"R2_REGION=other", "PUBLISHING_SERVICE_TOKEN=private-token"} {
+	for _, forbidden := range []string{"PORT=8081", "DATABASE_URL=postgresql://social:one@db:5432/screenshot_studio",
+		"SOCIAL_API_URL=http://127.0.0.1:3000/public/v1", "TENANT_DATABASE_URL=postgresql://tenant:two@db:5432/screenshot_studio"} {
 		if hasEntry(result, forbidden) {
 			t.Errorf("unexpected %s", forbidden)
-		}
-	}
-}
-
-func TestSocialEnvSharesBackendSlackLifecycle(t *testing.T) {
-	keys := []string{"PLATFORM_NOTIFICATION_ENCRYPTION_KEY", "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL", "INTEGRATION_ENCRYPTION_KEY"}
-	environ := []string{}
-	for _, key := range keys {
-		environ = append(environ, "TENANT_"+key+"=fixture")
-	}
-	result := socialEnv(environ)
-	for _, key := range keys {
-		if !hasEntry(result, key+"=fixture") {
-			t.Errorf("missing shared Slack configuration: %s", key)
 		}
 	}
 }

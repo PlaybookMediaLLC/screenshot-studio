@@ -57,8 +57,8 @@ function soon(): Date {
 
 configureE2EFlow()
 
-// dev/social-gate starts an isolated Go social stack and points the backend
-// and worker at it; outside that script there is nothing to publish to.
+// dev/social-gate connects fake-provider destinations through an isolated
+// product API; outside that script there is nothing to publish to.
 test.skip(!process.env.E2E_SOCIAL_GATE_BOOTSTRAP, 'Run through dev/social-gate.')
 
 test('the backend worker publishes once through Go, retries, honors cancellation, and fails closed', async ({

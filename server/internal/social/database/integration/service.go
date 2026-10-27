@@ -251,6 +251,11 @@ func (s *Service) MigrateIntegrationOnConnect(ctx context.Context, org, newProvi
 }
 
 func (s *Service) InformAboutRefreshError(ctx context.Context, orgID string, integration *ent.Integration, cause string) error {
+	// The product worker has no social inbox; its Integration trigger raises
+	// integration.reconnect_required when refreshNeeded is set.
+	if s.notifications == nil {
+		return nil
+	}
 	return s.notifications.InAppNotification(ctx, orgID,
 		fmt.Sprintf("Could not refresh your %s channel", integration.ProviderIdentifier),
 		fmt.Sprintf("Could not refresh your %s channel %s. Please go back to the system and connect it again %s/launches",

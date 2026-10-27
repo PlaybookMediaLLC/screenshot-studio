@@ -36,32 +36,31 @@ cleanup() {
   trap - EXIT
   if [[ "$original_status" -ne 0 ]]; then
     echo 'Social gate service logs (last 100 lines per container):' >&2
-    gate_compose --profile social logs --no-color --tail=100 2>&1 |
+    gate_compose logs --no-color --tail=100 2>&1 |
       sed -E 's#(https?://[^[:space:]"]+)\?[^[:space:]"]+#\1?[redacted]#g' >&2 || true
   fi
-  gate_compose --profile social down --volumes --remove-orphans || original_status=1
+  gate_compose down --volumes --remove-orphans || original_status=1
   rm -f "$BOOTSTRAP_FILE"
   exit "$original_status"
 }
 trap cleanup EXIT
 
 # The separate project has its own PostgreSQL, Redis, Temporal, and RustFS
-# volumes. Start the social API first so it can create a real OAuth test
-# destination; then pass that API key only to the isolated app/backend.
-gate_compose --profile social up --detach --build \
-  postgres redis rustfs rustfs-init temporal social-redis social-temporal \
-  platform-go-migrate fake-social screenshot-studio-backend
-wait_http http://127.0.0.1:3110/
-SOCIAL_GATE_URL=http://127.0.0.1:3110 \
-  node clients/apps/web/test/e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
-SOCIAL_API_KEY_GATE="$(node -e 'const f=JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.stdout.write(f.apiKey)' "$BOOTSTRAP_FILE")"
-export SOCIAL_API_KEY_GATE
-gate_compose up --detach --build publishing-backend publishing-orchestrator app
+# volumes. The product API connects the fake destinations in process, so the
+# bootstrap needs only the running backend. The Go services share one image
+# tag, so it is built once: parallel builds of one tag race to name it.
+gate_compose build publishing-backend app
+gate_compose up --detach \
+  postgres redis rustfs rustfs-init temporal platform-go-migrate fake-social \
+  publishing-backend publishing-orchestrator app
 wait_http http://127.0.0.1:8180/readyz
 wait_http http://127.0.0.1:8181/readyz
+GATE_DATABASE_URL="postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@127.0.0.1:54349/screenshot_studio?sslmode=disable"
+E2E_DATABASE_URL="$GATE_DATABASE_URL" SOCIAL_GATE_API_URL=http://127.0.0.1:8180 \
+  node clients/apps/web/test/e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
 wait_http http://127.0.0.1:3010/api/health
 E2E_BASE_URL=http://localhost:3010 \
-E2E_DATABASE_URL="postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@127.0.0.1:54349/screenshot_studio?sslmode=disable" \
+E2E_DATABASE_URL="$GATE_DATABASE_URL" \
 E2E_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
 E2E_R2_BUCKET_NAME="$R2_BUCKET_NAME" \
 E2E_R2_ENDPOINT=http://127.0.0.1:9013 \

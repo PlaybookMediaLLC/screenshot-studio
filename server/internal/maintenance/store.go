@@ -30,8 +30,14 @@ type SocialAnalyticsCollector interface {
 	CollectSocialAnalytics(context.Context) (int, error)
 }
 
+// SocialTokenRefresher renews connected channels' expiring OAuth tokens.
+type SocialTokenRefresher interface {
+	RefreshSocialTokens(context.Context) (int, error)
+}
+
 type Store struct {
 	Analytics   SocialAnalyticsCollector
+	Tokens      SocialTokenRefresher
 	Activity    *notifications.Service
 	DB          *sql.DB
 	RetentionDB *sql.DB
@@ -65,6 +71,12 @@ func (s *Store) Run(ctx context.Context, job string) (int, error) {
 				return 0, nil
 			}
 			return s.Analytics.CollectSocialAnalytics(ctx)
+		},
+		"social-token-refresh": func(ctx context.Context) (int, error) {
+			if s.Tokens == nil {
+				return 0, nil
+			}
+			return s.Tokens.RefreshSocialTokens(ctx)
 		},
 	}
 	handler, ok := handlers[job]

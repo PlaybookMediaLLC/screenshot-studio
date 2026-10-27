@@ -237,7 +237,7 @@ func main() {
 		if github != nil {
 			events.WithGitHubApp(github)
 		}
-		jobs := &maintenance.Store{Analytics: events, Activity: notifications.New(db.SQL, db.Client), DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
+		jobs := &maintenance.Store{Analytics: events, Tokens: provider, Activity: notifications.New(db.SQL, db.Client), DB: db.SQL, RetentionDB: retention.SQL, Objects: tenantObjects, Events: events,
 			Onboarding: &temporalonboarding.Client{Temporal: temporalClient},
 			Drains:     maintenance.NewDrainSender(cfg.AuditDrainEncryptionKey),
 			Webhooks:   webhooks.NewDispatcher(db.SQL, cfg.WebhookEncryptionKey),

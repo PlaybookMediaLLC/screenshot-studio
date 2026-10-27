@@ -1,7 +1,8 @@
 # Screenshot Studio Go social backend
 
-The combined `screenshot-studio-backend` image contains the product API,
-canonical publishing worker, social OAuth/API adapter, and provider workers.
+The combined `screenshot-studio-backend` image runs the product API and the
+publishing worker. Channel connections, provider adapters and the MCP server
+run inside them; there is no separate social API.
 The customer web app uses the published `screenshot-studio-backend-sdk` through
 `lib/backend/sdk.ts`. It does not hold a PostgreSQL URL, social API key, or R2
 signing credentials.
@@ -16,26 +17,14 @@ not written by the customer scheduling path.
 ## Local Compose
 
 Run `./dev/studio up` for the web, product API and worker, PostgreSQL, Redis,
-Temporal, and private RustFS. To add the social OAuth/API service and its own
-Redis and Temporal execution namespace, use:
-
-```sh
-make social-up
-curl --fail http://localhost:3100/
-curl --fail http://localhost:3102/health/status
-make social-down
-```
-
-The optional service is named `screenshot-studio-backend` in Compose and uses
-the same `screenshot_studio` database. Its separate Temporal namespace avoids
-workflow name collisions; it does not create another product database. The
-local `.local/social.env` overlay is ignored and loaded only for the
-optional service. The web receives no values from that overlay.
+Temporal, and private RustFS. The product API connects channels in process and
+serves the MCP server on http://localhost:3100. Provider credentials go in the
+ignored `.local/social.env`, which `dev/studio` loads when present.
 
 The operator binding maps a product workspace to the social organization's
-integration records and a backend-held API key reference. Create the social
-organization and key through the Go social API, store the key in ignored
-`.local/dev.env`, and run:
+integration records and a backend-held API key reference. Store a new key in
+the ignored `.local/dev.env` and run the script below; it creates the social
+organization for that key when none exists:
 
 ```sh
 (cd clients/apps/web && npx tsx scripts/bind-social-tenant.ts <workspace-id> <key-variable-name>)

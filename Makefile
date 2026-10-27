@@ -25,7 +25,7 @@ help: ## Show local development commands.
 	@echo "  make e2e-file SPEC=test/e2e/x.ts Run one browser end-to-end flow"
 	@echo "  make e2e-onboarding             Verify sign-up and workspace onboarding in Chromium"
 	@echo "  make e2e-recovery               Verify dependency failure and recovery behavior"
-	@echo "  make check                      Run lint and TypeScript checks"
+	@echo "  make check                      Run format, lint, type, test, and RFC checks"
 	@echo "  make publishing-up              Rebuild and restart the Go backend and orchestrator"
 	@echo "  make publishing-down            Stop the Go publishing services"
 	@echo "  make publishing-test            Run Go generation, tests, race checks, and vet"

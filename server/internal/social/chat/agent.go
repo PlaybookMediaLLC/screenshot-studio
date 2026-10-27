@@ -1,7 +1,7 @@
 // Package chat is the chat agent: the Mastra
 // "social" agent (instructions, tools, Postgres memory) run through an
 // OpenAI chat-completions tool loop and streamed as AG-UI events the way
-// @ag-ui/mastra emits them. The MCP server lives in chat/mcp.
+// @ag-ui/mastra emits them. The MCP server lives in internal/mcp.
 package chat
 
 import (

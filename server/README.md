@@ -8,9 +8,9 @@ production; Compose can start the social API separately for local testing.
 
 | Path | Contents |
 | --- | --- |
-| `cmd/product-api` | The product API (`:8080`). The web calls it through the SDK. |
+| `cmd/product-api` | The product API (`:8080`). The web calls it through the SDK. With `PUBLIC_PORT` it also serves the MCP server there. |
 | `cmd/product-worker` | The tenant Temporal worker for publishing, onboarding, and maintenance (`:8081`). |
-| `cmd/social-api` | The social API (`:3000`), the MCP server, and the social workers when `RUN_WORKER=true`. |
+| `cmd/social-api` | The social API (`:3000`) and the social workers when `RUN_WORKER=true`. |
 | `cmd/combined` | The production entry point. It starts the three processes above in one container. |
 | `cmd/platform-migrate` | The one migration command for the product and social SQL. |
 | `cmd/social-migrate` | The social SQL only, for isolated social tests. |
@@ -159,10 +159,12 @@ The image uses the `server` directory as its Docker build context.
 
 ## MCP server
 
-The social backend serves the Shots MCP server (RFC 026,
-`internal/social/chat/mcp`) on `/mcp` and the OAuth mounts
-`/mcp-oauth-claude`, `/mcp-oauth-chatgpt`, and `/mcp-oauth-dynamic`. Its tools
-call `internal/product`, the same domain the `/v1` API serves, with the caller's
+The product API serves the Shots MCP server (RFC 026, `internal/mcp`) on a
+second listener, `PUBLIC_PORT`, that serves nothing else: `/mcp`, the OAuth
+mounts `/mcp-oauth-claude`, `/mcp-oauth-chatgpt`, and `/mcp-oauth-dynamic`,
+their `/.well-known` documents, and `POST /oauth/register` and
+`POST /oauth/token` (`httpapi.NewAgentOAuth`). Its tools call
+`internal/product`, the same domain the `/v1` API serves, with the caller's
 workspace API key as the actor:
 
 - `internal/shotsapi/openapi.json` is the web's OpenAPI document (`npm run
@@ -174,19 +176,22 @@ workspace API key as the actor:
   Every call logs one `shots.mcp_call` line with the request ID, client, and
   workspace.
 - Scheduling tools need the opt-in `post:schedule` scope and take only
-  approved posts and variants. This process has no tenant Temporal client: the
-  orchestrator's once-a-minute `scheduled-posts` dispatcher starts the
-  workflow of a post an agent scheduled, and a cancelled post is never claimed.
+  approved posts and variants. The orchestrator's once-a-minute
+  `scheduled-posts` dispatcher starts the workflow of a post an agent
+  scheduled, and a cancelled post is never claimed.
 - OAuth consent happens on the web (`/oauth/authorize`), recorded through
   `POST /v1/agent-authorizations`; `/oauth/token` exchanges the `shc_` code for
-  a workspace API key with the approved scopes.
+  a workspace API key with the approved scopes. Clients register in the social
+  `OAuthApp` table (`internal/agentclients`), their secrets sealed with
+  `JWT_SECRET`; `DCR_VERIFIED_DOMAINS` limits web callbacks.
 
-It reads `DATABASE_URL`, `R2_*` (in production the combined backend copies the
-tenant's `TENANT_R2_*`), `PLATFORM_QUOTA_REDIS_URL` (default `REDIS_URL`),
-`PLATFORM_CAMPAIGN_WORKFLOW`, `SCREENSHOT_API_URL`, and `PLATFORM_MCP_URL`, the
-public MCP URL, which must sit at a host root for OAuth discovery: production
-is `https://shots-mcp.playbookmedia.io/mcp`. Locally, `./dev/studio
-social-up` serves it at `http://localhost:3100/mcp`.
+Besides the product API's settings it reads `PUBLIC_PORT`, `PLATFORM_MCP_URL`
+(required with `PUBLIC_PORT`), the public MCP URL, which must sit at a host
+root for OAuth discovery: production is
+`https://shots-mcp.playbookmedia.io/mcp`; `JWT_SECRET` (required, the social
+backend's value), `FRONTEND_URL`, `SCREENSHOT_API_URL`, `SCREENSHOT_API_KEY`,
+`DCR_VERIFIED_DOMAINS`, `OPENAI_OAUTH_CLIENT_ID`, and `OPENAI_APP_CHALLANGE`.
+Per-key call limits use the product API's `REDIS_URL`.
 
 ## Social services (`internal/social`)
 
@@ -197,7 +202,7 @@ canonical product post state.
 
 Layout:
 
-- `cmd/social-api`: the HTTP entry point. CORS, MCP, the controllers in
+- `cmd/social-api`: the HTTP entry point. CORS, the controllers in
   registration order (honors `MCP_ONLY`), the search-attribute and
   `missingPostWorkflow` registration, the configuration check, and `/docs`.
   With `RUN_WORKER=true` it also runs the workers (`main` plus one queue per

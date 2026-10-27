@@ -13,10 +13,12 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/agentclients"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/capture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/httpapi"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mcp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/onboarding"
@@ -70,8 +72,9 @@ func main() {
 		slog.Error("media storage unavailable", "error", err)
 		os.Exit(1)
 	}
+	agentClients := agentclients.New(db.SQL)
 	configuration := product.NewConfiguration(db.Client).WithNotifications(notifications.New(db.SQL, db.Client)).WithAuthStore(authstore.New(db.SQL)).
-		WithAgentClients(agentclients.New(db.SQL)).WithInvitationEmailVerification(os.Getenv("AUTH_REQUIRE_EMAIL_VERIFICATION") != "false").
+		WithAgentClients(agentClients).WithInvitationEmailVerification(os.Getenv("AUTH_REQUIRE_EMAIL_VERIFICATION") != "false").
 		WithAssetDownloads(cfg.ServiceToken, os.Getenv("BETTER_AUTH_URL"))
 	if objects != nil {
 		configuration.WithObjectStore(objects)
@@ -108,6 +111,8 @@ func main() {
 	if github != nil {
 		configuration.WithGitHubApp(github)
 	}
+	// The MCP server counts per-key calls on the same Redis; nil skips them.
+	var limiter product.QuotaCounter
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
 		counter, err := quota.NewRedisCounter(redisURL)
 		if err != nil {
@@ -115,6 +120,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer counter.Close()
+		limiter = counter
 		configuration.WithQuotaCounter(counter)
 		meter, err := counter.MonthlyMeter()
 		if err != nil {
@@ -155,15 +161,58 @@ func main() {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
+	servers := []*http.Server{server}
+	if port := os.Getenv("PUBLIC_PORT"); port != "" {
+		handler, err := publicHandler(configuration, limiter, agentClients)
+		if err != nil {
+			slog.Error("MCP server unavailable", "error", err)
+			os.Exit(1)
+		}
+		public := &http.Server{
+			Addr:              ":" + port,
+			Handler:           handler,
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       60 * time.Second,
+			// Above the MCP tool call timeout (60s), so a slow call still answers.
+			WriteTimeout: 90 * time.Second,
+			IdleTimeout:  60 * time.Second,
+		}
+		servers = append(servers, public)
+		go func() {
+			slog.Info("public MCP listener", "port", port)
+			if err := public.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("public listener stopped", "error", err)
+				os.Exit(1)
+			}
+		}()
+	}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = server.Shutdown(shutdownCtx)
+		for _, s := range servers {
+			_ = s.Shutdown(shutdownCtx)
+		}
 	}()
 	slog.Info("publishing backend listening", "port", cfg.Port)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("backend stopped", "error", err)
 		os.Exit(1)
 	}
+}
+
+// publicHandler is all the public port serves: the MCP server (RFC 026), its
+// OAuth token and registration endpoints, and their well-known documents.
+// The product API stays on the internal port.
+func publicHandler(configuration *product.Configuration, limiter product.QuotaCounter, clients httpapi.AgentClientRegistry) (http.Handler, error) {
+	// The metadata names PLATFORM_MCP_URL, and client secrets are sealed with
+	// JWT_SECRET, the key the social backend registered them with.
+	if os.Getenv("PLATFORM_MCP_URL") == "" || os.Getenv("JWT_SECRET") == "" {
+		return nil, errors.New("PUBLIC_PORT requires PLATFORM_MCP_URL and JWT_SECRET")
+	}
+	server, err := mcp.New(mcp.Config{Product: configuration, Capture: capture.FromEnvironment(), Limiter: limiter})
+	if err != nil {
+		return nil, err
+	}
+	return server.Handler(httpapi.NewAgentOAuth(clients, configuration)), nil
 }

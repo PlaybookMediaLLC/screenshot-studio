@@ -1,5 +1,5 @@
 // Command backend is the social backend server: the
-// REST API, the public API, the MCP server and the copilot runtime.
+// REST API, the public API and the copilot runtime.
 package main
 
 import (
@@ -85,8 +85,8 @@ func main() {
 	}
 	server := &http.Server{
 		Addr: ":" + port,
-		// Order: CORS, then MCP, then compression in front of the router.
-		Handler:           cors().Wrap(a.MCP.Handler(httpx.Compress(router))),
+		// Order: CORS, then compression in front of the router.
+		Handler:           cors().Wrap(httpx.Compress(router)),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	go func() {

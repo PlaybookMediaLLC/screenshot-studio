@@ -15,7 +15,6 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/agent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/auth"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/chat"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/chat/mcp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/credentialcipher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/adminstats"
@@ -105,12 +104,9 @@ type App struct {
 	Auth          *auth.AuthService
 	Permissions   *auth.PermissionsService
 
-	Tools  []*chat.Tool
-	Memory *chat.Memory
-	Agent  *chat.Agent
-	MCP    *mcp.Server
-	// shots is the platform domain behind the MCP tools.
-	shots       *shotsPlatform
+	Tools       []*chat.Tool
+	Memory      *chat.Memory
+	Agent       *chat.Agent
 	AgentGraph  *agent.GraphService
 	AgentInsert *agent.InsertService
 }
@@ -146,15 +142,7 @@ func New(ctx context.Context) (*App, error) {
 		a.Close()
 		return nil, err
 	}
-	if a.shots, err = openShotsPlatform(ctx); err != nil {
-		a.Close()
-		return nil, err
-	}
 	a.wire()
-	if a.MCP, err = a.shots.mcpServer(); err != nil {
-		a.Close()
-		return nil, err
-	}
 	return a, nil
 }
 
@@ -191,7 +179,7 @@ func (a *App) wire() {
 	a.Signatures = signatures.NewService(signatures.NewRepository(db))
 	a.Webhooks = webhooks.NewService(webhooks.NewRepository(db))
 	a.Errors = errorsdb.NewService(errorsdb.NewRepository(db))
-	a.OAuth = oauth.NewService(oauth.NewRepository(db)).WithAgentCodes(agentCodes{a.shots.product})
+	a.OAuth = oauth.NewService(oauth.NewRepository(db))
 	a.ThirdParty = thirdparties.NewManager(thirdPartyService{a.ThirdParties}, a.OpenAI)
 
 	a.Media = media.NewService(media.NewRepository(db), a.OpenAI, mediaSubscriptions{a.Subscriptions}, videoManager{a.Videos},
@@ -245,8 +233,5 @@ func (a *App) Close() {
 	}
 	if a.DB != nil {
 		_ = a.DB.Close()
-	}
-	if a.shots != nil {
-		a.shots.close()
 	}
 }

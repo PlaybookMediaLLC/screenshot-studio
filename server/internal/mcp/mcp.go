@@ -3,7 +3,8 @@
 // workspace API keys. An OAuth access token is such a key, minted when a
 // member approves an agent, so every call resolves to one workspace and key.
 // It started as a port of the original app's start.mcp.ts and keeps its mounts and
-// RFC 9728 metadata.
+// RFC 9728 metadata. The product API serves it on its public port, next to the
+// OAuth endpoints in internal/httpapi.
 package mcp
 
 import (
@@ -67,15 +68,9 @@ type Server struct {
 }
 
 // publicBaseURL is where clients reach the server: PLATFORM_MCP_URL without
-// its /mcp, else the social backend's public URL.
+// its /mcp.
 func publicBaseURL() string {
-	if mcpURL := strings.TrimRight(os.Getenv("PLATFORM_MCP_URL"), "/"); mcpURL != "" {
-		return strings.TrimSuffix(mcpURL, "/mcp")
-	}
-	if override := os.Getenv("NEXT_PUBLIC_OVERRIDE_BACKEND_URL"); override != "" {
-		return strings.TrimRight(override, "/")
-	}
-	return strings.TrimRight(os.Getenv("NEXT_PUBLIC_BACKEND_URL"), "/")
+	return strings.TrimSuffix(strings.TrimRight(os.Getenv("PLATFORM_MCP_URL"), "/"), "/mcp")
 }
 
 // New builds the server. It fails when a tool's operation is missing from the
@@ -108,7 +103,6 @@ type metadata struct {
 	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
 	TokenEndpoint                     string   `json:"token_endpoint"`
 	RegistrationEndpoint              string   `json:"registration_endpoint,omitempty"`
-	UserinfoEndpoint                  string   `json:"userinfo_endpoint,omitempty"`
 	ResponseTypesSupported            []string `json:"response_types_supported"`
 	GrantTypesSupported               []string `json:"grant_types_supported"`
 	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
@@ -133,9 +127,6 @@ func (s *Server) authorizationServerMetadata(server authorizationServer) metadat
 	}
 	if server.registration {
 		m.RegistrationEndpoint = s.baseURL + "/oauth/register"
-	}
-	if s.enableOIDC {
-		m.UserinfoEndpoint = s.baseURL + "/oauth/userinfo"
 	}
 	return m
 }

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { EditorWorkspace } from '@/components/platform-shell/EditorWorkspace'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { getLocalizedPath, getPageAccess } from '@/lib/auth/page-access'
+import { getLocalizedPath, getPageAccess, unpaidLandingPath } from '@/lib/auth/page-access'
 import { OG_DEFAULTS } from '@/lib/seo/metadata'
 
 export const metadata: Metadata = {
@@ -94,7 +94,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
-  if (!access.hasPaidPlan) redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
+  if (!access.hasPaidPlan) redirect(unpaidLandingPath(locale, access))
 
   return (
     <PlatformShell

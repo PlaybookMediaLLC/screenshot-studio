@@ -23,6 +23,11 @@ test('free scheduling creates an explicit commitment while queue and paid capabi
     await expect(page.getByRole('heading', { name: 'Free basic scheduling' })).toBeVisible()
     await page.getByRole('link', { name: 'Continue with free scheduling' }).click()
     await expect(page).toHaveURL(/\/write(?:\?|$)/)
+    // Signing in lands on Home; a free workspace must reach Write, not bounce to pricing.
+    for (const landing of ['/sign-in', '/home', '/']) {
+      await page.goto(landing)
+      await expect(page).toHaveURL(/\/write(?:\?|$)/)
+    }
     const id = await openNewDraft(page)
     await draftEditor(page).pressSequentially('Free basic scheduling saves a real commitment.')
     await expectSaved(page)

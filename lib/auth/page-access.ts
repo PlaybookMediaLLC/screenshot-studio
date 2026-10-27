@@ -4,6 +4,7 @@ import { platformHref, safeReturnPath } from '@/lib/platform/navigation'
 import { redirect } from 'next/navigation'
 import type { ListedWorkspace, Workspace } from 'screenshot-studio-backend-sdk'
 import { backendSDK } from '@/lib/backend/sdk'
+import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { getRequestId } from './access'
 import { auth } from './server'
 
@@ -73,6 +74,18 @@ export async function getPageAccess(requestHeaders: Headers) {
 
 export function getLocalizedPath(locale: string, path: string): string {
   return locale === 'en' ? path : `/${locale}${path}`
+}
+
+/**
+ * Where the app's landing pages (`/`, `/home`) send a workspace without a paid
+ * plan: basic scheduling when its plan includes it, otherwise plan choice.
+ * Sending a free workspace to pricing makes sign-in look like a page reload.
+ */
+export function unpaidLandingPath(locale: string, access: { hasBasicScheduling: boolean }): string {
+  return getLocalizedPath(
+    locale,
+    access.hasBasicScheduling && contentDraftsEnabled() ? '/write' : '/pricing?subscribe=required'
+  )
 }
 
 /**

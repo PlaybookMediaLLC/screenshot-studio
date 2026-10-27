@@ -1193,7 +1193,9 @@ export function WriteComposer({
                 collaboration={collaboration}
                 initialDiscussions={readDiscussionsOnce(initial)}
                 initialValue={document.value}
-                key={`primary-${editorKey}-${server.collabGeneration}`}
+                // A new generation is a new live room. Without one, every body save
+                // bumps it, and keying on it remounted the editor (and lost focus) per save.
+                key={`primary-${editorKey}${collaboration ? `-${server.collabGeneration}` : ''}`}
                 onChange={(next) => update({ value: next })}
                 onDiscussionsChange={onDiscussionsChange}
                 onEditor={(next) => {

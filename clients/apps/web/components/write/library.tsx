@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -220,9 +221,12 @@ export function WriteRail() {
         {tab === 'queue' ? (
           <QueueList />
         ) : libraryPending ? (
-          <p className="px-4 py-6 text-xs text-muted-foreground" role="status">
-            Loading…
-          </p>
+          <div aria-busy="true" className="grid gap-3 px-4 py-4" role="status">
+            <span className="sr-only">Loading drafts</span>
+            {[0, 1, 2].map((row) => (
+              <Skeleton className="h-12 w-full" key={row} />
+            ))}
+          </div>
         ) : data.library.length === 0 ? (
           <div className="px-4 py-6 text-xs text-muted-foreground">
             {data.query.q || data.query.tag || data.query.kind

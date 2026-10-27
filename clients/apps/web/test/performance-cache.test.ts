@@ -82,6 +82,16 @@ test('the shell reuses the latest onboarding run until an onboarding change', as
   assert.equal(queryClient.getQueryState(latest.queryKey)?.isInvalidated, true)
 })
 
+test('a refused read (4xx) is not retried', () => {
+  const retry = productQueryOptions.retry
+  const refusal = Object.assign(new Error('Not on this plan.'), { status: 403 })
+  const outage = Object.assign(new Error('Unavailable.'), { status: 503 })
+  assert.equal(retry(0, refusal), false)
+  assert.equal(retry(0, outage), true)
+  assert.equal(retry(0, new Error('Network down.')), true)
+  assert.equal(retry(2, outage), false)
+})
+
 test('query retries do not multiply the transport retry budget', async (t) => {
   let calls = 0
   t.mock.method(globalThis, 'fetch', async () => {

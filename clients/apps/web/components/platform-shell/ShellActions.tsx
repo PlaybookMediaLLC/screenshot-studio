@@ -215,11 +215,16 @@ export function ShellSearch({
         { signal }
       )
       if (!response.ok) return []
-      const page = (await response.json()) as {
-        items: { id: string; title: string }[]
-        pinned: { id: string; title: string }[]
-      }
-      return [...page.pinned, ...page.items].slice(0, 6)
+      type Found = { id: string; plainText: string; title: string }
+      const page = (await response.json()) as { items: Found[]; pinned: Found[] }
+      // An untitled draft is named by its opening words, so results can be told apart.
+      return [...page.pinned, ...page.items].slice(0, 6).map((draft) => ({
+        id: draft.id,
+        label:
+          draft.title && draft.title !== 'Untitled draft'
+            ? draft.title
+            : draft.plainText.trim().slice(0, 80) || 'Untitled draft',
+      }))
     },
   })
   const draftResults = term.length >= 2 ? (drafts.data ?? []) : []
@@ -252,26 +257,33 @@ export function ShellSearch({
         />
         <nav aria-label="Search results" className="grid max-h-[50dvh] gap-1 overflow-y-auto">
           {items.map((item) => (
-            <SidebarLink
-              className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
-              href={item.href}
+            <Button
+              asChild
+              className="min-h-11 justify-between rounded-lg font-normal"
               key={item.key}
-              onClick={() => setOpen(false)}
+              variant="ghost"
             >
-              {t(item.key)}
-              <span className="shrink-0 text-xs text-muted-foreground">Destination</span>
-            </SidebarLink>
+              <SidebarLink href={item.href} onClick={() => setOpen(false)}>
+                {t(item.key)}
+                <span className="shrink-0 text-xs text-muted-foreground">Destination</span>
+              </SidebarLink>
+            </Button>
           ))}
           {draftResults.map((draft) => (
-            <SidebarLink
-              className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
-              href={`/write/${encodeURIComponent(draft.id)}`}
+            <Button
+              asChild
+              className="min-h-11 justify-between rounded-lg font-normal"
               key={draft.id}
-              onClick={() => setOpen(false)}
+              variant="ghost"
             >
-              <span className="min-w-0 truncate">{draft.title}</span>
-              <span className="shrink-0 text-xs text-muted-foreground">Draft</span>
-            </SidebarLink>
+              <SidebarLink
+                href={`/write/${encodeURIComponent(draft.id)}`}
+                onClick={() => setOpen(false)}
+              >
+                <span className="min-w-0 truncate">{draft.label}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">Draft</span>
+              </SidebarLink>
+            </Button>
           ))}
           {!items.length && !draftResults.length ? (
             <p role="status" className="p-3 text-sm text-muted-foreground">

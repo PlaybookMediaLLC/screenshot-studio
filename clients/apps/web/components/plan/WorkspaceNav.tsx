@@ -1,6 +1,7 @@
 'use client'
 
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
+import { Button } from '@/components/ui/button'
 import { publishLinks } from '@/lib/platform/navigation'
 import { cn } from '@/lib/utils'
 
@@ -74,18 +75,20 @@ function TabRow({
       )}
     >
       {items.map(({ href, label: name }) => (
-        <SidebarLink
-          aria-current={name === active ? 'page' : undefined}
+        <Button
+          asChild
           className={cn(
-            'platform-tab',
-            secondary && 'h-8 px-3 text-[13px]',
+            'shrink-0 rounded-full',
             name === active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
           )}
-          href={href}
           key={name}
+          size={secondary ? 'sm' : 'default'}
+          variant={name === active ? 'secondary' : 'ghost'}
         >
-          {name}
-        </SidebarLink>
+          <SidebarLink aria-current={name === active ? 'page' : undefined} href={href}>
+            {name}
+          </SidebarLink>
+        </Button>
       ))}
     </nav>
   )

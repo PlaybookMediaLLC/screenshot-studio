@@ -7,7 +7,18 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { Value } from '@shots/platejs-editor/platejs'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Dialog,
   DialogContent,
@@ -58,7 +69,6 @@ const QuickBody = dynamic(() => import('./QuickBody'), {
   loading: () => <p role="status">Loading editor…</p>,
 })
 const DRAG = 'application/x-shots-calendar-placement'
-const field = 'rounded-md border bg-background px-2 py-1.5 text-sm'
 const readable = (
   day: string,
   options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
@@ -404,9 +414,11 @@ export function PlanWorkspace({
     }
   }
   const card = (item: PlanItem, weekly = false) => (
-    <button
+    <Button
       key={item.id}
+      size={null}
       type="button"
+      variant="custom"
       data-testid={item.status === 'Planned' ? 'calendar-planned' : 'calendar-post'}
       aria-label={`${item.status}: ${item.text || item.title}, ${sets.find((s) => s.id === item.setId)?.name ?? 'Account'}, ${item.platform}`}
       draggable={
@@ -427,7 +439,7 @@ export function PlanWorkspace({
       onClick={() =>
         item.campaignId ? router.push(`/campaigns/${item.campaignId}`) : setDetail(item)
       }
-      className={`w-full rounded-lg border p-2 text-left text-xs shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
+      className={`block h-auto w-full rounded-lg border p-2 text-left text-xs font-normal whitespace-normal shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
     >
       <span className="block truncate text-muted-foreground">
         {new Date(item.at).toLocaleTimeString(undefined, {
@@ -457,7 +469,7 @@ export function PlanWorkspace({
             .join(' · ')}
         </span>
       ) : null}
-    </button>
+    </Button>
   )
   const slotsFor = (day: string, absolute = false) =>
     focused && prefs.slots
@@ -475,13 +487,15 @@ export function PlanWorkspace({
               className={absolute ? 'absolute left-1 right-0' : 'mt-2'}
               style={absolute ? { top: hour * 60 + minute } : undefined}
             >
-              <button
+              <Button
                 data-testid="available-slot"
+                size={null}
+                variant="custom"
                 disabled={!canEdit}
                 // The zone stays in the name and tooltip; in the cell it wrapped into the next day.
                 aria-label={`Available · ${slot.displayTime} (${prefs.zone})`}
                 title={`Available · ${slot.displayTime} (${prefs.zone})`}
-                className="w-full truncate rounded border border-dashed p-2 text-xs text-muted-foreground"
+                className="block h-auto w-full truncate rounded border border-dashed p-2 text-xs font-normal text-muted-foreground"
                 onClick={() =>
                   setCompose({
                     day: slot.localDay,
@@ -513,7 +527,7 @@ export function PlanWorkspace({
                 }}
               >
                 Available · {slot.displayTime}
-              </button>
+              </Button>
               <Link
                 className="block text-right text-[10px] text-muted-foreground underline"
                 href={`/write/settings?set=${focused.id}`}
@@ -565,15 +579,18 @@ export function PlanWorkspace({
                   </Button>
                 ))}
               </div>
-              <input
-                className={`${field} my-2 w-full`}
+              <Input
+                className="my-2 w-full"
                 aria-label="Search sidebar drafts"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
               {sourceError ? (
                 <p role="alert">
-                  {sourceError} <button onClick={sourceList.retry}>Retry</button>
+                  {sourceError}{' '}
+                  <Button onClick={sourceList.retry} size="sm" variant="link">
+                    Retry
+                  </Button>
                 </p>
               ) : sources === null ? (
                 <p role="status">Loading drafts…</p>
@@ -606,26 +623,23 @@ export function PlanWorkspace({
             </>
           ) : (
             <>
-              <label className="mb-3 flex items-center gap-2 font-medium">
-                <input
-                  type="checkbox"
+              <Label className="mb-3">
+                <Checkbox
                   aria-label="All publishing brands"
-                  checked={allState === 'all'}
-                  ref={(node) => {
-                    if (node) node.indeterminate = allState === 'mixed'
-                  }}
-                  onChange={() => setPref({ visible: allState === 'all' ? [] : null })}
+                  checked={
+                    allState === 'all' ? true : allState === 'mixed' ? 'indeterminate' : false
+                  }
+                  onCheckedChange={() => setPref({ visible: allState === 'all' ? [] : null })}
                 />
                 All accounts
-              </label>
+              </Label>
               {sets.map((set) => (
                 <div key={set.id} className="mb-3 rounded border p-2">
-                  <label className="flex gap-2">
-                    <input
-                      type="checkbox"
+                  <Label className="items-start font-normal">
+                    <Checkbox
                       checked={activeIds.includes(set.id)}
                       aria-label={`Show ${set.name} ${set.accounts.map((a) => a.platform).join(', ')}`}
-                      onChange={() => setPref({ visible: toggle(activeIds, set.id) })}
+                      onCheckedChange={() => setPref({ visible: toggle(activeIds, set.id) })}
                     />
                     <span>
                       <strong>{set.name}</strong>
@@ -633,11 +647,27 @@ export function PlanWorkspace({
                         {set.accounts.map((a) => a.platform).join(' · ') || 'No connected accounts'}
                       </small>
                     </span>
-                  </label>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <button onClick={() => setPref({ visible: [set.id] })}>Show only</button>
-                    <button onClick={() => setSidebar(set.id)}>Drafts</button>
-                    <Link href={`/write/settings?set=${set.id}`}>Settings</Link>
+                  </Label>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <Button
+                      className="h-7 px-1.5 text-xs"
+                      onClick={() => setPref({ visible: [set.id] })}
+                      size={null}
+                      variant="ghost"
+                    >
+                      Show only
+                    </Button>
+                    <Button
+                      onClick={() => setSidebar(set.id)}
+                      className="h-7 px-1.5 text-xs"
+                      size={null}
+                      variant="ghost"
+                    >
+                      Drafts
+                    </Button>
+                    <Button asChild className="h-7 px-1.5 text-xs" size={null} variant="ghost">
+                      <Link href={`/write/settings?set=${set.id}`}>Settings</Link>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -647,7 +677,11 @@ export function PlanWorkspace({
                 </Button>
               ) : null}
               {!sets.length ? (
-                <Link href="/settings/social-sets">Connect a social account to plan content.</Link>
+                <Button asChild variant="outline">
+                  <Link href="/workspace/social-sets">
+                    Connect a social account to plan content
+                  </Link>
+                </Button>
               ) : null}
             </>
           )}
@@ -659,11 +693,11 @@ export function PlanWorkspace({
                 ? readable(anchor, { month: 'long', year: 'numeric' })
                 : `${readable(days[0])} – ${readable(days.at(-1)!)}`}
             </h1>
-            <label className="text-xs">
-              Display timezone{' '}
-              <input
+            <Label className="text-xs font-normal text-muted-foreground">
+              Display timezone
+              <Input
                 aria-label="Display timezone"
-                className={field}
+                className="h-8 w-48 text-foreground"
                 list="plan-zones"
                 defaultValue={prefs.zone}
                 key={prefs.zone}
@@ -675,7 +709,7 @@ export function PlanWorkspace({
                   }
                 }}
               />
-            </label>
+            </Label>
             <datalist id="plan-zones">
               {[
                 ...new Set([
@@ -689,20 +723,23 @@ export function PlanWorkspace({
                 <option key={z}>{z}</option>
               ))}
             </datalist>
-            <details className="relative">
-              <summary className={field}>Filters</summary>
-              <div className="absolute right-0 z-20 grid w-64 gap-3 rounded border bg-background p-3 shadow-lg">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="sm" variant="outline">
+                  Filters
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="grid w-64 gap-3 p-3">
                 <fieldset>
                   <legend>Status</legend>
                   {['Planned', 'Scheduled', 'Published', 'Failed'].map((s) => (
-                    <label className="block text-sm" key={s}>
-                      <input
-                        type="checkbox"
+                    <Label className="py-1 font-normal" key={s}>
+                      <Checkbox
                         checked={prefs.statuses.includes(s)}
-                        onChange={() => setPref({ statuses: toggle(prefs.statuses, s) })}
-                      />{' '}
+                        onCheckedChange={() => setPref({ statuses: toggle(prefs.statuses, s) })}
+                      />
                       {s}
-                    </label>
+                    </Label>
                   ))}
                 </fieldset>
                 <fieldset>
@@ -714,14 +751,13 @@ export function PlanWorkspace({
                         .flatMap((s) => s.accounts.map((a) => a.platform))
                     ),
                   ].map((p) => (
-                    <label className="block text-sm" key={p}>
-                      <input
-                        type="checkbox"
+                    <Label className="py-1 font-normal" key={p}>
+                      <Checkbox
                         checked={prefs.providers.includes(p)}
-                        onChange={() => setPref({ providers: toggle(prefs.providers, p) })}
-                      />{' '}
+                        onCheckedChange={() => setPref({ providers: toggle(prefs.providers, p) })}
+                      />
                       {p}
-                    </label>
+                    </Label>
                   ))}
                 </fieldset>
                 <fieldset>
@@ -729,22 +765,26 @@ export function PlanWorkspace({
                   {tagsUnavailable ? (
                     <p role="status" className="text-xs">
                       Tags are unavailable for part of this scope. Enable tags in Settings or retry.{' '}
-                      <button className="underline" onClick={reload}>
+                      <Button
+                        className="h-auto p-0 text-xs"
+                        onClick={reload}
+                        size={null}
+                        variant="link"
+                      >
                         Retry tags
-                      </button>
+                      </Button>
                     </p>
                   ) : !tags.length ? (
                     <p className="text-xs">No tags available.</p>
                   ) : null}
                   {tags.map((t) => (
-                    <label className="block text-sm" key={t.id}>
-                      <input
-                        type="checkbox"
+                    <Label className="py-1 font-normal" key={t.id}>
+                      <Checkbox
                         checked={prefs.tagIds.includes(t.id)}
-                        onChange={() => setPref({ tagIds: toggle(prefs.tagIds, t.id) })}
-                      />{' '}
+                        onCheckedChange={() => setPref({ tagIds: toggle(prefs.tagIds, t.id) })}
+                      />
                       {t.name}
-                    </label>
+                    </Label>
                   ))}
                 </fieldset>
                 <Button
@@ -754,74 +794,74 @@ export function PlanWorkspace({
                 >
                   Clear filters
                 </Button>
-              </div>
-            </details>
-            <details className="relative">
-              <summary className={field}>Display</summary>
-              <div className="absolute right-0 z-20 grid w-56 gap-3 rounded border bg-background p-3 shadow-lg">
-                <label>
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="sm" variant="outline">
+                  Display
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="grid w-56 gap-3 p-3">
+                <Label className="grid gap-1.5">
                   Density{' '}
-                  <select
+                  <NativeSelect
                     aria-label="Card density"
                     value={prefs.density}
                     onChange={(e) =>
                       setPref({ density: e.target.value as PlanPreferences['density'] })
                     }
                   >
-                    <option value="expanded">Expanded</option>
-                    <option value="compact">Compact</option>
-                  </select>
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
+                    <NativeSelectOption value="expanded">Expanded</NativeSelectOption>
+                    <NativeSelectOption value="compact">Compact</NativeSelectOption>
+                  </NativeSelect>
+                </Label>
+                <Label className="font-normal">
+                  <Checkbox
                     checked={prefs.platforms}
-                    onChange={(e) => setPref({ platforms: e.target.checked })}
+                    onCheckedChange={(checked) => setPref({ platforms: checked === true })}
                   />
                   Show platforms
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
+                </Label>
+                <Label className="font-normal">
+                  <Checkbox
                     checked={prefs.tags}
-                    onChange={(e) => setPref({ tags: e.target.checked })}
+                    onCheckedChange={(checked) => setPref({ tags: checked === true })}
                   />
                   Show tags
-                </label>
-                <label>
+                </Label>
+                <Label className="grid gap-1.5">
                   Week starts{' '}
-                  <select
+                  <NativeSelect
                     aria-label="Week starts"
                     value={prefs.weekStart}
                     onChange={(e) => setPref({ weekStart: Number(e.target.value) as 0 | 1 })}
                   >
-                    <option value="0">Sunday</option>
-                    <option value="1">Monday</option>
-                  </select>
-                </label>
+                    <NativeSelectOption value="0">Sunday</NativeSelectOption>
+                    <NativeSelectOption value="1">Monday</NativeSelectOption>
+                  </NativeSelect>
+                </Label>
                 {focused ? (
-                  <label>
-                    <input
-                      type="checkbox"
+                  <Label className="font-normal">
+                    <Checkbox
                       checked={prefs.slots}
-                      onChange={(e) => setPref({ slots: e.target.checked })}
+                      onCheckedChange={(checked) => setPref({ slots: checked === true })}
                     />
                     Show empty slots
-                  </label>
+                  </Label>
                 ) : null}
-              </div>
-            </details>
-            <select
-              className={field}
+              </PopoverContent>
+            </Popover>
+            <NativeSelect
               aria-label="Calendar view"
               disabled={!hydrated}
               value={prefs.view}
               onChange={(e) => setPref({ view: e.target.value as PlanPreferences['view'] })}
             >
-              <option value="flex">Flex</option>
-              <option value="month">Month</option>
-              <option value="week">Week</option>
-            </select>
+              <NativeSelectOption value="flex">Flex</NativeSelectOption>
+              <NativeSelectOption value="month">Month</NativeSelectOption>
+              <NativeSelectOption value="week">Week</NativeSelectOption>
+            </NativeSelect>
             <Button
               variant="outline"
               size="sm"
@@ -916,9 +956,14 @@ export function PlanWorkspace({
                       {readable(day, { weekday: 'short', day: 'numeric' })}
                     </time>
                     {canEdit && day >= today ? (
-                      <button aria-label={`Create draft ${day}`} onClick={() => create(day)}>
+                      <Button
+                        aria-label={`Create draft ${day}`}
+                        onClick={() => create(day)}
+                        size="icon-sm"
+                        variant="ghost"
+                      >
                         ＋
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
                   {prefs.view === 'week' ? (
@@ -931,12 +976,15 @@ export function PlanWorkspace({
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={(e) => drop(e, day, hour)}
                         >
-                          <button
+                          <Button
+                            className="h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground"
                             disabled={!canEdit || day < today}
                             onClick={() => create(day, `${String(hour).padStart(2, '0')}:00`)}
+                            size={null}
+                            variant="ghost"
                           >
                             {String(hour).padStart(2, '0')}:00
-                          </button>
+                          </Button>
                         </div>
                       ))}
                       {slotsFor(day, true)}
@@ -1023,10 +1071,10 @@ function TimeFields({
 }) {
   return (
     <div className="grid gap-2">
-      <label className="text-sm">
+      <Label className="grid gap-1.5">
         Date and time{' '}
-        <input
-          className={`${field} w-full`}
+        <Input
+          className="w-full"
           aria-label="Date and time"
           type="datetime-local"
           min={wallTime(new Date(), isTimeZone(zone) ? zone : 'UTC')}
@@ -1043,29 +1091,28 @@ function TimeFields({
             />
           ))}
         </datalist>
-      </label>
-      <label className="text-sm">
+      </Label>
+      <Label className="grid gap-1.5">
         Scheduling timezone{' '}
-        <input
-          className={`${field} w-full`}
+        <Input
+          className="w-full"
           aria-label="Scheduling timezone"
           value={zone}
           onChange={(e) => onZone(e.target.value)}
         />
-      </label>
-      <label className="text-xs">
+      </Label>
+      <Label className="grid gap-1.5">
         Repeated hour{' '}
-        <select
-          className={field}
+        <NativeSelect
           aria-label="Repeated hour"
           value={choice}
           onChange={(e) => onChoice(e.target.value as typeof choice)}
         >
-          <option value="reject">Ask me to choose</option>
-          <option value="earlier">Earlier occurrence</option>
-          <option value="later">Later occurrence</option>
-        </select>
-      </label>
+          <NativeSelectOption value="reject">Ask me to choose</NativeSelectOption>
+          <NativeSelectOption value="earlier">Earlier occurrence</NativeSelectOption>
+          <NativeSelectOption value="later">Later occurrence</NativeSelectOption>
+        </NativeSelect>
+      </Label>
       <p className="text-xs text-muted-foreground">
         Today: {zonedDayKey(new Date(), isTimeZone(zone) ? zone : 'UTC')}. Any minute is supported.
       </p>
@@ -1246,11 +1293,11 @@ function PlanComposer({
             Choose content and a date. Planning does not authorize publication.
           </DialogDescription>
         </DialogHeader>
-        <label>
+        <Label className="grid gap-1.5">
           Social account{' '}
-          <select
+          <NativeSelect
             aria-label="Composer social account"
-            className={`${field} w-full`}
+            className="w-full"
             value={setId}
             disabled={
               busy ||
@@ -1267,12 +1314,12 @@ function PlanComposer({
             }}
           >
             {sets.map((s) => (
-              <option key={s.id} value={s.id}>
+              <NativeSelectOption key={s.id} value={s.id}>
                 {s.name} · {s.accounts.map((a) => a.platform).join(', ')}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
-        </label>
+          </NativeSelect>
+        </Label>
         <Button
           variant="outline"
           disabled={busy || creationInput.current !== null || created.current !== null}
@@ -1306,8 +1353,7 @@ function PlanComposer({
                 </Button>
               ))}
             </div>
-            <input
-              className={field}
+            <Input
               placeholder="Search content"
               aria-label="Search existing content"
               value={search}
@@ -1315,7 +1361,10 @@ function PlanComposer({
             />
             {sourceList.error ? (
               <p role="alert">
-                {sourceList.error} <button onClick={sourceList.retry}>Retry sources</button>
+                {sourceList.error}{' '}
+                <Button onClick={sourceList.retry} size="sm" variant="link">
+                  Retry sources
+                </Button>
               </p>
             ) : null}
             <div className="max-h-48 overflow-auto">
@@ -1325,11 +1374,13 @@ function PlanComposer({
                 <p>No content matches.</p>
               ) : (
                 results.map((d) => (
-                  <button
+                  <Button
                     type="button"
+                    size={null}
+                    variant="custom"
                     aria-pressed={selected?.id === d.id}
                     key={d.id}
-                    className="mb-2 block w-full rounded border p-2 text-left text-sm aria-pressed:border-sky-500"
+                    className="mb-2 block h-auto w-full rounded border p-2 text-left text-sm font-normal whitespace-normal aria-pressed:border-sky-500"
                     disabled={
                       busy ||
                       creationInput.current !== null ||
@@ -1343,7 +1394,7 @@ function PlanComposer({
                       {set?.name} · {d.primaryPlatform} · Edited{' '}
                       {new Date(d.updatedAt).toLocaleString()}
                     </small>
-                  </button>
+                  </Button>
                 ))
               )}
             </div>
@@ -1355,24 +1406,22 @@ function PlanComposer({
           </>
         ) : (
           <>
-            <label>
+            <Label className="grid gap-1.5">
               Post type{' '}
-              <select
-                className={field}
+              <NativeSelect
                 aria-label="Post type"
                 value={kind}
                 disabled={busy || creationInput.current !== null}
                 onChange={(e) => setKind(e.target.value as typeof kind)}
               >
-                <option value="standard">Post or thread</option>
+                <NativeSelectOption value="standard">Post or thread</NativeSelectOption>
                 {set?.accounts.some((a) => channelForPlatform(a.platform) === 'x') ? (
-                  <option value="article">X Article</option>
+                  <NativeSelectOption value="article">X Article</NativeSelectOption>
                 ) : null}
-              </select>
-            </label>
+              </NativeSelect>
+            </Label>
             {kind === 'article' ? (
-              <input
-                className={field}
+              <Input
                 aria-label="Article title"
                 placeholder="Article title"
                 value={title}
@@ -1388,21 +1437,19 @@ function PlanComposer({
                 <p className="text-xs">No tags in this publishing brand.</p>
               ) : (
                 tags.map((t) => (
-                  <label className="mr-3 text-sm" key={t.id}>
-                    <input
-                      type="checkbox"
+                  <Label className="mr-3 inline-flex py-1 font-normal" key={t.id}>
+                    <Checkbox
                       checked={tagIds.includes(t.id)}
-                      onChange={() => setTagIds(toggle(tagIds, t.id))}
+                      onCheckedChange={() => setTagIds(toggle(tagIds, t.id))}
                     />
                     {t.name}
-                  </label>
+                  </Label>
                 ))
               )}
               {tags !== null ? (
                 <div className="mt-2 flex gap-2">
-                  <input
+                  <Input
                     aria-label="New tag name"
-                    className={field}
                     value={newTag}
                     maxLength={40}
                     onChange={(event) => setNewTag(event.target.value)}
@@ -1440,14 +1487,13 @@ function PlanComposer({
           onZone={setZone}
           onChoice={setChoice}
         />
-        <label>
-          <input
-            type="checkbox"
+        <Label className="font-normal">
+          <Checkbox
             checked={openEditor}
-            onChange={(e) => setOpenEditor(e.target.checked)}
-          />{' '}
+            onCheckedChange={(checked) => setOpenEditor(checked === true)}
+          />
           Open in editor
-        </label>
+        </Label>
         {error ? (
           <p role="alert" className="text-sm text-red-600">
             {error}
@@ -1589,13 +1635,15 @@ function PlanDetail({
             Publication instant: {new Date(item.at).toISOString()}
           </p>
           {item.url ? (
-            <a href={item.url} rel="noreferrer" target="_blank" className="underline">
-              View published post
-            </a>
+            <Button asChild className="h-auto justify-start p-0" size={null} variant="link">
+              <a href={item.url} rel="noreferrer" target="_blank">
+                View published post
+              </a>
+            </Button>
           ) : null}
-          <Link className="underline" href={`/write/${item.draftId}`}>
-            Open in editor
-          </Link>
+          <Button asChild className="h-auto justify-start p-0" size={null} variant="link">
+            <Link href={`/write/${item.draftId}`}>Open in editor</Link>
+          </Button>
           <TimeFields
             local={local}
             zone={zone}
@@ -1605,10 +1653,9 @@ function PlanDetail({
             onChoice={setChoice}
           />
           {item.deliveryStatus === 'SCHEDULED' && swapCandidates.length > 0 ? (
-            <label className="grid gap-1 text-sm">
+            <Label className="grid gap-1.5">
               Swap queue position
-              <select
-                className={field}
+              <NativeSelect
                 aria-label={`Swap queue position for ${item.text || item.title}`}
                 disabled={busy || !canPublish}
                 value=""
@@ -1622,14 +1669,14 @@ function PlanDetail({
                     )
                 }}
               >
-                <option value="">Choose a scheduled post…</option>
+                <NativeSelectOption value="">Choose a scheduled post…</NativeSelectOption>
                 {swapCandidates.map((candidate) => (
-                  <option key={candidate.id} value={candidate.id}>
+                  <NativeSelectOption key={candidate.id} value={candidate.id}>
                     {candidate.text || candidate.title} · {new Date(candidate.at).toLocaleString()}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
-            </label>
+              </NativeSelect>
+            </Label>
           ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
@@ -1720,16 +1767,16 @@ function PlanDetail({
               Copy text
             </Button>
           </div>
-          <label>
+          <Label className="grid gap-1.5">
             Copy to publishing brand{' '}
-            <select className={field} value={copySet} onChange={(e) => setCopySet(e.target.value)}>
+            <NativeSelect value={copySet} onChange={(e) => setCopySet(e.target.value)}>
               {sets.map((s) => (
-                <option key={s.id} value={s.id}>
+                <NativeSelectOption key={s.id} value={s.id}>
                   {s.name} · {s.accounts.map((a) => a.platform).join(', ')}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-          </label>
+            </NativeSelect>
+          </Label>
           <Button
             variant="outline"
             disabled={!canEdit || busy}
@@ -1758,13 +1805,12 @@ function PlanDetail({
               <p className="text-xs">No tags in this publishing brand.</p>
             ) : (
               detailTags.map((tag) => (
-                <label key={tag.id} className="text-sm">
-                  <input
-                    type="checkbox"
+                <Label key={tag.id} className="font-normal">
+                  <Checkbox
                     disabled={!canEdit || busy || !draft}
                     checked={draft?.tagIds.includes(tag.id) ?? false}
-                    onChange={(e) => {
-                      const checked = e.target.checked
+                    onCheckedChange={(value) => {
+                      const checked = value === true
                       void run(async () => {
                         const updated = await writeApi.properties(
                           item.draftId,
@@ -1773,9 +1819,9 @@ function PlanDetail({
                         setDraft(updated)
                       })
                     }}
-                  />{' '}
+                  />
                   {tag.name}
-                </label>
+                </Label>
               ))
             )}
           </fieldset>
@@ -1790,9 +1836,11 @@ function PlanDetail({
                     {post.platform} · {post.status.replaceAll('_', ' ')}
                   </p>
                   {post.url ? (
-                    <a className="underline" href={post.url} target="_blank" rel="noreferrer">
-                      Provider receipt
-                    </a>
+                    <Button asChild className="h-auto p-0 text-xs" size={null} variant="link">
+                      <a href={post.url} target="_blank" rel="noreferrer">
+                        Provider receipt
+                      </a>
+                    </Button>
                   ) : null}
                   {post.threadProgress.total > 0 ? (
                     <p>
@@ -1825,19 +1873,25 @@ function PlanDetail({
               ))
             )}
           </section>
-          <details>
-            <summary>Activity and revisions ({revisionCount ?? '…'})</summary>
-            {activity.map((a) => (
-              <p key={a.id} className="my-2 text-xs">
-                {a.actorName ?? 'System'} ·{' '}
-                {a.action.replace(/^product\./, '').replaceAll('_', ' ')} ·{' '}
-                {new Date(a.at).toLocaleString()}
-              </p>
-            ))}
-            <Link className="text-sm underline" href={`/write/${item.draftId}?panel=backups`}>
-              Browse revisions in editor
-            </Link>
-          </details>
+          <Accordion type="single" collapsible>
+            <AccordionItem value="activity">
+              <AccordionTrigger>Activity and revisions ({revisionCount ?? '…'})</AccordionTrigger>
+              <AccordionContent>
+                {activity.map((a) => (
+                  <p key={a.id} className="my-2 text-xs">
+                    {a.actorName ?? 'System'} ·{' '}
+                    {a.action.replace(/^product\./, '').replaceAll('_', ' ')} ·{' '}
+                    {new Date(a.at).toLocaleString()}
+                  </p>
+                ))}
+                <Button asChild className="h-auto p-0" size={null} variant="link">
+                  <Link href={`/write/${item.draftId}?panel=backups`}>
+                    Browse revisions in editor
+                  </Link>
+                </Button>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
           {confirmDelete ? (
             <div role="alert">
               <p>Delete this draft? Published provider posts remain on their networks.</p>
@@ -1870,7 +1924,10 @@ function PlanDetail({
           )}
           {error ? (
             <p role="alert" className="text-sm text-red-600">
-              {error} <button onClick={() => setReload((value) => value + 1)}>Retry details</button>
+              {error}{' '}
+              <Button onClick={() => setReload((value) => value + 1)} size="sm" variant="link">
+                Retry details
+              </Button>
             </p>
           ) : null}
         </div>

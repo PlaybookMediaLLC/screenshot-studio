@@ -151,12 +151,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
 
 /* Page controls share states without changing editor tools or rendered artwork. */
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
-    [type='radio'],
-    [type='checkbox'],
-    [type='range'],
-    [type='color']
-  ) {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):not([type='radio'], [type='checkbox'], [type='range'], [type='color']) {
   border-color: var(--input);
   border-radius: var(--platform-control-radius);
   background-color: var(--card);
@@ -168,7 +168,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):focus-visible {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):focus-visible {
   border-color: var(--ring);
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
@@ -178,7 +183,8 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   :where(
     [data-slot='input'],
     [data-slot='textarea'],
-    [data-slot='select-trigger']
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
   )[aria-invalid='true'] {
   border-color: var(--destructive);
 }
@@ -187,13 +193,19 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   :where(
     [data-slot='input'],
     [data-slot='textarea'],
-    [data-slot='select-trigger']
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
   )[aria-invalid='true']:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 18%, transparent);
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):disabled {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):disabled {
   background-color: var(--muted);
   cursor: not-allowed;
 }
@@ -249,7 +261,8 @@ body:has([data-platform-shell]) [data-slot='button']:active {
     :where(
       [data-slot='input'],
       [data-slot='textarea'],
-      [data-slot='select-trigger']
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
     ):focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 2px;
@@ -267,7 +280,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   }
 
   :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+    :where(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ):not(
       :disabled,
       :focus-visible,
       [aria-invalid='true'],
@@ -302,19 +320,24 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   }
 
   .platform-shell[data-platform-variant='page']
-    :where([data-slot='button'], [data-slot='input'], [data-slot='select-trigger']):not(
-      [type='radio'],
-      [type='checkbox'],
-      [type='range'],
-      [type='color']
-    ) {
+    :where(
+      [data-slot='button'],
+      [data-slot='input'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ):not([type='radio'], [type='checkbox'], [type='range'], [type='color']) {
     min-height: 2.75rem;
   }
 }
 
 @media (max-width: 767px) {
   :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']) {
+    :where(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ) {
     font-size: 1rem;
   }
 }
@@ -429,4 +452,18 @@ body:has([data-platform-shell]) input:-webkit-autofill {
    clear of the bar instead of underneath it. */
 .platform-shell [data-platform-scroll]:has([data-settings-save-bar]) {
   scroll-padding-bottom: 6rem;
+}
+
+/* Menus and dialogs arrive opaque and keep their short scale-in: fading in
+   from transparent left the page's text showing through them as they opened. */
+body:has([data-platform-shell])
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='select-content']
+  ) {
+  --tw-enter-opacity: 1;
 }

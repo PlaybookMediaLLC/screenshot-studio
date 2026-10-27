@@ -59,6 +59,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
+import { divLinesAsParagraphs } from '@/lib/content-drafts/paste'
 import { cn } from '@/lib/utils'
 import { POST_COLUMN } from './layout'
 import {
@@ -249,12 +250,20 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
         editor.redo()
       }}
       onPasteCapture={(event) => {
+        const clipboard = event.clipboardData
+        const html = clipboard.files.length ? '' : clipboard.getData('text/html')
+        const lines = html ? divLinesAsParagraphs(html) : null
         // A paste over a selection replaces it through Plate's own handling.
-        if (!editor.api.isCollapsed() || !leaveHeader(editor)) return
+        const header = editor.api.isCollapsed() && leaveHeader(editor)
+        if (!lines && !header) return
         // Handled here, so Slate's own paste handler below does not insert it again.
         event.preventDefault()
         event.stopPropagation()
-        editor.tf.insertData(event.clipboardData)
+        if (!lines) return editor.tf.insertData(clipboard)
+        const data = new DataTransfer()
+        for (const type of clipboard.types)
+          if (type !== 'Files') data.setData(type, type === 'text/html' ? lines : clipboard.getData(type))
+        editor.tf.insertData(data)
       }}
     >
       <EditorContainer

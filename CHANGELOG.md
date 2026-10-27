@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.38.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.37.0...v2.38.0) (2026-10-27)
+
+
+### Features
+
+* **ui:** rework the signed-in app with Polar's shell and studio galleries ([#321](https://github.com/PlaybookMediaLLC/shots/issues/321)) ([eebd8d2](https://github.com/PlaybookMediaLLC/shots/commit/eebd8d24bc71948ca7f69bd268eb74a38ee7ca27))
+
 ## [2.37.0](https://github.com/PlaybookMediaLLC/screenshot-studio/compare/v2.36.4...v2.37.0) (2026-10-25)
 
 

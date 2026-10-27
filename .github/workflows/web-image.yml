@@ -156,7 +156,7 @@ jobs:
           test "$(jq -r '.[0].active_deployment.phase // empty' "$work/after.json")" = ACTIVE
           curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.playbookmedia.io/api/health > /dev/null
           curl --fail --silent --show-error --retry 6 --retry-delay 5 https://shots.playbookmedia.io/indexnow-key.txt > "$work/indexnow-key.txt"
-          diff public/indexnow-key.txt "$work/indexnow-key.txt"
+          diff clients/apps/web/public/indexnow-key.txt "$work/indexnow-key.txt"
           # With the collab service live, the composer must point at it and it
           # must answer; otherwise drafts silently lose live co-editing.
           if jq -e '.[0].spec.services[] | select(.name == "collab")' "$work/after.json" > /dev/null; then

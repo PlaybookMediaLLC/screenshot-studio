@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "shots",
-      "source": "./integrations/claude-code/shots",
+      "source": "./clients/integrations/claude-code/shots",
       "description": "Connect Claude Code to a Shots workspace over MCP and draft launches for review.",
       "category": "productivity"
     }

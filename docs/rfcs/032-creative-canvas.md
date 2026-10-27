@@ -240,7 +240,7 @@ report for this change. The checks are:
   `test/canvas-session.test.ts`, `test/export-adapt.test.ts`, and the existing
   Story Set suites after the session refactor.
 - Go: canvas validation, kind isolation, update ownership and canvas handoff in
-  `services/internal/product/canvas_test.go`, with the existing creative set
+  `server/internal/product/canvas_test.go`, with the existing creative set
   tests.
 - Browser: `test/e2e/canvas.spec.ts` covers a manual announcement, a
   multi-artboard campaign with ZIP export, a generated campaign design refined

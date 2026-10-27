@@ -12,7 +12,7 @@ The authorized expansion is implemented at the supported local boundaries. Use [
 
 **Depends on:** Existing transactional activity/outbox, workspace notification policy, member preferences and encrypted Slack connection.
 
-**Affected files / evidence:** `services/internal/notifications/store.go`; `services/internal/notifications/delivery.go`; `services/internal/product/draft_events.go`; `components/workspace/WorkspaceNotifications.tsx`; `components/write/composer/properties.tsx`.
+**Affected files / evidence:** `server/internal/notifications/store.go`; `server/internal/notifications/delivery.go`; `server/internal/product/draft_events.go`; `components/workspace/WorkspaceNotifications.tsx`; `components/write/composer/properties.tsx`.
 
 ### Problem, scope and changes
 
@@ -28,7 +28,7 @@ Connect Slack, select a workspace fallback or distinct channels for visible work
 
 ### Verification
 
-`services/internal/notifications/publish_preferences_test.go`; `services/internal/notifications/publish_temporal_test.go`; `services/internal/product/content_draft_notification_integration_test.go`; `test/e2e/workspace-notifications.spec.ts`; `test/e2e/notification-preferences.spec.ts`.
+`server/internal/notifications/publish_preferences_test.go`; `server/internal/notifications/publish_temporal_test.go`; `server/internal/product/content_draft_notification_integration_test.go`; `test/e2e/workspace-notifications.spec.ts`; `test/e2e/notification-preferences.spec.ts`.
 
 ### Observability and unresolved dependencies
 
@@ -44,7 +44,7 @@ Per-brand routing, suppression races, private-set exclusion and policy preservat
 
 **Depends on:** Shared Yjs/Plate document, draft revisions and canonical audit service.
 
-**Affected files / evidence:** `components/write/composer/comments.tsx`; `components/write/composer/member-comments.tsx`; `components/write/composer/share-backups.tsx`; `services/internal/product/content_draft_collab.go`; `services/internal/product/content_draft_write.go`.
+**Affected files / evidence:** `components/write/composer/comments.tsx`; `components/write/composer/member-comments.tsx`; `components/write/composer/share-backups.tsx`; `server/internal/product/content_draft_collab.go`; `server/internal/product/content_draft_write.go`.
 
 ### Problem, scope and changes
 
@@ -60,7 +60,7 @@ Offline/failed saves preserve editable text and block unsafe navigation. Stale v
 
 ### Verification
 
-`services/internal/product/content_draft_collab_integration_test.go`; `services/internal/product/content_draft_agent_comments_integration_test.go`; `test/e2e/content-draft-collaboration.spec.ts`; `test/e2e/write-editing-regressions.spec.ts`.
+`server/internal/product/content_draft_collab_integration_test.go`; `server/internal/product/content_draft_agent_comments_integration_test.go`; `test/e2e/content-draft-collaboration.spec.ts`; `test/e2e/write-editing-regressions.spec.ts`.
 
 ### Observability and unresolved dependencies
 

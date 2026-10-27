@@ -20,11 +20,11 @@ require a campaign, connected social account or chat session to complete a kit.
 
 ## Existing foundation
 
-[Release specs and campaign plans](../../services/ent/schema/launch.go) already
-have versions and approval records. [Content drafts](../../services/internal/product/content_drafts.go)
-and [creative sets](../../services/ent/schema/platform_creative_set.go) provide
-editable material; [launch decisions](../../services/internal/product/launch.go)
-and [campaign transitions](../../services/internal/product/campaign_transitions.go)
+[Release specs and campaign plans](../../server/ent/schema/launch.go) already
+have versions and approval records. [Content drafts](../../server/internal/product/content_drafts.go)
+and [creative sets](../../server/ent/schema/platform_creative_set.go) provide
+editable material; [launch decisions](../../server/internal/product/launch.go)
+and [campaign transitions](../../server/internal/product/campaign_transitions.go)
 provide human authority and state-machine precedents. Extend those boundaries
 with a kit-level relation and evaluation.
 
@@ -120,7 +120,7 @@ specific versions; a stored APPROVED label alone never authorizes output.
 | platform_kit_review_decision | Kit revision, review type, manifest hash, actor, reason, decision, evaluated policy version, source token | Append-only; review types CONTENT_COVERAGE and FINAL_APPROVAL are distinct. |
 | platform_kit_export | Kit revision, audience scope, export schema version, bundle object/hash, file index, state | Unique org/kit-revision/audience-scope/export-version; persisted bytes reused on retry. |
 
-The existing [content draft revision](../../services/ent/schema/content_draft_revision.go)
+The existing [content draft revision](../../server/ent/schema/content_draft_revision.go)
 is saved at most every ten minutes during editing and on scheduling. Therefore
 the latest autosave may be behind the visible document. Freeze must snapshot
 the current persisted draft transactionally after the editor has acknowledged

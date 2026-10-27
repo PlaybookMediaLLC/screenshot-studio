@@ -69,7 +69,7 @@ The Shots column below was checked against the code on 2026-10-19.
 ### What exists
 
 The social API has 36 provider adapters in
-`services/internal/social/integrations/social`. The five channels in this step
+`server/internal/social/integrations/social`. The five channels in this step
 have adapters: `linkedinpage`, `facebook`, `youtube`, `tiktok` and
 `tiktokbusiness`, and `pinterest`. The drafts path does not use them yet.
 
@@ -79,7 +79,7 @@ providers in `lib/tenant/social-oauth-callback.ts`, the caption limits
 `components/drafts/channel-meta.tsx`.
 
 The Go side keeps `draftChannelLimits` and `draftChannelImageLimits` in
-`services/internal/product/content_draft_schedule.go`.
+`server/internal/product/content_draft_schedule.go`.
 
 ### Work
 
@@ -171,7 +171,7 @@ workspaces.
 ### What exists
 
 Campaign reviews send mail through `notifyReview` in
-`services/internal/product/review_mail.go`. A draft review writes the audit
+`server/internal/product/review_mail.go`. A draft review writes the audit
 record `product.content_draft_review` and nothing else.
 
 ### Work

@@ -7,7 +7,7 @@
 > historical wherever it conflicts with that order or the audited architecture.
 
 **Status:** Partially implemented (surface matching, capture binding/history and age-based freshness present)
-**Status note (2026-10-23):** services/internal/product/surfaces.go records and finds captures; lib/tenant/surface-freshness.ts supplies age labels. This is not evidence-based claim or image validity.
+**Status note (2026-10-23):** server/internal/product/surfaces.go records and finds captures; lib/tenant/surface-freshness.ts supplies age labels. This is not evidence-based claim or image validity.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Historical dependencies:** RFC 020 and RFC 017

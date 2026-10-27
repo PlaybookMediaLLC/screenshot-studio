@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,17 +11,17 @@
 !.yarn/versions
 
 # testing
-/coverage
-/playwright-report/
-/test-results/
+/clients/apps/web/coverage
+/clients/apps/web/playwright-report/
+/clients/apps/web/test-results/
 /.context/
 
 # next.js
-/.next/
-/out/
+/clients/apps/web/.next/
+/clients/apps/web/out/
 
 # production
-/build
+/clients/apps/web/build
 
 # misc
 .DS_Store
@@ -44,22 +44,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-public/backgrounds
-/scripts/*
-!/scripts/e2e-screenshot-mock.mjs
-!/scripts/e2e-release-automation-mock.mjs
-!/scripts/smoke-rate-limit.mjs
-!/scripts/verify-tenant-isolation.ts
-!/scripts/verify-trpc-smoke.ts
-!/scripts/verify-rfcs.py
-!/scripts/indexnow.ts
-!/scripts/bind-social-tenant.ts
-!/scripts/openapi.ts
-!/scripts/public-images.py
-!/scripts/release-flow.cjs
+/clients/apps/web/public/backgrounds
+/clients/apps/web/scripts/*
+!/clients/apps/web/scripts/e2e-screenshot-mock.mjs
+!/clients/apps/web/scripts/e2e-release-automation-mock.mjs
+!/clients/apps/web/scripts/smoke-rate-limit.mjs
+!/clients/apps/web/scripts/verify-tenant-isolation.ts
+!/clients/apps/web/scripts/verify-trpc-smoke.ts
+!/clients/apps/web/scripts/indexnow.ts
+!/clients/apps/web/scripts/bind-social-tenant.ts
+!/clients/apps/web/scripts/openapi.ts
+!/clients/apps/web/scripts/public-images.py
 
-/lib/generated/prisma
-/services/.social-gate-bin/
+/clients/apps/web/lib/generated/prisma
+/server/.social-gate-bin/
 # Prisma
 prisma/*.db
 prisma/*.db-journal

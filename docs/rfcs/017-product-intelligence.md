@@ -7,7 +7,7 @@
 > historical wherever it conflicts with that order or the audited architecture.
 
 **Status:** Partially implemented (product profile, provenance, human locks and onboarding pipeline present)
-**Status note (2026-10-23):** ProductProfile and field precedence/locks exist in services/internal/product/product_profile.go; RFC 034 implements onboarding. The former claim that nothing is built is obsolete.
+**Status note (2026-10-23):** ProductProfile and field precedence/locks exist in server/internal/product/product_profile.go; RFC 034 implements onboarding. The former claim that nothing is built is obsolete.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Historical dependencies:** RFC 050, RFC 020, and RFC 019

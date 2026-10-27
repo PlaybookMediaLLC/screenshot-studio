@@ -145,7 +145,7 @@ keys.
   secrets.
 - A provider whose secrets are missing is reported as **skipped**, not passed,
   so a half-configured gate cannot look green.
-- `bin/provider-gate` follows `bin/social-gate`: an isolated Compose project
+- `bin/provider-gate` follows `dev/social-gate`: an isolated Compose project
   with its own database and volumes, torn down with `--volumes` on exit, and
   logs redacted the same way.
 

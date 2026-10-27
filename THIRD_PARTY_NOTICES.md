@@ -1,6 +1,6 @@
 # Third-party notices
 
-`services/internal/social` is a Go port of
+`server/internal/social` is a Go port of
 [Postiz](https://github.com/gitroomhq/postiz-app). Comments in that directory
 call it "the original app".
 

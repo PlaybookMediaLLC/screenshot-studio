@@ -75,8 +75,8 @@ Who needs it, and what they cannot do today.
 
 ### Changes
 - Contract (zod): `lib/api/contracts/...`
-- Go validation, with the same numbers: `services/internal/product/...`
-- Provider adapter: `services/internal/social/integrations/social/<provider>/...`
+- Go validation, with the same numbers: `server/internal/product/...`
+- Provider adapter: `server/internal/social/integrations/social/<provider>/...`
 - Data and migration
 - UI: `components/drafts/...`
 - Metering and plan gate (RFC 023)

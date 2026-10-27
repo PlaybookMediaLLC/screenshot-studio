@@ -13,7 +13,7 @@
 **Date:** 2026-10-15  
 **Revised:** 2026-10-24
 **Owners:** Product and Engineering  
-**Historical dependencies:** RFC 047, RFC 048, RFC 014, `lib/billing/plans.ts`, `services/internal/product/quota.go`
+**Historical dependencies:** RFC 047, RFC 048, RFC 014, `lib/billing/plans.ts`, `server/internal/product/quota.go`
 
 ## Decision
 
@@ -212,13 +212,13 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
 3. **The meter.** The Go backend counts `ai:credits:monthly`,
    `posts:monthly`, and `emails:monthly` per UTC calendar month in Redis with
    [ulule/limiter](https://github.com/ulule/limiter)
-   (`services/internal/quota/monthly.go`), whose Lua script increments and
+   (`server/internal/quota/monthly.go`), whose Lua script increments and
    sets expiry atomically across web and worker processes. An amount of 0
    reads the balance. The meter fails closed. Web images from before the
    credit meter still send the old generation quota name; the backend counts
    it as AI credits.
 4. **Allowances** are in `lib/billing/plans.ts` and
-   `services/internal/product/quota.go`; `test/ai-credit-metering.test.ts`
+   `server/internal/product/quota.go`; `test/ai-credit-metering.test.ts`
    fails if they drift apart.
 5. **Posts and emails.** Scheduling a post charges `posts:monthly` and
    sending a release announcement charges `emails:monthly` per recipient,
@@ -261,13 +261,13 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
     authoritative; changing client controls cannot grant access. Unknown or
     inactive plans fail closed. A missing entitlement row is a new free workspace.
 11. **Plan limits.** Seats and social channels are capped per plan in
-    `services/internal/product/plan_limits.go`, mirrored in
+    `server/internal/product/plan_limits.go`, mirrored in
     `lib/billing/plans.ts` (`test/ai-credit-metering.test.ts` fails if they
     drift). A refused add answers `403 plan_limit_reached` with the limit.
     - **Seats.** Members plus pending, unexpired invitations hold seats.
-      Inviting checks both (`InviteMember` in `services/internal/product/invitations.go`);
+      Inviting checks both (`InviteMember` in `server/internal/product/invitations.go`);
       acceptance checks members only (`RespondInvitation` in
-      `services/internal/product/invitation_response.go`). Better Auth delegates
+      `server/internal/product/invitation_response.go`). Better Auth delegates
       these operations to the same Go transactions, holding the workspace capacity
       lock through commitment. Other direct membership additions retain the
       `beforeAddMember` preflight through `GET /v1/internal/workspaces/{id}/seat`;

@@ -1,6 +1,6 @@
 # Workspace activity event matrix
 
-This catalogue is implemented in `services/internal/activity/events.go`. Each
+This catalogue is implemented in `server/internal/activity/events.go`. Each
 entry represents a committed transition, not an audit record. All personal
 channels require current membership and resource access; settings and membership
 resources additionally require owner/admin access or ownership of the affected

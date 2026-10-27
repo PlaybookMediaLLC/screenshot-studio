@@ -12,7 +12,7 @@ Reconciled against `19390194` and the implementation in this working tree. The O
 
 **Dependencies:** Workspace connection permissions; provider credentials; plan channel limits.
 
-**Affected code and current evidence:** `components/settings/social-sets`; `components/write/composer/platforms.tsx`; `services/internal/product/social_sets.go`; `services/internal/social/tenantpublishing/provider.go`; `services/internal/social/integrations/social/bluesky`.
+**Affected code and current evidence:** `components/settings/social-sets`; `components/write/composer/platforms.tsx`; `server/internal/product/social_sets.go`; `server/internal/social/tenantpublishing/provider.go`; `server/internal/social/integrations/social/bluesky`.
 
 ### Implementation gap and disposition
 
@@ -28,7 +28,7 @@ Keep a draft editable when connection or app review fails. Never invent Notes OA
 
 ### Verification
 
-`services/internal/product/social_sets_integration_test.go`; `services/internal/product/bluesky_capabilities_integration_test.go`; `services/internal/product/social_health_integration_test.go`; `test/e2e/social-set-scope.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/product/social_sets_integration_test.go`; `server/internal/product/bluesky_capabilities_integration_test.go`; `server/internal/product/social_health_integration_test.go`; `test/e2e/social-set-scope.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 
@@ -76,7 +76,7 @@ Existing authentication event/error handling applies. Live X/LinkedIn identity c
 
 **Dependencies:** A documented official Notes publishing API plus authorized app access.
 
-**Affected code and current evidence:** `lib/write/capabilities.ts`; `services/internal/social/integrations/social`.
+**Affected code and current evidence:** `lib/write/capabilities.ts`; `server/internal/social/integrations/social`.
 
 ### Implementation gap and disposition
 

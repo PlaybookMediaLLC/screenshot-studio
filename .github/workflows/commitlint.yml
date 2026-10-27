@@ -20,11 +20,14 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
+          cache-dependency-path: clients/package-lock.json
       - run: npm ci
+        working-directory: clients
       - name: Check pull request commits
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        working-directory: clients
         run: |
           # Lint commits authored on the PR's first-parent history. A fork sync
           # intentionally imports upstream commits as a merge's second parent,

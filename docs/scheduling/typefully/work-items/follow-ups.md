@@ -12,7 +12,7 @@ Reconciled against `19390194` and the implementation in this working tree. The O
 
 **Dependencies:** Set engagement defaults; canonical options; Temporal action receipts and verified provider rights.
 
-**Affected code and current evidence:** `components/write/composer/automation.tsx`; `lib/write/automation.ts`; `services/internal/product/social_sets.go`; `services/internal/temporalpublishing/automation.go`; `services/internal/social/tenantpublishing/automation.go`.
+**Affected code and current evidence:** `components/write/composer/automation.tsx`; `lib/write/automation.ts`; `server/internal/product/social_sets.go`; `server/internal/temporalpublishing/automation.go`; `server/internal/social/tenantpublishing/automation.go`.
 
 ### Implementation gap and disposition
 
@@ -28,7 +28,7 @@ Unknown delivery is not automatically retried. A failed extra cannot downgrade a
 
 ### Verification
 
-`services/internal/temporalpublishing/automation_test.go`; `services/internal/social/tenantpublishing/automation_test.go`; `services/internal/product/content_draft_schedule_integration_test.go`; `test/write-automation.test.ts`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/temporalpublishing/automation_test.go`; `server/internal/social/tenantpublishing/automation_test.go`; `server/internal/product/content_draft_schedule_integration_test.go`; `test/write-automation.test.ts`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 
@@ -38,10 +38,10 @@ Persist action kind, due time, attempts, cancellation and confirmed/failed/unkno
 
 **Source:** TF-043. **Classification:** Partial. **Priority:** Reopened. **Size:** M.
 
-Current `develop` adds `services/internal/autodm` and the X direct-message adapter, superseding the earlier unimplemented status. The ledger tracks consent, opt-out, unique delivery attempts and uncertain outcomes. `20261102100000_platform_auto_dm.sql` is additive. Ordinary reply/repost grants confer no direct-message permission.
+Current `develop` adds `server/internal/autodm` and the X direct-message adapter, superseding the earlier unimplemented status. The ledger tracks consent, opt-out, unique delivery attempts and uncertain outcomes. `20261102100000_platform_auto_dm.sql` is additive. Ordinary reply/repost grants confer no direct-message permission.
 
 **Dependencies:** Accepted consent and abuse policy, verified X DM grants and explicit `PLATFORM_X_AUTO_DM_DELIVERY_ENABLED` activation. Live delivery remains disabled. No composer or agent action may implicitly enable the adapter.
 
 **Acceptance and failure:** Default-off and missing-grant requests never mutate the provider. Consent and opt-outs govern recipient eligibility; duplicate events cannot send twice. A timeout/ambiguous response records an uncertain result and cannot automatically resend. Definite pre-send rejection stays distinct from a successful or unknown send.
 
-**Verification:** `services/internal/autodm/autodm_test.go`, `ledger_integration_test.go` and `services/internal/social/integrations/social/x/direct_message_test.go` execute ledger, grant, native protocol and uncertain-delivery boundaries. Local HTTP fixtures do not certify live DM delivery, consent policy or provider approval. Existing ledger status and attempt records provide observability without exposing recipient message text in logs.
+**Verification:** `server/internal/autodm/autodm_test.go`, `ledger_integration_test.go` and `server/internal/social/integrations/social/x/direct_message_test.go` execute ledger, grant, native protocol and uncertain-delivery boundaries. Local HTTP fixtures do not certify live DM delivery, consent policy or provider approval. Existing ledger status and attempt records provide observability without exposing recipient message text in logs.

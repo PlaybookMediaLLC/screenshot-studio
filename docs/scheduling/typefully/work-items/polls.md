@@ -18,7 +18,7 @@ Official contracts: [X create post OpenAPI](https://api.x.com/2/openapi.json), [
 
 **Source:** TF-036, TF-109. **Gap:** the old common 25-character / four-option schema prevented valid LinkedIn and custom-instance polls. **Size:** S. **Priority:** reopened expansion. **Depends on:** existing immutable draft scheduling and verified account identity. [Source requirements](../changelog-features.md).
 
-**Changes and evidence:** `lib/write/document.ts` and `lib/write/wire.ts` carry bounded poll data without imposing one provider's limits on every provider. `lib/write/capabilities.ts` validates the destination. `services/internal/product/content_draft_options.go` repeats provider rules before scheduling. `services/internal/socialidentity/threads_poll.go` and `polls.go` supply shared Go validators. LinkedIn's question remains `PublishOptions.PollQuestion`; no second question field or database migration is necessary.
+**Changes and evidence:** `lib/write/document.ts` and `lib/write/wire.ts` carry bounded poll data without imposing one provider's limits on every provider. `lib/write/capabilities.ts` validates the destination. `server/internal/product/content_draft_options.go` repeats provider rules before scheduling. `server/internal/socialidentity/threads_poll.go` and `polls.go` supply shared Go validators. LinkedIn's question remains `PublishOptions.PollQuestion`; no second question field or database migration is necessary.
 
 **Acceptance:** valid X durations include non-preset whole minutes; question/option overflow, whitespace-only options, media conflicts, malformed durations and unsupported channels fail before scheduling. Saved documents retain platform versions and unsupported choices for explicit editing, without silently truncating them. Normal draft approval, plan limits and publication idempotency still apply.
 
@@ -32,7 +32,7 @@ Official contracts: [X create post OpenAPI](https://api.x.com/2/openapi.json), [
 
 **Source:** TF-109. **Gap:** stale triage missed the current LinkedIn implementation; verify native serialization rather than replace it. **Size:** S. **Depends on:** WI-POLL-1; LinkedIn app products and person/page write grants. [Source requirements](../changelog-features.md).
 
-**Changes and evidence:** `services/internal/social/integrations/social/linkedin/post.go` creates native poll content and maps the four duration values; `services/internal/social/tenantpublishing/options.go` supplies the question. `components/write/composer/post-tools.tsx` collects question/options/duration. The inherited page adapter uses the selected organization author.
+**Changes and evidence:** `server/internal/social/integrations/social/linkedin/post.go` creates native poll content and maps the four duration values; `server/internal/social/tenantpublishing/options.go` supplies the question. `components/write/composer/post-tools.tsx` collects question/options/duration. The inherited page adapter uses the selected organization author.
 
 **Acceptance:** the delivered payload contains a native poll, the question is independent of caption text, and a document/image/poll combination is rejected. The first-comment workflow remains a separately tracked extra after a successful main post.
 
@@ -46,7 +46,7 @@ Official contracts: [X create post OpenAPI](https://api.x.com/2/openapi.json), [
 
 **Source:** TF-109. **Gap:** missing native poll attachment serialization. **Size:** M. **Depends on:** WI-POLL-1; Meta Threads app and approved content-publish access. [Source requirements](../changelog-features.md).
 
-**Changes and evidence:** `services/internal/socialidentity/threads_poll.go` validates 2–4 choices, 25 code points, no media/multiple choice, and provider-default duration `0` (legacy saved 1,440-minute values remain accepted without sending a duration field). `services/internal/social/integrations/social/threads/provider.go` builds `poll_attachment` using `option_a` through `option_d` on a text container. `threads/polls_test.go` exercises native fields and malformed input. Composer labels duration “Provider default.” Existing container preparation, status checks and publishing workflow remain in use.
+**Changes and evidence:** `server/internal/socialidentity/threads_poll.go` validates 2–4 choices, 25 code points, no media/multiple choice, and provider-default duration `0` (legacy saved 1,440-minute values remain accepted without sending a duration field). `server/internal/social/integrations/social/threads/provider.go` builds `poll_attachment` using `option_a` through `option_d` on a text container. `threads/polls_test.go` exercises native fields and malformed input. Composer labels duration “Provider default.” Existing container preparation, status checks and publishing workflow remain in use.
 
 **Acceptance:** two, three and four choices serialize exactly; Unicode limits match the composer; custom duration and image/video polls fail before a container is created; ordinary text posts and existing X polls are unaffected.
 

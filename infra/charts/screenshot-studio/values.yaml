@@ -1,0 +1,172 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/playbookmediallc/screenshot-studio
+  pullPolicy: IfNotPresent
+  tag: ''
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+serviceAccount:
+  create: false
+  automount: false
+  annotations: {}
+  name: ''
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+  containerPort: 3000
+
+# Public NEXT_PUBLIC_* values are compiled into the browser bundle. Supply them
+# as Docker build arguments when building the image, not as runtime values here.
+config:
+  betterAuthUrl: ''
+  googleSiteVerification: ''
+  # Go backend that owns all data. The web has no database; it sends
+  # PUBLISHING_SERVICE_TOKEN from existingSecret with every backend call.
+  publishingApiUrl: ''
+  screenshotApiUrl: 'https://api.microlink.io'
+  # Content drafts (RFC 013): 'enabled' turns on the Drafts pages and API.
+  contentDrafts: ''
+
+# Optional Secret containing application connection, authentication, and audit
+# values. REDIS_URL is required when the screenshot API route is enabled.
+# Only the migration job and local backend read its DATABASE_URL.
+existingSecret: ''
+
+# Real-time co-editing of content drafts (RFC 013), built from
+# clients/apps/collab-server/Dockerfile. existingSecret must hold
+# COLLAB_SERVICE_TOKEN (shared with the backend, which also needs
+# COLLAB_TOKEN_SECRET to sign tokens).
+collab:
+  enabled: false
+  # More than one replica relays live edits through Redis: set redis.enabled
+  # and put COLLAB_REDIS_URL in existingSecret.
+  replicaCount: 1
+  redis:
+    enabled: false
+  image:
+    repository: ''
+    pullPolicy: IfNotPresent
+    tag: ''
+  port: 1234
+  # The backend's URL from inside the cluster; defaults to config.publishingApiUrl.
+  backendUrl: ''
+  # The WebSocket URL browsers connect to (wss://...), given to the web as
+  # PLATFORM_COLLAB_URL. Expose the collab Service at it with your ingress.
+  publicUrl: ''
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# The Go platform migrator, shipped in the backend image.
+migration:
+  command:
+    - /platform-migrate
+  enabled: false
+  image:
+    repository: ''
+    pullPolicy: IfNotPresent
+    tag: ''
+
+# Development-only dependencies. `dev/studio kind-up` enables this group through
+# values-kind.yaml. Production deployments must use managed services instead.
+local:
+  enabled: false
+  postgres:
+    image: postgres:16-bookworm
+  redis:
+    image: redis:7.4-alpine
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+  curlImage: curlimages/curl:8.12.1
+  temporal:
+    image: temporalio/temporal:1.8.2
+  # Built from server/Dockerfile; dev/studio kind-up loads it.
+  backend:
+    image: ''
+  screenshotMock:
+    image: hashicorp/http-echo:1.0.0
+
+ingress:
+  enabled: false
+  className: ''
+  annotations: {}
+  hosts:
+    - host: screenshot-studio.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs:
+    - name: screenshot-studio
+      sectionName: http
+  hostnames:
+    - screenshot-studio.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+startupProbe:
+  httpGet:
+    path: /api/health
+    port: http
+  failureThreshold: 18
+  periodSeconds: 5
+
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: http
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: http
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+volumes: []
+volumeMounts: []
+nodeSelector: {}
+tolerations: []
+affinity: {}

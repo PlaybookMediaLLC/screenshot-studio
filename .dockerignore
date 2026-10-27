@@ -1,17 +1,16 @@
 .git
 .github
-.context
 **/.context
-.next
-node_modules
-coverage
-.env*
+**/.next
+**/node_modules
+**/coverage
+**/.env*
 /.local
 npm-debug.log*
-Dockerfile*
-charts
+**/Dockerfile*
+infra/charts
 docs
-/services
+/server
 # The browser and Go enforce the same media limits from this embedded document.
-!/services/internal/medialimits/limits.json
+!/server/internal/medialimits/limits.json
 *.md

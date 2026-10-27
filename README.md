@@ -12,7 +12,7 @@ role-specific release kit.** The technical foundation exists; the complete
 readiness workflow, production reliability and repeat paid adoption still need
 validation.
 
-[Company](company.md) · [Vision and north star](vision.md) ·
+[Company](docs/company.md) · [Vision and north star](docs/vision.md) ·
 [Codebase audit](docs/release-readiness-audit-2026-10-23.md) ·
 [RFC execution order](docs/rfcs/README.md)
 
@@ -118,7 +118,7 @@ organization**, with eligible-release coverage. A kit counts only with approved
 facts, successful required handoffs and recorded use for each required audience. Guardrails
 include factual corrections, release-to-approval time, customer labor saved,
 operator cost, repeat usage and retention. Asset counts and social impressions
-are secondary. See [vision.md](vision.md) for the definition.
+are secondary. See [vision.md](docs/vision.md) for the definition.
 
 ## Commercial validation
 
@@ -132,21 +132,25 @@ The first 90-day targets are 15 buyer interviews and three pilot commitments,
 payment authorization from at least two buyers, repeat release cycles with
 three customers, and a test of five paying organizations with renewal intent.
 These are validation targets, not current traction. The
-[company brief](company.md) and [RFC 001](docs/rfcs/001-release-readiness-pilots.md)
+[company brief](docs/company.md) and [RFC 001](docs/rfcs/001-release-readiness-pilots.md)
 define the evidence and decision gates.
 
 ## Architecture
 
+The repository follows polar.sh's split: `server/` holds the Go backend and
+`clients/` holds the npm workspace (the Next.js web app in `clients/apps/web/`,
+the collaboration server, shared packages and native integrations).
+
 Next.js/React provides the product UI and web API contracts. Product data goes
-through `lib/backend/sdk.ts` to Go services; Go/Ent and SQL migrations own
+through `clients/apps/web/lib/backend/sdk.ts` to Go services; Go/Ent and SQL migrations own
 PostgreSQL. Temporal runs durable work, object storage holds media, and AI
 usage is metered. Reuse these boundaries for qualification, evidence, kits and
 handoffs. The web does not access the database directly.
 
 Current implementation guides are [Playbook Core](docs/playbook-core.md),
-[backend services](services/README.md), [editor platform](docs/editor-platform.md)
+[backend services](server/README.md), [editor platform](docs/editor-platform.md)
 and [local development](docs/local-development.md). Older RFC architecture
-sketches and parts of [ARCHITECTURE.md](ARCHITECTURE.md) retain historical
+sketches and parts of [ARCHITECTURE.md](docs/ARCHITECTURE.md) retain historical
 Prisma/Trigger.dev assumptions; they do not override the current code.
 
 ## Quick start
@@ -160,18 +164,20 @@ make up
 make status
 ```
 
-Open [localhost:3000](http://localhost:3000). `bin/studio` generates the ignored
+Open [localhost:3000](http://localhost:3000). `dev/studio` generates the ignored
 `.local/dev.env` and a local development account; see
 [local development](docs/local-development.md) for sign-in, prerequisites,
 provider configuration and test workflows. AI and live-provider features need
 their own credentials. The web alone is not the complete platform stack.
 
-For host-side tooling, use `npm ci` (npm is the package manager). Useful checks:
+For host-side tooling, run `npm ci` in `clients/` (npm is the package manager).
+Useful checks:
 
 ```sh
-npm run verify:rfcs
-python3 scripts/verify-rfcs.py --self-test
-npm run quality:check
+python3 dev/verify-rfcs.py
+python3 dev/verify-rfcs.py --self-test
+(cd clients && npm run quality:check)
+make publishing-test   # Go generation, tests, race checks and vet
 ```
 
 The full quality and integration workflows require the services described in

@@ -45,7 +45,7 @@ One document, one renderer, and one command path serve every feature.
 | Localization | `lib/store-screenshots/localization.ts`, `locales.ts` | Per-layer translations with source hashes, status, and outdated detection |
 | Persistence | `lib/store-screenshots/persistence/` | IndexedDB projects, content-addressed assets, versions, brand kits, templates |
 | Server | `lib/tenant/store-*.ts`, `app/api/store-screenshots/`, `app/api/review/` | Reviews, comments, credentials, provider uploads, AI |
-| Backend | `services/internal/product/store_screenshots.go`, `services/internal/httpapi/store_screenshots.go` | Ent models `StoreReview`, `StoreReviewComment`, `StorePublishingCredential`; authorization and audit |
+| Backend | `server/internal/product/store_screenshots.go`, `server/internal/httpapi/store_screenshots.go` | Ent models `StoreReview`, `StoreReviewComment`, `StorePublishingCredential`; authorization and audit |
 | Integrations | `lib/integrations/` | App Store Connect, Google Play, and Figma clients, isolated from the editor |
 
 ### Data flow
@@ -134,7 +134,7 @@ Set `STORE_PUBLISHING_ENCRYPTION_KEY` on the web service: a base64-encoded
 openssl rand -base64 32
 ```
 
-`bin/studio` generates one for local development. Helm reads it from the
+`dev/studio` generates one for local development. Helm reads it from the
 app secret (optional), and the DigitalOcean spec passes it through when
 present. Without it the publish dialog explains that uploads are not set
 up, and no credential can be saved.

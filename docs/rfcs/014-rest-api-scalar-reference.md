@@ -394,8 +394,8 @@ provider payloads, SQL errors, secrets, and stack traces are never returned.
 - Every operation declares authentication, scopes, request schemas, success schemas, error schemas, and rate-limit behavior.
 - Internal routes are excluded.
 - CI validates the document shape and checks that every contract is served by the route file its path names.
-- `npm run api:generate` writes the document to `services/internal/shotsapi/openapi.json` and generates the typed client in `packages/shots-api-client` from it with `openapi-typescript`. The Go MCP server (RFC 026) embeds the same file.
-- CI regenerates both and fails on any difference. It then compares the document with the base revision using oasdiff and fails any breaking change that `services/internal/shotsapi/breaking-changes-allowed.txt` does not list.
+- `npm run api:generate` writes the document to `server/internal/shotsapi/openapi.json` and generates the typed client in `clients/packages/shots-api-client` from it with `openapi-typescript`. The Go MCP server (RFC 026) embeds the same file.
+- CI regenerates both and fails on any difference. It then compares the document with the base revision using oasdiff and fails any breaking change that `server/internal/shotsapi/breaking-changes-allowed.txt` does not list.
 
 ## Endpoint extension framework
 

@@ -1,6 +1,6 @@
 # Local development
 
-Use `make` for all local services. It calls `bin/studio`, which creates
+Use `make` for all local services. It calls `dev/studio`, which creates
 `.local/dev.env` on the first run. This ignored file contains generated local
 passwords and connection strings. Do not copy it to another environment.
 
@@ -80,7 +80,7 @@ production builds. `make up` turns it off again.
 After `make up`, run the full sign-up and workspace onboarding flow in Chromium:
 
 ```sh
-npx playwright install chromium # once per machine
+(cd clients && npx playwright install chromium) # once per machine
 make e2e
 make e2e-onboarding
 make e2e-recovery
@@ -92,7 +92,7 @@ settings, audit controls, identity controls, and secret exposure.
 `make e2e-recovery` runs serial failure and recovery checks for Redis, RustFS,
 Storage, and Postgres. Use a Kind port-forward with
 `E2E_MANAGE_SCREENSHOT_MOCK=false` so the command does not recreate Compose.
-See [`test/e2e/README.md`](../test/e2e/README.md) to add flows with shared lifecycle hooks.
+See [`test/e2e/README.md`](../clients/apps/web/test/e2e/README.md) to add flows with shared lifecycle hooks.
 
 ### Give Docker enough memory
 
@@ -112,13 +112,13 @@ Desktop's memory limit is the fix rather than trimming services.
 
 ### Warm routes before timing anything
 
-`bin/studio` requests `/sign-up`, `/sign-in`, `/two-factor`, `/onboarding`,
+`dev/studio` requests `/sign-up`, `/sign-in`, `/two-factor`, `/onboarding`,
 `/workspace` and `/` before the suite starts. Under `next dev` a route compiles
 on its first request, which costs 5-30s, and a browser navigation to an
 uncompiled route leaves `page.url()` on the previous page until the server
 answers. An unwarmed route is therefore indistinguishable from a redirect that
 never happened, which is a slow and confusing thing to debug. Running specs
-directly with `npx playwright test` skips that warm-up, so do it by hand:
+directly with `npx playwright test` (from `clients/apps/web/`) skips that warm-up, so do it by hand:
 
 ```sh
 for r in /sign-up /sign-in /two-factor /onboarding /workspace /; do
@@ -153,7 +153,7 @@ curl --fail http://localhost:8081/healthz
 make publishing-test
 ```
 
-For the end-to-end publishing check, run `./bin/social-gate`. It starts an
+For the end-to-end publishing check, run `./dev/social-gate`. It starts an
 isolated stack with the web, backend, Temporal worker, private RustFS, and a fake
 social provider, then publishes through the direct Go path. It never publishes
 to a real social account.
@@ -184,7 +184,7 @@ never send it from the browser.
 
 Run `make check` before you commit. It checks format, lint, TypeScript, unit
 tests, file size, function size, complexity, nesting, and parameter count for
-the server boundary. `npm install` installs the same check as the Git
+the server boundary. `npm install` in `clients/` installs the same check as the Git
 pre-commit hook.
 
 ## Temporal maintenance development
@@ -195,7 +195,7 @@ provides Temporal and the Go workers; `RUN_MAINTENANCE` defaults to false locall
 so a normal editor development session cannot send customer announcements.
 
 For isolated maintenance integration tests, create a `maintenance_test` PostgreSQL
-database, apply the schema, and run from `services/`:
+database, apply the schema, and run from `server/`:
 
 ```sh
 DATABASE_URL='postgresql://postgres:password@localhost:5432/maintenance_test?sslmode=disable' \

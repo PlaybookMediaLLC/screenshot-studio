@@ -20,12 +20,12 @@ Next.js route + Zod contract / approved MCP draft tool
   -> object store / provider API, outside the database transaction
 ```
 
-Extend the [release route](../app/api/v1/releases/route.ts),
-[contract definitions](../lib/api/contracts/releases.ts),
-[backend adapter](../lib/backend/sdk.ts),
-[SDK transport](../packages/screenshot-studio-backend-sdk/src/index.ts),
-[Go HTTP handlers](../services/internal/httpapi/launch.go) and
-[product operations](../services/internal/product/launch.go). New platform
+Extend the [release route](../clients/apps/web/app/api/v1/releases/route.ts),
+[contract definitions](../clients/apps/web/lib/api/contracts/releases.ts),
+[backend adapter](../clients/apps/web/lib/backend/sdk.ts),
+[SDK transport](../clients/packages/screenshot-studio-backend-sdk/src/index.ts),
+[Go HTTP handlers](../server/internal/httpapi/launch.go) and
+[product operations](../server/internal/product/launch.go). New platform
 models belong in the existing Ent schema directory; do not extend upstream
 editor persistence to store readiness decisions.
 
@@ -39,12 +39,12 @@ Proposed file layout for the first vertical slice (these paths are to be
 created during implementation, not source files claimed to exist):
 
 ```text
-services/ent/schema/platform_release_readiness.go
-services/internal/product/release_qualification.go
-services/internal/product/release_qualification_integration_test.go
-services/internal/httpapi/release_readiness.go
+server/ent/schema/platform_release_readiness.go
+server/internal/product/release_qualification.go
+server/internal/product/release_qualification_integration_test.go
+server/internal/httpapi/release_readiness.go
 lib/api/contracts/release-readiness.ts
-packages/screenshot-studio-backend-sdk/src/release-readiness.ts
+clients/packages/screenshot-studio-backend-sdk/src/release-readiness.ts
 app/api/v1/releases/[id]/qualification/route.ts
 ```
 
@@ -76,11 +76,11 @@ historical approval. A new human command needs a currently valid session.
 Accepted background work uses its persisted delegation plus current requester
 membership/role and connection checks, not a replay of the original cookie.
 
-The current [configuration authorization](../services/internal/product/configuration.go)
+The current [configuration authorization](../server/internal/product/configuration.go)
 checks API-key liveness in its general role helper; this is not a check of the
 key's requested scope. New Go machine entrypoints must load live permissions
 and enforce the required scope, using the semantics of
-[AgentKey](../services/internal/product/agent_keys.go). A web-only scope check
+[AgentKey](../server/internal/product/agent_keys.go). A web-only scope check
 would leave direct Go/MCP calls inconsistent. Keep the TS and Go scope lists
 synchronized; no new scope is required for the first manual slices.
 
@@ -193,7 +193,7 @@ List endpoints use an opaque `(createdAt, id)` cursor, default 50, maximum 100.
 
 Extend the existing stable platform error envelope with an optional typed
 `details` object, including the Go domain-error mapping, HTTP writer,
-[platform error adapter](../lib/api/platform-errors.ts) and SDK transport.
+[platform error adapter](../clients/apps/web/lib/api/platform-errors.ts) and SDK transport.
 The current generic Go writer returns an error string; simply throwing a new
 domain error will not preserve these proposed fields across all boundaries.
 
@@ -247,8 +247,8 @@ changing qualification or withdrawing evidence explicitly invalidates use.
 
 ## Jobs, outbox and partial failure
 
-Reuse [outbox rows](../services/ent/schema/outbox.go) and the
-[maintenance dispatcher](../services/internal/maintenance/outbox.go).
+Reuse [outbox rows](../server/ent/schema/outbox.go) and the
+[maintenance dispatcher](../server/internal/maintenance/outbox.go).
 Its product-event list is closed: adding an outbox type without adding dispatch
 and product-handler routing can acknowledge work without executing it. Each
 new event requires dispatch, handler and unknown-event coverage together.
@@ -286,7 +286,7 @@ it must not create a second approval, charge or send intent.
 1. Add schema and SQL together with unique/composite keys and indexes. Choose
    a migration identifier after the repository's highest existing timestamp,
    not merely today's date. The
-   [migration runner](../services/platformmigrations/migrations.go) executes
+   [migration runner](../server/platformmigrations/migrations.go) executes
    each file in an advisory-locked transaction, so concurrent index creation
    cannot be placed inside an ordinary migration.
 2. Deploy additive backend reads/writes behind per-workspace configuration;

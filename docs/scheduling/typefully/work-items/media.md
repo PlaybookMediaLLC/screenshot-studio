@@ -12,7 +12,7 @@ The authorized expansion is implemented at the supported local boundaries. Use [
 
 **Depends on:** Owned workspace assets, existing upload/object store, AI registry and metering.
 
-**Affected files / evidence:** `components/write/composer/media-tools.tsx`; `components/write/composer/describe-images.tsx`; `services/internal/product/asset_alt_text.go`; `lib/write/describe-image.ts`; `components/drafts/thread.tsx`.
+**Affected files / evidence:** `components/write/composer/media-tools.tsx`; `components/write/composer/describe-images.tsx`; `server/internal/product/asset_alt_text.go`; `lib/write/describe-image.ts`; `components/drafts/thread.tsx`.
 
 ### Problem, scope and changes
 
@@ -28,7 +28,7 @@ Foreign/deleted assets fail authorization; model errors and quota exhaustion lea
 
 ### Verification
 
-`services/internal/product/assets_upload_test.go`; `services/internal/product/shared_image_integration_test.go`; `test/e2e/typefully-workitems.spec.ts`; `test/e2e/typefully-media-handoff.spec.ts`.
+`server/internal/product/assets_upload_test.go`; `server/internal/product/shared_image_integration_test.go`; `test/e2e/typefully-workitems.spec.ts`; `test/e2e/typefully-media-handoff.spec.ts`.
 
 ### Observability and unresolved dependencies
 
@@ -76,7 +76,7 @@ The full frame workflow passed against actual object storage and raster bytes. `
 
 **Depends on:** Provider image limits, verified X publishing account and original asset storage.
 
-**Affected files / evidence:** `services/internal/social/mediaresize/image.go`; `components/write/composer/post-tools.tsx`; `lib/write/publication.ts`; `services/internal/social/integrations/social/x/provider.go`.
+**Affected files / evidence:** `server/internal/social/mediaresize/image.go`; `components/write/composer/post-tools.tsx`; `lib/write/publication.ts`; `server/internal/social/integrations/social/x/provider.go`.
 
 ### Problem, scope and changes
 
@@ -92,7 +92,7 @@ Derivative failures stop publishing before an external create request. Unknown p
 
 ### Verification
 
-`services/internal/social/mediaresize/image_test.go`; `services/internal/social/integrations/social/x/x_test.go`; `test/write-publication.test.ts`; `test/e2e/typefully-workitems.spec.ts`.
+`server/internal/social/mediaresize/image_test.go`; `server/internal/social/integrations/social/x/x_test.go`; `test/write-publication.test.ts`; `test/e2e/typefully-workitems.spec.ts`.
 
 ### Observability and unresolved dependencies
 

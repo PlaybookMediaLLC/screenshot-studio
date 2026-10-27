@@ -114,7 +114,7 @@ same service secret and application origin as the product API: existing
 `TENANT_PUBLISHING_SERVICE_TOKEN` / `TENANT_BETTER_AUTH_URL` in the combined
 process, and the unprefixed settings when standalone. No new credential or
 broader environment forwarding was added. The service secret must still contain
-at least 32 characters; `bin/studio` already generates a suitable random value.
+at least 32 characters; `dev/studio` already generates a suitable random value.
 
 The MCP integration fixture is configured the same way. A new protocol test
 requests a grant through the actual MCP server, redeems it through a separate

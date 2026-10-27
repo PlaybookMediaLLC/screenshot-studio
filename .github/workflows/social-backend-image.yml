@@ -4,17 +4,17 @@ on:
   push:
     branches: [main]
     paths:
-      - services/cmd/**
-      - services/ent/**
-      - services/internal/**
-      - services/platformmigrations/**
-      - services/go.mod
-      - services/go.sum
+      - server/cmd/**
+      - server/ent/**
+      - server/internal/**
+      - server/platformmigrations/**
+      - server/go.mod
+      - server/go.sum
       - .github/workflows/social-backend-image.yml
       - infra/digitalocean/backup-database.sh
       - infra/digitalocean/consolidate-live-spec.py
       # The collaboration server (RFC 013) ships with the backend it calls.
-      - packages/collab-server/**
+      - clients/apps/collab-server/**
   workflow_dispatch:
     inputs:
       deploy:
@@ -49,8 +49,8 @@ jobs:
         id: build
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
-          context: services
-          file: services/Dockerfile
+          context: server
+          file: server/Dockerfile
           platforms: linux/amd64
           push: true
           provenance: false
@@ -62,7 +62,7 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
-          file: packages/collab-server/Dockerfile
+          file: clients/apps/collab-server/Dockerfile
           platforms: linux/amd64
           push: true
           provenance: false

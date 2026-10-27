@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+./dev/studio env
+
+set -a
+# shellcheck source=/dev/null
+source .local/dev.env
+set +a
+
+# BSD mktemp only replaces trailing X's, so the template has no suffix.
+BOOTSTRAP_FILE="$(mktemp "$ROOT_DIR/.local/social-gate.XXXXXX")"
+chmod 600 "$BOOTSTRAP_FILE"
+
+gate_compose() {
+  docker compose --env-file .local/dev.env --file dev/compose.yaml --file dev/compose.social-gate.yaml \
+    --project-name screenshot-studio-social-gate "$@"
+}
+
+wait_http() {
+  local url=$1
+  for _ in $(seq 1 120); do
+    if curl --fail --silent --output /dev/null "$url"; then return 0; fi
+    sleep 1
+  done
+  echo "Social gate service did not become ready: $url" >&2
+  return 1
+}
+
+cleanup() {
+  local original_status=$?
+  trap - EXIT
+  if [[ "$original_status" -ne 0 ]]; then
+    echo 'Social gate service logs (last 100 lines per container):' >&2
+    gate_compose --profile social logs --no-color --tail=100 2>&1 |
+      sed -E 's#(https?://[^[:space:]"]+)\?[^[:space:]"]+#\1?[redacted]#g' >&2 || true
+  fi
+  gate_compose --profile social down --volumes --remove-orphans || original_status=1
+  rm -f "$BOOTSTRAP_FILE"
+  exit "$original_status"
+}
+trap cleanup EXIT
+
+# The separate project has its own PostgreSQL, Redis, Temporal, and RustFS
+# volumes. Start the social API first so it can create a real OAuth test
+# destination; then pass that API key only to the isolated app/backend.
+gate_compose --profile social up --detach --build \
+  postgres redis rustfs rustfs-init temporal social-redis social-temporal \
+  platform-go-migrate fake-social screenshot-studio-backend
+wait_http http://127.0.0.1:3110/
+SOCIAL_GATE_URL=http://127.0.0.1:3110 \
+  node clients/apps/web/test/e2e/fixtures/bootstrap-go.mjs "$BOOTSTRAP_FILE"
+SOCIAL_API_KEY_GATE="$(node -e 'const f=JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.stdout.write(f.apiKey)' "$BOOTSTRAP_FILE")"
+export SOCIAL_API_KEY_GATE
+gate_compose up --detach --build publishing-backend publishing-orchestrator app
+wait_http http://127.0.0.1:8180/readyz
+wait_http http://127.0.0.1:8181/readyz
+wait_http http://127.0.0.1:3010/api/health
+E2E_BASE_URL=http://localhost:3010 \
+E2E_DATABASE_URL="postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@127.0.0.1:54349/screenshot_studio?sslmode=disable" \
+E2E_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+E2E_R2_BUCKET_NAME="$R2_BUCKET_NAME" \
+E2E_R2_ENDPOINT=http://127.0.0.1:9013 \
+E2E_R2_REGION="$R2_REGION" \
+E2E_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
+E2E_REDIS_URL=redis://127.0.0.1:63809 \
+E2E_SOCIAL_GATE_BOOTSTRAP="$BOOTSTRAP_FILE" \
+  npm --prefix clients/apps/web run test:e2e -- test/e2e/social-gate.spec.ts --retries=0

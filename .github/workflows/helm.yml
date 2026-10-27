@@ -4,12 +4,12 @@ on:
   pull_request:
     branches: [develop, main]
     paths:
-      - charts/**
+      - infra/charts/**
       - .github/workflows/helm.yml
   push:
     branches: [develop, main]
     paths:
-      - charts/**
+      - infra/charts/**
       - .github/workflows/helm.yml
 
 permissions:
@@ -21,5 +21,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
-      - run: helm lint charts/screenshot-studio
-      - run: helm template screenshot-studio charts/screenshot-studio > rendered-chart.yaml
+      - run: helm lint infra/charts/screenshot-studio
+      - run: helm template screenshot-studio infra/charts/screenshot-studio > rendered-chart.yaml

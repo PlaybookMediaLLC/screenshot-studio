@@ -1,65 +1,89 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { chmod, writeFile } from 'node:fs/promises'
+import pg from 'pg'
 
-const base = process.env.SOCIAL_GATE_URL ?? 'http://127.0.0.1:3110'
+const base = process.env.SOCIAL_GATE_API_URL ?? 'http://127.0.0.1:8180'
+const serviceToken = process.env.PUBLISHING_SERVICE_TOKEN
+const databaseURL = process.env.E2E_DATABASE_URL
 const output = process.argv[2]
-if (!output) throw new Error('Usage: node test/e2e/fixtures/bootstrap-go.mjs <private-output-file>')
-
-async function json(path, options = {}) {
-  const response = await fetch(new URL(path, base), options)
-  if (!response.ok) throw new Error(`${path} returned ${response.status}`)
-  return { body: await response.json(), response }
+if (!output || !serviceToken || !databaseURL) {
+  throw new Error(
+    'Usage: PUBLISHING_SERVICE_TOKEN=… E2E_DATABASE_URL=… node test/e2e/fixtures/bootstrap-go.mjs <private-output-file>'
+  )
 }
 
-const suffix = randomUUID()
-const { response: registered } = await json('/auth/register', {
-  body: JSON.stringify({
-    company: `Social gate ${suffix}`,
-    email: `social-gate-${suffix}@example.test`,
-    password: randomBytes(24).toString('base64url'),
-    provider: 'LOCAL',
-  }),
-  headers: { 'Content-Type': 'application/json' },
-  method: 'POST',
-})
-const cookie = registered.headers.getSetCookie().find((value) => value.startsWith('auth='))
-if (!cookie) throw new Error('Go registration returned no auth cookie')
-const { body: self } = await json('/user/self', { headers: { Cookie: cookie.split(';')[0] } })
-const apiKey = self.publicApi
-if (typeof apiKey !== 'string' || !apiKey) throw new Error('Go organization has no public API key')
+// A signed-in owner of its own workspace, bound to a new social organization
+// with the SQL of scripts/bind-social-tenant.ts.
+const [userId, organizationId, sessionId] = [randomUUID(), randomUUID(), randomUUID()]
+const name = `Social gate ${organizationId}`
+const database = new pg.Client({ connectionString: databaseURL })
+await database.connect()
+let goOrganizationId
+try {
+  await database.query('BEGIN')
+  await database.query(
+    `INSERT INTO "user" (id, name, email, "emailVerified", "updatedAt") VALUES ($1, $2, $3, true, now())`,
+    [userId, name, `social-gate-${userId}@example.test`]
+  )
+  await database.query(
+    `INSERT INTO organization (id, name, slug, "createdAt") VALUES ($1, $2, $1, now())`,
+    [organizationId, name]
+  )
+  await database.query(
+    `INSERT INTO member (id, "organizationId", "userId", role, "createdAt") VALUES ($1, $2, $3, 'owner', now())`,
+    [randomUUID(), organizationId, userId]
+  )
+  await database.query(
+    `INSERT INTO session (id, token, "userId", "activeOrganizationId", "expiresAt", "updatedAt")
+     VALUES ($1, $2, $3, $4, now() + interval '1 hour', now())`,
+    [sessionId, randomBytes(24).toString('base64url'), userId, organizationId]
+  )
+  goOrganizationId = (
+    await database.query(
+      `INSERT INTO "Organization" (id, name, "apiKey", "updatedAt")
+       VALUES (gen_random_uuid()::text, $1, $2, now()) RETURNING id`,
+      [name, randomBytes(24).toString('base64url')]
+    )
+  ).rows[0].id
+  await database.query(
+    `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference", "createdAt")
+     VALUES ($1, $2, 'SOCIAL_API_KEY_GATE', now())`,
+    [organizationId, goOrganizationId]
+  )
+  await database.query('COMMIT')
+} finally {
+  await database.end()
+}
 
-const auth = { Authorization: apiKey }
-const { body: me } = await json('/public/v1/me', { headers: auth })
-async function connect(code) {
-  const { body: start } = await json('/public/v1/social/e2e', { headers: auth })
-  const state = new URL(start.url).searchParams.get('state')
-  if (!state) throw new Error('Fake provider returned no OAuth state')
-  const { body: connected } = await json('/integrations/social-connect/e2e', {
-    body: JSON.stringify({ code, state, timezone: '0' }),
-    headers: { 'Content-Type': 'application/json' },
+// The web's own path: the product API connects the account in process.
+async function post(path, body) {
+  const response = await fetch(new URL(path, base), {
+    body: JSON.stringify(body),
+    headers: {
+      Authorization: `Bearer ${serviceToken}`,
+      'Content-Type': 'application/json',
+      'X-Organization-ID': organizationId,
+      'X-Session-ID': sessionId,
+      'X-User-ID': userId,
+    },
     method: 'POST',
   })
-  if (typeof connected.id !== 'string' || !connected.id) {
-    throw new Error('Go fake connection returned no destination ID')
-  }
-  return connected.id
+  if (!response.ok) throw new Error(`${path} returned ${response.status}: ${await response.text()}`)
+  return response.json()
+}
+async function connect(code) {
+  const { url } = await post('/v1/social-oauth/begin', { provider: 'e2e' })
+  const state = new URL(url).searchParams.get('state')
+  if (!state) throw new Error('Fake provider returned no OAuth state')
+  const { id } = await post('/v1/social-oauth/exchange', { code, provider: 'e2e', state })
+  if (typeof id !== 'string' || !id) throw new Error('The product API returned no destination ID')
+  return id
 }
 const destinationId = await connect('valid')
 const expiredDestinationId = await connect('expired')
-const { body: destinations } = await json('/public/v1/integrations', { headers: auth })
-if (!destinations.some((item) => item.id === destinationId && item.identifier === 'e2e')) {
-  throw new Error('Go fake destination is absent from the public API')
-}
 
-await writeFile(
-  output,
-  JSON.stringify({
-    apiKey,
-    destinationId,
-    expiredDestinationId,
-    goOrganizationId: me.organization.id,
-  }),
-  { mode: 0o600 }
-)
+await writeFile(output, JSON.stringify({ destinationId, expiredDestinationId, goOrganizationId }), {
+  mode: 0o600,
+})
 await chmod(output, 0o600)
-process.stdout.write('Isolated Go organization and fake destination ready.\n')
+process.stdout.write('Isolated social organization and fake destinations ready.\n')

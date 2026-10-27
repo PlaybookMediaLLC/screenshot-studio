@@ -12,7 +12,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/social-migrate ./c
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/social-credentials ./cmd/social-credentials
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/platform-migrate ./cmd/platform-migrate
 RUN CGO_ENABLED=0 go build -tags "$GO_BUILD_TAGS" -trimpath -ldflags="-s -w" -o /out/publishing-orchestrator ./cmd/product-worker
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/publishing-backend ./cmd/product-api
+RUN CGO_ENABLED=0 go build -tags "$GO_BUILD_TAGS" -trimpath -ldflags="-s -w" -o /out/publishing-backend ./cmd/product-api
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/combined-backend ./cmd/combined
 
 FROM gcr.io/distroless/static-debian12:nonroot

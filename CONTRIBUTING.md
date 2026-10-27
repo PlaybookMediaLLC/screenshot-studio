@@ -80,7 +80,7 @@ test/             Node test files
 ### Linting
 
 ```bash
-npm run quality:check # Format, lint, type, and size checks (from clients/)
+npm run quality:check # Format, lint, type, and test checks (from clients/)
 npm run format        # Apply format fixes to the server boundary (from clients/)
 ```
 

@@ -7,7 +7,7 @@ import { hasPermission } from '@/lib/auth/permissions'
 import { requireDraftsPageAccess } from '../drafts/page-access'
 import { loadWrite } from './write-data'
 
-export const metadata: Metadata = { title: 'Write' }
+export const metadata: Metadata = { title: 'Publish' }
 
 type WritePageProps = {
   params: Promise<{ locale: string }>
@@ -46,12 +46,12 @@ export default async function WritePage({ params, searchParams }: WritePageProps
         ) : (
           <div className="flex h-full items-center justify-center p-8 text-center">
             <div className="max-w-sm">
-              <p className="text-sm text-neutral-300">
+              <p className="text-sm text-foreground">
                 Write it once, adapt it per platform, publish when it is right.
               </p>
-              <p className="mt-1 text-xs text-neutral-500">
-                Open a draft on the left, or start a new one in {data.activeSet?.name ?? 'this set'}
-                .
+              <p className="mt-1 text-xs text-muted-foreground">
+                Open a draft on the left, or start a new one in{' '}
+                {data.activeSet?.name ?? 'this publishing brand'}.
               </p>
               {canEdit ? (
                 <div className="mt-4 flex justify-center">

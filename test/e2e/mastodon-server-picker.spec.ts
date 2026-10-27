@@ -40,7 +40,9 @@ test('a public Mastodon server returns a real preview through the authenticated 
     return { status: 404 }
   }, socialMockPort)
   await page.goto('/workspace/social-sets')
-  await page.getByRole('button', { name: 'Add social set to your personal workspace' }).click()
+  await page
+    .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
+    .click()
   const response = page.waitForResponse((item) =>
     item.url().includes('/api/v1/social-instances/mastodon?server=mastodon.social')
   )
@@ -98,7 +100,9 @@ test('Mastodon preview follows the chosen server and refuses credentials in the 
   })
   try {
     await page.goto('/workspace/social-sets')
-    await page.getByRole('button', { name: 'Add social set to your personal workspace' }).click()
+    await page
+      .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
+      .click()
     const dialog = page.getByRole('dialog')
     await dialog.getByRole('button', { name: 'Mastodon', exact: true }).click()
     const preview = dialog.getByTestId('mastodon-server-preview')

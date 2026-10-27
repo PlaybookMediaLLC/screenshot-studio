@@ -47,10 +47,10 @@ export function DraftSettingsForm({
       <section className="flex flex-col gap-3">
         <h3 className="text-sm font-medium text-foreground">Posting queue</h3>
         <p className="text-xs text-muted-foreground">
-          These are the times of your first social set. Each social set now keeps its own queue,
+          These are the times of your first publishing brand. Each publishing brand now keeps its own queue,
           time zone and defaults; edit them in{' '}
           <Link className="underline" href="/workspace/social-sets">
-            Social sets
+            Publishing brands
           </Link>
           . “Add to queue” takes the set’s next time that no post has yet.
         </p>

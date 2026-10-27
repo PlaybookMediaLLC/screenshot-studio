@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dynamic from 'next/dynamic'
-import { TrayIcon as Inbox } from '@phosphor-icons/react/dist/ssr/Tray'
-import { SlidersHorizontalIcon as SlidersHorizontal } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal'
+import { NotificationsIcon } from '@/components/platform-shell/icons'
+import { SettingsIcon as SlidersHorizontal } from '@/components/platform-shell/icons'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -109,9 +109,9 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
             ref={trigger}
             type="button"
             aria-label={`Notifications${n ? `, ${n} unread` : ''}`}
-            className={`relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${collapsed ? 'size-11 justify-center px-0' : 'w-full'}`}
+            className={`touch-hitbox relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground ${collapsed ? 'size-8 justify-center px-0' : 'w-full'}`}
           >
-            <Inbox className="size-5 shrink-0" aria-hidden="true" />
+            <NotificationsIcon className="size-[18px] shrink-0" aria-hidden="true" />
             {!collapsed ? <span>Notifications</span> : null}
             {n > 0 ? (
               <span

@@ -97,7 +97,7 @@ function DisplayTimeZone() {
   const dirty = value !== (preferences?.timeZone ?? null)
   return (
     <Row
-      description="How times show to you in lists, notifications and the composer. Each social set keeps its own scheduling time zone, and changing this one reschedules nothing."
+      description="How times show to you in lists, notifications and the composer. Each publishing brand keeps its own scheduling time zone, and changing this one reschedules nothing."
       label={
         <span className="flex items-center gap-2">
           Display time zone <SaveStatus state={dirty ? 'idle' : state} />

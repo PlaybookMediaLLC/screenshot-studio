@@ -151,7 +151,7 @@ export function PropertiesPanel({
           void writeApi.properties(draft.id,{suppressSlackOnPublish}).then((saved) => {setSkipSlack(Boolean(saved.suppressSlackOnPublish));router.refresh()}).catch((error:unknown) => toast.error(error instanceof Error ? error.message : 'The notification preference was not saved.')).finally(() => setSavingSlack(false))
         }}/>
       </Label>
-      <Label className="grid gap-1 text-xs text-neutral-400">
+      <Label className="grid gap-1 text-xs text-muted-foreground">
         Internal title
         <Input
           aria-label="Internal title"
@@ -160,11 +160,11 @@ export function PropertiesPanel({
           onChange={(event) => onTitle(event.target.value)}
           value={title}
         />
-        <span className="flex items-center justify-between text-[11px] text-neutral-600">
+        <span className="flex items-center justify-between text-[11px] text-muted-foreground">
           Only you and your team see it; it is never posted.
           {aiEnabled && canEdit ? (
             <Button
-              className="text-sky-300 hover:text-sky-200"
+              className="text-sky-700 dark:text-sky-300 hover:text-sky-800 dark:hover:text-sky-200"
               disabled={naming || !plainText.trim()}
               onClick={async () => {
                 setNaming(true)
@@ -198,7 +198,7 @@ export function PropertiesPanel({
       </Label>
       {data.experiments.tags ? (
         <div className="grid gap-1.5">
-          <span className="text-xs text-neutral-400">Tags</span>
+          <span className="text-xs text-muted-foreground">Tags</span>
           <div className="flex flex-wrap items-center gap-1">
             {tags
               .filter((tag) => tagIds.includes(tag.id))
@@ -209,7 +209,7 @@ export function PropertiesPanel({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    className="h-6 rounded-full border border-white/10 px-2 text-[11px] text-neutral-400 hover:text-white"
+                    className="h-6 rounded-full border border-border px-2 text-[11px] text-muted-foreground hover:text-foreground"
                     size={null}
                     type="button"
                     variant="custom"
@@ -241,7 +241,7 @@ export function PropertiesPanel({
           </div>
         </div>
       ) : null}
-      <Label className="grid gap-1 text-xs text-neutral-400">
+      <Label className="grid gap-1 text-xs text-muted-foreground">
         Scratchpad
         <Textarea
           aria-label="Scratchpad"
@@ -254,11 +254,11 @@ export function PropertiesPanel({
         />
       </Label>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
-        <dt className="text-neutral-400">Words</dt>
+        <dt className="text-muted-foreground">Words</dt>
         <dd data-testid="word-count">{words}</dd>
-        <dt className="text-neutral-400">Characters</dt>
+        <dt className="text-muted-foreground">Characters</dt>
         <dd data-testid="character-count">{[...plainText].length}</dd>
-        <dt className="text-neutral-400">Reading time</dt>
+        <dt className="text-muted-foreground">Reading time</dt>
         <dd>{seconds < 60 ? `${seconds} seconds` : `${Math.round(seconds / 60)} min`}</dd>
         {publications.map(({ channel, publication }) => {
           const over = publication.serialized.posts.some(
@@ -266,10 +266,10 @@ export function PropertiesPanel({
           )
           return (
             <React.Fragment key={channel}>
-              <dt className="flex items-center gap-1 text-neutral-400">
+              <dt className="flex items-center gap-1 text-muted-foreground">
                 <ChannelIcon channel={channel} /> {CHANNEL_META[channel].label}
               </dt>
-              <dd className={cn(over && 'text-red-300')} data-testid={`platform-count-${channel}`}>
+              <dd className={cn(over && 'text-red-700 dark:text-red-300')} data-testid={`platform-count-${channel}`}>
                 {publication.serialized.posts.length > 1
                   ? `longest post ${publication.serialized.length} of ${publication.serialized.limit}`
                   : `${publication.serialized.length} of ${publication.serialized.limit}`}
@@ -278,12 +278,12 @@ export function PropertiesPanel({
             </React.Fragment>
           )
         })}
-        <dt className="text-neutral-400">Draft id</dt>
+        <dt className="text-muted-foreground">Draft id</dt>
         <dd className="flex items-center gap-1">
-          <code className="truncate text-[11px] text-neutral-300">{draft.id}</code>
+          <code className="truncate text-[11px] text-foreground">{draft.id}</code>
           <Button
             aria-label="Copy the draft id"
-            className="text-[11px] text-sky-300"
+            className="text-[11px] text-sky-700 dark:text-sky-300"
             onClick={() => {
               void navigator.clipboard.writeText(draft.id)
               toast.success('Draft id copied.')
@@ -295,15 +295,15 @@ export function PropertiesPanel({
             Copy
           </Button>
         </dd>
-        <dt className="text-neutral-400">Created</dt>
+        <dt className="text-muted-foreground">Created</dt>
         <dd>
           <LocalTime value={draft.createdAt} />
         </dd>
-        <dt className="text-neutral-400">Updated</dt>
+        <dt className="text-muted-foreground">Updated</dt>
         <dd>
           <LocalTime value={draft.updatedAt} />
         </dd>
-        <dt className="text-neutral-400">Status</dt>
+        <dt className="text-muted-foreground">Status</dt>
         <dd>
           {draft.status === 'archived'
             ? 'Archived'
@@ -315,18 +315,18 @@ export function PropertiesPanel({
         </dd>
       </dl>
       <section>
-        <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
+        <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Activity
         </h3>
-        {activity === null ? <p className="text-xs text-neutral-400">Loading…</p> : null}
+        {activity === null ? <p className="text-xs text-muted-foreground">Loading…</p> : null}
         <ol className="grid gap-2" data-testid="activity">
           {activity?.map((item) => (
             <li className="text-xs" key={item.id}>
-              <p className="text-neutral-200">
+              <p className="text-foreground">
                 {ACTIONS[item.action] ?? item.action.replace(/^product\./, '').replaceAll('_', ' ')}
-                {detail(item) ? <span className="text-neutral-400"> · {detail(item)}</span> : null}
+                {detail(item) ? <span className="text-muted-foreground"> · {detail(item)}</span> : null}
               </p>
-              <p className="text-[11px] text-neutral-400">
+              <p className="text-[11px] text-muted-foreground">
                 {item.actorName ?? (item.actorType === 'SERVICE' ? 'Publishing' : 'Someone')} ·{' '}
                 <LocalTime value={item.at} />
               </p>

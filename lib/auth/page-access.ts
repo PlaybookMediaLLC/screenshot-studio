@@ -2,6 +2,7 @@ import 'server-only'
 import { platformHref, safeReturnPath } from '@/lib/platform/navigation'
 
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 import type { ListedWorkspace, Workspace } from 'screenshot-studio-backend-sdk'
 import { backendSDK } from '@/lib/backend/sdk'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
@@ -62,7 +63,7 @@ async function getBackendPageAccess(requestHeaders: Headers, session: SignedInSe
   }
 }
 
-export async function getPageAccess(requestHeaders: Headers) {
+async function loadPageAccess(requestHeaders: Headers) {
   const session = await auth.api.getSession({
     headers: requestHeaders,
     query: { disableCookieCache: true },
@@ -72,20 +73,34 @@ export async function getPageAccess(requestHeaders: Headers) {
   return getBackendPageAccess(requestHeaders, session)
 }
 
+/**
+ * The signed-in person's access, or null without a session. Read once per
+ * request, so a page and its shell share one backend round trip.
+ */
+export const getPageAccess = cache(loadPageAccess)
+
 export function getLocalizedPath(locale: string, path: string): string {
   return locale === 'en' ? path : `/${locale}${path}`
 }
 
 /**
- * Where the app's landing pages (`/`, `/home`) send a workspace without a paid
- * plan: basic scheduling when its plan includes it, otherwise plan choice.
- * Sending a free workspace to pricing makes sign-in look like a page reload.
+ * The in-app plan page for a signed-in workspace that asked for a paid
+ * capability. `from` is the in-app path it asked for, kept so the page can
+ * name it and return there; the public pricing page would drop both.
+ */
+export function upgradePath(locale: string, from?: string): string {
+  return getLocalizedPath(locale, from ? `/upgrade?from=${encodeURIComponent(from)}` : '/upgrade')
+}
+
+/**
+ * Where the editor's bare address sends a workspace without a paid plan: Home
+ * when its plan includes basic scheduling, otherwise plan choice. Sending a
+ * free workspace to pricing makes sign-in look like a page reload.
  */
 export function unpaidLandingPath(locale: string, access: { hasBasicScheduling: boolean }): string {
-  return getLocalizedPath(
-    locale,
-    access.hasBasicScheduling && contentDraftsEnabled() ? '/write' : '/pricing?subscribe=required'
-  )
+  return access.hasBasicScheduling && contentDraftsEnabled()
+    ? getLocalizedPath(locale, '/home')
+    : upgradePath(locale)
 }
 
 /**
@@ -107,7 +122,7 @@ export async function redirectIfSignedIn(
 /**
  * The access for a product page, which needs a signed-in teammate in a
  * workspace with an active paid plan. Anyone else is sent to the step they
- * are missing: sign-in, onboarding, workspace recovery, or choosing a plan.
+ * are missing: sign-in, onboarding, workspace recovery, or the in-app plan page.
  */
 export async function requirePaidPageAccess(
   requestHeaders: Headers,
@@ -122,6 +137,6 @@ export async function requirePaidPageAccess(
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
   if (!(feature === 'content:drafts' ? access.hasBasicScheduling : access.hasPaidPlan))
-    redirect(getLocalizedPath(locale, '/pricing?subscribe=required'))
+    redirect(upgradePath(locale, returnTo))
   return access
 }

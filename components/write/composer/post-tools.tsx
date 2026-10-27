@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { GroupIcon, InfoIcon, PollIcon, PublicIcon } from '@/components/platform-shell/icons'
 import { useEditorRef } from '@shots/platejs-editor/platejs/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -138,24 +139,28 @@ function AudienceTools({
         <Button
           aria-label={`Audience and disclosures for post ${number}`}
           className={cn(
-            'flex h-6 items-center justify-center rounded-md px-1.5 text-[11px] hover:bg-white/[0.06]',
+            'flex h-6 items-center justify-center rounded-md px-1.5 text-[11px] hover:bg-foreground/[0.06]',
             replies !== 'everyone' || labelled
-              ? 'text-sky-300'
-              : 'text-neutral-400 hover:text-white'
+              ? 'text-sky-700 dark:text-sky-300'
+              : 'text-muted-foreground hover:text-foreground'
           )}
           size={null}
           title="Audience & disclosures"
           type="button"
           variant="custom"
         >
-          {replies !== 'everyone' ? '⇄' : '◎'}
-          {labelled ? ' ⓘ' : ''}
+          {replies !== 'everyone' ? (
+            <GroupIcon aria-hidden size={15} />
+          ) : (
+            <PublicIcon aria-hidden size={15} />
+          )}
+          {labelled ? <InfoIcon aria-hidden className="ms-0.5" size={13} /> : null}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-72 flex-col gap-3 p-3 text-sm">
         {CAPABILITIES[channel].settings.replySettings ? (
           <div className="grid gap-1.5">
-            <Label className="text-xs text-neutral-400" htmlFor={`replies-${number}`}>
+            <Label className="text-xs text-muted-foreground" htmlFor={`replies-${number}`}>
               Who can reply
             </Label>
             <Select
@@ -178,7 +183,7 @@ function AudienceTools({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-neutral-400">
+            <p className="text-[11px] text-muted-foreground">
               Who can reply never changes who can see the post.
             </p>
             {count > 1 ? (
@@ -195,8 +200,8 @@ function AudienceTools({
           </div>
         ) : null}
         {CAPABILITIES[channel].settings.disclosures ? (
-          <fieldset className="grid gap-2 border-t border-white/[0.06] pt-3">
-            <legend className="mb-1 text-xs text-neutral-400">Content disclosures</legend>
+          <fieldset className="grid gap-2 border-t border-border pt-3">
+            <legend className="mb-1 text-xs text-muted-foreground">Content disclosures</legend>
             <Label className="flex items-center justify-between gap-2 text-sm">
               Paid partnership
               <Switch
@@ -230,10 +235,10 @@ function AudienceTools({
           </fieldset>
         ) : null}
         {['x', 'bluesky'].includes(channel) && number > 1 ? (
-          <Label className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-sm">
+          <Label className="flex items-center justify-between gap-2 border-t border-border pt-3 text-sm">
             <span>
               Quote the first post
-              <span className="block text-[11px] text-neutral-400">
+              <span className="block text-[11px] text-muted-foreground">
                 Resolved once the first post is live.
               </span>
             </span>
@@ -272,15 +277,15 @@ function PollTool({
         <Button
           aria-label={poll ? 'Edit the poll' : 'Add a poll'}
           className={cn(
-            'flex h-6 items-center justify-center rounded-md px-1.5 text-[11px] hover:bg-white/[0.06]',
-            poll ? 'text-sky-300' : 'text-neutral-400 hover:text-white'
+            'flex h-6 items-center justify-center rounded-md px-1.5 text-[11px] hover:bg-foreground/[0.06]',
+            poll ? 'text-sky-700 dark:text-sky-300' : 'text-muted-foreground hover:text-foreground'
           )}
           size={null}
           title={poll ? 'Edit poll' : 'Add poll'}
           type="button"
           variant="custom"
         >
-          ▤
+          <PollIcon aria-hidden size={15} />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -296,7 +301,7 @@ function PollTool({
               poll={poll}
             />
             {pollSources?.length ? (
-              <div className="mt-3 border-t border-white/10 pt-3">
+              <div className="mt-3 border-t border-border pt-3">
                 <Select
                   value=""
                   onValueChange={(key) => {
@@ -315,7 +320,7 @@ function PollTool({
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="mt-1 text-xs text-neutral-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Replaces only the choices. Your question and duration stay as set.
                 </p>
               </div>
@@ -323,8 +328,8 @@ function PollTool({
           </>
         ) : (
           <div className="grid gap-2 text-sm">
-            <p className="text-neutral-300">{CHANNEL_META[channel].label} poll</p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-foreground">{CHANNEL_META[channel].label} poll</p>
+            <p className="text-xs text-muted-foreground">
               {rules.question === 'post-text'
                 ? 'The post’s text is the question.'
                 : `A question of up to ${rules.questionLimit} characters.`}{' '}
@@ -378,7 +383,7 @@ export function PollEditor({
   return (
     <div className="grid gap-2 text-sm" data-testid={`poll-editor-${channel}`}>
       {rules.question === 'field' ? (
-        <Label className="grid gap-1 text-xs text-neutral-400">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           <span className="flex justify-between">
             Poll question
             <span>
@@ -393,7 +398,7 @@ export function PollEditor({
           />
         </Label>
       ) : (
-        <p className="text-xs text-neutral-400">The post’s text is the question.</p>
+        <p className="text-xs text-muted-foreground">The post’s text is the question.</p>
       )}
       {channel === 'mastodon' ? (
         <label className="flex items-center gap-2">
@@ -406,7 +411,7 @@ export function PollEditor({
         </label>
       ) : null}
       {poll.options.map((option, index) => (
-        <Label className="grid gap-1 text-xs text-neutral-400" key={index}>
+        <Label className="grid gap-1 text-xs text-muted-foreground" key={index}>
           <span className="flex justify-between">
             Option {index + 1}
             <span>
@@ -455,7 +460,7 @@ export function PollEditor({
           + Add option
         </Button>
       ) : null}
-      <Label className="grid gap-1 text-xs text-neutral-400">
+      <Label className="grid gap-1 text-xs text-muted-foreground">
         Duration
         {rules.durationRange ? (
           <Input
@@ -489,14 +494,14 @@ export function PollEditor({
       {problems.length > 0 ? (
         <ul className="grid gap-0.5" role="alert">
           {problems.map((problem) => (
-            <li className="text-xs text-amber-300" key={problem}>
+            <li className="text-xs text-amber-700 dark:text-amber-300" key={problem}>
               {problem}
             </li>
           ))}
         </ul>
       ) : null}
       <Button
-        className="justify-self-start text-red-300"
+        className="justify-self-start text-red-700 dark:text-red-300"
         onClick={() => onChange(null)}
         size="sm"
         type="button"

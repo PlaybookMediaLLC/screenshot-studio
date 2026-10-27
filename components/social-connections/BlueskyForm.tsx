@@ -111,10 +111,11 @@ export function BlueskyForm({
         <Check aria-hidden className="size-6" />
         <p className="font-medium">Bluesky connected</p>
         <p className="text-sm text-muted-foreground">
-          Your account is connected in the social set you chose. Your current page is preserved.
+          Your account is connected in the publishing brand you chose. Your current page is
+          preserved.
         </p>
         <Button asChild>
-          <Link href={completed.returnPath || '/workspace/social-sets'}>Open social set</Link>
+          <Link href={completed.returnPath || '/workspace/social-sets'}>Open publishing brand</Link>
         </Button>
       </div>
     )
@@ -141,8 +142,8 @@ export function BlueskyForm({
       </a>
       {intent.operation === 'RECONNECT' ? (
         <p className="text-sm text-muted-foreground">
-          Use the same account connected to {target?.name ?? 'this social set'}. Its drafts and
-          schedule stay attached.
+          Use the same account connected to {target?.name ?? 'this publishing brand'}. Its drafts
+          and schedule stay attached.
         </p>
       ) : null}
       {!attempt ? (

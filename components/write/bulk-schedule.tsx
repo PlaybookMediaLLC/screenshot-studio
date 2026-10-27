@@ -77,7 +77,7 @@ export function BulkScheduleDialog({
         }
         try {
           const draft = await draftsApi.get(id)
-          if (draft.socialSetId !== set.id) throw new Error('Use one social set per batch.')
+          if (draft.socialSetId !== set.id) throw new Error('Use one publishing brand per batch.')
           row.input = {
             channelConnectionIds: draft.channelConnectionIds,
             version: draft.version,

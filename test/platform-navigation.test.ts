@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  matchesDestination,
+  paidCapability,
   platformArea,
   platformHref,
   safeReturnPath,
@@ -154,4 +156,37 @@ test('workspace and editor routes follow appearance in every locale', () => {
   for (const path of ['/landing', '/fr/landing', '/pricing', '/guides', '/sign-in']) {
     assert.equal(followsTheme(path), false, path)
   }
+})
+
+test('the plan page names the paid capability a free workspace asked for', () => {
+  assert.equal(paidCapability('/create'), 'Create')
+  assert.equal(paidCapability('/library?view=assets'), 'Library')
+  assert.equal(paidCapability('/assets'), 'Library')
+  assert.equal(paidCapability('/activity'), 'Activity')
+  assert.equal(paidCapability('/workflows/new'), 'Automate')
+  assert.equal(paidCapability('/'), 'The screenshot editor')
+  assert.equal(paidCapability('/?editor=app-store'), 'Store screenshots')
+  assert.equal(paidCapability('/canvas/new'), 'Canvas')
+  assert.equal(paidCapability('/compress-image'), 'Image tools')
+  // Free areas and unsafe or missing destinations name nothing.
+  for (const from of ['/write', '/home', '/workspace', '//evil.test', 'https://evil.test', null])
+    assert.equal(paidCapability(from), null, String(from))
+})
+
+test('destination search understands task words, not just area names', () => {
+  const find = (query: string) =>
+    PLATFORM_DESTINATIONS.filter((item) => matchesDestination(item.key, item.label, query)).map(
+      (item) => item.key
+    )
+  assert.deepEqual(find('draft'), ['publish'])
+  assert.deepEqual(find('drafts'), ['publish'])
+  assert.deepEqual(find('Write'), ['publish'])
+  assert.ok(find('screenshot').includes('create'))
+  assert.deepEqual(find('billing'), ['settings'])
+  assert.equal(find('').length, PLATFORM_DESTINATIONS.length)
+  assert.deepEqual(find('zzz'), [])
+})
+
+test('the in-app plan page follows the theme like the rest of the app', () => {
+  assert.equal(followsTheme('/upgrade'), true)
 })

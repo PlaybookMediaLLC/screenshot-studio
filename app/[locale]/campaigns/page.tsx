@@ -1,13 +1,15 @@
 import { AreaNavigation, CAMPAIGN_LINKS } from '@/components/platform-hub/AreaNavigation'
-import { CalendarDotsIcon as Calendar03Icon } from '@phosphor-icons/react/dist/ssr/CalendarDots'
-import { MegaphoneIcon as Megaphone01Icon } from '@phosphor-icons/react/dist/ssr/Megaphone'
-import { RocketIcon as Rocket01Icon } from '@phosphor-icons/react/dist/ssr/Rocket'
+import { CampaignsIcon as MegaphoneIcon } from '@/components/platform-shell/icons'
+import { CampaignsScene } from '@/components/platform-ui/empty-scenes'
+import { CalendarIcon as Calendar03Icon } from '@/components/platform-shell/icons'
+import { CampaignsIcon as Megaphone01Icon } from '@/components/platform-shell/icons'
+import { RocketIcon as Rocket01Icon } from '@/components/platform-shell/icons'
 import type { Metadata } from 'next'
 import { ShipInput } from '@/components/campaign-copilot/CopilotLaunchers'
 import { CampaignList } from '@/components/campaigns/CampaignList'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { Page, Pill } from '@/components/platform-ui'
+import { EmptyState, Page, Pill } from '@/components/platform-ui'
 import { getProductProfile } from '@/lib/tenant/product-profile'
 import { backendSDK } from '@/lib/backend/sdk'
 import { listCampaigns } from '@/lib/tenant/campaigns'
@@ -50,18 +52,13 @@ const WORKFLOWS = [
 /** No campaigns yet: the three ways to start one, as the primary actions. */
 function CampaignWorkflows() {
   return (
-    <section
-      aria-labelledby="campaign-workflows-title"
-      className="flex flex-col gap-6 rounded-2xl bg-foreground/[0.02] px-6 py-10 ring-1 ring-foreground/[0.06] md:px-10 md:py-14"
-    >
-      <div className="text-center">
-        <h2 className="text-lg font-medium text-foreground" id="campaign-workflows-title">
-          Start your first campaign
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Each one ends with posts you review and approve before anything publishes.
-        </p>
-      </div>
+    <section aria-label="Start your first campaign" className="flex flex-col gap-6">
+      <EmptyState
+        scene={<CampaignsScene />}
+        icon={MegaphoneIcon}
+        title="Start your first campaign"
+        description="Each one ends with posts you review and approve before anything publishes."
+      />
       <ul className="grid gap-3 md:grid-cols-3">
         {WORKFLOWS.map((workflow) => (
           <li
@@ -108,7 +105,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>
       <Page
         actions={<ButtonLink href="/campaigns/new">New campaign</ButtonLink>}
-        description="Each campaign starts from a release brief and keeps its context as you build it out."
+        tagline="From release brief to launch."
         title="Campaigns"
       >
         <AreaNavigation label="Campaigns" items={CAMPAIGN_LINKS} />

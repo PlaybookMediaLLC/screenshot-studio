@@ -48,6 +48,8 @@ export type SettingSection = {
   description: string
   group: SettingGroup
   id: SettingId
+  /** Extra search terms the settings search matches but the page does not show. */
+  keywords?: string
   /** URL segment under /workspace; General lives at /workspace itself. */
   slug: string
   title: string
@@ -100,10 +102,10 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     title: 'Install',
   },
   {
-    description:
-      'Workspace name, slug, logo URL, time zone (timezone), release preferences, and defaults.',
+    description: 'Workspace name, slug, logo, time zone, release preferences, and defaults.',
     group: 'workspace',
     id: 'general',
+    keywords: 'timezone',
     slug: '',
     title: 'General',
   },

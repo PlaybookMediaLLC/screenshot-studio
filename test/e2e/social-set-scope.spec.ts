@@ -127,7 +127,9 @@ test('private social-set caches and delayed mutations stay in their original wor
       recordDelivery()
     }
   })
-  await page.getByRole('button', { name: 'Add social set to your personal workspace' }).click()
+  await page
+    .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
+    .click()
   await page.getByRole('button', { name: 'X / Twitter', exact: true }).click()
   const cancelledCreation = page.waitForEvent(
     'requestfailed',

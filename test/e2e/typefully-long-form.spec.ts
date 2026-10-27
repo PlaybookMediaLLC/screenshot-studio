@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import {
+  caretAtDocumentEnd,
   createDraftWorkspace,
   draftEditor,
   expectSaved,
@@ -45,7 +46,7 @@ test('verified long-form allowance drives writing, exact manual copy and schedul
       await page.evaluate((value) => navigator.clipboard.writeText(value), text)
       await draftEditor(page).click()
       await page.waitForTimeout(250)
-      await page.keyboard.press('ControlOrMeta+End')
+      await caretAtDocumentEnd(page)
       await page.keyboard.press('ControlOrMeta+V')
       await expect(page.getByTestId('post-header')).toHaveCount(1)
       await expectSaved(page)

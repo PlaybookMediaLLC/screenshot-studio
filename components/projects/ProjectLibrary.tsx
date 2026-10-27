@@ -1,12 +1,14 @@
 'use client'
 
 import * as React from 'react'
+import { LibraryScene } from '@/components/platform-ui/empty-scenes'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
+import { ImageIcon } from '@/components/platform-shell/icons'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FolderOpenIcon as Folder01Icon } from '@phosphor-icons/react/dist/ssr/FolderOpen'
-import { DotsThreeIcon as MoreHorizontalIcon } from '@phosphor-icons/react/dist/ssr/DotsThree'
-import { MagnifyingGlassIcon as Search01Icon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
+import { FolderIcon as Folder01Icon } from '@/components/platform-shell/icons'
+import { MoreIcon as MoreHorizontalIcon } from '@/components/platform-shell/icons'
+import { SearchIcon as Search01Icon } from '@/components/platform-shell/icons'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -161,7 +163,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+        <div className="relative flex-1 sm:max-w-xs">
           <Search01Icon
             aria-hidden
             className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
@@ -171,14 +173,14 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
             ref={searchRef}
             maxLength={200}
             aria-label="Search projects"
-            className="pl-9"
+            className="rounded-full pl-9"
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search projects"
             type="search"
             value={search}
           />
         </div>
-        <Label className="flex items-center gap-2 text-sm text-foreground/65">
+        <Label className="flex items-center gap-2 text-sm text-foreground/65 sm:ml-auto">
           Sort
           <Select
             onValueChange={(nextValue) =>
@@ -188,7 +190,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
           >
             <SelectTrigger
               aria-label="Sort projects"
-              className="h-9 rounded-md border border-foreground/10 bg-transparent px-2 text-sm text-foreground"
+              className="h-9 rounded-full border border-foreground/10 bg-transparent px-3 text-sm text-foreground"
             >
               <SelectValue />
             </SelectTrigger>
@@ -232,6 +234,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
 
       {empty ? (
         <EmptyState
+          scene={<LibraryScene />}
           action={
             canEdit && !query ? (
               <Button
@@ -253,35 +256,39 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
           title={query ? 'No matching projects' : 'No projects yet'}
         />
       ) : (
-        <ul aria-busy={page.loading} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul aria-busy={page.loading} className="studio-grid">
           {page.items.map((project) => (
-            <li
-              className="group overflow-hidden rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
-              key={project.id}
-            >
-              <div className="relative aspect-video">
+            <li className="studio-shot group" key={project.id}>
+              <div className="studio-shot-media">
                 <ProjectPreview
+                  className="studio-cover"
                   retryable
                   alt={`Preview of ${project.name}`}
                   document={project.document}
                 />
+                <span aria-hidden="true" className="studio-shot-overlay">
+                  {project.name}
+                </span>
                 <Link
                   aria-label={`Open ${project.name}`}
                   href={editorHref(project.id)}
-                  className="absolute inset-0 focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring"
+                  className="absolute inset-0 z-[2] rounded-[inherit] focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ring"
                 />
               </div>
-              <div className="flex items-center gap-2 p-4">
+              <div className="studio-shot-meta">
+                <span aria-hidden="true" className="studio-shot-kind">
+                  <ImageIcon size={12} />
+                </span>
                 <div className="min-w-0 flex-1">
                   <Link
-                    className="block truncate text-sm font-medium text-foreground hover:underline"
+                    className="block truncate font-medium text-foreground hover:underline"
                     href={editorHref(project.id)}
                     title={project.name}
                   >
                     {project.name}
                   </Link>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Screenshot · Workspace · Edited{' '}
+                  <p className="truncate text-xs text-muted-foreground">
+                    Screenshot · Edited{' '}
                     {project.updatedAt.toLocaleString(undefined, {
                       dateStyle: 'medium',
                       timeStyle: 'short',

@@ -72,7 +72,8 @@ function blocking(context: ScheduleContext): string[] {
   const problems: string[] = []
   if (context.draft.status === 'archived')
     problems.push('Restore this draft before scheduling or publishing.')
-  if (context.items.length === 0) problems.push('Turn on at least one platform.')
+  if (context.items.length === 0)
+    problems.push('Connect or turn on at least one account in this publishing brand.')
   for (const item of context.items) {
     if (item.account.health !== 'connected') {
       problems.push(`${CHANNEL_META[item.account.channel].label}: reconnect the account first.`)
@@ -256,7 +257,7 @@ export function ScheduleDialog({
         </Button>
         {queue ? null : (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Label className="grid content-start gap-1 text-xs text-neutral-400">
+            <Label className="grid content-start gap-1 text-xs text-muted-foreground">
               Day
               <DatePicker
                 aria-label="Day"
@@ -271,7 +272,7 @@ export function ScheduleDialog({
               />
             </Label>
             <div className="grid content-start gap-2">
-              <Label className="grid gap-1 text-xs text-neutral-400">
+              <Label className="grid gap-1 text-xs text-muted-foreground">
                 Time
                 <Input
                   aria-label="Time"
@@ -285,7 +286,7 @@ export function ScheduleDialog({
               </Label>
               {resolution.kind === 'ambiguous' ? (
                 <fieldset className="grid gap-1 text-xs" data-testid="ambiguous-time">
-                  <legend className="text-amber-300">
+                  <legend className="text-amber-700 dark:text-amber-300">
                     {time} happens twice that day. Which one?
                   </legend>
                   <RadioGroup
@@ -311,7 +312,7 @@ export function ScheduleDialog({
                 </fieldset>
               ) : null}
               {resolution.kind === 'gap' ? (
-                <p className="text-xs text-red-300" role="alert">
+                <p className="text-xs text-red-700 dark:text-red-300" role="alert">
                   {time} does not exist on that day in {zone}: the clocks skip it. Pick another
                   time.
                 </p>
@@ -339,7 +340,7 @@ export function ScheduleDialog({
           <Button
             disabled={!data.advancedScheduling}
             aria-pressed={queue}
-            className={cn('rounded-full', queue && 'border-sky-400/60 text-sky-200')}
+            className={cn('rounded-full', queue && 'border-sky-400/60 text-sky-700 dark:text-sky-200')}
             onClick={() => setQueue(!queue)}
             size="sm"
             type="button"
@@ -353,10 +354,10 @@ export function ScheduleDialog({
         </div>
         {data.advancedScheduling ? (
           <details
-            className="rounded-lg border border-white/10 p-3"
+            className="rounded-lg border border-border p-3"
             open={initialQueue || undefined}
           >
-            <summary className="cursor-pointer text-sm text-neutral-300">
+            <summary className="cursor-pointer text-sm text-foreground">
               Advanced scheduling
             </summary>
             <div className="mt-3 grid gap-3">
@@ -376,7 +377,7 @@ export function ScheduleDialog({
                 value={when}
               />
               {when ? (
-                <p className="text-xs text-neutral-400" data-testid="when-reading">
+                <p className="text-xs text-muted-foreground" data-testid="when-reading">
                   {readWhen(when, zone)
                     ? `→ ${summary}`
                     : `Could not read that time. Still selected: ${summary}.`}
@@ -384,10 +385,10 @@ export function ScheduleDialog({
               ) : null}
               {bestTimes.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs text-neutral-400">Suggested times</span>
+                  <span className="text-xs text-muted-foreground">Suggested times</span>
                   {bestTimes.map((best) => (
                     <Button
-                      className="rounded-full border-emerald-400/30 text-emerald-200"
+                      className="rounded-full border-emerald-400/30 text-emerald-700 dark:text-emerald-200"
                       key={best.at}
                       onClick={() => setInstant(new Date(best.at))}
                       size="sm"
@@ -401,7 +402,7 @@ export function ScheduleDialog({
                         timeZone: zone,
                         weekday: 'short',
                       })}
-                      <span className="ml-1 text-xs text-neutral-300">· {best.reason}</span>
+                      <span className="ml-1 text-xs text-foreground">· {best.reason}</span>
                     </Button>
                   ))}
                 </div>
@@ -417,11 +418,11 @@ export function ScheduleDialog({
               </Button>
               {browsing ? (
                 <ul
-                  className="grid max-h-40 gap-1 overflow-y-auto rounded-md border border-white/[0.06] p-2 text-xs"
+                  className="grid max-h-40 gap-1 overflow-y-auto rounded-md border border-border p-2 text-xs"
                   data-testid="queue-slots"
                 >
                   {slots.length === 0 ? (
-                    <li className="text-neutral-400">
+                    <li className="text-muted-foreground">
                       No weekly slots: add them in the set’s scheduling settings.
                     </li>
                   ) : null}
@@ -439,7 +440,7 @@ export function ScheduleDialog({
                         value={slot.at.toISOString()}
                       />
                       {slot.busy ? (
-                        <span className="text-neutral-400">taken</span>
+                        <span className="text-muted-foreground">taken</span>
                       ) : (
                         <Button
                           onClick={() => setInstant(slot.at)}
@@ -457,7 +458,7 @@ export function ScheduleDialog({
               <Label className="flex items-center justify-between gap-3 text-sm">
                 <span>
                   Natural posting time
-                  <span className="block text-[11px] text-neutral-400">
+                  <span className="block text-[11px] text-muted-foreground">
                     Shifts this post by up to four minutes either way so it does not land on the
                     minute; a retry keeps the same time.
                   </span>
@@ -471,7 +472,7 @@ export function ScheduleDialog({
             </div>
           </details>
         ) : (
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-muted-foreground">
             Free scheduling: one account and 10 posts per month.{' '}
             <a href="/pricing" className="underline">
               Upgrade to Pro
@@ -481,12 +482,12 @@ export function ScheduleDialog({
         )}
         <Destinations context={context} publishAt={instant ?? now} timeZone={zone} />
         <p
-          className="rounded-md bg-white/[0.03] px-3 py-2 text-sm text-white"
+          className="rounded-md bg-foreground/[0.03] px-3 py-2 text-sm text-foreground"
           data-testid="schedule-summary"
         >
           {summary}
           {!queue && instant && localZone && localZone !== zone ? (
-            <span className="block text-xs text-neutral-300">
+            <span className="block text-xs text-foreground">
               {instant.toLocaleString(undefined, {
                 dateStyle: 'medium',
                 timeStyle: 'short',
@@ -495,9 +496,9 @@ export function ScheduleDialog({
               · {localZone.replaceAll('_', ' ')}
             </span>
           ) : null}
-          {natural && instant ? <span className="text-neutral-400"> ± up to 4 minutes</span> : null}
+          {natural && instant ? <span className="text-muted-foreground"> ± up to 4 minutes</span> : null}
         </p>
-        {past && !queue ? <p className="text-xs text-red-300">That time has passed.</p> : null}
+        {past && !queue ? <p className="text-xs text-red-700 dark:text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
         <label className="flex items-center gap-2 text-xs">
           <input
@@ -597,7 +598,7 @@ function CommunityTimeline({ context }: { context: ScheduleContext }) {
     <Label className="flex items-center justify-between gap-3 py-2 text-sm">
       <span>
         Share to timeline
-        <span className="block text-xs text-neutral-400">
+        <span className="block text-xs text-muted-foreground">
           Also share this community post with your followers. It remains public when off.
         </span>
       </span>
@@ -636,14 +637,14 @@ function Destinations({
       </legend>
       {set.accounts.map((account) => (
         <Label className="flex items-center gap-3 rounded-md px-1 py-1 text-sm" key={account.id}>
-          <ChannelIcon channel={account.channel} className="size-4 text-neutral-400" />
+          <ChannelIcon channel={account.channel} className="size-4 text-muted-foreground" />
           <span className="min-w-0 flex-1 truncate">
             {account.displayName ?? account.handle ?? CHANNEL_META[account.channel].label}
             {account.handle ? (
-              <span className="ml-1.5 text-neutral-400">@{account.handle}</span>
+              <span className="ml-1.5 text-muted-foreground">@{account.handle}</span>
             ) : null}
             {account.health !== 'connected' ? (
-              <span className="ml-1.5 text-amber-300">
+              <span className="ml-1.5 text-amber-700 dark:text-amber-300">
                 {healthLabel(account.health).toLowerCase()}
               </span>
             ) : null}
@@ -683,7 +684,7 @@ function Problems({ problems }: { problems: string[] }) {
   return (
     <ul className="grid gap-0.5" data-testid="blocking-problems" role="alert">
       {problems.map((problem) => (
-        <li className="text-xs text-red-300" key={problem}>
+        <li className="text-xs text-red-700 dark:text-red-300" key={problem}>
           {problem}
         </li>
       ))}
@@ -762,7 +763,7 @@ export function PublishReview({
         {set ? (
           <p className="flex items-center gap-1.5 text-sm">
             <SetDot color={set.color} /> Publishing as{' '}
-            <span className="font-medium text-white">{set.name}</span>
+            <span className="font-medium text-foreground">{set.name}</span>
           </p>
         ) : null}
         <ul className="grid gap-2">
@@ -772,18 +773,18 @@ export function PublishReview({
             const first = publication.target.options
             return (
               <li
-                className="rounded-lg border border-white/[0.06] p-3 text-sm"
+                className="rounded-lg border border-border p-3 text-sm"
                 data-testid="review-destination"
                 key={account.id}
               >
-                <p className="flex items-center gap-1.5 text-white">
+                <p className="flex items-center gap-1.5 text-foreground">
                   <ChannelIcon channel={account.channel} />
                   {account.displayName ?? CHANNEL_META[account.channel].label}
                   {account.handle ? (
-                    <span className="text-neutral-400">@{account.handle}</span>
+                    <span className="text-muted-foreground">@{account.handle}</span>
                   ) : null}
                 </p>
-                <p className="mt-1 text-xs text-neutral-400">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {posts.length > 1 ? `A thread of ${posts.length} posts` : 'One post'}
                   {media > 0 ? ` · ${media} media` : ''}
                   {publication.target.poll ? ' · a poll' : ''}
@@ -796,11 +797,11 @@ export function PublishReview({
                   {publication.target.replyTo ? ' · a reply' : ''}
                   {first?.quoteRemoteId ? ' · a quote' : ''}
                 </p>
-                <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm text-neutral-200">
+                <p className="mt-2 line-clamp-4 whitespace-pre-wrap text-sm text-foreground">
                   {posts[0]?.caption}
                 </p>
                 {publication.problems.map((problem) => (
-                  <p className="mt-1 text-xs text-red-300" key={problem}>
+                  <p className="mt-1 text-xs text-red-700 dark:text-red-300" key={problem}>
                     {problem}
                   </p>
                 ))}
@@ -827,8 +828,8 @@ export function PublishReview({
           />
         ) : null}
         {followUps.length > 0 ? (
-          <div className="text-xs text-neutral-400">
-            <p className="text-neutral-300">After it is live</p>
+          <div className="text-xs text-muted-foreground">
+            <p className="text-foreground">After it is live</p>
             <ul className="list-inside list-disc">
               {followUps.map((item) => (
                 <li key={item}>{item}</li>
@@ -836,7 +837,7 @@ export function PublishReview({
             </ul>
           </div>
         ) : null}
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs text-muted-foreground">
           {context.requireApproval
             ? context.approved
               ? 'Approved at this version.'

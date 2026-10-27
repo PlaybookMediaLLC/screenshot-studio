@@ -78,12 +78,15 @@ export function VersionOptionsBar({
   const [dialog, setDialog] = React.useState<'numbering' | 'finisher' | 'community' | null>(null)
   const capabilities = CAPABILITIES[channel]
   const button =
-    'h-7 rounded-full border border-white/[0.08] px-2.5 text-xs text-neutral-400 hover:border-white/20 hover:text-white'
+    'h-7 rounded-full border border-border px-2.5 text-xs text-muted-foreground hover:border-input hover:text-foreground'
   const tools: React.ReactNode[] = []
   if (capabilities.thread) {
     tools.push(
       <Button
-        className={cn(button, options.numbering?.enabled && 'border-sky-400/40 text-sky-200')}
+        className={cn(
+          button,
+          options.numbering?.enabled && 'border-sky-400/40 text-sky-700 dark:text-sky-200'
+        )}
         disabled={readOnly}
         key="numbering"
         onClick={() => setDialog('numbering')}
@@ -114,7 +117,10 @@ export function VersionOptionsBar({
   if (capabilities.settings.community) {
     tools.push(
       <Button
-        className={cn(button, options.community && 'border-sky-400/40 text-sky-200')}
+        className={cn(
+          button,
+          options.community && 'border-sky-400/40 text-sky-700 dark:text-sky-200'
+        )}
         disabled={readOnly}
         key="community"
         onClick={() => setDialog('community')}
@@ -250,7 +256,7 @@ export function NumberingDialog({
           />
         </Label>
         <fieldset className="grid gap-2" disabled={!current.enabled}>
-          <Label className="grid gap-1 text-xs text-neutral-400">
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             Position
             <Select
               onValueChange={(value) => set({ position: numberingPositionSchema.parse(value) })}
@@ -266,7 +272,7 @@ export function NumberingDialog({
             </Select>
           </Label>
           <div className="grid gap-1">
-            <span className="text-xs text-neutral-400">Format</span>
+            <span className="text-xs text-muted-foreground">Format</span>
             <div className="flex flex-wrap gap-1.5">
               {numberingStyleSchema.options.map((style) => (
                 <Button
@@ -274,8 +280,8 @@ export function NumberingDialog({
                   className={cn(
                     'rounded-md border px-2 py-1 text-xs',
                     current.style === style
-                      ? 'border-sky-400/60 text-white'
-                      : 'border-white/10 text-neutral-400'
+                      ? 'border-sky-400/60 text-foreground'
+                      : 'border-border text-muted-foreground'
                   )}
                   key={style}
                   onClick={() => set({ style })}
@@ -289,7 +295,7 @@ export function NumberingDialog({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <Label className="grid gap-1 text-xs text-neutral-400">
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Skip first posts
               <Input
                 aria-label="Skip first posts"
@@ -306,7 +312,7 @@ export function NumberingDialog({
                 value={current.skipFirst ?? 0}
               />
             </Label>
-            <Label className="grid gap-1 text-xs text-neutral-400">
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Skip last posts
               <Input
                 aria-label="Skip last posts"
@@ -324,7 +330,7 @@ export function NumberingDialog({
               />
             </Label>
           </div>
-          <p className="text-xs text-neutral-400" data-testid="numbering-preview">
+          <p className="text-xs text-muted-foreground" data-testid="numbering-preview">
             This thread: {labels.map((label) => label ?? '—').join('  ')}
           </p>
         </fieldset>
@@ -423,7 +429,7 @@ export function FinisherDialog({
         </DialogHeader>
         {editing ? (
           <div className="grid gap-2">
-            <Label className="grid gap-1 text-xs text-neutral-400">
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Name
               <Input
                 maxLength={80}
@@ -431,10 +437,10 @@ export function FinisherDialog({
                 value={editing.name}
               />
             </Label>
-            <Label className="grid gap-1 text-xs text-neutral-400">
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               <span className="flex justify-between">
                 Text
-                <span className={cn(count > limit && 'text-red-300')}>
+                <span className={cn(count > limit && 'text-red-700 dark:text-red-300')}>
                   {count}/{limit}
                 </span>
               </span>
@@ -448,7 +454,7 @@ export function FinisherDialog({
             <Label className="flex items-center justify-between text-sm">
               <span>
                 Quote the first post
-                <span className="block text-[11px] text-neutral-400">
+                <span className="block text-[11px] text-muted-foreground">
                   Added once the first post is live.
                 </span>
               </span>
@@ -477,9 +483,9 @@ export function FinisherDialog({
           </div>
         ) : (
           <>
-            {items === null ? <p className="text-sm text-neutral-400">Loading…</p> : null}
+            {items === null ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
             {items?.length === 0 ? (
-              <p className="text-sm text-neutral-400">No finishers yet.</p>
+              <p className="text-sm text-muted-foreground">No finishers yet.</p>
             ) : null}
             <Input
               aria-label="Search finishers"
@@ -496,14 +502,16 @@ export function FinisherDialog({
                 )
                 .map((item) => (
                   <li
-                    className="rounded-lg border border-white/[0.06] p-3"
+                    className="rounded-lg border border-border p-3"
                     data-testid="finisher"
                     key={item.id}
                   >
-                    <p className="flex items-center justify-between text-sm text-white">
+                    <p className="flex items-center justify-between text-sm text-foreground">
                       {item.name}
                       {item.quoteFirstPost ? (
-                        <span className="text-[11px] text-sky-300">quotes the first post</span>
+                        <span className="text-[11px] text-sky-700 dark:text-sky-300">
+                          quotes the first post
+                        </span>
                       ) : null}
                     </p>
                     <FinisherPreview quoteFirstPost={item.quoteFirstPost} text={item.text} />
@@ -527,7 +535,7 @@ export function FinisherDialog({
                         Edit
                       </Button>
                       <Button
-                        className="text-red-300"
+                        className="text-red-700 dark:text-red-300"
                         disabled={busy}
                         onClick={() => void remove(item.id)}
                         size="sm"
@@ -562,10 +570,10 @@ export function FinisherDialog({
 /** A finisher as it will post, with the quoted first post shown as a placeholder. */
 function FinisherPreview({ quoteFirstPost, text }: { quoteFirstPost: boolean; text: string }) {
   return (
-    <div className="mt-2 rounded-lg bg-white/[0.03] p-2 text-sm text-neutral-200">
+    <div className="mt-2 rounded-lg bg-foreground/[0.03] p-2 text-sm text-foreground">
       <p className="whitespace-pre-wrap">{text || ' '}</p>
       {quoteFirstPost ? (
-        <p className="mt-2 rounded-md border border-dashed border-white/15 px-2 py-1 text-xs text-neutral-400">
+        <p className="mt-2 rounded-md border border-dashed border-input px-2 py-1 text-xs text-muted-foreground">
           First post quote… (linked once the first post is live)
         </p>
       ) : null}
@@ -607,7 +615,7 @@ function CommunityDialog({
             everyone on X. Who can reply is set per post.
           </DialogDescription>
         </DialogHeader>
-        <Label className="grid gap-1 text-xs text-neutral-400">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           Community URL or id
           <Input
             onChange={(event) => setValue(event.target.value)}
@@ -616,7 +624,9 @@ function CommunityDialog({
           />
         </Label>
         {value && !id ? (
-          <p className="text-xs text-amber-300">Use a community’s URL or its numeric id.</p>
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            Use a community’s URL or its numeric id.
+          </p>
         ) : null}
         {setId ? (
           <form
@@ -652,7 +662,7 @@ function CommunityDialog({
               </Button>
             </div>
             {error ? (
-              <p role="alert" className="text-xs text-red-300">
+              <p role="alert" className="text-xs text-red-700 dark:text-red-300">
                 {error}
               </p>
             ) : null}
@@ -679,7 +689,7 @@ function CommunityDialog({
             </div>
           </form>
         ) : null}
-        <Label className="grid gap-1 text-xs text-neutral-400">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           Name, for your reference
           <Input maxLength={200} onChange={(event) => setName(event.target.value)} value={name} />
         </Label>
@@ -742,8 +752,8 @@ function FirstComment({
       <PopoverTrigger asChild>
         <Button
           className={cn(
-            'h-7 rounded-full border border-white/[0.08] px-2.5 text-xs text-neutral-400 hover:text-white',
-            value && 'border-sky-400/40 text-sky-200'
+            'h-7 rounded-full border border-border px-2.5 text-xs text-muted-foreground hover:text-foreground',
+            value && 'border-sky-400/40 text-sky-700 dark:text-sky-200'
           )}
           disabled={readOnly}
           size={null}
@@ -754,7 +764,7 @@ function FirstComment({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="grid w-80 gap-2 p-3">
-        <Label className="grid gap-1 text-xs text-neutral-400">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           <span className="flex justify-between">
             Comment below the post
             <span>{[...value].length}/1250</span>
@@ -767,7 +777,7 @@ function FirstComment({
             value={value}
           />
         </Label>
-        <p className="text-[11px] text-neutral-400">
+        <p className="text-[11px] text-muted-foreground">
           Posted after the post is live. If it fails, the post stays published and the comment shows
           as failed.
         </p>
@@ -810,9 +820,9 @@ function PdfDocument({
     <>
       <Button
         className={cn(
-          'h-7 rounded-full border border-white/[0.08] px-2.5 text-xs text-neutral-400 hover:text-white',
-          document && 'border-sky-400/40 text-sky-200',
-          state === 'failed' && 'border-red-400/40 text-red-200'
+          'h-7 rounded-full border border-border px-2.5 text-xs text-muted-foreground hover:text-foreground',
+          document && 'border-sky-400/40 text-sky-700 dark:text-sky-200',
+          state === 'failed' && 'border-red-400/40 text-red-700 dark:text-red-200'
         )}
         disabled={readOnly || state === 'uploading'}
         onClick={() => (document ? setPreview(true) : input.current?.click())}
@@ -851,7 +861,7 @@ function PdfDocument({
               </DialogDescription>
             </DialogHeader>
             <PdfCarousel assetId={document.assetId} />
-            <Label className="grid gap-1 text-xs text-neutral-400">
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Document title
               <Input
                 maxLength={200}
@@ -861,7 +871,7 @@ function PdfDocument({
             </Label>
             <DialogFooter>
               <Button
-                className="mr-auto text-red-300"
+                className="mr-auto text-red-700 dark:text-red-300"
                 onClick={() => {
                   onChange(undefined)
                   setPreview(false)

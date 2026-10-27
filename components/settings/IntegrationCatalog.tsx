@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { z } from 'zod'
 import { Pill, Section } from '@/components/platform-ui'
+import { OutwardIcon } from '@/components/platform-shell/icons'
+import { Button } from '@/components/ui/button'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useTRPCClient } from '@/lib/trpc/react'
 
@@ -198,20 +200,16 @@ export function IntegrationCatalog({ canManage }: { canManage: boolean }) {
                 </p>
               ) : entry.action ? (
                 <div className="flex min-w-0 items-center gap-2 md:justify-end">
-                  {entry.action.external ? (
-                    <a
-                      className="text-sm underline"
-                      href={entry.action.href}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {entry.action.label}
-                    </a>
-                  ) : (
-                    <Link className="text-sm underline" href={entry.action.href}>
-                      {entry.action.label}
-                    </Link>
-                  )}
+                  <Button asChild size="sm" variant="outline">
+                    {entry.action.external ? (
+                      <a href={entry.action.href} rel="noreferrer" target="_blank">
+                        {entry.action.label}
+                        <OutwardIcon aria-hidden="true" size={14} />
+                      </a>
+                    ) : (
+                      <Link href={entry.action.href}>{entry.action.label}</Link>
+                    )}
+                  </Button>
                 </div>
               ) : null}
             </li>

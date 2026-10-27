@@ -147,7 +147,7 @@ function SocialMentionElement(props: PlateElementProps) {
       as="span"
       attributes={{ ...props.attributes, contentEditable: false, draggable: true }}
       className={cn(
-        'mx-0.5 inline-flex items-baseline gap-1 rounded-md bg-sky-400/10 px-1 align-baseline text-sky-200',
+        'mx-0.5 inline-flex items-baseline gap-1 rounded-md bg-sky-400/10 px-1 align-baseline text-sky-700 dark:text-sky-200',
         selected && 'ring-2 ring-sky-400/60'
       )}
     >
@@ -263,7 +263,7 @@ export function MentionPicker({
               aria-pressed={item === channel}
               className={cn(
                 'h-7 gap-1 px-2 text-xs',
-                item === channel && 'bg-white/[0.08] text-white'
+                item === channel && 'bg-foreground/[0.08] text-foreground'
               )}
               key={item}
               onClick={() => {
@@ -326,12 +326,12 @@ export function MentionPicker({
             Find
           </Button>
         </form>
-        <p className="text-[11px] text-neutral-400">
+        <p className="text-[11px] text-muted-foreground">
           {channel === 'x'
             ? 'Looked up on X with this set’s account, by exact username.'
             : kind === 'person'
               ? 'Search followers of this LinkedIn Page. Requires approved People Typeahead access and r_organization_followers permission.'
-              : 'Search company pages or reuse companies mentioned in this social set. Mentions use native LinkedIn identities.'}
+              : 'Search company pages or reuse companies mentioned in this publishing brand. Mentions use native LinkedIn identities.'}
         </p>
         {channel === 'linkedin' ? (
           <Button disabled={busy} variant="ghost" size="sm" onClick={() => void search('')}>
@@ -339,7 +339,7 @@ export function MentionPicker({
           </Button>
         ) : null}
         {results?.length === 0 ? (
-          <p className="text-xs text-neutral-400">No account by that name.</p>
+          <p className="text-xs text-muted-foreground">No account by that name.</p>
         ) : null}
         {results && results.length > 0 ? (
           <ul className="grid gap-1">
@@ -364,7 +364,7 @@ export function MentionPicker({
                   ) : null}
                   <span className="min-w-0 flex-1 truncate">
                     {mention.label}
-                    <span className="ml-1 text-neutral-400">
+                    <span className="ml-1 text-muted-foreground">
                       {mention.handle
                         ? `@${mention.handle}`
                         : mention.kind === 'organization'

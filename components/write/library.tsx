@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
 import { PushPinIcon as PinIcon } from '@phosphor-icons/react/dist/ssr/PushPin'
+import { CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,47 +120,59 @@ export function WriteRail() {
       className="flex h-full min-h-0 w-full flex-col"
       data-testid="write-rail"
     >
-      <div className="px-3 pt-4">
+      <div className="flex items-center justify-between gap-2 px-3 pt-4">
         <h2 className="text-base font-medium">Publish</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Publishing brand</p>
+        {canEdit && (
+          <Button
+            className="h-7 px-2.5 text-xs"
+            variant="outline"
+            size="sm"
+            onClick={() => setImporting(true)}
+          >
+            Bulk import
+          </Button>
+        )}
       </div>
-      <div className="flex items-center gap-1 px-3 pt-3 pb-2">
+      {importing && <BulkImportDialog onClose={() => setImporting(false)} />}
+      <p className="platform-eyebrow px-3 pt-3">Publishing brand</p>
+      <div className="flex items-center gap-1 px-3 pt-1 pb-2">
         <div className="min-w-0 flex-1">
           <SocialSetSwitcher />
         </div>
         <Link
-          className="rounded-md px-2 py-1 text-xs text-neutral-400 hover:text-white"
+          className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           href={data.activeSet ? `/write/settings?set=${data.activeSet.id}` : '/write/settings'}
         >
           Settings
         </Link>
       </div>
-      {canEdit && (
-        <Button className="mx-3" variant="ghost" size="sm" onClick={() => setImporting(true)}>
-          Bulk import
-        </Button>
-      )}
-      {importing && <BulkImportDialog onClose={() => setImporting(false)} />}
       <nav
         aria-label="Publishing utilities"
-        className="mb-3 flex flex-wrap gap-3 px-3 text-xs text-muted-foreground"
+        className="mx-3 mb-3 flex flex-wrap gap-1 border-b border-border pb-3 text-xs"
       >
-        {publishLinks(data.activeSet ? `?set=${data.activeSet.id}` : '').map((item) => (
-          <Link href={item.href} key={item.label}>
-            {item.label}
-          </Link>
-        ))}
+        {/* The rail is the drafts view, so it links to the other Publish pages. */}
+        {publishLinks(data.activeSet ? `?set=${data.activeSet.id}` : '')
+          .slice(1)
+          .map((item) => (
+            <Link
+              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+              href={item.href}
+              key={item.label}
+            >
+              {item.label}
+            </Link>
+          ))}
       </nav>
       <div className="px-3" role="tablist" aria-label="Library">
-        <div className="grid grid-cols-4 rounded-lg bg-white/[0.04] p-0.5">
+        <div className="grid grid-cols-4 rounded-lg bg-foreground/[0.04] p-0.5">
           {TABS.map((item) => (
             <Button
               aria-selected={tab === item.tab}
               className={cn(
                 'rounded-md px-1 py-1 text-[11px] transition-colors',
                 tab === item.tab
-                  ? 'bg-white/[0.08] text-white'
-                  : 'text-neutral-400 hover:text-neutral-300'
+                  ? 'bg-foreground/[0.08] text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
               key={item.tab}
               onClick={() => {
@@ -173,7 +186,7 @@ export function WriteRail() {
             >
               {item.label}
               {item.tab === 'queue' && data.queue.length > 0 ? (
-                <span className="ml-1 text-neutral-400">{data.queue.length}</span>
+                <span className="ml-1 text-muted-foreground">{data.queue.length}</span>
               ) : null}
             </Button>
           ))}
@@ -219,12 +232,12 @@ export function WriteRail() {
       {selected.length > 0 ? <BulkBar onDone={() => setSelected([])} selected={selected} /> : null}
       <nav
         aria-label="Drafts"
-        className="mt-2 min-h-0 flex-1 overflow-y-auto border-t border-white/[0.06]"
+        className="mt-2 min-h-0 flex-1 overflow-y-auto border-t border-border"
       >
         {tab === 'queue' ? (
           <QueueList />
         ) : data.library.length === 0 ? (
-          <div className="px-4 py-6 text-xs text-neutral-400">
+          <div className="px-4 py-6 text-xs text-muted-foreground">
             {data.query.q || data.query.tag || data.query.kind
               ? 'No drafts match these filters.'
               : {
@@ -298,8 +311,9 @@ function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
           <Button
             aria-label="Draft filters"
             className={cn(
-              'h-8 rounded-md border border-white/[0.08] px-2 text-xs text-neutral-400 hover:text-white',
-              (activeTag || data.query.kind || data.query.sort) && 'border-sky-400/50 text-sky-200'
+              'h-8 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-foreground',
+              (activeTag || data.query.kind || data.query.sort) &&
+                'border-sky-400/50 text-sky-700 dark:text-sky-200'
             )}
             size={null}
             type="button"
@@ -361,7 +375,7 @@ function LibraryFilters({ onManageTags }: { onManageTags: () => void }) {
       {activeTag ? (
         <Button
           aria-label={`Clear the ${activeTag.name} filter`}
-          className="text-xs text-neutral-400 hover:text-white"
+          className="text-xs text-muted-foreground hover:text-foreground"
           onClick={() => setQuery({ tag: undefined })}
           size={null}
           type="button"
@@ -422,9 +436,9 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
     }
   }
   return (
-    <div className={cn('flex items-center gap-0.5', compact ? '' : 'mx-3 mt-2')}>
+    <div className={cn('flex items-center gap-px', compact ? '' : 'mx-3 mt-2')}>
       <Button
-        className="flex flex-1 items-center gap-2 rounded-l-lg px-2 py-2 text-sm text-neutral-200 hover:bg-white/[0.05] disabled:opacity-50"
+        className="flex h-9 flex-1 items-center gap-2 rounded-l-full bg-primary px-3.5 text-sm font-medium text-primary-foreground shadow-xs hover:bg-primary/90 disabled:opacity-50"
         data-testid="new-draft"
         disabled={creating}
         onClick={() => void create('standard')}
@@ -440,12 +454,12 @@ export function NewDraftMenu({ compact = false }: { compact?: boolean }) {
         <DropdownMenuTrigger asChild>
           <Button
             aria-label="New draft of another kind"
-            className="rounded-r-lg px-2 py-2 text-sm text-neutral-400 hover:bg-white/[0.05] hover:text-white"
+            className="grid h-9 place-items-center rounded-r-full bg-primary pe-3 ps-2 text-primary-foreground shadow-xs hover:bg-primary/90"
             size={null}
             type="button"
             variant="custom"
           >
-            ▾
+            <CaretDownIcon aria-hidden className="size-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
@@ -535,11 +549,11 @@ export function TargetDialog({
           </DialogDescription>
         </DialogHeader>
         {kind.needs === 'source' && posted.length > 0 ? (
-          <ul className="max-h-48 overflow-y-auto rounded-md border border-white/[0.06]">
+          <ul className="max-h-48 overflow-y-auto rounded-md border border-border">
             {posted.map((draft) => (
               <li key={draft.id}>
                 <Button
-                  className="w-full truncate px-3 py-2 text-left text-sm hover:bg-white/[0.04]"
+                  className="w-full truncate px-3 py-2 text-left text-sm hover:bg-foreground/[0.04]"
                   onClick={() => onCreate({ sourceDraftId: draft.id })}
                   size={null}
                   type="button"
@@ -559,7 +573,7 @@ export function TargetDialog({
           value={url}
         />
         {url && !valid ? (
-          <p className="text-xs text-amber-300" role="alert">
+          <p className="text-xs text-amber-700 dark:text-amber-300" role="alert">
             {kind.kind === 'reply'
               ? 'Use the URL of an X post (x.com/…/status/…).'
               : 'Use the URL of an X post or a LinkedIn post.'}
@@ -609,7 +623,9 @@ function DraftRow({
     <li
       className={cn(
         'group/row relative border-b border-l-2 border-b-white/[0.04] transition-colors',
-        active ? 'border-l-sky-400 bg-white/[0.04]' : 'border-l-transparent hover:bg-white/[0.02]',
+        active
+          ? 'border-l-sky-400 bg-foreground/[0.04]'
+          : 'border-l-transparent hover:bg-foreground/[0.02]',
         selected && 'bg-sky-400/[0.06]'
       )}
       data-selecting={selecting || undefined}
@@ -641,16 +657,19 @@ function DraftRow({
             />
           ) : null}
           {draft.pinned ? (
-            <PinIcon aria-label="Pinned" className="mt-0.5 size-3.5 shrink-0 text-sky-300" />
+            <PinIcon
+              aria-label="Pinned"
+              className="mt-0.5 size-3.5 shrink-0 text-sky-700 dark:text-sky-300"
+            />
           ) : null}
-          <span className="line-clamp-2 text-[13px] leading-snug text-neutral-200">
-            {shown.excerpt || <span className="text-neutral-400">Empty draft</span>}
+          <span className="line-clamp-2 text-[13px] leading-snug text-foreground">
+            {shown.excerpt || <span className="text-muted-foreground">Empty draft</span>}
           </span>
         </p>
-        <p className="mt-1.5 flex items-center gap-2 text-[11px] text-neutral-400">
+        <p className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
           <span className="min-w-0 flex-1 truncate">
             {draft.kind !== 'standard' ? (
-              <span className="mr-1 text-neutral-400">{KIND_LABELS[draft.kind]} ·</span>
+              <span className="mr-1 text-muted-foreground">{KIND_LABELS[draft.kind]} ·</span>
             ) : null}
             {shown.title}
           </span>
@@ -684,14 +703,14 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
   const parts: React.ReactNode[] = []
   if (draft.attentionPosts > 0) {
     parts.push(
-      <span className="text-red-300" key="attention">
+      <span className="text-red-700 dark:text-red-300" key="attention">
         {draft.attentionPosts} need{draft.attentionPosts === 1 ? 's' : ''} attention
       </span>
     )
   }
   if (draft.nextPostAt) {
     parts.push(
-      <span className="text-sky-300" key="next">
+      <span className="text-sky-700 dark:text-sky-300" key="next">
         Scheduled{' '}
         <LocalTime
           options={{
@@ -708,7 +727,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
     )
   } else if (draft.plannedFor) {
     parts.push(
-      <span className="text-violet-300" key="planned">
+      <span className="text-violet-700 dark:text-violet-300" key="planned">
         {draft.status === 'archived' ? 'Previously planned' : 'Planned'}{' '}
         <LocalTime
           options={{
@@ -727,14 +746,14 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
   if (draft.publishedPosts > 0) parts.push(<span key="live">{draft.publishedPosts} live</span>)
   if (draft.reviewStatus === 'pending')
     parts.push(
-      <span className="text-amber-300" key="review">
+      <span className="text-amber-700 dark:text-amber-300" key="review">
         In review
       </span>
     )
   if (draft.shared) parts.push(<span key="shared">Public link on</span>)
   if (parts.length === 0) return null
   return (
-    <p className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-neutral-400">
+    <p className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-muted-foreground">
       {parts.map((part, index) => (
         <React.Fragment key={index}>{part}</React.Fragment>
       ))}
@@ -768,7 +787,7 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={`Actions for ${draft.title}`}
-            className="flex size-7 items-center justify-center rounded-md bg-[#151515] text-neutral-400 hover:text-white"
+            className="flex size-7 items-center justify-center rounded-md bg-muted text-muted-foreground hover:text-foreground"
             size={null}
             type="button"
             variant="custom"
@@ -868,20 +887,36 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
           <DropdownMenuItem
             onSelect={() => {
               void navigator.clipboard.writeText(internalLink())
-              toast.success('Internal link copied. Only members who can see this publishing brand can open it.')
+              toast.success(
+                'Internal link copied. Only members who can see this publishing brand can open it.'
+              )
             }}
           >
             Copy internal link
           </DropdownMenuItem>
-          {draft.publishedPosts > 0 ? <DropdownMenuItem onSelect={() => void (async () => {
-            try {
-              const result = await draftsApi.posts(draft.id)
-              const urls = result.posts.filter((post) => post.status === 'PUBLISHED' && post.url).map((post) => post.url)
-              if (!urls.length) throw new Error('Published links are not available yet.')
-              await navigator.clipboard.writeText(urls.join('\n'))
-              toast.success('Published post links copied.')
-            } catch (error) { toast.error(error instanceof Error ? error.message : 'The links could not be copied.') }
-          })()}>Copy published links</DropdownMenuItem> : null}
+          {draft.publishedPosts > 0 ? (
+            <DropdownMenuItem
+              onSelect={() =>
+                void (async () => {
+                  try {
+                    const result = await draftsApi.posts(draft.id)
+                    const urls = result.posts
+                      .filter((post) => post.status === 'PUBLISHED' && post.url)
+                      .map((post) => post.url)
+                    if (!urls.length) throw new Error('Published links are not available yet.')
+                    await navigator.clipboard.writeText(urls.join('\n'))
+                    toast.success('Published post links copied.')
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error ? error.message : 'The links could not be copied.'
+                    )
+                  }
+                })()
+              }
+            >
+              Copy published links
+            </DropdownMenuItem>
+          ) : null}
           {canEdit ? (
             <DropdownMenuItem onSelect={() => setConfirm('share')}>
               Share & copy public link…
@@ -905,7 +940,10 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                   Restore draft
                 </DropdownMenuItem>
               ) : null}
-              <DropdownMenuItem className="text-red-300" onSelect={() => setConfirm('delete')}>
+              <DropdownMenuItem
+                className="text-red-700 dark:text-red-300"
+                onSelect={() => setConfirm('delete')}
+              >
                 Delete…
               </DropdownMenuItem>
             </>
@@ -1079,7 +1117,7 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
           Schedule
         </Button>
       )}
-      <span className="mr-auto text-sky-200">
+      <span className="mr-auto text-sky-700 dark:text-sky-200">
         {progress === null
           ? `${selected.length} selected`
           : `${progress} of ${selected.length} completed…`}
@@ -1109,7 +1147,7 @@ function BulkBar({ onDone, selected }: { onDone: () => void; selected: string[] 
       </Button>
       <Button
         disabled={progress !== null}
-        className="text-red-300"
+        className="text-red-700 dark:text-red-300"
         onClick={() => setConfirm(true)}
         size="sm"
         type="button"
@@ -1158,8 +1196,9 @@ function QueueList() {
   const { data } = useWrite()
   if (data.queue.length === 0) {
     return (
-      <p className="px-4 py-6 text-xs text-neutral-400">
-        Nothing queued or planned for this publishing brand. Schedule a draft, add it to the queue, or plan it.
+      <p className="px-4 py-6 text-xs text-muted-foreground">
+        Nothing queued or planned for this publishing brand. Schedule a draft, add it to the queue,
+        or plan it.
       </p>
     )
   }
@@ -1169,8 +1208,8 @@ function QueueList() {
         <li key={item.id}>
           <Link
             className={cn(
-              'm-2 block rounded-lg border px-3 py-2.5 hover:bg-white/[0.02]',
-              item.kind === 'planned' ? 'border-dashed border-violet-400/40' : 'border-white/[0.06]'
+              'm-2 block rounded-lg border px-3 py-2.5 hover:bg-foreground/[0.02]',
+              item.kind === 'planned' ? 'border-dashed border-violet-400/40' : 'border-border'
             )}
             data-testid={item.kind === 'planned' ? 'queue-planned' : 'queue-item'}
             href={draftHref(item.draftId, data.activeSet?.id)}
@@ -1178,7 +1217,9 @@ function QueueList() {
             <p
               className={cn(
                 'flex items-center gap-1.5 text-[11px]',
-                item.kind === 'planned' ? 'text-violet-300' : 'text-sky-300'
+                item.kind === 'planned'
+                  ? 'text-violet-700 dark:text-violet-300'
+                  : 'text-sky-700 dark:text-sky-300'
               )}
             >
               <LocalTime
@@ -1195,7 +1236,7 @@ function QueueList() {
               />
               · {item.kind === 'planned' ? 'planned, not scheduled' : item.platform}
             </p>
-            <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-neutral-200">
+            <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-foreground">
               {item.caption}
             </p>
           </Link>

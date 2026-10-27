@@ -302,7 +302,7 @@ export function PlanWorkspace({
     { key: 't', label: 'Today', run: () => setAnchor(today) },
     { key: 'arrowleft', label: 'Previous period', run: () => changePeriod(-1) },
     { key: 'arrowright', label: 'Next period', run: () => changePeriod(1) },
-    { key: 'escape', label: 'Back to social sets', run: () => setSidebar(null) },
+    { key: 'escape', label: 'Back to publishing brands', run: () => setSidebar(null) },
   ])
   const placement = (item: PlanItem, at: string | null): CalendarPlacement => ({
     draftId: item.draftId,
@@ -537,7 +537,7 @@ export function PlanWorkspace({
           {sidebar ? (
             <>
               <Button variant="ghost" onClick={() => setSidebar(null)}>
-                ← Back to social sets
+                ← Back to publishing brands
               </Button>
               <h2 className="my-2 font-medium">{sets.find((s) => s.id === sidebar)?.name}</h2>
               <div className="flex gap-2">
@@ -599,7 +599,7 @@ export function PlanWorkspace({
               <label className="mb-3 flex items-center gap-2 font-medium">
                 <input
                   type="checkbox"
-                  aria-label="All social sets"
+                  aria-label="All publishing brands"
                   checked={allState === 'all'}
                   ref={(node) => {
                     if (node) node.indeterminate = allState === 'mixed'
@@ -894,7 +894,8 @@ export function PlanWorkspace({
                   onDragLeave={() => setOver(null)}
                   onDrop={(e) => drop(e, day)}
                 >
-                  <div className="sticky top-0 z-10 flex items-center justify-between bg-background py-1 text-xs">
+                  {/* A fixed height: today's badge must not push its hour grid below the others. */}
+                  <div className="sticky top-0 z-10 flex h-8 items-center justify-between bg-background text-xs">
                     <time
                       dateTime={day}
                       aria-current={day === today ? 'date' : undefined}
@@ -1374,7 +1375,7 @@ function PlanComposer({
               {tags === null ? (
                 <p className="text-xs">Tags unavailable. Enable draft tags in Settings.</p>
               ) : !tags.length ? (
-                <p className="text-xs">No tags in this social set.</p>
+                <p className="text-xs">No tags in this publishing brand.</p>
               ) : (
                 tags.map((t) => (
                   <label className="mr-3 text-sm" key={t.id}>
@@ -1710,7 +1711,7 @@ function PlanDetail({
             </Button>
           </div>
           <label>
-            Copy to social set{' '}
+            Copy to publishing brand{' '}
             <select className={field} value={copySet} onChange={(e) => setCopySet(e.target.value)}>
               {sets.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -1744,7 +1745,7 @@ function PlanDetail({
             {detailTags === null ? (
               <p className="text-xs">Tags unavailable. Enable draft tags in Settings.</p>
             ) : detailTags.length === 0 ? (
-              <p className="text-xs">No tags in this social set.</p>
+              <p className="text-xs">No tags in this publishing brand.</p>
             ) : (
               detailTags.map((tag) => (
                 <label key={tag.id} className="text-sm">

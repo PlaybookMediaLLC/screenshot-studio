@@ -131,14 +131,14 @@ export function DescribeImages({
           </DialogDescription>
         </DialogHeader>
         {images.length === 0 ? (
-          <p className="text-sm text-neutral-400">This version has no uploaded images.</p>
+          <p className="text-sm text-muted-foreground">This version has no uploaded images.</p>
         ) : (
           <ul className="grid gap-3">
             {images.map((image, index) => (
               <li className="flex gap-3" key={`${image.assetId}-${index}`}>
                 {/* biome-ignore lint/performance/noImgElement: a workspace asset URL */}
                 <img alt="" className="size-16 shrink-0 rounded-md object-cover" src={image.url} />
-                <label className="grid flex-1 gap-1 text-xs text-neutral-400">
+                <label className="grid flex-1 gap-1 text-xs text-muted-foreground">
                   Post {image.post}
                   <Textarea
                     aria-label={`Description of image ${index + 1}`}

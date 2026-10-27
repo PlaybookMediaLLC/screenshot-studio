@@ -4,11 +4,11 @@ import { type FormEvent, useEffect, useState } from 'react'
 import { z } from 'zod'
 import { TimeZonePicker } from '@/components/settings/TimeZonePicker'
 import { LocalePicker } from '@/components/settings/LocalePicker'
+import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
 import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { workspaceUpdateSchema } from '@/lib/workspace/schemas'
 import { Group, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
@@ -186,19 +186,21 @@ export function WorkspaceGeneralSettings({
             </div>
           </Row>
           <Row description="A square image works best." label={label('workspace-logo', 'Logo URL')}>
-            <Input
-              className={field}
-              value={values.logo}
-              onChange={(event) => update({ logo: event.target.value })}
-              disabled={!canManage || isSaving}
-              id="workspace-logo"
-              aria-invalid={Boolean(logoError)}
-              aria-describedby="workspace-logo-error"
-              name="logo"
-              placeholder="https://example.com/logo.svg"
-              type="url"
-            />
-            <p id="workspace-logo-error" className="min-h-4 text-xs text-destructive" role={logoError ? 'alert' : undefined}>{logoError}</p>
+            <div className="grid gap-1">
+              <Input
+                className={field}
+                value={values.logo}
+                onChange={(event) => update({ logo: event.target.value })}
+                disabled={!canManage || isSaving}
+                id="workspace-logo"
+                aria-invalid={Boolean(logoError)}
+                aria-describedby="workspace-logo-error"
+                name="logo"
+                placeholder="https://example.com/logo.svg"
+                type="url"
+              />
+              <p id="workspace-logo-error" className="min-h-4 text-xs text-destructive" role={logoError ? 'alert' : undefined}>{logoError}</p>
+            </div>
           </Row>
           <Row
             description="What this workspace is for, in a sentence or two."
@@ -285,31 +287,18 @@ export function WorkspaceGeneralSettings({
           </Alert>
         ) : null}
         {canManage ? (
-          <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-end gap-3 rounded-xl border border-border bg-background p-3 shadow-sm">
-            <p className="mr-auto text-sm" role="status">
-              {dirty ? 'Unsaved changes' : 'All changes saved'}
-            </p>
-            <Button
-              disabled={!dirty || Boolean(logoError) || isSaving}
-              onClick={() => {
-                setValues(saved)
-                clearDraft()
-                setError(null)
-                setMessage(null)
-              }}
-              type="button"
-              variant="outline"
-            >
-              Discard
-            </Button>
-            <Button
-              className="rounded-lg"
-              disabled={!dirty || Boolean(logoError) || isSaving || Boolean(slugError)}
-              type="submit"
-            >
-              {isSaving ? 'Saving…' : 'Save workspace'}
-            </Button>
-          </div>
+          <SettingsSaveBar
+            busy={isSaving}
+            dirty={dirty}
+            disabled={Boolean(logoError) || Boolean(slugError)}
+            label="Save workspace"
+            onDiscard={() => {
+              setValues(saved)
+              clearDraft()
+              setError(null)
+              setMessage(null)
+            }}
+          />
         ) : (
           <p className="text-sm text-muted-foreground">
             Ask a workspace admin to change these details.

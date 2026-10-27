@@ -24,24 +24,25 @@ export function PreviewLinkCard({ text }: { text: string }) {
   if (!url) return null
   if (dismissed === url)
     return (
-      <div className="mt-2 text-xs text-neutral-400">
+      <div className="mt-2 text-xs text-muted-foreground">
         <span>Preview hidden here. The platform may still show a link card.</span>{' '}
         <Button size={null} variant="custom" onClick={() => setDismissed('')}>
           Show link preview
         </Button>
       </div>
     )
-  if (query.isPending) return <p className="mt-2 text-xs text-neutral-400">Loading link preview…</p>
+  if (query.isPending)
+    return <p className="mt-2 text-xs text-muted-foreground">Loading link preview…</p>
   if (!query.data)
     return (
-      <p className="mt-2 text-xs text-neutral-400">
+      <p className="mt-2 text-xs text-muted-foreground">
         Link preview unavailable. The link remains in your post.
       </p>
     )
   const card = query.data
   return (
     <div
-      className="group relative mt-2 overflow-hidden rounded-xl border border-white/15"
+      className="group relative mt-2 overflow-hidden rounded-xl border border-input"
       data-testid="post-link-preview"
     >
       <Button
@@ -62,10 +63,10 @@ export function PreviewLinkCard({ text }: { text: string }) {
         />
       ) : null}
       <div className="p-3">
-        <p className="text-xs text-neutral-400">{card.siteName || new URL(url).hostname}</p>
-        <p className="line-clamp-2 text-sm font-medium text-neutral-100">{card.title || url}</p>
+        <p className="text-xs text-muted-foreground">{card.siteName || new URL(url).hostname}</p>
+        <p className="line-clamp-2 text-sm font-medium text-foreground">{card.title || url}</p>
         {card.description ? (
-          <p className="line-clamp-2 text-xs text-neutral-400">{card.description}</p>
+          <p className="line-clamp-2 text-xs text-muted-foreground">{card.description}</p>
         ) : null}
       </div>
     </div>

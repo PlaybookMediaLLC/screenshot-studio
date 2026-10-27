@@ -30,14 +30,14 @@ export function LinkPreviewCard({ card }: { card: LinkPreview }) {
   if (card.removed) return null
   return (
     <div
-      className="my-2 overflow-hidden rounded-lg border border-white/15"
+      className="my-2 overflow-hidden rounded-lg border border-input"
       data-testid="link-preview-card"
     >
       {card.image ? <img alt="" src={card.image} className="max-h-48 w-full object-cover" /> : null}
       <div className="p-3 text-sm">
         <p className="font-medium">{card.title || card.url}</p>
-        <p className="line-clamp-3 text-xs text-neutral-400">{card.description}</p>
-        <p className="mt-1 truncate text-xs text-neutral-500">{card.url}</p>
+        <p className="line-clamp-3 text-xs text-muted-foreground">{card.description}</p>
+        <p className="mt-1 truncate text-xs text-muted-foreground">{card.url}</p>
       </div>
     </div>
   )
@@ -109,11 +109,11 @@ export function LinkCards({
         return (
           <div key={url}>
             {card?.removed ? (
-              <p className="text-xs text-neutral-400">Preview removed for {url}</p>
+              <p className="text-xs text-muted-foreground">Preview removed for {url}</p>
             ) : card ? (
               <LinkPreviewCard card={card} />
             ) : (
-              <p role="status" className="text-xs text-neutral-400">
+              <p role="status" className="text-xs text-muted-foreground">
                 {errors[url] || 'Loading link preview…'}
               </p>
             )}
@@ -138,7 +138,7 @@ export function LinkCards({
               ) : null}
             </div>
             {card?.removed && channel !== 'bluesky' ? (
-              <p role="status" className="text-xs text-amber-300">
+              <p role="status" className="text-xs text-amber-700 dark:text-amber-300">
                 This provider cannot confirm preview removal through its API. Restore the preview
                 before publishing.
               </p>

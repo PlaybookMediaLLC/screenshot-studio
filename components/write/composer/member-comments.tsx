@@ -174,7 +174,7 @@ export function MemberComments({
         </Button>
       </div>
       {error ? (
-        <p role="alert" className="text-sm text-amber-200">
+        <p role="alert" className="text-sm text-amber-700 dark:text-amber-200">
           {error}
         </p>
       ) : null}

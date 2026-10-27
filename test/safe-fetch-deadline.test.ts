@@ -36,4 +36,26 @@ test('a continuously trickling response cannot bypass the wall-clock deadline', 
     timeoutMs: 100,
   })
   assert.equal(result.ok, false)
+  if (!result.ok) assert.equal(result.reason, 'The source took too long to respond.')
+})
+
+test('LINK-01: a source that never answers times out with a message, not a raw abort', async (t) => {
+  const server = createServer(() => {})
+  server.listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  t.after(() => {
+    server.closeAllConnections()
+    server.close()
+  })
+  const address = server.address()
+  assert.ok(address && typeof address !== 'string')
+  const result = await safeFetchText(`http://127.0.0.1:${address.port}/`, {
+    allowedPrivateHosts: new Set(['127.0.0.1']),
+    timeoutMs: 100,
+  })
+  assert.deepEqual(result, {
+    ok: false,
+    reason: 'The source took too long to respond.',
+    status: 'failed',
+  })
 })

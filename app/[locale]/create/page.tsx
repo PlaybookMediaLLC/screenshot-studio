@@ -21,10 +21,7 @@ export default async function CreatePage({
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization?.name}
     >
-      <Page
-        title="Create"
-        description="Turn a screenshot, idea or existing design into a finished visual."
-      >
+      <Page title="Create" tagline="Turn a screenshot into a finished visual.">
         <AreaNavigation
           label="Create"
           items={[
@@ -67,28 +64,46 @@ export default async function CreatePage({
                         'Frame a screen, adjust the background and export a finished image.',
                       href: '/',
                       scope: 'Screenshot · Save as a workspace project',
+                      pages: [{ kind: 'screen', ratio: '16:9' }],
                     },
                     {
                       title: 'Compose a Canvas',
                       description: 'Build a visual story with editable artboards and layers.',
                       href: '/canvas',
                       scope: 'Canvas · Workspace',
+                      pages: [
+                        { kind: 'hero', ratio: '16:9' },
+                        { kind: 'quote', ratio: '1:1' },
+                        { kind: 'phone', ratio: '9:16' },
+                      ],
+                      add: true,
                     },
                     {
                       title: 'Build store screenshots',
                       description: 'Prepare store listings across devices, sizes and languages.',
                       href: '/?editor=app-store',
                       scope: 'App Store studio · On this browser',
+                      pages: [
+                        { kind: 'phone', ratio: '9:16' },
+                        { kind: 'phone', ratio: '9:16' },
+                        { kind: 'phone', ratio: '9:16' },
+                        { kind: 'phone', ratio: '9:16' },
+                      ],
                     },
                     {
                       title: 'Create a Story Set',
                       description: access.creativeSetsEnabled
                         ? 'Keep related stories and output formats together.'
-                        : 'Creation requires design-partner access. Existing saved sets remain available.',
+                        : 'Early access for design partners. Saved sets stay available here.',
                       href: '/creative-sets',
                       scope: access.creativeSetsEnabled
                         ? 'Story Set · Workspace'
-                        : 'Restricted creation · Browse saved sets',
+                        : 'Story Set · Early access',
+                      pages: [
+                        { kind: 'hero', ratio: '16:9' },
+                        { kind: 'hero', ratio: '1:1' },
+                        { kind: 'hero', ratio: '4:5' },
+                      ],
                     },
                   ]
             }

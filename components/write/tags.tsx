@@ -21,16 +21,16 @@ import { useWrite } from './write-context'
 
 /** A tag colour's chip classes. */
 const CHIPS: Record<DraftTagWire['color'], string> = {
-  amber: 'bg-amber-400/15 text-amber-200',
-  blue: 'bg-blue-400/15 text-blue-200',
-  gray: 'bg-white/10 text-neutral-300',
-  green: 'bg-emerald-400/15 text-emerald-200',
-  orange: 'bg-orange-400/15 text-orange-200',
-  pink: 'bg-pink-400/15 text-pink-200',
-  red: 'bg-red-400/15 text-red-200',
-  sky: 'bg-sky-400/15 text-sky-200',
-  teal: 'bg-teal-400/15 text-teal-200',
-  violet: 'bg-violet-400/15 text-violet-200',
+  amber: 'bg-amber-400/15 text-amber-700 dark:text-amber-200',
+  blue: 'bg-blue-400/15 text-blue-700 dark:text-blue-200',
+  gray: 'bg-foreground/10 text-foreground',
+  green: 'bg-emerald-400/15 text-emerald-700 dark:text-emerald-200',
+  orange: 'bg-orange-400/15 text-orange-700 dark:text-orange-200',
+  pink: 'bg-pink-400/15 text-pink-700 dark:text-pink-200',
+  red: 'bg-red-400/15 text-red-700 dark:text-red-200',
+  sky: 'bg-sky-400/15 text-sky-700 dark:text-sky-200',
+  teal: 'bg-teal-400/15 text-teal-700 dark:text-teal-200',
+  violet: 'bg-violet-400/15 text-violet-700 dark:text-violet-200',
 }
 
 /** A tag as a small coloured chip. */
@@ -77,14 +77,16 @@ export function TagManager({ onClose, setId }: { onClose: () => void; setId: str
           </DialogDescription>
         </DialogHeader>
         <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
-          {tags.length === 0 ? <li className="text-xs text-neutral-400">No tags yet.</li> : null}
+          {tags.length === 0 ? (
+            <li className="text-xs text-muted-foreground">No tags yet.</li>
+          ) : null}
           {tags.map((tag) => (
             <li className="flex items-center gap-2" key={tag.id}>
               <TagChip tag={tag} />
               <span className="flex-1" />
               <Button
                 aria-label={`Delete the ${tag.name} tag`}
-                className="text-xs text-neutral-400 hover:text-red-300"
+                className="text-xs text-muted-foreground hover:text-red-800 dark:hover:text-red-300"
                 disabled={busy}
                 onClick={() =>
                   void run(async () => {
@@ -101,7 +103,7 @@ export function TagManager({ onClose, setId }: { onClose: () => void; setId: str
             </li>
           ))}
         </ul>
-        <fieldset className="grid gap-2 border-t border-white/[0.06] pt-3">
+        <fieldset className="grid gap-2 border-t border-border pt-3">
           <legend className="text-sm">Create new tag</legend>
           <Input
             aria-label="Tag name"
@@ -117,7 +119,7 @@ export function TagManager({ onClose, setId }: { onClose: () => void; setId: str
                 aria-pressed={color === option}
                 className={cn(
                   'rounded-full border px-1 py-0.5',
-                  color === option ? 'border-white' : 'border-transparent'
+                  color === option ? 'border-foreground' : 'border-transparent'
                 )}
                 key={option}
                 onClick={() => setColor(option)}
@@ -129,7 +131,7 @@ export function TagManager({ onClose, setId }: { onClose: () => void; setId: str
               </Button>
             ))}
           </div>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-muted-foreground">
             Preview: <TagChip tag={{ color, name: name.trim() || 'Tag' }} />
           </p>
         </fieldset>

@@ -46,7 +46,9 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
     organizationId = await bindTestGoOrganization(page)
     await page.goto('/workspace/social-sets?availability=preserve')
     const originalURL = page.url()
-    const launch = page.getByRole('button', { name: 'Add social set to your personal workspace' })
+    const launch = page.getByRole('button', {
+      name: 'Add publishing brand to your personal workspace',
+    })
     await launch.click()
     const dialog = page.getByRole('dialog')
     await expect(dialog.getByRole('alert')).toContainText(

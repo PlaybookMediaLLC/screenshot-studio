@@ -308,8 +308,7 @@ export function WorkflowTemplates() {
               Weekly recurring campaign <Pill>Planned</Pill>
             </span>
             <span className="text-sm text-muted-foreground">
-              Scheduled generation with period deduplication (RFC 041) is not built yet, so it
-              cannot be activated.
+              Not available yet. Until it is, start a manual campaign after each release.
             </span>
           </li>
         </ul>

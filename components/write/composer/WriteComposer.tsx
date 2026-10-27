@@ -118,7 +118,9 @@ import { VersionOptionsBar } from './version-options'
 
 // The editor kit is heavy; only the composer loads it, after the page renders.
 const DraftEditor = dynamic(() => import('@/components/drafts/DraftEditor'), {
-  loading: () => <div className="min-h-[420px] p-6 text-sm text-neutral-400">Loading editor…</div>,
+  loading: () => (
+    <div className="min-h-[420px] p-6 text-sm text-muted-foreground">Loading editor…</div>
+  ),
   ssr: false,
 })
 
@@ -158,6 +160,10 @@ const SAVE_LABELS: Record<SaveState, string> = {
  * Previews, the review and the schedule all use the publication the backend
  * receives.
  */
+
+/** This browser's choice to keep the composer's post options open. */
+const POST_OPTIONS_KEY = 'shots-post-options'
+
 export function WriteComposer({
   aiEnabled,
   collabUrl,
@@ -326,6 +332,15 @@ export function WriteComposer({
   )
   const bodyArea = React.useRef<HTMLDivElement>(null)
   const [pasteNotice, setPasteNotice] = React.useState(false)
+  // Thread and automation settings stay one click away so writing leads.
+  const [optionsOpen, setOptionsOpen] = React.useState(false)
+  React.useEffect(() => {
+    try {
+      setOptionsOpen(localStorage.getItem(POST_OPTIONS_KEY) === 'open')
+    } catch {
+      // Without storage the options start closed, as on a first visit.
+    }
+  }, [])
   const renderBlocks = async (): Promise<BlockImages> => {
     if (pendingBlocks.length === 0 || !services.uploadFile) return []
     if (active !== primary || !bodyArea.current) {
@@ -581,7 +596,7 @@ export function WriteComposer({
       <div className="mb-1 flex items-center gap-3" data-testid="post-header">
         <span
           aria-hidden
-          className="relative z-[1] -ml-12 hidden size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm font-medium text-white ring-4 ring-[#111111] sm:flex"
+          className="relative z-[1] -ml-12 hidden size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm font-medium text-foreground ring-4 ring-[#111111] sm:flex"
           data-post-avatar
         >
           {account?.avatarUrl ? (
@@ -592,17 +607,17 @@ export function WriteComposer({
           )}
         </span>
         <p className="min-w-0 flex-1 truncate text-sm">
-          <span className="font-medium text-white">
+          <span className="font-medium text-foreground">
             {account?.displayName ?? set?.name ?? 'Draft'}
           </span>
-          <span className="ml-1.5 text-neutral-400">
+          <span className="ml-1.5 text-muted-foreground">
             {account?.handle ? `@${account.handle}` : CHANNEL_META[active].label}
           </span>
         </p>
-        <span className="flex shrink-0 items-center gap-2 text-xs text-neutral-400">
+        <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
           {post ? (
             <span
-              className={cn(post.length > limit && 'text-red-400')}
+              className={cn(post.length > limit && 'text-red-700 dark:text-red-400')}
               data-testid={`post-length-${number}`}
             >
               {post.length} / {limit}
@@ -760,16 +775,16 @@ export function WriteComposer({
         className={cn(
           'flex min-h-full [overflow-anchor:none]',
           compact && 'write-compact',
-          focus && 'fixed inset-0 z-40 overflow-y-auto bg-[#111111]'
+          focus && 'fixed inset-0 z-40 overflow-y-auto bg-card'
         )}
         data-testid="write-composer"
       >
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-white/[0.06] bg-[#111111]/90 px-3 py-2 backdrop-blur">
+          <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-border bg-card/90 px-3 py-2 backdrop-blur">
             <DraftsDrawerButton />
             {set ? (
               <span
-                className="hidden items-center gap-1.5 text-xs text-neutral-400 sm:flex"
+                className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex"
                 data-testid="composer-identity"
                 title={`Writing as ${set.name}`}
               >
@@ -779,14 +794,14 @@ export function WriteComposer({
                 </span>
               </span>
             ) : null}
-            <span className="flex items-center gap-1 text-neutral-400 md:hidden">
+            <span className="flex items-center gap-1 text-muted-foreground md:hidden">
               {items.map((item) => (
                 <ChannelIcon channel={item.account.channel} key={item.account.id} />
               ))}
             </span>
             <Input
               aria-label="Draft title"
-              className="h-8 min-w-20 max-w-64 flex-1 truncate border-transparent bg-transparent text-sm text-neutral-300 focus:text-white"
+              className="h-8 min-w-20 max-w-64 flex-1 truncate border-transparent bg-transparent text-sm text-foreground focus:text-foreground"
               disabled={!canEdit}
               maxLength={200}
               onChange={(event) => update({ title: event.target.value })}
@@ -798,8 +813,8 @@ export function WriteComposer({
                 className={cn(
                   'text-xs',
                   saveState === 'error' || saveState === 'offline'
-                    ? 'text-amber-300'
-                    : 'text-neutral-400'
+                    ? 'text-amber-700 dark:text-amber-300'
+                    : 'text-muted-foreground'
                 )}
                 data-testid="save-state"
                 role="status"
@@ -1004,7 +1019,7 @@ export function WriteComposer({
           {server.status === 'archived' ? (
             <div
               role="status"
-              className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-neutral-300"
+              className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-foreground/[0.04] px-4 py-3 text-sm text-foreground"
             >
               <span>Archived draft. Restore it before scheduling or publishing.</span>
               {canEdit ? (
@@ -1015,7 +1030,7 @@ export function WriteComposer({
             </div>
           ) : null}
           {accounts.length === 0 ? (
-            <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-neutral-300">
+            <div className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm text-foreground">
               <span>
                 {canManageSets
                   ? 'Connect an account to publish. You can write your draft now.'
@@ -1085,46 +1100,63 @@ export function WriteComposer({
               }}
             />
           ) : null}
-          <VersionOptionsBar
-            channel={active}
-            captionLimit={activePublication.serialized.limit}
-            onApplyFinisher={
-              canEdit && (active === primary || versionOfTab.mode === 'manual')
-                ? (text, quoteFirstPost) => {
-                    if (editor.current)
-                      appendPost(
-                        editor.current,
-                        text,
-                        quoteFirstPost ? { quoteFirstPost: true } : {}
-                      )
-                  }
-                : undefined
-            }
-            onChange={(options) => setOptions(active, options)}
-            options={versionOfTab.options ?? {}}
-            postCount={activePublication.serialized.posts.length}
-            readOnly={!canEdit}
-            setId={server.socialSetId ?? set?.id ?? null}
-            uploadFile={
-              services.uploadFile
-                ? async (file) => ({ assetId: (await services.uploadFile!(file)).assetId ?? '' })
-                : undefined
-            }
-          />
-          {canEdit &&
-          server.kind !== 'article' &&
-          CAPABILITIES[active].thread &&
-          (active === primary || versionOfTab.mode === 'manual') ? (
-            <ThreadTools
-              pasted={pasteNotice}
-              onSplit={() => setPasteNotice(false)}
-              editor={editor}
+          <details
+            className="border-b border-border px-4 pb-1"
+            onToggle={(event) => {
+              const open = event.currentTarget.open
+              setOptionsOpen(open)
+              try {
+                localStorage.setItem(POST_OPTIONS_KEY, open ? 'open' : 'closed')
+              } catch {
+                // The choice then lasts only as long as this composer.
+              }
+            }}
+            open={optionsOpen || pasteNotice}
+          >
+            <summary className="w-fit cursor-pointer select-none rounded-md py-2 text-xs font-medium text-muted-foreground hover:text-foreground">
+              Post options
+            </summary>
+            <VersionOptionsBar
               channel={active}
-              limit={activePublication.serialized.limit}
-              options={versionOfTab.options ?? {}}
+              captionLimit={activePublication.serialized.limit}
+              onApplyFinisher={
+                canEdit && (active === primary || versionOfTab.mode === 'manual')
+                  ? (text, quoteFirstPost) => {
+                      if (editor.current)
+                        appendPost(
+                          editor.current,
+                          text,
+                          quoteFirstPost ? { quoteFirstPost: true } : {}
+                        )
+                    }
+                  : undefined
+              }
               onChange={(options) => setOptions(active, options)}
+              options={versionOfTab.options ?? {}}
+              postCount={activePublication.serialized.posts.length}
+              readOnly={!canEdit}
+              setId={server.socialSetId ?? set?.id ?? null}
+              uploadFile={
+                services.uploadFile
+                  ? async (file) => ({ assetId: (await services.uploadFile!(file)).assetId ?? '' })
+                  : undefined
+              }
             />
-          ) : null}
+            {canEdit &&
+            server.kind !== 'article' &&
+            CAPABILITIES[active].thread &&
+            (active === primary || versionOfTab.mode === 'manual') ? (
+              <ThreadTools
+                pasted={pasteNotice}
+                onSplit={() => setPasteNotice(false)}
+                editor={editor}
+                channel={active}
+                limit={activePublication.serialized.limit}
+                options={versionOfTab.options ?? {}}
+                onChange={(options) => setOptions(active, options)}
+              />
+            ) : null}
+          </details>
           <div
             className="relative flex-1"
             data-testid="composer-body"
@@ -1235,7 +1267,7 @@ export function WriteComposer({
                   <span
                     className={cn(
                       'flex items-center gap-1 text-xs',
-                      over ? 'text-red-400' : 'text-neutral-400'
+                      over ? 'text-red-700 dark:text-red-400' : 'text-muted-foreground'
                     )}
                     data-testid={`counter-${item.account.channel}`}
                     key={item.account.id}
@@ -1274,7 +1306,7 @@ export function WriteComposer({
         {panel && !focus && !narrow && !params.has('settings') ? (
           <aside
             aria-label={PANEL_TITLES[panel]}
-            className="relative max-w-[48vw] shrink-0 overflow-y-auto border-l border-white/[0.06] animate-in fade-in duration-150"
+            className="relative max-w-[48vw] shrink-0 overflow-y-auto border-l border-border animate-in fade-in duration-150"
             style={{ width: panelWidth }}
           >
             <div
@@ -1537,7 +1569,7 @@ function PanelButton({
     <Button
       aria-label={label}
       aria-pressed={active}
-      className={cn('size-8 px-0', active && 'bg-white/[0.08] text-white')}
+      className={cn('size-8 px-0', active && 'bg-foreground/[0.08] text-foreground')}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       size="sm"
@@ -1551,8 +1583,8 @@ function PanelButton({
 
 function PanelHeader({ onClose, title }: { onClose: () => void; title: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2">
-      <h2 className="text-sm font-medium text-white">{title}</h2>
+    <div className="flex items-center justify-between border-b border-border px-4 py-2">
+      <h2 className="text-sm font-medium text-foreground">{title}</h2>
       <Button aria-label={`Close ${title}`} onClick={onClose} size="sm" variant="ghost">
         ✕
       </Button>
@@ -1572,13 +1604,13 @@ function TargetBanner({ draft }: { draft: DraftWire }) {
   }[draft.kind]
   return (
     <div
-      className={cn('mb-2 flex items-center gap-2 text-xs text-neutral-400', POST_COLUMN)}
+      className={cn('mb-2 flex items-center gap-2 text-xs text-muted-foreground', POST_COLUMN)}
       data-testid="draft-target"
     >
-      <span className="rounded-full bg-white/[0.06] px-2 py-0.5">{label}</span>
+      <span className="rounded-full bg-foreground/[0.06] px-2 py-0.5">{label}</span>
       {draft.target.url ? (
         <a
-          className="truncate text-sky-300 hover:underline"
+          className="truncate text-sky-700 dark:text-sky-300 hover:underline"
           href={draft.target.url}
           rel="noreferrer"
           target="_blank"

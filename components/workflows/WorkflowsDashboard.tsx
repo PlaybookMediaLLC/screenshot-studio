@@ -1,7 +1,8 @@
 'use client'
 
-import { MagnifyingGlassIcon as Search01Icon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
-import { FlowArrowIcon as WorkflowSquare03Icon } from '@phosphor-icons/react/dist/ssr/FlowArrow'
+import { SearchIcon as Search01Icon } from '@/components/platform-shell/icons'
+import { AutomateScene } from '@/components/platform-ui/empty-scenes'
+import { AutomateIcon as WorkflowSquare03Icon } from '@/components/platform-shell/icons'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -194,12 +195,14 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
         </Alert>
       ) : null}
       {!overview.executorAvailable ? (
-        <Alert>
-          <AlertDescription>
-            No workflow worker is running. Drafts and tests still work; activation and new runs wait
-            for a worker.
-          </AlertDescription>
-        </Alert>
+        <p
+          className="flex w-fit max-w-full items-center gap-2.5 rounded-full border border-border px-4 py-2 text-sm text-muted-foreground"
+          role="status"
+        >
+          <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-amber-500" />
+          No workflow worker is running. Drafts and tests still work; activation and new runs wait
+          for a worker.
+        </p>
       ) : null}
 
       <div id="definitions" />
@@ -209,6 +212,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
       >
         {overview.definitions.length === 0 ? (
           <EmptyState
+            scene={<AutomateScene />}
             action={
               overview.sources.length === 0 ? (
                 <ButtonLink href={`${pathname}?view=sources#sources`} variant="outline">
@@ -230,7 +234,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                   size={15}
                 />
                 <Input
-                  className="h-9 w-full rounded-lg bg-white/[0.03] pr-3 pl-9 text-sm"
+                  className="h-9 w-full rounded-lg bg-foreground/[0.03] pr-3 pl-9 text-sm"
                   onChange={(event) => {
                     setQuery(event.target.value)
                   }}
@@ -335,14 +339,14 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
                           {definition.issues.map((issue, index) => (
                             <Link
                               key={index}
-                              className="block text-amber-300 underline"
+                              className="block text-amber-700 dark:text-amber-300 underline"
                               href={`/workflows/${definition.id}?node=${encodeURIComponent(issue.nodeId)}`}
                             >
                               {issue.message} · Fix in editor
                             </Link>
                           ))}
                           {ties.length ? (
-                            <span className="block text-amber-300">
+                            <span className="block text-amber-700 dark:text-amber-300">
                               Priority tie with {ties.map((item) => item.name).join(', ')}. Active
                               ties run by definition ID; inactive drafts do not compete.
                             </span>

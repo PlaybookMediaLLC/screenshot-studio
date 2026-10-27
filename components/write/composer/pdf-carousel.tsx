@@ -76,15 +76,15 @@ export function PdfCarousel({ assetId }: { assetId: string }) {
   }, [page, pdf])
   if (error) {
     return (
-      <p className="rounded-lg border border-red-400/30 p-3 text-sm text-red-200" role="alert">
+      <p className="rounded-lg border border-red-400/30 p-3 text-sm text-red-700 dark:text-red-200" role="alert">
         {error}
       </p>
     )
   }
   return (
     <div className="grid gap-2" data-testid="pdf-carousel">
-      <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg bg-white/5">
-        {pdf ? null : <p className="p-8 text-center text-sm text-neutral-400">Reading the PDF…</p>}
+      <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-lg bg-foreground/5">
+        {pdf ? null : <p className="p-8 text-center text-sm text-muted-foreground">Reading the PDF…</p>}
         <canvas aria-label={`Document preview, page ${page}. Use the original PDF for selectable text.`} className="block w-full" ref={canvas} role="img" />
         {pdf ? (
           <>
@@ -104,7 +104,7 @@ export function PdfCarousel({ assetId }: { assetId: string }) {
         ) : null}
       </div>
       {pdf ? (
-        <div className="flex items-center justify-between text-xs text-neutral-400">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <Button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}

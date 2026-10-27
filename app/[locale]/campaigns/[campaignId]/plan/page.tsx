@@ -1,4 +1,5 @@
-import { SealCheckIcon as DocumentValidationIcon } from '@phosphor-icons/react/dist/ssr/SealCheck'
+import { VerifiedIcon as DocumentValidationIcon } from '@/components/platform-shell/icons'
+import { CampaignsScene } from '@/components/platform-ui/empty-scenes'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PlanView } from '@/components/launch/plan/PlanView'
@@ -32,6 +33,7 @@ export default async function PlanPage({ params, searchParams }: PlanPageProps) 
   if (!workingSpec) {
     return (
       <EmptyState
+        scene={<CampaignsScene />}
         action={<ButtonLink href={`/campaigns/${campaign.id}/spec`}>Open the spec</ButtonLink>}
         description="The plan is built from the release spec: its capabilities, messaging, and proof."
         icon={DocumentValidationIcon}

@@ -59,7 +59,7 @@ export default async function PostingTimesPage({
             posts={posts.map((post) => calendarPostSchema.parse(post))}
           />
         ) : (
-          <p className="p-6">Connect a social set to see its posting times.</p>
+          <p className="p-6">Connect a publishing brand to see its posting times.</p>
         )}
       </WriteFrame>
     </PlatformShell>

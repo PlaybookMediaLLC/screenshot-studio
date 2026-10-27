@@ -4,7 +4,7 @@ import * as React from 'react'
 import { registerNavigationGuard } from '@/lib/platform/navigation-guard'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { WriteData } from '@/app/[locale]/write/write-data'
-import { libraryDraft } from '@/lib/write/library'
+import { libraryDraft, libraryQuery } from '@/lib/write/library'
 import type { DraftWire } from '@/lib/content-drafts/client'
 import { toast } from 'sonner'
 import { platformHref } from '@/lib/platform/navigation'
@@ -124,21 +124,17 @@ export function WriteProvider({
     [activeId]
   )
   const [saved, setSaved] = React.useState<WriteContextValue['saved']>({})
+  const [query] = React.useState(() => libraryQuery(() => window.location.search))
+  // Any committed URL, ours or back/forward, is the query from here on.
+  React.useEffect(() => query.settle(), [params, pathname, query])
   const setQuery = React.useCallback(
     (next: Record<string, string | undefined>) => {
-      const query = new URLSearchParams(window.location.search)
-      for (const [key, value] of Object.entries(next)) {
-        if (value) query.set(key, value)
-        else query.delete(key)
-      }
-      const href = `${pathname}${query.size > 0 ? `?${query}` : ''}`
-      if (Object.keys(next).every((key) => key === 'q')) {
-        window.history.replaceState(null, '', href)
-      } else {
-        router.replace(href, { scroll: false })
-      }
+      const { navigate, search } = query.change(next)
+      const href = `${pathname}${search ? `?${search}` : ''}`
+      if (navigate) router.replace(href, { scroll: false })
+      else window.history.replaceState(null, '', href)
     },
-    [pathname, router]
+    [pathname, query, router]
   )
   const showSaved = React.useCallback<WriteContextValue['showSaved']>(
     ({ id, ...draft }) => setSaved((current) => ({ ...current, [id]: draft })),

@@ -45,7 +45,7 @@
     "@aws-sdk/s3-request-presigner": "^3.990.0",
     "@better-auth/api-key": "1.6.33",
     "@better-auth/infra": "^0.3.7",
-    "@better-auth/scim": "1.6.33",
+    "@better-auth/scim": "1.7.0",
     "@better-auth/sso": "1.6.33",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",

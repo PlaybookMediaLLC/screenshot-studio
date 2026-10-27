@@ -77,6 +77,7 @@ export function PlanWorkspace({
   initialDay,
   initialView,
   advancedScheduling = false,
+  campaignsEnabled = false,
 }: {
   sets: SocialSetWire[]
   canEdit: boolean
@@ -87,6 +88,8 @@ export function PlanWorkspace({
   initialDay?: string
   initialView?: string
   advancedScheduling?: boolean
+  /** Campaigns are usable here, so Publish lists Campaign deliveries. */
+  campaignsEnabled?: boolean
 }) {
   const router = useRouter()
   const [prefs, setPrefs] = React.useState<PlanPreferences>(() =>
@@ -179,12 +182,14 @@ export function PlanWorkspace({
       }
     }
   }, [prefs, anchor, hydrated, preferenceKey])
-  React.useEffect(() => {
-    if (!container.current) return
-    const observer = new ResizeObserver(([entry]) =>
-      setWeeks(Math.max(1, Math.min(8, Math.floor(entry.contentRect.height / 160))))
-    )
-    observer.observe(container.current)
+  // Measured before the first load: fitting the weeks later changed the range and loaded it twice.
+  React.useLayoutEffect(() => {
+    const element = container.current
+    if (!element) return
+    const fit = (height: number) => setWeeks(Math.max(1, Math.min(8, Math.floor(height / 160))))
+    fit(element.clientHeight)
+    const observer = new ResizeObserver(([entry]) => fit(entry.contentRect.height))
+    observer.observe(element)
     return () => observer.disconnect()
   }, [])
   React.useEffect(() => {
@@ -265,6 +270,8 @@ export function PlanWorkspace({
   }, [rangeKey, refresh, hydrated])
   const scopeKey = activeIds.slice().sort().join(',')
   React.useEffect(() => {
+    // The saved brand selection loads first; reading tags before it read them twice.
+    if (!hydrated) return
     let cancelled = false
     setTags([])
     setTagsUnavailable(false)
@@ -281,7 +288,7 @@ export function PlanWorkspace({
     return () => {
       cancelled = true
     }
-  }, [scopeKey, refresh])
+  }, [scopeKey, refresh, hydrated])
 
   const changePeriod = (amount: number) =>
     setAnchor((day) => shiftAnchor(day, prefs.view, amount, weeks))
@@ -471,7 +478,10 @@ export function PlanWorkspace({
               <button
                 data-testid="available-slot"
                 disabled={!canEdit}
-                className="w-full rounded border border-dashed p-2 text-xs text-muted-foreground"
+                // The zone stays in the name and tooltip; in the cell it wrapped into the next day.
+                aria-label={`Available · ${slot.displayTime} (${prefs.zone})`}
+                title={`Available · ${slot.displayTime} (${prefs.zone})`}
+                className="w-full truncate rounded border border-dashed p-2 text-xs text-muted-foreground"
                 onClick={() =>
                   setCompose({
                     day: slot.localDay,
@@ -502,7 +512,7 @@ export function PlanWorkspace({
                   }
                 }}
               >
-                Available · {slot.displayTime} ({prefs.zone})
+                Available · {slot.displayTime}
               </button>
               <Link
                 className="block text-right text-[10px] text-muted-foreground underline"
@@ -528,7 +538,7 @@ export function PlanWorkspace({
   }
   return (
     <div className="flex h-full min-h-0 flex-col" inert={!hydrated} aria-busy={!hydrated}>
-      <WorkspaceNav active="plan" />
+      <WorkspaceNav active="plan" campaigns={campaignsEnabled} />
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <aside
           aria-label="Calendar accounts"

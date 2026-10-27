@@ -3,7 +3,10 @@
 import { useTranslations } from 'next-intl'
 import { AddIcon, SearchIcon } from './icons'
 import { useEffect, useRef, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+import { usePathname, useRouter } from 'next/navigation'
+import { createWritingDraft } from '@/components/write/pending-draft'
+import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
 import { cn } from '@/lib/utils'
 import { useKeys } from '@/components/write/shortcuts'
 import { Button } from '@/components/ui/button'
@@ -25,6 +28,7 @@ import {
   matchesDestination,
   PLATFORM_DESTINATIONS,
   platformArea,
+  platformHref,
   withPublishAccess,
 } from '@/lib/platform/navigation'
 import { SidebarLink } from './SidebarLink'
@@ -72,6 +76,20 @@ export function ShellActions({
   paidPlan?: boolean
 }) {
   const t = useTranslations('platformNavigation')
+  const router = useRouter()
+  const pathname = usePathname()
+  // New → Post makes the draft here, with the quick-compose box up meanwhile,
+  // instead of opening Publish to click New draft again. It lands in the
+  // workspace's default brand; the draft page shows that brand's library.
+  const newPost = () => {
+    onNavigate?.()
+    void createWritingDraft(
+      {},
+      (id) => router.push(platformHref(pathname, `/write/${encodeURIComponent(id)}`)),
+      // Saves an open draft first, as following a link from it would.
+      prepareWorkspaceSwitch
+    )
+  }
   return (
     <div className="grid gap-1">
       <DropdownMenu>
@@ -100,26 +118,32 @@ export function ShellActions({
             (item) =>
               (campaignsEnabled || item.label !== 'Campaign') &&
               (draftsEnabled || item.label !== 'Post')
-          ).map((item) => (
-            <DropdownMenuItem key={item.href} asChild>
-              {item.paid && !paidPlan ? (
-                <SidebarLink
-                  aria-label={`${item.label} (Pro)`}
-                  href={`/upgrade?from=${encodeURIComponent(item.href)}`}
-                  onClick={onNavigate}
-                >
-                  {item.label}
-                  <span aria-hidden="true" className="platform-pro-badge ms-auto">
-                    Pro
-                  </span>
-                </SidebarLink>
-              ) : (
-                <SidebarLink href={item.href} onClick={onNavigate}>
-                  {item.label}
-                </SidebarLink>
-              )}
-            </DropdownMenuItem>
-          ))}
+          ).map((item) =>
+            item.label === 'Post' ? (
+              <DropdownMenuItem key={item.href} onSelect={newPost}>
+                {item.label}
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem key={item.href} asChild>
+                {item.paid && !paidPlan ? (
+                  <SidebarLink
+                    aria-label={`${item.label} (Pro)`}
+                    href={`/upgrade?from=${encodeURIComponent(item.href)}`}
+                    onClick={onNavigate}
+                  >
+                    {item.label}
+                    <span aria-hidden="true" className="platform-pro-badge ms-auto">
+                      Pro
+                    </span>
+                  </SidebarLink>
+                ) : (
+                  <SidebarLink href={item.href} onClick={onNavigate}>
+                    {item.label}
+                  </SidebarLink>
+                )}
+              </DropdownMenuItem>
+            )
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -176,10 +200,34 @@ export function ShellSearch({
       (campaignsEnabled || item.key !== 'campaigns') &&
       matchesDestination(item.key, t(item.key), query)
   ).map((item) => withPublishAccess(item, draftsEnabled))
+  // Drafts are found by their text too, a moment after typing stops.
+  const [term, setTerm] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setTerm(query.trim()), 200)
+    return () => clearTimeout(timer)
+  }, [query])
+  const drafts = useQuery({
+    enabled: open && draftsEnabled && term.length >= 2,
+    queryKey: ['shell-search', 'drafts', term],
+    queryFn: async ({ signal }) => {
+      const response = await fetch(
+        `/api/v1/content-drafts?${new URLSearchParams({ limit: '6', search: term })}`,
+        { signal }
+      )
+      if (!response.ok) return []
+      const page = (await response.json()) as {
+        items: { id: string; title: string }[]
+        pinned: { id: string; title: string }[]
+      }
+      return [...page.pinned, ...page.items].slice(0, 6)
+    },
+  })
+  const draftResults = term.length >= 2 ? (drafts.data ?? []) : []
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
-        className="platform-overlay max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-xl gap-5 overflow-y-auto rounded-2xl p-5 sm:max-w-xl sm:p-6"
+        // Pinned near the top, so the box stays put as results come and go.
+        className="platform-overlay top-[12dvh] max-h-[calc(88dvh-1rem)] w-[calc(100%-2rem)] max-w-xl translate-y-0 gap-5 overflow-y-auto rounded-2xl p-5 sm:max-w-xl sm:p-6"
         onCloseAutoFocus={(event) => {
           event.preventDefault()
           launcher.current?.focus()
@@ -187,11 +235,17 @@ export function ShellSearch({
       >
         <DialogHeader className="text-start">
           <DialogTitle>{t('searchCommands')}</DialogTitle>
-          <DialogDescription>This workspace · Destinations</DialogDescription>
+          <DialogDescription>
+            This workspace · Destinations{draftsEnabled ? ' and drafts' : ''}
+          </DialogDescription>
         </DialogHeader>
         <Input
           aria-label="Search destinations"
-          placeholder="Go to… try draft, screenshot or billing"
+          placeholder={
+            draftsEnabled
+              ? 'Go to a place or find a draft… try billing or a draft’s words'
+              : 'Go to… try screenshot or billing'
+          }
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -208,9 +262,24 @@ export function ShellSearch({
               <span className="shrink-0 text-xs text-muted-foreground">Destination</span>
             </SidebarLink>
           ))}
-          {!items.length ? (
+          {draftResults.map((draft) => (
+            <SidebarLink
+              className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted"
+              href={`/write/${encodeURIComponent(draft.id)}`}
+              key={draft.id}
+              onClick={() => setOpen(false)}
+            >
+              <span className="min-w-0 truncate">{draft.title}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">Draft</span>
+            </SidebarLink>
+          ))}
+          {!items.length && !draftResults.length ? (
             <p role="status" className="p-3 text-sm text-muted-foreground">
-              No destinations match. Search finds places in Shots, not the work inside them.
+              {draftsEnabled && term.length >= 2 && drafts.isFetching
+                ? 'Searching drafts…'
+                : draftsEnabled
+                  ? 'Nothing matches. Search finds places in Shots and drafts by their words.'
+                  : 'No destinations match. Search finds places in Shots, not the work inside them.'}
             </p>
           ) : null}
         </nav>

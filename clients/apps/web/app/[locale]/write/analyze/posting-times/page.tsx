@@ -1,4 +1,5 @@
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
+import { AnalyzeNav } from '@/components/plan/WorkspaceNav'
 import { WriteFrame } from '@/components/write/WriteFrame'
 import { PostingTimes } from '@/components/write/PostingTimes'
 import { calendarPostSchema } from '@/lib/api/contracts/content-draft-platform'
@@ -38,13 +39,15 @@ export default async function PostingTimesPage({
     >
       <WriteFrame
         activeId="analyze"
-        campaignsEnabled={access.campaignWorkflowEnabled}
+        section="analyze"
+        campaignsEnabled={access.campaignWorkflowEnabled && access.hasPaidPlan}
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canManageSets={canManage}
         canPublish={hasPermission(access.role, 'publish:manage')}
         canReview={hasPermission(access.role, 'release:approve')}
         data={data}
       >
+        <AnalyzeNav active="Best times and posting slots" scope={set ? `?set=${set.id}` : ''} />
         {set ? (
           <PostingTimes
             key={set.id}

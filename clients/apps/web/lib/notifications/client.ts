@@ -5,11 +5,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { useHydratedSession } from '@/lib/auth/client'
 
-/** Cache identity follows both the authenticated person and active workspace. */
-export function useNotificationIdentity() {
+/**
+ * Cache identity follows both the authenticated person and active workspace.
+ * `initial`, from the server's render, stands in until the session loads, so
+ * the first reads need not wait for it.
+ */
+export function useNotificationIdentity(initial?: { userId: string; workspaceId: string }) {
   const { data, isPending } = useHydratedSession()
-  const userId = data?.user.id ?? ''
-  const workspaceId = data?.session.activeOrganizationId ?? ''
+  const fallback = isPending ? initial : undefined
+  const userId = data?.user.id ?? fallback?.userId ?? ''
+  const workspaceId = data?.session.activeOrganizationId ?? fallback?.workspaceId ?? ''
   const queryClient = useQueryClient()
   const key = useMemo(
     () => ['workspace-notifications', userId, workspaceId] as const,
@@ -24,8 +29,13 @@ export function useNotificationIdentity() {
   }, [queryClient, userId, workspaceId])
 
   return useMemo(
-    () => ({ userId, workspaceId, ready: !isPending && !!userId && !!workspaceId, key }),
-    [userId, workspaceId, isPending, key]
+    () => ({
+      userId,
+      workspaceId,
+      ready: (!isPending || Boolean(fallback)) && !!userId && !!workspaceId,
+      key,
+    }),
+    [userId, workspaceId, isPending, fallback, key]
   )
 }
 

@@ -14,6 +14,7 @@ import {
   settingsHref,
 } from '@/components/workspace/settings-sections'
 import { withoutLocale } from '@/lib/settings/appearance'
+import { platformHref } from '@/lib/platform/navigation'
 import { cn } from '@/lib/utils'
 
 function activeSection(pathname: string): SettingId | undefined {
@@ -77,6 +78,16 @@ export function SettingsNav() {
                     href={settingsHref(section)}
                     key={section.id}
                     onClick={() => setOpen(false)}
+                    onNavigate={(event) => {
+                      // One page holds every section: switch without a server round trip.
+                      event.preventDefault()
+                      window.history.pushState(
+                        null,
+                        '',
+                        platformHref(pathname ?? '/workspace', settingsHref(section))
+                      )
+                      document.getElementById('platform-content')?.scrollTo({ top: 0 })
+                    }}
                   >
                     {section.title}
                   </Link>

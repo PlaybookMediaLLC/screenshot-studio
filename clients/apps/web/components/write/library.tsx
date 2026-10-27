@@ -6,7 +6,8 @@ import { BulkScheduleDialog } from './bulk-schedule'
 import { useWriteRouter } from '@/components/write/write-context'
 
 import * as React from 'react'
-import Link from 'next/link'
+// Hover-intent prefetch: the rail lists up to 100 drafts.
+import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
 import { toast } from 'sonner'
 import { PlusIcon as Add01Icon } from '@phosphor-icons/react/dist/ssr/Plus'
 import { PushPinIcon as PinIcon } from '@phosphor-icons/react/dist/ssr/PushPin'
@@ -54,7 +55,6 @@ import { writeApi } from '@/lib/write/client'
 import type { DraftKind } from '@/lib/write/document'
 import type { ContentDraftSort } from '@/lib/write/wire'
 import { cn } from '@/lib/utils'
-import { publishLinks } from '@/lib/platform/navigation'
 import { SetDot, SocialSetSwitcher } from './sets'
 import { TagChip, TagManager } from './tags'
 import { draftHref, type LibraryDraft, since, useWrite } from './write-context'
@@ -92,7 +92,7 @@ const KIND_LABELS: Record<DraftKind, string> = {
  * changes access (a public link) asks first.
  */
 export function WriteRail() {
-  const { activeId, canEdit, data, setQuery } = useWrite()
+  const { activeId, canEdit, data, libraryPending, setQuery } = useWrite()
   const [now, setNow] = React.useState<number | undefined>()
   React.useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60_000)
@@ -146,23 +146,6 @@ export function WriteRail() {
           Settings
         </Link>
       </div>
-      <nav
-        aria-label="Publishing utilities"
-        className="mx-3 mb-3 flex flex-wrap gap-1 border-b border-border pb-3 text-xs"
-      >
-        {/* The rail is the drafts view, so it links to the other Publish pages. */}
-        {publishLinks(data.activeSet ? `?set=${data.activeSet.id}` : '')
-          .slice(1)
-          .map((item) => (
-            <Link
-              className="rounded-md px-2 py-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-              href={item.href}
-              key={item.label}
-            >
-              {item.label}
-            </Link>
-          ))}
-      </nav>
       <div className="px-3" role="tablist" aria-label="Library">
         <div className="grid grid-cols-4 rounded-lg bg-foreground/[0.04] p-0.5">
           {TABS.map((item) => (
@@ -193,11 +176,11 @@ export function WriteRail() {
         </div>
       </div>
       {tab === 'queue' ? null : <LibraryFilters onManageTags={() => setManagingTags(true)} />}
-      {tab !== 'queue' && (data.query.q || data.query.kind || data.query.tag) ? (
+      {/* The search box shows its own text: a chip for it pushed the list down on every keystroke. */}
+      {tab !== 'queue' && (data.query.kind || data.query.tag) ? (
         <div aria-label="Active filters" className="flex flex-wrap gap-1 px-3 pt-2">
           {(
             [
-              { key: 'q', label: data.query.q },
               { key: 'kind', label: data.query.kind ? KIND_LABELS[data.query.kind] : undefined },
               {
                 key: 'tag',
@@ -236,6 +219,10 @@ export function WriteRail() {
       >
         {tab === 'queue' ? (
           <QueueList />
+        ) : libraryPending ? (
+          <p className="px-4 py-6 text-xs text-muted-foreground" role="status">
+            Loading…
+          </p>
         ) : data.library.length === 0 ? (
           <div className="px-4 py-6 text-xs text-muted-foreground">
             {data.query.q || data.query.tag || data.query.kind
@@ -656,7 +643,7 @@ function DraftRow({
               tabIndex={-1}
             />
           ) : null}
-          {draft.pinned ? (
+          {shown.pinned ? (
             <PinIcon
               aria-label="Pinned"
               className="mt-0.5 size-3.5 shrink-0 text-sky-700 dark:text-sky-300"
@@ -768,7 +755,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
 export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelect?: () => void }) {
   const router = useWriteRouter()
   const { mod } = useKeys()
-  const { activeId, beforeLeaveRef, canEdit, data, hideDraft } = useWrite()
+  const { activeId, beforeLeaveRef, canEdit, data, hideDraft, showSaved } = useWrite()
   const [confirm, setConfirm] = React.useState<'delete' | 'share' | null>(null)
   const [copyTo, setCopyTo] = React.useState<string | null>(null)
   const act = async (work: () => Promise<unknown>, done: string, refresh = true) => {
@@ -776,8 +763,10 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
       await work()
       toast.success(done)
       if (refresh) router.refresh()
+      return true
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'That did not work.')
+      return false
     }
   }
   const internalLink = () => `${window.location.origin}${draftHref(draft.id, data.activeSet?.id)}`
@@ -800,10 +789,15 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
             <>
               <DropdownMenuItem
                 onSelect={() =>
-                  void act(async () => {
-                    const copy = await writeApi.duplicate(draft.id)
-                    router.push(draftHref(copy.draft.id, data.activeSet?.id))
-                  }, 'Duplicated. The copy has no schedule, share link or comments.')
+                  void act(
+                    async () => {
+                      const copy = await writeApi.duplicate(draft.id)
+                      router.push(draftHref(copy.draft.id, data.activeSet?.id))
+                    },
+                    'Duplicated. The copy has no schedule, share link or comments.',
+                    // Opening the copy loads a fresh list; a refresh as well would load it twice.
+                    false
+                  )
                 }
               >
                 Duplicate
@@ -829,15 +823,35 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
               <DropdownMenuItem
-                onSelect={() =>
+                onSelect={() => {
+                  // The pin shows at once; a refusal puts it back.
+                  showSaved({ id: draft.id, pinned: !draft.pinned })
                   void act(
                     () => writeApi.properties(draft.id, { pinned: !draft.pinned }),
                     draft.pinned ? 'Unpinned.' : 'Pinned to the top.'
-                  )
-                }
+                  ).then((done) => done || showSaved({ id: draft.id, pinned: draft.pinned }))
+                }}
               >
                 {draft.pinned ? 'Unpin draft' : 'Pin draft'}
                 <DropdownMenuShortcut>{mod}⇧P</DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  void act(
+                    async () => {
+                      // The open draft saves first, so archiving never drops an edit.
+                      if (draft.id === activeId) await beforeLeaveRef.current?.()
+                      const fresh = await draftsApi.get(draft.id)
+                      return draftsApi.save(draft.id, {
+                        baseVersion: fresh.version,
+                        status: draft.status === 'archived' ? 'draft' : 'archived',
+                      })
+                    },
+                    draft.status === 'archived' ? 'Restored from archive.' : 'Archived.'
+                  )
+                }
+              >
+                {draft.status === 'archived' ? 'Restore from archive' : 'Archive'}
               </DropdownMenuItem>
               {data.experiments.tags ? (
                 <DropdownMenuSub>

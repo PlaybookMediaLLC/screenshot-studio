@@ -19,7 +19,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { createWritingDraft, PendingDraftInput } from './pending-draft'
+import { WorkspaceNav } from '@/components/plan/WorkspaceNav'
+import { createWritingDraft } from './pending-draft'
 import { cn } from '@/lib/utils'
 import { WriteRail } from './library'
 import { type Shortcut, useKeys, useShortcuts } from './shortcuts'
@@ -93,8 +94,10 @@ export function WriteFrame({
   canReview,
   children,
   data,
+  section = 'drafts',
 }: {
   activeId?: string
+  /** Campaigns are usable here: the rollout and a paid plan. */
   campaignsEnabled?: boolean
   canEdit: boolean
   canManageSets: boolean
@@ -102,6 +105,8 @@ export function WriteFrame({
   canReview: boolean
   children: React.ReactNode
   data: WriteLibrary
+  /** The Publish tab this page belongs to. */
+  section?: 'analyze' | 'drafts'
 }) {
   return (
     <WriteProvider
@@ -112,7 +117,7 @@ export function WriteFrame({
       canReview={canReview}
       data={data}
     >
-      <FrameLayout activeId={activeId} campaignsEnabled={campaignsEnabled}>
+      <FrameLayout activeId={activeId} campaignsEnabled={campaignsEnabled} section={section}>
         {children}
       </FrameLayout>
     </WriteProvider>
@@ -126,10 +131,12 @@ function FrameLayout({
   activeId,
   campaignsEnabled,
   children,
+  section,
 }: {
   activeId?: string
   campaignsEnabled: boolean
   children: React.ReactNode
+  section: 'analyze' | 'drafts'
 }) {
   const router = useWriteRouter()
   const keys = useKeys()
@@ -307,29 +314,39 @@ function FrameLayout({
   }, [])
   return (
     <DraftsDrawerContext.Provider value={() => setDrawer(true)}>
-      <PendingDraftInput />
       <div
-        className="flex h-[calc(100dvh-3.5rem)] min-h-0 md:h-[calc(100vh-1rem-2px)]"
+        className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col md:h-[calc(100vh-1rem-2px)]"
         data-testid="write-frame"
       >
-        <div
-          className={cn(
-            'w-full shrink-0 border-border md:w-80 md:border-r',
-            activeId ? 'hidden' : 'block',
-            railOpen ? 'md:block' : 'md:hidden'
-          )}
-        >
-          <WriteRail key={data.activeSet?.id ?? 'none'} />
+        {/* On a phone an open draft keeps the whole screen; its header leads back to the list. */}
+        <div className={cn(activeId && section === 'drafts' && 'hidden md:block')}>
+          <WorkspaceNav
+            active={section}
+            campaigns={campaignsEnabled}
+            scope={data.activeSet ? `?set=${data.activeSet.id}` : ''}
+          />
         </div>
-        <main
-          className={cn(
-            // Focused controls scroll clear of the floating formatting bar.
-            'relative min-w-0 flex-1 scroll-pb-32 overflow-y-auto',
-            !activeId && 'hidden md:block'
-          )}
-        >
-          {children}
-        </main>
+        <div className="flex min-h-0 flex-1">
+          <div
+            data-write-rail-column
+            className={cn(
+              'w-full shrink-0 border-border md:w-80 md:border-r',
+              activeId ? 'hidden' : 'block',
+              railOpen ? 'md:block' : 'md:hidden'
+            )}
+          >
+            <WriteRail key={data.activeSet?.id ?? 'none'} />
+          </div>
+          <main
+            className={cn(
+              // Focused controls scroll clear of the floating formatting bar.
+              'relative min-w-0 flex-1 scroll-pb-32 overflow-y-auto',
+              !activeId && 'hidden md:block'
+            )}
+          >
+            {children}
+          </main>
+        </div>
       </div>
       {canEdit ? (
         <Button

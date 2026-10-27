@@ -35,7 +35,10 @@ export function SettingsSaveBar({
       </div>
     )
   return (
-    <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background p-3 shadow-sm">
+    <div
+      className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background p-3 shadow-sm"
+      data-settings-save-bar
+    >
       <p className="mr-auto text-sm" role="status">
         {busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved'}
       </p>

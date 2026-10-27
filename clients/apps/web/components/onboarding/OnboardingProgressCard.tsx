@@ -2,9 +2,10 @@
 
 import { XIcon as X } from '@phosphor-icons/react/dist/ssr/X'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import type { StoredOnboardingRun } from '@/lib/tenant/onboarding-runs'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC } from '@/lib/trpc/react'
 import { isTerminal, stageLabel, useOnboardingRun } from './run-progress'
 import { Button } from '@/components/ui/button'
 
@@ -85,13 +86,8 @@ function Card({ initial }: { initial: StoredOnboardingRun }) {
  * Workspaces without a run see nothing.
  */
 export function OnboardingProgressCard() {
-  const trpcClient = useTRPCClient()
-  const [run, setRun] = useState<StoredOnboardingRun | null>(null)
-  useEffect(() => {
-    trpcClient.onboarding.latest
-      .query()
-      .then((result) => setRun(result.run))
-      .catch(() => setRun(null))
-  }, [trpcClient])
+  // Cached: the shell remounts on every page, and asking each time cost a request per click.
+  const trpc = useTRPC()
+  const run = useQuery(trpc.onboarding.latest.queryOptions()).data?.run ?? null
   return run ? <Card initial={run} key={run.id} /> : null
 }

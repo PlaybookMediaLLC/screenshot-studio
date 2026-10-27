@@ -2,7 +2,15 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from 'next-themes'
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useState,
+} from 'react'
 import type { z } from 'zod'
 import {
   userPreferencesSchema,
@@ -60,10 +68,13 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const preferences = pending ?? query.data ?? null
 
   // Another device may have changed the theme: the saved one wins on load.
+  // next-themes makes a new setTheme each time the theme changes; depending on
+  // it here put the old theme back over an optimistic switch until the save landed.
   const savedTheme = query.data?.theme
+  const applySavedTheme = useEffectEvent((theme: Preferences['theme']) => setTheme(theme))
   useEffect(() => {
-    if (savedTheme) setTheme(savedTheme)
-  }, [savedTheme, setTheme])
+    if (savedTheme) applySavedTheme(savedTheme)
+  }, [savedTheme])
 
   const accent = preferences?.accentColor
   useEffect(() => {

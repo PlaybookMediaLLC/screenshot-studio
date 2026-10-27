@@ -1,8 +1,9 @@
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page, Pill } from '@/components/platform-ui'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
-import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
-import { publishLinks } from '@/lib/platform/navigation'
+import { WorkspaceNav } from '@/components/plan/WorkspaceNav'
+import { notFound, redirect } from 'next/navigation'
+import { upgradePath } from '@/lib/auth/page-access'
 import { getCampaign, listCampaigns } from '@/lib/tenant/campaigns'
 import { requireDraftsPageAccess } from '../../drafts/page-access'
 import { CampaignLocalTime } from '@/components/campaigns/CampaignLocalTime'
@@ -17,7 +18,10 @@ export default async function CampaignDeliveries({
 }) {
   const [{ locale }, query] = await Promise.all([params, searchParams])
   const access = await requireDraftsPageAccess(locale, '/write/deliveries')
-  const campaigns = access.campaignWorkflowEnabled ? await listCampaigns(access.tenant) : []
+  // Campaigns need Pro, like the Campaigns area itself.
+  if (!access.campaignWorkflowEnabled) notFound()
+  if (!access.hasPaidPlan) redirect(upgradePath(locale, '/write/deliveries'))
+  const campaigns = await listCampaigns(access.tenant)
   const selected = campaigns.find((campaign) => campaign.id === query.campaign)
   const campaign = selected ? await getCampaign(access.tenant, selected.id) : null
   const scope = query.set ? `?set=${encodeURIComponent(query.set)}` : ''
@@ -26,11 +30,16 @@ export default async function CampaignDeliveries({
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization.name}
     >
+      <WorkspaceNav
+        active="deliveries"
+        campaigns
+        returnTo={`/write/deliveries${scope}`}
+        scope={scope}
+      />
       <Page
         title="Campaign deliveries"
         description="Campaign posts keep their original review and approval history. The Drafts calendar covers freeform writing; choose a campaign to inspect its delivery states."
       >
-        <AreaNavigation label="Publish" items={publishLinks(scope, `/write/deliveries${scope}`)} />
         <nav aria-label="Choose campaign" className="flex flex-wrap gap-2">
           {campaigns.map((item) => (
             <SidebarLink

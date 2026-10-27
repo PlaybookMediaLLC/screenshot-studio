@@ -93,7 +93,8 @@ function NavLink({
       aria-current={active ? 'page' : undefined}
       aria-label={collapsed || locked ? label : undefined}
       className={rowClassName}
-      href={href}
+      // Locked areas open the plan page directly instead of bouncing off a server redirect.
+      href={locked ? `/upgrade?from=${encodeURIComponent(href)}` : href}
       onClick={onNavigate}
     >
       <Icon aria-hidden="true" className="shrink-0" size={17} />
@@ -317,6 +318,8 @@ export interface PlatformSidebarProps {
   draftsEnabled?: boolean
   /** The layout the navigation cookie names, for the first paint. */
   initialNavigation?: z.infer<typeof navigationLayoutSchema>
+  /** Who is signed in where, from the server, for the notification count. */
+  notificationIdentity?: { userId: string; workspaceId: string }
   organizationName?: string
   /** False on free basic scheduling, which marks the paid areas before they are opened. */
   paidPlan?: boolean
@@ -382,6 +385,7 @@ export function PlatformSidebar({
   campaignsEnabled,
   draftsEnabled = false,
   initialNavigation = 'expanded',
+  notificationIdentity,
   organizationName = 'Workspace',
   paidPlan = true,
   variant,
@@ -415,7 +419,7 @@ export function PlatformSidebar({
         >
           <Brand collapsed={collapsed} />
           <div className={cn('flex items-center gap-0.5', collapsed && 'flex-col')}>
-            <NotificationCenter />
+            <NotificationCenter initialIdentity={notificationIdentity} />
             <SearchButton />
           </div>
         </div>
@@ -446,7 +450,7 @@ export function PlatformSidebar({
         <Brand collapsed={false} />
         <div className="ms-auto flex items-center gap-1">
           <ThemeToggle />
-          <NotificationCenter />
+          <NotificationCenter initialIdentity={notificationIdentity} />
           <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
             <SheetTrigger asChild>
               <Button

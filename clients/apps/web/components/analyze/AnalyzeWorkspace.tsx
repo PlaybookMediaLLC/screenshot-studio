@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { WorkspaceNav } from '@/components/plan/WorkspaceNav'
+import { AnalyzeNav, WorkspaceNav } from '@/components/plan/WorkspaceNav'
 import {
   analyticsQuerySchema,
   analyticsSettingsSchema,
@@ -46,11 +46,14 @@ type Row = AnalyticsReport['posts'][number]
 /** All views derive from one account/query key; stale responses never cross that boundary. */
 export function AnalyzeWorkspace({
   sets = [],
+  campaignsEnabled = false,
   canManage = false,
   initial = {},
   publicToken,
 }: {
   sets?: SocialSetWire[]
+  /** Campaigns are usable here, so Publish lists Campaign deliveries. */
+  campaignsEnabled?: boolean
   canManage?: boolean
   initial?: Record<string, string | undefined>
   publicToken?: string
@@ -223,18 +226,26 @@ export function AnalyzeWorkspace({
   if (!publicToken && !accounts.length)
     return (
       <div>
-        <WorkspaceNav active="analyze" />
-        <main className="p-8">
-          <h1>Analyze</h1>
-          <p>Connect a social account to collect analytics.</p>
-          <Link href="/workspace/social-sets">Social accounts</Link>
+        <WorkspaceNav active="analyze" campaigns={campaignsEnabled} />
+        <AnalyzeNav active="Overview" />
+        <main className="mx-auto max-w-7xl space-y-2 p-4 sm:p-6">
+          <h1 className="text-2xl font-semibold">Analyze</h1>
+          <p className="text-sm text-muted-foreground">
+            Connect a social account to collect analytics.
+          </p>
+          <Link className="text-sm underline underline-offset-4" href="/workspace/social-sets">
+            Social accounts
+          </Link>
         </main>
       </div>
     )
   return (
     <div className="h-full min-h-0 overflow-y-auto">
       {!publicToken ? (
-        <WorkspaceNav active="analyze" />
+        <>
+          <WorkspaceNav active="analyze" campaigns={campaignsEnabled} />
+          <AnalyzeNav active="Overview" />
+        </>
       ) : (
         <header className="border-b px-6 py-4 font-semibold">Shots · Shared analytics</header>
       )}

@@ -388,3 +388,45 @@ body:has([data-platform-shell]) input:-webkit-autofill {
   scrollbar-color: var(--hairline-strong) transparent;
   scrollbar-width: thin;
 }
+
+/* SidebarLink's pending bar: instant feedback while the next page loads. */
+.platform-nav-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 200;
+  height: 2px;
+  pointer-events: none;
+  background: var(--primary);
+  transform-origin: left;
+  animation: platform-nav-progress 1.2s var(--platform-ease, ease-out) forwards;
+}
+
+@keyframes platform-nav-progress {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-nav-progress {
+    animation: none;
+    transform: scaleX(0.6);
+  }
+}
+
+/* An open composer panel (preview, comments) takes the drafts rail's room on
+   screens too narrow for both, so the editor keeps a readable column. */
+@media (max-width: 1535px) {
+  [data-testid='write-frame']:has([data-composer-panel]) [data-write-rail-column] {
+    display: none;
+  }
+}
+
+/* While a settings save bar is up, scrolling to a field (focus, Tab) keeps it
+   clear of the bar instead of underneath it. */
+.platform-shell [data-platform-scroll]:has([data-settings-save-bar]) {
+  scroll-padding-bottom: 6rem;
+}

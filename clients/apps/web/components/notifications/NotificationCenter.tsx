@@ -43,8 +43,15 @@ function subscribeTab(callback: () => void) {
 }
 
 /** A floating, keyboard-accessible notification panel that preserves the current page. */
-export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }) {
-  const identity = useNotificationIdentity()
+export function NotificationCenter({
+  collapsed = true,
+  initialIdentity,
+}: {
+  collapsed?: boolean
+  /** The signed-in person and workspace from the server, so the count need not wait for the session. */
+  initialIdentity?: { userId: string; workspaceId: string }
+}) {
+  const identity = useNotificationIdentity(initialIdentity)
   const visible = useNotificationPageVisible()
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
@@ -58,13 +65,13 @@ export function NotificationCenter({ collapsed = true }: { collapsed?: boolean }
         return (
           rememberedTabs.get(storageKey) ??
           panelViewSchema.safeParse(sessionStorage.getItem(storageKey)).data ??
-          'activity'
+          'inbox'
         )
       } catch {
-        return rememberedTabs.get(storageKey) ?? 'activity'
+        return rememberedTabs.get(storageKey) ?? 'inbox'
       }
     }, [storageKey]),
-    () => 'activity'
+    () => 'inbox'
   )
   function selectTab(value: string) {
     const parsed = panelViewSchema.safeParse(value)

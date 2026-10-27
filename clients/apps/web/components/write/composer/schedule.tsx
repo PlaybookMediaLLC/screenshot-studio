@@ -139,7 +139,9 @@ export function ScheduleDialog({
   const [disambiguation, setDisambiguation] = React.useState<'earlier' | 'later' | null>(null)
   const [bestTimes, setBestTimes] = React.useState<{ at: string; reason: string }[]>([])
   const [browsing, setBrowsing] = React.useState(false)
-  const [busy, setBusy] = React.useState(false)
+  // Which button is working, so only that one says so.
+  const [action, setAction] = React.useState<'clear' | 'plan' | 'schedule' | null>(null)
+  const busy = action !== null
   React.useEffect(() => {
     if (!data.advancedScheduling) return
     void draftsApi
@@ -157,6 +159,13 @@ export function ScheduleDialog({
         : null
   const past = instant !== null && instant.getTime() <= Date.now()
   const problems = blocking(context)
+  // The backend plans only drafts with connected destinations; say so before a round trip.
+  const planBlocked =
+    context.items.length === 0
+      ? 'To save as planned, choose a connected account for this draft first.'
+      : context.items.some((item) => item.account.health !== 'connected')
+        ? 'To save as planned, reconnect the selected accounts first.'
+        : null
   const today = dayIn(now, zone)
   const setInstant = (at: Date) => {
     const wall = wallTime(at, zone)
@@ -172,7 +181,7 @@ export function ScheduleDialog({
   )
   const nextSlot = slots.find((slot) => !slot.busy)
   const schedule = async () => {
-    setBusy(true)
+    setAction('schedule')
     try {
       await context.flush()
       const result = await draftsApi.schedule(context.draft.id, {
@@ -199,11 +208,11 @@ export function ScheduleDialog({
         error instanceof DraftRequestError ? error.message : 'The draft could not be scheduled.'
       )
     } finally {
-      setBusy(false)
+      setAction(null)
     }
   }
   const plan = async (clear = false) => {
-    setBusy(true)
+    setAction(clear ? 'clear' : 'plan')
     try {
       await context.flush()
       const saved = await writeApi.plan(context.draft.id, {
@@ -219,7 +228,7 @@ export function ScheduleDialog({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'The draft could not be planned.')
     } finally {
-      setBusy(false)
+      setAction(null)
     }
   }
   const summary = queue
@@ -334,7 +343,7 @@ export function ScheduleDialog({
               type="button"
               variant="outline"
             >
-              {option.label} ({zone})
+              {option.label}
             </Button>
           ))}
           <Button
@@ -521,20 +530,36 @@ export function ScheduleDialog({
               Clear planned time
             </Button>
           ) : null}
+          {planBlocked ? (
+            <p className="basis-full text-xs text-muted-foreground" role="status">
+              {planBlocked}
+            </p>
+          ) : null}
           <Button
-            disabled={busy || context.draft.status === 'archived' || queue || !instant || past}
+            disabled={
+              busy ||
+              context.draft.status === 'archived' ||
+              queue ||
+              !instant ||
+              past ||
+              Boolean(planBlocked)
+            }
             onClick={() => void plan()}
             type="button"
             variant="outline"
           >
-            Save as planned
+            {action === 'plan' ? 'Saving…' : 'Save as planned'}
           </Button>
           <Button
             disabled={busy || problems.length > 0 || (!queue && (!instant || past))}
             onClick={() => void schedule()}
             type="button"
           >
-            {busy ? 'Scheduling…' : queue ? 'Confirm: next free slot' : 'Confirm schedule'}
+            {action === 'schedule'
+              ? 'Scheduling…'
+              : queue
+                ? 'Confirm: next free slot'
+                : 'Confirm schedule'}
           </Button>
         </DialogFooter>
       </DialogContent>

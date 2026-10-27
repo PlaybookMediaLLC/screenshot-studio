@@ -25,7 +25,11 @@ import {
 } from '@/lib/auth/access'
 import type { Permission } from '@/lib/auth/permissions'
 import { requireTenantAccess } from '@/lib/tenant/access'
-import { consumeWorkspaceQuota, requireWorkspaceFeature } from '@/lib/tenant/entitlements'
+import {
+  consumeWorkspaceQuota,
+  requireWorkspaceFeature,
+  requireWorkspaceFeatures,
+} from '@/lib/tenant/entitlements'
 
 /**
  * Authenticators for `route()`. Each resolves the caller or throws an
@@ -109,8 +113,7 @@ export function memberAccess(
       ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
       : await requireActiveOrganizationPermission(request.headers, permission)
     // Basic workspace access precedes the operation-specific feature gate.
-    await requireWorkspaceFeature(access, 'workspace:use')
-    if (feature) await requireWorkspaceFeature(access, feature)
+    await requireWorkspaceFeatures(access, feature ? ['workspace:use', feature] : ['workspace:use'])
     if (quota) await consumeWorkspaceQuota(access, quota)
     return access
   }

@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useState } from 'react'
 import { z } from 'zod'
+import { toast } from 'sonner'
 import { TimeZonePicker } from '@/components/settings/TimeZonePicker'
 import { LocalePicker } from '@/components/settings/LocalePicker'
 import { SettingsSaveBar } from '@/components/settings/SettingsSaveBar'
@@ -129,6 +130,8 @@ export function WorkspaceGeneralSettings({
       setSaved(values)
       clearDraft(values)
       setMessage('Workspace details updated.')
+      // The message below the form can be out of view; say it where the person is looking.
+      toast.success('Workspace details saved.')
     } catch (requestError) {
       setError(getErrorMessage(requestError))
     } finally {
@@ -151,7 +154,7 @@ export function WorkspaceGeneralSettings({
               className={field}
               value={values.name}
               onChange={(event) => update({ name: event.target.value })}
-              disabled={!canManage || isSaving}
+              disabled={!canManage}
               id="workspace-name"
               name="name"
               required
@@ -166,7 +169,7 @@ export function WorkspaceGeneralSettings({
                 className={field}
                 value={values.slug}
                 onChange={(event) => update({ slug: event.target.value })}
-                disabled={!canManage || isSaving}
+                disabled={!canManage}
                 aria-describedby={slugError ? 'workspace-slug-error' : undefined}
                 aria-invalid={Boolean(slugError)}
                 id="workspace-slug"
@@ -191,7 +194,7 @@ export function WorkspaceGeneralSettings({
                 className={field}
                 value={values.logo}
                 onChange={(event) => update({ logo: event.target.value })}
-                disabled={!canManage || isSaving}
+                disabled={!canManage}
                 id="workspace-logo"
                 aria-invalid={Boolean(logoError)}
                 aria-describedby="workspace-logo-error"
@@ -211,7 +214,7 @@ export function WorkspaceGeneralSettings({
               className="min-h-20 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm dark:bg-input/30"
               value={values.description}
               onChange={(event) => update({ description: event.target.value })}
-              disabled={!canManage || isSaving}
+              disabled={!canManage}
               id="workspace-description"
               maxLength={1000}
               name="description"
@@ -228,7 +231,7 @@ export function WorkspaceGeneralSettings({
               <LocalePicker
                 value={values.locale}
                 onChange={(locale) => update({ locale })}
-                disabled={!canManage || isSaving}
+                disabled={!canManage}
               />
             </Row>
             <Row
@@ -239,7 +242,7 @@ export function WorkspaceGeneralSettings({
                 label="Timezone"
                 value={values.timeZone}
                 onChange={(timeZone) => update({ timeZone })}
-                disabled={!canManage || isSaving}
+                disabled={!canManage}
               />
             </Row>
             <Row
@@ -250,7 +253,7 @@ export function WorkspaceGeneralSettings({
                 className={field}
                 value={values.defaultPublishTime}
                 onChange={(event) => update({ defaultPublishTime: event.target.value })}
-                disabled={!canManage || isSaving}
+                disabled={!canManage}
                 id="workspace-default-publish-time"
                 name="defaultPublishTime"
                 required
@@ -269,7 +272,7 @@ export function WorkspaceGeneralSettings({
               <Checkbox
                 checked={values.aiAgentEnabled}
                 onCheckedChange={(checked) => update({ aiAgentEnabled: checked === true })}
-                disabled={!canManage || isSaving}
+                disabled={!canManage}
                 id="workspace-ai-agent"
                 name="aiAgentEnabled"
               />

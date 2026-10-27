@@ -57,6 +57,31 @@ test('list pages reuse thirty-second results and imperative writes invalidate ev
   otherSession.clear()
 })
 
+test('the shell reuses the latest onboarding run until an onboarding change', async (t) => {
+  const queryClient = newClient()
+  t.after(() => queryClient.clear())
+  let reads = 0
+  const client = createTRPCClient<AppRouter>({
+    links: [
+      invalidateListsLink(queryClient),
+      () =>
+        ({ op }) =>
+          observable((observer) => {
+            if (op.type === 'query') reads++
+            observer.next({ result: { data: { run: null } } })
+            observer.complete()
+          }),
+    ],
+  })
+  const trpc = createTRPCOptionsProxy<AppRouter>({ client, queryClient })
+  const latest = trpc.onboarding.latest.queryOptions()
+  await queryClient.fetchQuery(latest)
+  await queryClient.fetchQuery(latest)
+  assert.equal(reads, 1)
+  await client.onboarding.rerun.mutate({ runId: 'run-1' })
+  assert.equal(queryClient.getQueryState(latest.queryKey)?.isInvalidated, true)
+})
+
 test('query retries do not multiply the transport retry budget', async (t) => {
   let calls = 0
   t.mock.method(globalThis, 'fetch', async () => {

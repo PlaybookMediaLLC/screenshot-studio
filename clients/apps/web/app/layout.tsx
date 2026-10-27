@@ -31,7 +31,7 @@ import {
   Albert_Sans,
 } from 'next/font/google'
 import './globals.css'
-import { Toaster } from '@/components/ui/sonner'
+import { AppToaster } from '@/components/platform-shell/AppToaster'
 import { QueryProvider } from '@/lib/query-client'
 import { TRPCReactProvider } from '@/lib/trpc/provider'
 import { GlobalDropZone } from '@/components/GlobalDropZone'
@@ -414,6 +414,11 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  // The page background of each theme (app/globals.css), for browser chrome and link previews.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f4f5f7' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
   width: 'device-width',
   initialScale: 1,
   viewportFit: "cover",
@@ -454,7 +459,7 @@ export default async function RootLayout({
                 <AdFreeRouteLinks />
                 {children}
               </GlobalDropZone>
-              <Toaster />
+              <AppToaster />
               <ConsentBanner />
             </TRPCReactProvider>
           </QueryProvider>

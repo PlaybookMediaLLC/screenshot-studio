@@ -31,6 +31,7 @@ export const THEMED_ROUTE_PREFIXES = [
   '/projects',
   '/releases',
   '/workspace',
+  '/upgrade',
 ] as const
 
 /** The storage key next-themes keeps this browser's theme under. */

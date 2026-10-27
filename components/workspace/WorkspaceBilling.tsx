@@ -33,7 +33,7 @@ const STATUS: Record<string, { label: string; tone: PillTone }> = {
 const PLAN_NAMES: Record<string, string> = {
   business: 'Business',
   enterprise: 'Enterprise',
-  free: 'No plan',
+  free: 'Free basic scheduling',
   pro: 'Pro',
 }
 
@@ -128,7 +128,9 @@ export function WorkspaceBilling({ canManage }: { canManage: boolean }) {
                     }.`
                   : summary.paid
                     ? 'In the billing portal: switch between Pro and Business or monthly and annual, update the card, download invoices, or cancel. Enterprise is arranged with sales.'
-                    : 'Choose a plan to start using Shots: Pro or Business by card, or Enterprise through sales.'
+                    : summary.plan === 'free'
+                      ? 'Includes Publish: drafts, the calendar, scheduled posts and link checks. Create, Library, Campaigns, Automate and Activity need Pro or Business by card, or Enterprise through sales.'
+                      : 'Choose a plan to start using Shots: Pro or Business by card, or Enterprise through sales.'
               }
               label="Plan"
               layout="inline"

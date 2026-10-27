@@ -2,15 +2,16 @@ import { readFile } from 'node:fs/promises'
 import { expect, type Locator, type Page } from '@playwright/test'
 import JSZip from 'jszip'
 import {
-  createDraftWorkspace,
-  type DraftWorkspace,
+  caretAtDocumentEnd,
   chooseChannels,
+  createDraftWorkspace,
   draftEditor,
   expectSaved,
   inPreview,
   openNewDraft,
   openSchedule,
   previewOf,
+  type DraftWorkspace,
 } from './framework/content-drafts'
 import { buildDocx } from './fixtures/docx'
 import { configureE2EFlow, test } from './framework/flow'
@@ -41,25 +42,6 @@ async function caretAtEndOf(page: Page, word: Locator): Promise<void> {
       })
     ).toBe(`${text}:${text.length}`)
   }).toPass({ timeout: 20_000 })
-  await page.waitForTimeout(300)
-}
-
-/**
- * Put the caret at the end of the draft's last text, as after reopening the
- * editor from a dialog. Waits out slate's selection sync like caretAtEndOf.
- */
-async function caretAtDocumentEnd(page: Page): Promise<void> {
-  await draftEditor(page).focus()
-  await draftEditor(page).evaluate((editor) => {
-    const strings = editor.querySelectorAll('[data-slate-string]')
-    const text = strings[strings.length - 1]?.firstChild
-    if (!text) return
-    const range = document.createRange()
-    range.setStart(text, text.textContent?.length ?? 0)
-    range.collapse(true)
-    window.getSelection()?.removeAllRanges()
-    window.getSelection()?.addRange(range)
-  })
   await page.waitForTimeout(300)
 }
 
@@ -188,6 +170,8 @@ test('a draft is written, saved, scheduled to two channels once, and one post is
     // Dropped formatting is shown in the preview, not a block: nothing stops scheduling.
     const dialog = await openSchedule(page)
     await expect(dialog.getByTestId('blocking-problems')).toHaveCount(0)
+    // Stay on this draft to cancel one of its posts below.
+    await dialog.getByLabel('Open a new draft after scheduling').uncheck()
     await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     await expect(page.getByTestId('draft-post').filter({ hasText: 'Scheduled' })).toHaveCount(2)

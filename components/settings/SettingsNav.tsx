@@ -3,7 +3,7 @@
 import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { CaretDownIcon as ChevronDown } from '@phosphor-icons/react/dist/ssr/CaretDown'
+import { ChevronDownIcon as ChevronDown } from '@/components/platform-shell/icons'
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { usePathname } from 'next/navigation'
@@ -37,7 +37,9 @@ export function SettingsNav() {
   const sections = SETTINGS_SECTIONS.filter(
     (section) =>
       section.id !== 'new-team' &&
-      `${section.title} ${section.description}`.toLowerCase().includes(query.trim().toLowerCase())
+      `${section.title} ${section.description} ${section.keywords ?? ''}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase())
   )
   const links = (
     <nav aria-label="Settings sections" className="w-full shrink-0 lg:w-56">

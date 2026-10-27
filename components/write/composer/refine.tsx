@@ -229,7 +229,10 @@ export function RefineButton({
             ).map(([value, label]) => (
               <Button
                 aria-pressed={scope === value}
-                className={cn('h-7 px-2 text-xs', scope === value && 'bg-white/[0.08] text-white')}
+                className={cn(
+                  'h-7 px-2 text-xs',
+                  scope === value && 'bg-foreground/[0.08] text-foreground'
+                )}
                 disabled={value === 'selection' && !hasSelection}
                 key={value}
                 onClick={() => setScope(value)}
@@ -276,7 +279,7 @@ export function RefineButton({
                 </Button>
               ))}
           </div>
-          <p className="text-[11px] text-neutral-400">
+          <p className="text-[11px] text-muted-foreground">
             Uses your workspace’s AI credits. You see the result before anything changes.
           </p>
         </PopoverContent>
@@ -307,20 +310,22 @@ export function RefineButton({
                 return (
                   <li className="grid gap-1" key={index}>
                     {review.request.kind === 'posts' ? (
-                      <p className="text-xs text-neutral-400">
+                      <p className="text-xs text-muted-foreground">
                         Post {review.request.numbers[index]}
                       </p>
                     ) : null}
                     <pre
-                      className="whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm"
+                      className="whitespace-pre-wrap rounded-lg bg-foreground/[0.03] p-3 font-sans text-sm"
                       data-testid="refine-diff"
                     >
                       {lineDiff(before, text).map((line, at) => (
                         <span
                           className={cn(
                             'block',
-                            line.kind === 'removed' && 'bg-red-500/15 text-red-200 line-through',
-                            line.kind === 'added' && 'bg-emerald-500/15 text-emerald-200'
+                            line.kind === 'removed' &&
+                              'bg-red-500/15 text-red-700 dark:text-red-200 line-through',
+                            line.kind === 'added' &&
+                              'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'
                           )}
                           key={at}
                         >
@@ -332,7 +337,9 @@ export function RefineButton({
                       <p
                         className={cn(
                           'text-right text-xs',
-                          length > limit ? 'text-red-300' : 'text-neutral-400'
+                          length > limit
+                            ? 'text-red-700 dark:text-red-300'
+                            : 'text-muted-foreground'
                         )}
                       >
                         {length} / {limit}

@@ -60,7 +60,7 @@ export function useSaveSocialSet(id: string): (change: SocialSetChange) => Promi
       const run = queue.current.then(async (): Promise<SaveResult> => {
         if (!scope.ready) return { error: 'Your workspace is still loading.', ok: false }
         const current = queryClient.getQueryData<SocialSetRecord>(socialSetKey(scope, id))
-        if (!current) return { error: 'This social set is still loading.', ok: false }
+        if (!current) return { error: 'This publishing brand is still loading.', ok: false }
         try {
           const saved = await scope.request(
             `/api/v1/social-sets/${encodeURIComponent(id)}`,
@@ -81,7 +81,7 @@ export function useSaveSocialSet(id: string): (change: SocialSetChange) => Promi
             error.code !== 'workspace_changed'
           ) {
             await queryClient.invalidateQueries({ queryKey: socialSetKey(scope, id) })
-            toast.info('Someone else changed this social set. Showing the latest version.')
+            toast.info('Someone else changed this publishing brand. Showing the latest version.')
           }
           return { error: settingsErrorMessage(error), ok: false }
         }

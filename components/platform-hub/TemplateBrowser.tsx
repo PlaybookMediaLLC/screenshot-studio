@@ -13,3 +13,13 @@ const TemplateCatalog = dynamic(() => import('./TemplateCatalog'), {
 export function TemplateBrowser() {
   return <TemplateCatalog />
 }
+
+const TemplateStripLazy = dynamic(
+  () => import('./TemplateCatalog').then((catalog) => catalog.TemplateStrip),
+  { loading: () => <div className="studio-grid min-h-48" aria-hidden="true" /> }
+)
+
+/** A few templates to start from, loaded with the catalog's previews. */
+export function TemplateHighlights() {
+  return <TemplateStripLazy />
+}

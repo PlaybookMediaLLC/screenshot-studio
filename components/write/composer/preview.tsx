@@ -65,11 +65,11 @@ export function PreviewPanel({
   const item = items.find((entry) => entry.account.channel === channel) ?? items[0]
   const size = DEVICES.find((entry) => entry.label === device)
   if (!item) {
-    return <p className="p-4 text-sm text-neutral-400">Turn on a platform to preview it.</p>
+    return <p className="p-4 text-sm text-muted-foreground">Turn on a platform to preview it.</p>
   }
   return (
     <div className="flex flex-col gap-3 p-4" data-testid="preview-panel">
-      <p className="rounded-md border border-dashed border-white/15 px-2 py-1 text-center text-[11px] text-neutral-400">
+      <p className="rounded-md border border-dashed border-input px-2 py-1 text-center text-[11px] text-muted-foreground">
         Preview — not published. No engagement is shown because none exists yet.
       </p>
       <div className="flex flex-wrap items-center gap-1.5">
@@ -79,8 +79,8 @@ export function PreviewPanel({
             className={cn(
               'flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs',
               entry.account.channel === item.account.channel
-                ? 'border-white/30 text-white'
-                : 'border-white/10 text-neutral-400'
+                ? 'border-foreground/40 text-foreground'
+                : 'border-border text-muted-foreground'
             )}
             key={entry.account.id}
             onClick={() => setChannel(entry.account.channel)}
@@ -119,20 +119,20 @@ export function PreviewPanel({
           </div>
         </ScaledPreview>
       </DescribeMediaContext.Provider>
-      <p className="text-[11px] text-neutral-500">
+      <p className="text-[11px] text-muted-foreground">
         Layout simulation. Feed cutoffs can vary by app and device.
       </p>
       {item.publication.problems.length > 0 ? (
         <ul className="grid gap-0.5" role="alert">
           {item.publication.problems.map((problem) => (
-            <li className="text-xs text-red-300" key={problem}>
+            <li className="text-xs text-red-700 dark:text-red-300" key={problem}>
               {problem}
             </li>
           ))}
         </ul>
       ) : null}
       {item.publication.serialized.degradations.map((degradation) => (
-        <p className="text-xs text-amber-300" key={degradation.kind}>
+        <p className="text-xs text-amber-700 dark:text-amber-300" key={degradation.kind}>
           {degradation.message}
         </p>
       ))}
@@ -146,7 +146,7 @@ function Avatar({ account, size = 'size-10' }: { account: ComposerAccount; size?
     // biome-ignore lint/performance/noImgElement: a provider avatar URL
     <img
       alt=""
-      className={cn(size, 'shrink-0 rounded-full bg-white/5 object-cover')}
+      className={cn(size, 'shrink-0 rounded-full bg-foreground/5 object-cover')}
       src={account.avatarUrl}
     />
   ) : (
@@ -154,7 +154,7 @@ function Avatar({ account, size = 'size-10' }: { account: ComposerAccount; size?
       aria-hidden
       className={cn(
         size,
-        'flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm text-white'
+        'flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-500/40 to-violet-500/40 text-sm text-foreground'
       )}
     >
       {(account.displayName ?? account.handle ?? '?').slice(0, 1).toUpperCase()}
@@ -191,7 +191,7 @@ function ScaledPreview({
   return (
     <div
       ref={container}
-      className="w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-2xl border border-white/10 bg-black"
+      className="w-full min-w-0 overflow-x-hidden overflow-y-auto rounded-2xl border border-border bg-card"
       style={{ maxHeight: height ? Math.min(height * scale, 720) : '70vh' }}
       data-testid="preview-scroll"
     >
@@ -232,7 +232,7 @@ function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
       <p
         ref={paragraph}
         id={id}
-        className="whitespace-pre-wrap break-words text-[15px] leading-[20px] text-neutral-100"
+        className="whitespace-pre-wrap break-words text-[15px] leading-[20px] text-foreground"
         style={
           !open && lines
             ? {
@@ -251,7 +251,7 @@ function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
         <Button
           aria-controls={id}
           aria-expanded={open}
-          className="text-[15px] text-sky-400 hover:underline"
+          className="text-[15px] text-sky-700 dark:text-sky-400 hover:underline"
           onClick={() => setOpen(!open)}
           size={null}
           type="button"
@@ -275,13 +275,20 @@ function Mentions({ channel, text }: { channel: DraftChannel; text: string }) {
         const annotation = /^@\[((?:\\.|[^\]\\])+)\]/.exec(part)
         if (annotation)
           return (
-            <span className="font-medium text-sky-400" key={index}>
+            <span className="font-medium text-sky-700 dark:text-sky-400" key={index}>
               {annotation[1].replace(/\\([\\|{}@[\]()<>#*_~])/g, '$1')}
             </span>
           )
         if (/^@|^https?:/.test(part))
           return (
-            <span className={channel === 'linkedin' ? 'text-sky-400' : 'text-sky-400'} key={index}>
+            <span
+              className={
+                channel === 'linkedin'
+                  ? 'text-sky-700 dark:text-sky-400'
+                  : 'text-sky-700 dark:text-sky-400'
+              }
+              key={index}
+            >
               {part}
             </span>
           )
@@ -298,7 +305,7 @@ function Media({ media }: { media: SerializedMedia[] }) {
   return (
     <div
       className={cn(
-        'mt-2 grid gap-0.5 overflow-hidden rounded-2xl border border-white/10',
+        'mt-2 grid gap-0.5 overflow-hidden rounded-2xl border border-border',
         media.length > 1 && 'grid-cols-2'
       )}
     >
@@ -307,7 +314,7 @@ function Media({ media }: { media: SerializedMedia[] }) {
           {item.kind === 'video' ? (
             <video
               aria-label={item.alt || 'Attached video'}
-              className="aspect-video w-full bg-white/5 object-contain"
+              className="aspect-video w-full bg-foreground/5 object-contain"
               controls
               preload="metadata"
               src={assetContentUrl(item.assetId)}
@@ -315,7 +322,7 @@ function Media({ media }: { media: SerializedMedia[] }) {
           ) : (
             <img
               alt={item.alt}
-              className="aspect-video w-full bg-white/5 object-cover"
+              className="aspect-video w-full bg-foreground/5 object-cover"
               src={assetContentUrl(item.assetId)}
             />
           )}
@@ -361,19 +368,19 @@ function Poll({
 }) {
   return (
     <div
-      className="mt-2 grid gap-1.5 rounded-xl border border-white/10 p-3"
+      className="mt-2 grid gap-1.5 rounded-xl border border-border p-3"
       data-testid={`preview-poll-${channel}`}
     >
-      {question ? <p className="text-sm font-medium text-white">{question}</p> : null}
+      {question ? <p className="text-sm font-medium text-foreground">{question}</p> : null}
       {poll.options.map((option, index) => (
         <span
-          className="rounded-full border border-sky-400/50 px-3 py-1 text-center text-sm text-sky-300"
+          className="rounded-full border border-sky-400/50 px-3 py-1 text-center text-sm text-sky-700 dark:text-sky-300"
           key={index}
         >
           {option || `Option ${index + 1}`}
         </span>
       ))}
-      <p className="text-[11px] text-neutral-400">
+      <p className="text-[11px] text-muted-foreground">
         {channel === 'threads' && poll.durationMinutes === 0
           ? 'Duration set by the platform'
           : poll.durationMinutes >= 1_440
@@ -388,14 +395,14 @@ function Poll({
 function TargetCard({ target }: { target: DraftTarget }) {
   return (
     <div
-      className="mt-2 rounded-xl border border-white/10 p-3 text-sm text-neutral-300"
+      className="mt-2 rounded-xl border border-border p-3 text-sm text-foreground"
       data-testid="preview-target"
     >
-      <p className="text-[11px] text-neutral-400">{target.author ?? target.url}</p>
+      <p className="text-[11px] text-muted-foreground">{target.author ?? target.url}</p>
       {target.text ? (
         <p className="mt-1 line-clamp-3">{target.text}</p>
       ) : (
-        <p className="mt-1 text-neutral-400">Quoted post</p>
+        <p className="mt-1 text-muted-foreground">Quoted post</p>
       )}
     </div>
   )
@@ -407,9 +414,11 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
   const channel = account.channel
   const posts = publication.serialized.posts
   return (
-    <div className={cn('p-3', channel === 'threads' && 'bg-[#101010]')} data-platform={channel}>
+    <div className={cn('p-3', channel === 'threads' && 'bg-muted/40')} data-platform={channel}>
       {target?.kind === 'reply' ? (
-        <p className="mb-2 text-xs text-neutral-400">Replying to {target.author ?? target.url}</p>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Replying to {target.author ?? target.url}
+        </p>
       ) : null}
       {(posts.length > 0
         ? posts
@@ -419,18 +428,18 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
         return (
           <article className="relative flex gap-3 pb-4" key={index}>
             {index < list.length - 1 ? (
-              <span aria-hidden className="absolute top-12 bottom-0 left-5 w-px bg-white/15" />
+              <span aria-hidden className="absolute top-12 bottom-0 left-5 w-px bg-foreground/15" />
             ) : null}
             <Avatar account={account} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm">
-                <span className="font-semibold text-white">
+                <span className="font-semibold text-foreground">
                   {account.displayName ?? account.handle ?? CHANNEL_META[channel].label}
                 </span>
                 {account.handle ? (
-                  <span className="ml-1 text-neutral-400">@{account.handle}</span>
+                  <span className="ml-1 text-muted-foreground">@{account.handle}</span>
                 ) : null}
-                <span className="ml-1 text-neutral-400">· now</span>
+                <span className="ml-1 text-muted-foreground">· now</span>
               </p>
               <Truncated channel={channel} text={post.caption} />
               {post.media.length === 0 &&
@@ -456,12 +465,12 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
               ) : null}
               {index === 0 && target?.kind === 'quote' ? <TargetCard target={target} /> : null}
               {settings.quoteFirstPost ? (
-                <div className="mt-2 rounded-xl border border-dashed border-white/15 p-2 text-xs text-neutral-400">
+                <div className="mt-2 rounded-xl border border-dashed border-input p-2 text-xs text-muted-foreground">
                   Quotes the first post once it is live
                 </div>
               ) : null}
               {settings.disclosures?.madeWithAi || settings.disclosures?.paidPartnership ? (
-                <p className="mt-1 text-[11px] text-neutral-400">
+                <p className="mt-1 text-[11px] text-muted-foreground">
                   {[
                     settings.disclosures.paidPartnership ? 'Paid partnership' : '',
                     settings.disclosures.madeWithAi ? 'Made with AI' : '',
@@ -471,7 +480,9 @@ function ThreadPreview({ item, target }: { item: PreviewItem; target: DraftTarge
                 </p>
               ) : null}
               {settings.replySettings && settings.replySettings !== 'everyone' ? (
-                <p className="mt-1 text-[11px] text-sky-400">Some accounts can’t reply</p>
+                <p className="mt-1 text-[11px] text-sky-700 dark:text-sky-400">
+                  Some accounts can’t reply
+                </p>
               ) : null}
             </div>
           </article>
@@ -487,14 +498,14 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
   const post = publication.serialized.posts[0]
   const options = publication.target.options
   return (
-    <article className="bg-[#1b1f23] p-3 text-neutral-100">
+    <article className="bg-muted/40 p-3 text-foreground">
       <header className="flex items-center gap-2">
         <Avatar account={account} size="size-12" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">
             {account.displayName ?? account.handle ?? 'LinkedIn'}
           </p>
-          <p className="text-[11px] text-neutral-400">
+          <p className="text-[11px] text-muted-foreground">
             now · {options?.visibility === 'CONNECTIONS' ? 'Connections only' : 'Anyone'}
           </p>
         </div>
@@ -513,8 +524,8 @@ function LinkedInPost({ item, target }: { item: PreviewItem; target: DraftTarget
       ) : null}
       {target?.kind === 'quote' ? <TargetCard target={target} /> : null}
       {options?.firstComment ? (
-        <div className="mt-3 rounded-lg bg-white/5 p-2 text-xs text-neutral-300">
-          <span className="text-neutral-400">First comment: </span>
+        <div className="mt-3 rounded-lg bg-foreground/5 p-2 text-xs text-foreground">
+          <span className="text-muted-foreground">First comment: </span>
           {options.firstComment}
         </div>
       ) : null}
@@ -539,7 +550,7 @@ function ArticlePreview({ item }: { item: PreviewItem }) {
         />
       ) : null}
       <h1 className="mb-3 text-2xl font-bold">{options.articleTitle}</h1>
-      <p className="mb-4 text-sm text-neutral-400">
+      <p className="mb-4 text-sm text-muted-foreground">
         {item.account.displayName ?? item.account.handle}
       </p>
       <div

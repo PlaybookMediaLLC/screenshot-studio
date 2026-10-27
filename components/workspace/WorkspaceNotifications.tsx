@@ -388,7 +388,7 @@ function SettingsForm({
                 <div className="px-5 pb-4">
                   {group === 'publishing' ? (
                     <p className="mb-3 text-xs text-muted-foreground">
-                      Used unless you choose a channel for a specific social set below.
+                      Used unless you choose a channel for a specific publishing brand below.
                     </p>
                   ) : null}
                   <NotificationPreferenceTable

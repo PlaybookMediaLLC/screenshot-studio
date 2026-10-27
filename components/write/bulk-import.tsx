@@ -18,7 +18,7 @@ import { workspaceUploadFile, assetContentUrl } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { importedBody, importedPosts } from '@/lib/write/import-text'
 import { readVersions, withOptions } from '@/lib/write/versions'
-import { parseDraftCSV, type ImportRow } from '@/lib/write/bulk-import'
+import { channelProblem, parseDraftCSV, type ImportRow } from '@/lib/write/bulk-import'
 import { useWrite } from './write-context'
 import { BulkScheduleDialog } from './bulk-schedule'
 
@@ -43,6 +43,10 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
   const [csv, setCSV] = React.useState('caption,asset,channels\n')
   const [files, setFiles] = React.useState<File[]>([])
   const set = data.activeSet
+  const connected = set?.accounts.map((account) => account.channel) ?? []
+  // A saved request already resolved its accounts; check the rest before creating anything.
+  const problem = (row: Row) =>
+    row.id || row.request ? undefined : channelProblem(row.channels, connected)
   const storageKey = `shots:import:${data.importStorageScope}:${set?.id}`
   const [restored, setRestored] = React.useState(false)
   const [confirmReset, setConfirmReset] = React.useState(false)
@@ -108,7 +112,7 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
     try {
       await beforeLeaveRef.current?.()
       for (const row of rows) {
-        if (row.id) continue
+        if (row.id || problem(row)) continue
         try {
           row.definitiveFailure = false
           if (row.request) {
@@ -244,10 +248,11 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
         ) : null}
         {rows.length > 0 &&
         rows.some((row) => row.asset && !row.assetId && !row.request && !row.file) ? (
-          <label>
+          <label className="grid gap-1.5 text-sm font-medium">
             Files to resume
             <input
               aria-label="Resume batch files"
+              className="text-sm text-muted-foreground file:me-3 file:rounded-full file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-foreground/[0.04]"
               type="file"
               multiple
               onChange={(event) => {
@@ -272,20 +277,22 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
         ) : null}
         {!rows.length ? (
           <>
-            <label className="grid gap-1">
+            <label className="grid gap-1.5 text-sm font-medium">
               Images, videos, or design exports
               <input
                 aria-label="Batch media files"
+                className="text-sm text-muted-foreground file:me-3 file:rounded-full file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-foreground/[0.04]"
                 type="file"
                 multiple
                 accept="image/*,video/mp4,video/webm,application/pdf"
                 onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
               />
             </label>
-            <label>
+            <label className="grid gap-1.5 text-sm font-medium">
               CSV file
               <input
                 aria-label="Batch CSV file"
+                className="text-sm text-muted-foreground file:me-3 file:rounded-full file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-foreground/[0.04]"
                 type="file"
                 accept=".csv,text/csv"
                 onChange={(event) => {
@@ -295,13 +302,17 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                 }}
               />
             </label>
-            <textarea
-              aria-label="Batch CSV"
-              rows={6}
-              value={csv}
-              onChange={(event) => setCSV(event.target.value)}
-              className="w-full rounded border bg-background p-2"
-            />
+            <label className="grid gap-1.5 text-sm font-medium">
+              Or paste CSV
+              <textarea
+                aria-label="Batch CSV"
+                rows={6}
+                value={csv}
+                placeholder={'caption,asset,channels\n"Launch day",hero.png,x;linkedin'}
+                onChange={(event) => setCSV(event.target.value)}
+                className="w-full rounded-lg border border-input bg-background p-3 font-mono text-xs font-normal"
+              />
+            </label>
             <Button onClick={build}>Review import</Button>
           </>
         ) : (
@@ -311,6 +322,9 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                 <li key={row.key} className="rounded border p-2">
                   <p>
                     Row {index + 1} · {row.asset}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Channels: {row.channels.join(', ') || 'every connected account'}
                   </p>
                   <textarea
                     aria-label={`Caption for import row ${index + 1}`}
@@ -336,7 +350,7 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                       Draft created
                     </a>
                   ) : (
-                    <span>{row.error ?? 'Ready to import'}</span>
+                    <span>{row.error ?? problem(row) ?? 'Ready to import'}</span>
                   )}
                   {row.definitiveFailure && !row.id ? (
                     <Button
@@ -368,7 +382,10 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                 </li>
               ))}
             </ol>
-            <Button disabled={busy || rows.every((row) => !!row.id)} onClick={() => void create()}>
+            <Button
+              disabled={busy || rows.every((row) => !!row.id || !!problem(row))}
+              onClick={() => void create()}
+            >
               {busy ? 'Importing…' : 'Create remaining drafts'}
             </Button>
             <Button

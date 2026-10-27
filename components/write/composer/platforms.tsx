@@ -72,8 +72,8 @@ export function PlatformTabs({
               className={cn(
                 'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors',
                 active === channel
-                  ? 'border-white/20 bg-white/[0.08] text-white'
-                  : 'border-white/[0.06] text-neutral-400 hover:text-white'
+                  ? 'border-input bg-foreground/[0.08] text-foreground'
+                  : 'border-border text-muted-foreground hover:text-foreground'
               )}
               data-testid={`platform-tab-${channel}`}
               key={channel}
@@ -89,17 +89,21 @@ export function PlatformTabs({
                 className={cn(
                   'rounded-full px-1.5 text-[10px]',
                   mode === 'primary'
-                    ? 'bg-sky-400/15 text-sky-200'
+                    ? 'bg-sky-400/15 text-sky-700 dark:text-sky-200'
                     : mode === 'manual'
-                      ? 'bg-amber-400/15 text-amber-200'
-                      : 'bg-white/[0.06] text-neutral-400'
+                      ? 'bg-amber-400/15 text-amber-700 dark:text-amber-200'
+                      : 'bg-foreground/[0.06] text-muted-foreground'
                 )}
               >
                 {mode === 'primary' ? 'Main version' : mode === 'manual' ? 'Own text' : 'Use main version'}
               </span>
-              {!publishing ? <span className="text-[10px] text-neutral-400">· off</span> : null}
+              {!publishing ? (
+                <span className="text-[10px] text-muted-foreground">
+                  {account ? '· off' : '· not connected'}
+                </span>
+              ) : null}
               {account && account.health !== 'connected' ? (
-                <span className="text-amber-300" title={healthLabel(account.health)}>
+                <span className="text-amber-700 dark:text-amber-300" title={healthLabel(account.health)}>
                   ⚠
                 </span>
               ) : null}
@@ -109,7 +113,7 @@ export function PlatformTabs({
       </div>
       {onManage ? (
         <Button
-          className="ml-1 text-xs text-neutral-400 hover:text-white"
+          className="ml-1 text-xs text-muted-foreground hover:text-foreground"
           onClick={onManage}
           size={null}
           type="button"
@@ -195,7 +199,7 @@ export function ManagePlatformsDialog({
             </DialogDescription>
           </DialogHeader>
           {accounts.length === 0 ? (
-            <p className="text-sm text-neutral-400">
+            <p className="text-sm text-muted-foreground">
               Connect an account to publish. You can write your draft now.
             </p>
           ) : (
@@ -205,16 +209,16 @@ export function ManagePlatformsDialog({
                 const version = versionFor(versions, account.channel)
                 const supported = CAPABILITIES[account.channel].kinds.includes(kind)
                 return (
-                  <li className="rounded-lg border border-white/[0.06] p-3" key={account.id}>
+                  <li className="rounded-lg border border-border p-3" key={account.id}>
                     <div className="flex items-center gap-3">
-                      <ChannelIcon channel={account.channel} className="size-4 text-neutral-300" />
+                      <ChannelIcon channel={account.channel} className="size-4 text-foreground" />
                       <span className="min-w-0 flex-1 text-sm">
-                        <span className="block truncate text-white">
+                        <span className="block truncate text-foreground">
                           {account.displayName ??
                             account.handle ??
                             CHANNEL_META[account.channel].label}
                         </span>
-                        <span className="block text-[11px] text-neutral-400">
+                        <span className="block text-[11px] text-muted-foreground">
                           {account.handle ? `@${account.handle} · ` : ''}
                           {healthLabel(account.health)}
                           {account.channel === 'x'
@@ -232,13 +236,13 @@ export function ManagePlatformsDialog({
                       />
                     </div>
                     {!supported ? (
-                      <p className="mt-1 text-[11px] text-neutral-400">
+                      <p className="mt-1 text-[11px] text-muted-foreground">
                         {CHANNEL_META[account.channel].label} does not take this kind of draft.
                       </p>
                     ) : null}
                     {account.health !== 'connected' ? (
                       <a
-                        className="mt-1 block text-[11px] text-amber-300 underline"
+                        className="mt-1 block text-[11px] text-amber-700 dark:text-amber-300 underline"
                         href="/workspace/channels"
                       >
                         Reconnect in workspace settings
@@ -246,14 +250,14 @@ export function ManagePlatformsDialog({
                     ) : null}
                     {on && account.channel !== primary ? (
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                        <span className="text-neutral-400">Text:</span>
+                        <span className="text-muted-foreground">Text:</span>
                         <Button
                           aria-pressed={version.mode === 'synced'}
                           className={cn(
                             'rounded-full border px-2 py-0.5',
                             version.mode === 'synced'
-                              ? 'border-sky-400/50 text-sky-200'
-                              : 'border-white/10 text-neutral-400'
+                              ? 'border-sky-400/50 text-sky-700 dark:text-sky-200'
+                              : 'border-border text-muted-foreground'
                           )}
                           onClick={() => version.mode === 'manual' && setResync(account.channel)}
                           size={null}
@@ -267,8 +271,8 @@ export function ManagePlatformsDialog({
                           className={cn(
                             'rounded-full border px-2 py-0.5',
                             version.mode === 'manual'
-                              ? 'border-amber-400/50 text-amber-200'
-                              : 'border-white/10 text-neutral-400'
+                              ? 'border-amber-400/50 text-amber-700 dark:text-amber-200'
+                              : 'border-border text-muted-foreground'
                           )}
                           onClick={() =>
                             version.mode === 'synced' &&
@@ -291,7 +295,7 @@ export function ManagePlatformsDialog({
                         {versionFor(versions, account.channel).mode === 'synced' &&
                         CAPABILITIES[account.channel].kinds.includes(kind) ? (
                           <Button
-                            className="ml-auto text-neutral-400 hover:text-white"
+                            className="ml-auto text-muted-foreground hover:text-foreground"
                             onClick={() => onChange({ primaryPlatform: account.channel })}
                             size={null}
                             type="button"
@@ -315,7 +319,7 @@ export function ManagePlatformsDialog({
                 </Button>
               ))}
             </div>
-          ) : accounts.length === 0 ? <p className="text-sm text-neutral-400">Ask an admin or publisher to connect an account.</p> : null}
+          ) : accounts.length === 0 ? <p className="text-sm text-muted-foreground">Ask an admin or publisher to connect an account.</p> : null}
           <DialogFooter>
             <Button onClick={onClose} type="button">
               Done
@@ -374,7 +378,7 @@ export function SyncedVersion({
   const posts = serializeDraft(value, channel).posts
   return (
     <div className="mx-auto max-w-2xl px-6 py-6" data-testid={`synced-version-${channel}`}>
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs text-neutral-400">
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-foreground/[0.02] px-3 py-2 text-xs text-muted-foreground">
         <span className="flex-1">
           {CHANNEL_META[channel].label} follows {CHANNEL_META[primary].label}: what you write there
           appears here
@@ -387,12 +391,12 @@ export function SyncedVersion({
         ) : null}
       </div>
       {(channel === 'bluesky' || channel === 'instagram') && (
-        <p className="mb-3 text-xs text-neutral-400">{CHANNEL_META[channel].label}: polls unavailable</p>
+        <p className="mb-3 text-xs text-muted-foreground">{CHANNEL_META[channel].label}: polls unavailable</p>
       )}
-      {posts.length === 0 ? <p className="text-sm text-neutral-400">Nothing written yet.</p> : null}
+      {posts.length === 0 ? <p className="text-sm text-muted-foreground">Nothing written yet.</p> : null}
       {posts.map((post, index) => (
         <article
-          className="mb-3 whitespace-pre-wrap rounded-lg border border-white/[0.04] p-3 text-[15px] leading-relaxed text-neutral-200"
+          className="mb-3 whitespace-pre-wrap rounded-lg border border-border p-3 text-[15px] leading-relaxed text-foreground"
           key={index}
         >
           {post.caption}
@@ -424,8 +428,8 @@ export function ManualVersionNotice({
       className={cn(
         'mx-auto mt-3 flex max-w-2xl flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs',
         changed
-          ? 'border-amber-400/30 bg-amber-400/[0.05] text-amber-100'
-          : 'border-white/[0.06] text-neutral-400'
+          ? 'border-amber-400/30 bg-amber-400/[0.05] text-amber-700 dark:text-amber-100'
+          : 'border-border text-muted-foreground'
       )}
       data-testid={`manual-version-${channel}`}
     >
@@ -474,15 +478,15 @@ export function CompareDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Label className="grid gap-1 text-xs text-neutral-400">
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             From {CHANNEL_META[primary].label}
-            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm text-neutral-200">
+            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-foreground/[0.03] p-3 font-sans text-sm text-foreground">
               {fromPrimary || ' '}
             </pre>
           </Label>
-          <Label className="grid gap-1 text-xs text-neutral-400">
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             {CHANNEL_META[channel].label}’s own (publishes)
-            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/[0.03] p-3 font-sans text-sm text-neutral-200">
+            <pre className="max-h-80 overflow-y-auto whitespace-pre-wrap rounded-lg bg-foreground/[0.03] p-3 font-sans text-sm text-foreground">
               {own || ' '}
             </pre>
           </Label>

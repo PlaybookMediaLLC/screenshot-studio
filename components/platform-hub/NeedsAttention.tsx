@@ -10,8 +10,8 @@ export function NeedsAttention() {
   return (
     <section aria-label="Needs attention" className="home-attention space-y-4">
       <div>
-        <h2 className="text-sm font-medium">Needs attention</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <h2 className="text-lg font-normal tracking-[-0.01em]">Needs attention</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
           Comments, reviews, and workspace updates.
         </p>
       </div>

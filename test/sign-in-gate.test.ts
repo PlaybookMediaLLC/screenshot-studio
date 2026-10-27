@@ -50,7 +50,7 @@ test('a stale session cookie is checked, not trusted', async () => {
 test('free scheduling does not grant access to paid image tools', async () => {
   const unpaid = { ...paid, hasPaidPlan: false }
   const target = await productPageRedirect(request('/de/tweet', session), async () => unpaid)
-  assert.equal(target?.href, 'https://shots.playbookmedia.io/de/pricing?subscribe=required')
+  assert.equal(target?.href, 'https://shots.playbookmedia.io/de/upgrade?from=%2Ftweet')
   const noWorkspace = { ...paid, hasOrganization: false }
   const onboarding = await productPageRedirect(request('/code', session), async () => noWorkspace)
   assert.equal(onboarding?.pathname, '/onboarding')

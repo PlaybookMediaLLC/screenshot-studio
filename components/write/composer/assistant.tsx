@@ -90,11 +90,11 @@ export function AssistantPanel({
   }
   return (
     <div className="flex h-full flex-col gap-3 p-4 text-sm" data-testid="assistant-panel">
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-muted-foreground">
         Writing in {set?.name ?? 'this set'}’s voice
         {configured ? '' : ' (no style guide yet)'}.{' '}
         <Button
-          className="text-sky-300"
+          className="text-sky-700 dark:text-sky-300"
           onClick={() => setSetup(true)}
           size={null}
           type="button"
@@ -103,7 +103,7 @@ export function AssistantPanel({
           Style guide and samples
         </Button>
       </p>
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-muted-foreground">
         Workspace defaults → Social-set overrides → Your instructions for this draft. Prohibited
         terms always apply.
       </p>
@@ -123,14 +123,14 @@ export function AssistantPanel({
           ))}
         </select>
       </label>
-      <details className="rounded-lg border border-white/[0.06] p-3">
+      <details className="rounded-lg border border-border p-3">
         <summary className="cursor-pointer">Writing prompts and examples</summary>
-        <p className="my-2 text-xs text-neutral-400">Examples show a structure. Use your own facts and experience.</p>
+        <p className="my-2 text-xs text-muted-foreground">Examples show a structure. Use your own facts and experience.</p>
         <ul className="grid gap-3">
           {WRITING_PROMPTS.map((prompt) => (
             <li key={prompt.id}>
               <Button type="button" variant="outline" size="sm" onClick={() => setMessage(prompt.instruction)}>{prompt.title}</Button>
-              <p className="mt-1 whitespace-pre-wrap text-xs text-neutral-400">{prompt.example}</p>
+              <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{prompt.example}</p>
             </li>
           ))}
         </ul>
@@ -142,7 +142,7 @@ export function AssistantPanel({
         <div className="grid gap-1.5">
           {STARTERS.map((starter) => (
             <Button
-              className="h-auto justify-start whitespace-normal rounded-lg border border-white/[0.06] px-3 py-2 text-left text-xs"
+              className="h-auto justify-start whitespace-normal rounded-lg border border-border px-3 py-2 text-left text-xs"
               key={starter}
               onClick={() => void send(starter)}
               size={null}
@@ -159,18 +159,18 @@ export function AssistantPanel({
             <li
               className={
                 turn.role === 'user'
-                  ? 'ml-6 rounded-lg bg-white/[0.06] px-3 py-2'
-                  : 'rounded-lg border border-white/[0.06] px-3 py-2'
+                  ? 'ml-6 rounded-lg bg-foreground/[0.06] px-3 py-2'
+                  : 'rounded-lg border border-border px-3 py-2'
               }
               data-testid={`assistant-${turn.role}`}
               key={index}
             >
-              <p className="whitespace-pre-wrap text-neutral-200">{turn.content}</p>
+              <p className="whitespace-pre-wrap text-foreground">{turn.content}</p>
               {turn.role === 'assistant' ? (
                 <p className="mt-1.5 flex gap-2 text-xs">
                   {onInsert ? (
                     <Button
-                      className="text-sky-300"
+                      className="text-sky-700 dark:text-sky-300"
                       // Only the post goes in: never the model's introduction.
                       onClick={() => assistPosts(turn.content).forEach(onInsert)}
                       size={null}
@@ -181,7 +181,7 @@ export function AssistantPanel({
                     </Button>
                   ) : null}
                   <Button
-                    className="text-neutral-400 hover:text-white"
+                    className="text-muted-foreground hover:text-foreground"
                     onClick={() => {
                       void navigator.clipboard.writeText(turn.content)
                       toast.success('Copied.')
@@ -196,7 +196,7 @@ export function AssistantPanel({
               ) : null}
             </li>
           ))}
-          {busy ? <li className="text-xs text-neutral-400">Writing…</li> : null}
+          {busy ? <li className="text-xs text-muted-foreground">Writing…</li> : null}
         </ol>
       )}
       <form
@@ -219,7 +219,7 @@ export function AssistantPanel({
           rows={3}
           value={message}
         />
-        <span className="flex items-center justify-between text-[11px] text-neutral-400">
+        <span className="flex items-center justify-between text-[11px] text-muted-foreground">
           Uses your workspace’s AI credits.
           <Button disabled={busy || !message.trim()} size="sm" type="submit">
             Send
@@ -239,8 +239,8 @@ function AssistantSetup({ onDone, set }: { onDone: () => void; set: WriteSet | n
   const { canManageSets } = useWrite()
   return (
     <div className="grid gap-3 p-4 text-sm" data-testid="assistant-setup">
-      <p className="text-neutral-300">Set up the assistant for {set?.name ?? 'this set'}</p>
-      <p className="text-xs text-neutral-400">
+      <p className="text-foreground">Set up the assistant for {set?.name ?? 'this set'}</p>
+      <p className="text-xs text-muted-foreground">
         The assistant and Rewrite write in the brand&rsquo;s voice: its style guide and writing
         samples. Everyone who writes in the set shares it.
       </p>
@@ -249,7 +249,7 @@ function AssistantSetup({ onDone, set }: { onDone: () => void; set: WriteSet | n
           <Link href={socialSetHref(set.id, 'writing-assistant')}>Open the Writing Assistant</Link>
         </Button>
       ) : (
-        <p className="text-xs text-neutral-400">
+        <p className="text-xs text-muted-foreground">
           An owner or admin sets up the Writing Assistant for a set.
         </p>
       )}

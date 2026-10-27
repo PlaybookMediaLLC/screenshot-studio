@@ -25,7 +25,7 @@ import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useSocialSetScope } from './scope'
 import { z } from 'zod'
-import { StackIcon as Layers } from '@phosphor-icons/react/dist/ssr/Stack'
+import { CanvasIcon as Layers } from '@/components/platform-shell/icons'
 import { type SocialSetRecord, useSocialSets, useStoreSocialSet } from './api'
 import { ConnectionLauncher } from '@/components/social-connections/ConnectionLauncher'
 
@@ -113,17 +113,17 @@ function CreateSet({ canManage }: { canManage: boolean }) {
     <Group>
       <Row
         description="Start with a connected account, then add the platforms this person or brand posts from."
-        label="New social set"
+        label="New publishing brand"
         layout="stacked"
       >
         <div className="flex flex-wrap gap-2">
           <ConnectionLauncher intent={{ operation: 'CREATE_SET', creationVisibility: 'PRIVATE' }}>
-            <Button aria-label="Add social set to your personal workspace">
-              New private social set
+            <Button aria-label="Add publishing brand to your personal workspace">
+              New private publishing brand
             </Button>
           </ConnectionLauncher>
           <ConnectionLauncher intent={{ operation: 'CREATE_SET', creationVisibility: 'WORKSPACE' }}>
-            <Button variant="outline">New workspace social set</Button>
+            <Button variant="outline">New workspace publishing brand</Button>
           </ConnectionLauncher>
         </div>
       </Row>

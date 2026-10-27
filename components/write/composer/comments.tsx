@@ -92,7 +92,7 @@ export function CommentsPanel({
   const resolved = threads.filter((thread) => thread.isResolved)
   return (
     <div className="flex flex-col gap-4 p-4 text-sm" data-testid="comments-panel">
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-muted-foreground">
         Select text and press {mod}⇧M to comment on it. Mention a teammate with @. You can edit and
         delete only your own comments.
       </p>
@@ -114,20 +114,20 @@ export function CommentsPanel({
       />
       {draft.guestComments.length > 0 ? (
         <section>
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
+          <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             From the public link
           </h3>
           <ul className="grid gap-2" data-testid="guest-comments">
             {draft.guestComments.map((comment) => (
               <li
-                className="rounded-lg border border-white/[0.06] px-3 py-2"
+                className="rounded-lg border border-border px-3 py-2"
                 key={`${comment.createdAt}-${comment.name}`}
               >
-                <p className="text-xs text-neutral-400">
-                  <span className="text-neutral-200">{comment.name}</span> ·{' '}
+                <p className="text-xs text-muted-foreground">
+                  <span className="text-foreground">{comment.name}</span> ·{' '}
                   <LocalTime value={comment.createdAt} />
                 </p>
-                <p className="mt-0.5 whitespace-pre-wrap text-sm text-neutral-200">
+                <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground">
                   {comment.text}
                 </p>
               </li>
@@ -157,7 +157,7 @@ function ThreadList({
   if (threads.length === 0) return null
   return (
     <section>
-      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-400">
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {title} · {threads.length}
       </h3>
       <ul className="grid gap-2">
@@ -167,23 +167,23 @@ function ThreadList({
           const first = thread.comments?.[0]
           return (
             <li
-              className="rounded-lg border border-white/[0.06] px-3 py-2"
+              className="rounded-lg border border-border px-3 py-2"
               data-testid="comment-thread"
               key={thread.id}
             >
               {thread.documentContent ? (
-                <p className="mb-1 line-clamp-2 border-l-2 border-amber-400/50 pl-2 text-xs text-neutral-400">
+                <p className="mb-1 line-clamp-2 border-l-2 border-amber-400/50 pl-2 text-xs text-muted-foreground">
                   “{thread.documentContent}”
                 </p>
               ) : null}
               {orphaned ? (
-                <p className="mb-1 text-[11px] text-amber-300" data-testid="orphaned-thread">
+                <p className="mb-1 text-[11px] text-amber-700 dark:text-amber-300" data-testid="orphaned-thread">
                   The text this comment was on was removed. It stays here; it is not moved to other
                   text.
                 </p>
               ) : null}
-              <p className="text-sm text-neutral-200">{commentText(first?.contentRich) || ' '}</p>
-              <p className="mt-1 flex items-center justify-between text-[11px] text-neutral-400">
+              <p className="text-sm text-foreground">{commentText(first?.contentRich) || ' '}</p>
+              <p className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
                 <span>
                   {users[first?.userId ?? ''] ?? 'Member'}
                   {thread.comments && thread.comments.length > 1
@@ -195,7 +195,7 @@ function ThreadList({
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          className="text-neutral-400 hover:text-white"
+                          className="text-muted-foreground hover:text-foreground"
                           size={null}
                           type="button"
                           variant="custom"
@@ -206,7 +206,7 @@ function ThreadList({
                       <PopoverContent className="grid w-72 gap-2 p-3 text-xs">
                         {thread.comments.slice(1).map((comment) => (
                           <p key={comment.id}>
-                            <span className="text-neutral-400">
+                            <span className="text-muted-foreground">
                               {users[comment.userId] ?? 'Member'}:
                             </span>{' '}
                             {commentText(comment.contentRich)}
@@ -216,7 +216,7 @@ function ThreadList({
                     </Popover>
                   ) : null}
                   <Button
-                    className="text-sky-300 hover:text-sky-200"
+                    className="text-sky-700 dark:text-sky-300 hover:text-sky-800 dark:hover:text-sky-200"
                     onClick={() => onAction(thread.id)}
                     size={null}
                     type="button"

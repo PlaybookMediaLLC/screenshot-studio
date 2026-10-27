@@ -14,6 +14,30 @@ export const PLATFORM_DESTINATIONS = [
 
 export type PlatformArea = (typeof PLATFORM_DESTINATIONS)[number]['key']
 
+/** The task words people search with, so "draft" finds Publish and "screenshot" finds Create. */
+const DESTINATION_ALIASES: Record<PlatformArea, string[]> = {
+  home: ['dashboard', 'start'],
+  create: ['screenshot', 'editor', 'canvas', 'visual', 'design', 'mockup', 'store', 'image'],
+  campaigns: ['launch', 'release', 'brief'],
+  publish: ['write', 'draft', 'post', 'schedule', 'calendar', 'thread', 'link check', 'brand'],
+  library: ['project', 'asset', 'template', 'brand kit', 'media'],
+  automate: ['workflow', 'automation', 'source', 'run'],
+  activity: ['history', 'log', 'feed'],
+  settings: ['billing', 'plan', 'member', 'team', 'account', 'integration', 'workspace'],
+}
+
+/** Whether a destination search matches an area by its label or a task word, either way round. */
+export function matchesDestination(key: PlatformArea, label: string, query: string): boolean {
+  const search = query.trim().toLowerCase()
+  return (
+    !search ||
+    [label, ...DESTINATION_ALIASES[key]].some((term) => {
+      const word = term.toLowerCase()
+      return word.includes(search) || search.includes(word)
+    })
+  )
+}
+
 /** One Publish vocabulary for every page in the area; `scope` keeps the publishing brand. */
 export function publishLinks(scope = '', returnTo = `/write${scope}`) {
   return [
@@ -83,4 +107,43 @@ export function safeReturnPath(value: string | null | undefined, fallback = '/ho
   )
     return fallback
   return value
+}
+
+/**
+ * The paid capability an in-app path opens, named for the plan page, or null
+ * when the path names none. Areas use their navigation label; the editors and
+ * tools inside Create are named for themselves.
+ */
+export function paidCapability(from: string | null | undefined): string | null {
+  const target = safeReturnPath(from, '')
+  if (!target) return null
+  const [path = '', query = ''] = target.split('?')
+  const params = new URLSearchParams(query)
+  if (path === '/' || path === '/editor')
+    return params.get('editor') === 'app-store' ? 'Store screenshots' : 'The screenshot editor'
+  const tools: [string, string][] = [
+    ['/canvas', 'Canvas'],
+    ['/creative-sets', 'Story Sets'],
+    ['/store-screenshots', 'Store screenshots'],
+    ['/code', 'Code images'],
+    ['/tweet', 'Post images'],
+    ['/projects', 'Library'],
+    ['/assets', 'Library'],
+  ]
+  const tool = tools.find(([route]) => path === route || path.startsWith(`${route}/`))
+  if (tool) return tool[1]
+  const area = platformArea(path)
+  const destination = PLATFORM_DESTINATIONS.find((item) => item.key === area)
+  return destination && area !== 'home' && area !== 'publish' && area !== 'settings'
+    ? destination.label
+    : needsSignInTool(path)
+}
+
+/** Image tools sit outside the areas; they share one name on the plan page. */
+function needsSignInTool(path: string): string | null {
+  return /^\/(tools|[a-z]+-to-[a-z]+|(compress|convert|resize|crop|rotate)-(image|video)|remove-background|mockup-generator)(\/|$)/.test(
+    path
+  )
+    ? 'Image tools'
+    : null
 }

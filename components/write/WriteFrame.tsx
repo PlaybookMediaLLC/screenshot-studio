@@ -314,7 +314,7 @@ function FrameLayout({
       >
         <div
           className={cn(
-            'w-full shrink-0 border-white/[0.06] md:w-80 md:border-r',
+            'w-full shrink-0 border-border md:w-80 md:border-r',
             activeId ? 'hidden' : 'block',
             railOpen ? 'md:block' : 'md:hidden'
           )}
@@ -322,7 +322,11 @@ function FrameLayout({
           <WriteRail key={data.activeSet?.id ?? 'none'} />
         </div>
         <main
-          className={cn('relative min-w-0 flex-1 overflow-y-auto', !activeId && 'hidden md:block')}
+          className={cn(
+            // Focused controls scroll clear of the floating formatting bar.
+            'relative min-w-0 flex-1 scroll-pb-32 overflow-y-auto',
+            !activeId && 'hidden md:block'
+          )}
         >
           {children}
         </main>
@@ -381,7 +385,7 @@ function FrameLayout({
           </DialogHeader>
           {SHORTCUT_REFERENCE.map((group) => (
             <section key={group.group}>
-              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-400">
+              <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {group.group}
               </h3>
               <dl
@@ -390,9 +394,9 @@ function FrameLayout({
               >
                 {group.items.map((item) => (
                   <React.Fragment key={`${group.group}-${item.label}`}>
-                    <dt className="text-neutral-300">{item.label}</dt>
+                    <dt className="text-foreground">{item.label}</dt>
                     <dd>
-                      <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-xs text-neutral-200">
+                      <kbd className="rounded border border-border bg-foreground/[0.04] px-1.5 py-0.5 text-xs text-foreground">
                         {keys.label(item)}
                       </kbd>
                     </dd>
@@ -413,7 +417,7 @@ export function DraftsDrawerButton() {
   return (
     <Button
       aria-label="Drafts"
-      className="rounded-md px-2 py-1 text-sm text-neutral-400 hover:text-white md:hidden"
+      className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:text-foreground md:hidden"
       onClick={openDrawer}
       size={null}
       type="button"

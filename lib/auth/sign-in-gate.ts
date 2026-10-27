@@ -55,7 +55,7 @@ export type GateAccess = {
 /**
  * Where to send a visitor who asks for a product page without everything it
  * needs: sign-in (then back to the page), onboarding, workspace recovery, or
- * choosing a paid plan for these image tools. Basic scheduling has its own page guard. Null lets the request through.
+ * the in-app plan page for these image tools. Basic scheduling has its own page guard. Null lets the request through.
  * `loadAccess` reads the session and workspace; it runs only on product pages
  * that carry a session cookie.
  */
@@ -74,6 +74,11 @@ export async function productPageRedirect(
   }
   if (!access.hasOrganization) return to('/onboarding')
   if (!access.isWorkspaceOperational) return to('/workspace')
-  if (!access.hasPaidPlan) return to('/pricing?subscribe=required')
+  if (!access.hasPaidPlan) {
+    // The in-app plan page names the tool and returns to it; public pricing drops both.
+    const target = to('/upgrade')
+    target.searchParams.set('from', unlocalized(request.nextUrl.pathname) + request.nextUrl.search)
+    return target
+  }
   return null
 }

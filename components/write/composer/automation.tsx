@@ -183,8 +183,8 @@ function Row({
       data-testid={`automation-${label.toLowerCase()}`}
     >
       <span className="min-w-0 flex-1">
-        <span className="text-neutral-200">{label}</span>
-        <span className="block text-neutral-400">{detail}</span>
+        <span className="text-foreground">{label}</span>
+        <span className="block text-muted-foreground">{detail}</span>
       </span>
       {on && onEdit ? (
         <Button
@@ -312,7 +312,7 @@ function RetweetDialog({
             const at = parsed[index] ? retweetAt(parsed[index], publishAt) : null
             return (
               <li
-                className="grid gap-1.5 rounded-md border border-white/[0.06] p-2 text-sm"
+                className="grid gap-1.5 rounded-md border border-border p-2 text-sm"
                 data-testid="retweet-rule"
                 key={index}
               >
@@ -387,7 +387,7 @@ function RetweetDialog({
                     Remove
                   </Button>
                 </div>
-                <p className="text-xs text-neutral-400" data-testid="retweet-projection">
+                <p className="text-xs text-muted-foreground" data-testid="retweet-projection">
                   {at
                     ? `If published ${publishAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone })}: reposts ${at.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone })}`
                     : 'Set a time between one minute and 30 days after publishing.'}
@@ -510,7 +510,7 @@ function PlugDialog({
             </SelectContent>
           </Select>
         </div>
-        <Label className="grid gap-1 text-xs text-neutral-400">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           Reply
           <Textarea
             aria-label="Plug reply"
@@ -519,17 +519,17 @@ function PlugDialog({
             rows={4}
             value={text}
           />
-          <span className={length > 280 ? 'text-red-300' : ''} data-testid="plug-count">
+          <span
+            className={length > 280 ? 'text-red-700 dark:text-red-300' : ''}
+            data-testid="plug-count"
+          >
             {length} / 280
           </span>
         </Label>
         {text.trim() ? (
-          <div
-            className="rounded-lg border border-white/[0.06] p-3 text-sm"
-            data-testid="plug-preview"
-          >
-            <p className="text-xs text-neutral-400">Reply preview — not published</p>
-            <p className="mt-1 whitespace-pre-wrap text-neutral-200">{text}</p>
+          <div className="rounded-lg border border-border p-3 text-sm" data-testid="plug-preview">
+            <p className="text-xs text-muted-foreground">Reply preview — not published</p>
+            <p className="mt-1 whitespace-pre-wrap text-foreground">{text}</p>
           </div>
         ) : null}
         <DialogFooter className="gap-2 sm:justify-between">

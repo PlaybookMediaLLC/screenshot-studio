@@ -146,7 +146,7 @@ test('settings search groups destinations and workspace creation lives in the wo
   await expect(page.getByText(/Allowances reset .* at 00:00 UTC/)).toBeVisible()
   await navigation.getByRole('searchbox', { name: 'Search settings' }).fill('no-such-setting')
   await expect(navigation.getByText('No settings match your search.')).toBeVisible()
-  await page.getByRole('button', { name: /^Workspace:/ }).click()
+  await page.getByRole('button', { name: 'Open account menu' }).click()
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Workspace name', exact: true })).toBeVisible()
 })

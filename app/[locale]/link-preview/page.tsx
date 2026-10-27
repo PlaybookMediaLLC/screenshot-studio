@@ -1,6 +1,6 @@
 import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
 import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
-import { publishLinks } from '@/lib/platform/navigation'
+import { publishLinks, safeReturnPath } from '@/lib/platform/navigation'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -14,10 +14,18 @@ export const metadata: Metadata = { title: 'Link checks', robots: { index: false
 
 type LinkPreviewPageProps = {
   params: Promise<{ locale: string }>
+  searchParams: Promise<{ returnTo?: string | string[]; set?: string | string[] }>
 }
 
-export default async function LinkPreviewPage({ params }: LinkPreviewPageProps) {
-  const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
+export default async function LinkPreviewPage({ params, searchParams }: LinkPreviewPageProps) {
+  const [{ locale }, query, requestHeaders] = await Promise.all([params, searchParams, headers()])
+  // The Publish tabs keep the brand and the work this check was opened from.
+  const set = typeof query.set === 'string' && /^[\w-]+$/.test(query.set) ? query.set : null
+  const scope = set ? `?set=${set}` : ''
+  const returnTo = safeReturnPath(
+    typeof query.returnTo === 'string' ? query.returnTo : null,
+    `/write${scope}`
+  )
   const access = await getPageAccess(requestHeaders)
   if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
   if (!access.hasOrganization || !access.organization) {
@@ -34,7 +42,9 @@ export default async function LinkPreviewPage({ params }: LinkPreviewPageProps) 
         description="See how a link unfurls on 13 platforms, fix what breaks it, make its preview image, and share it with tracked links."
         title="Link checks"
       >
-        {contentDraftsEnabled() ? <AreaNavigation items={publishLinks()} label="Publish" /> : null}
+        {contentDraftsEnabled() ? (
+          <AreaNavigation items={publishLinks(scope, returnTo)} label="Publish" />
+        ) : null}
         <ReturnToWork />
         <LinkPreviewApp />
       </Page>

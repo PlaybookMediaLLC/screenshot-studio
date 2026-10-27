@@ -86,10 +86,12 @@ test('provider-first creation stays layered, commits once, and preserves its set
     await expect(page.getByText('No publishing brands yet', { exact: true })).toBeVisible()
     expect(await list()).toHaveLength(0)
     const originalURL = page.url()
-    const launch = page.getByRole('button', { name: 'Add social set to your personal workspace' })
+    const launch = page.getByRole('button', {
+      name: 'Add publishing brand to your personal workspace',
+    })
     await launch.click()
     const dialog = page.getByRole('dialog')
-    await expect(dialog.getByRole('heading', { name: 'Create a social set' })).toBeVisible()
+    await expect(dialog.getByRole('heading', { name: 'Create a publishing brand' })).toBeVisible()
     await expect(
       dialog.getByText('Private to you in this workspace', { exact: true })
     ).toBeVisible()

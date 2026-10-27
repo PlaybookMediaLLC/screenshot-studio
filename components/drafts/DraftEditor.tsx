@@ -10,6 +10,7 @@ const LibraryAssetPicker = dynamic(
   { ssr: false }
 )
 import { toast } from 'sonner'
+import './draft-prose.css'
 import {
   BaseEditorKit,
   createEditorKit,
@@ -63,6 +64,7 @@ import { POST_COLUMN } from './layout'
 import {
   insertPostBreak,
   insertPostAfter,
+  leaveHeader,
   postRanges,
   PostBreakPlugin,
   PostHeaderContext,
@@ -215,6 +217,7 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
   const discussions = usePluginOption(discussionPlugin, 'discussions')
   const open = Boolean(activeId) || discussions.some((discussion) => !discussion.isResolved)
   const wrapper = React.useRef<HTMLDivElement>(null)
+  const editor = useEditorRef()
   const [wide, setWide] = React.useState(false)
   React.useEffect(() => {
     if (!wrapper.current) return
@@ -223,7 +226,31 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
     return () => observer.disconnect()
   }, [])
   return (
-    <div ref={wrapper}>
+    <div
+      ref={wrapper}
+      // A new draft's caret starts on the post's void header, which drops a paste
+      // (Slate ignores non-editable targets). Put the paste in the post's text.
+      // A plugin in Plate's key pipeline claims the redo shortcut without redoing, so
+      // Slate never reaches its own redo. The history (Yjs's undo manager) is intact.
+      onKeyDownCapture={(event) => {
+        const key = event.key.toLowerCase()
+        const redo =
+          ((event.metaKey || event.ctrlKey) && event.shiftKey && key === 'z') ||
+          (event.ctrlKey && !event.shiftKey && !event.metaKey && key === 'y')
+        if (!redo || event.altKey) return
+        event.preventDefault()
+        event.stopPropagation()
+        editor.redo()
+      }}
+      onPasteCapture={(event) => {
+        // A paste over a selection replaces it through Plate's own handling.
+        if (!editor.api.isCollapsed() || !leaveHeader(editor)) return
+        // Handled here, so Slate's own paste handler below does not insert it again.
+        event.preventDefault()
+        event.stopPropagation()
+        editor.tf.insertData(event.clipboardData)
+      }}
+    >
       <EditorContainer
         className={cn('h-auto min-h-[160px]', open && wide && 'pr-80')}
         data-testid="draft-editor"
@@ -478,7 +505,7 @@ function DraftToolbar({
   return (
     <Toolbar
       aria-label="Draft formatting"
-      className="flex flex-wrap items-center justify-center gap-0.5 rounded-2xl border border-foreground/[0.08] bg-secondary/95 px-1.5 py-1 shadow-xl shadow-black/40 backdrop-blur"
+      className="flex max-w-full flex-nowrap items-center justify-start gap-0.5 overflow-x-auto rounded-xl border border-border bg-card/95 px-1.5 py-1 shadow-lg backdrop-blur [&_button]:text-[13px]"
     >
       <ToolbarGroup>
         <MarkToolbarButton aria-label="Bold" nodeType={KEYS.bold} tooltip="Bold">
@@ -687,9 +714,10 @@ export default function DraftEditor({
         BlockPlaceholderKit[0].configure({
           options: { placeholders: { [KEYS.p]: 'What would you like to share?' } },
         }),
-        // Comments sit in a column beside the post; only a phone-narrow
-        // editor falls back to opening them over the text.
-        commentPlugin.configure({ options: { overlapWidth: 580 } }),
+        // Comments sit in a column beside the post once the text reaches its
+        // full measure (POST_COLUMN's 42rem); a narrower editor opens them as a
+        // popover over the text instead.
+        commentPlugin.configure({ options: { overlapWidth: 672 } }),
         discussionPlugin.configure({
           options: {
             currentUserId: user.id,
@@ -850,7 +878,7 @@ export default function DraftEditor({
                   aria-label="Draft body"
                   className={cn(
                     POST_COLUMN,
-                    'min-h-0 pt-1 pb-4 text-[15px] leading-relaxed [&_[placeholder]]:before:pointer-events-none [&_[placeholder]]:before:absolute [&_[placeholder]]:before:text-neutral-400 [&_[placeholder]]:before:content-[attr(placeholder)]'
+                    'draft-prose min-h-0 pt-1 pb-4 text-[15px] leading-relaxed [&_[placeholder]]:before:pointer-events-none [&_[placeholder]]:before:absolute [&_[placeholder]]:before:text-muted-foreground [&_[placeholder]]:before:content-[attr(placeholder)]'
                   )}
                   dir={textDirection}
                   placeholder="What would you like to share?"
@@ -881,8 +909,13 @@ export default function DraftEditor({
               // media tools can retain the empty pre-connection value until an edit.
               // The formatting bar floats at the bottom of the page, out of the text's way.
               <div
-                style={{ bottom: Math.max(20, keyboardInset) }}
-                className="pointer-events-none sticky z-10 flex justify-center px-2"
+                // One row, above the home indicator, so the controls above it stay reachable.
+                // inline-size containment keeps that row's width from widening the editor
+                // (which would switch comments to the wide side-column layout).
+                style={{
+                  bottom: `calc(${Math.max(20, keyboardInset)}px + env(safe-area-inset-bottom))`,
+                }}
+                className="pointer-events-none sticky z-10 flex justify-start px-2 [contain:inline-size] sm:ps-4"
               >
                 <div className="pointer-events-auto min-w-0 max-w-full">
                   <DraftToolbar

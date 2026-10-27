@@ -65,7 +65,9 @@ test('custom Mastodon authorization keeps the selected origin and commits one pr
       route.fulfill({ contentType: 'text/html', body: '<h1>Fixture Mastodon authorization</h1>' })
     )
     await page.goto('/workspace/social-sets')
-    await page.getByRole('button', { name: 'Add social set to your personal workspace' }).click()
+    await page
+      .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
+      .click()
     const dialog = page.getByRole('dialog')
     await dialog.getByRole('button', { name: 'Mastodon', exact: true }).click()
     await chooseOption(dialog.getByRole('combobox', { name: 'Mastodon server' }), /^Custom server/)

@@ -12,6 +12,7 @@ export default async function ReleaseInbox({ params }: { params: Promise<{ local
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>
       <Page
         title="Release inbox"
+        tagline="What shipped, ready to launch."
         description="Product changes and source evidence for your next campaign."
         actions={
           <ButtonLink href="/workflows?view=sources" variant="outline">

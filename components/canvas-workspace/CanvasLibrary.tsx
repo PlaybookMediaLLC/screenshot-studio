@@ -1,10 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
+import { CanvasIcon as StackIcon, GridIcon } from '@/components/platform-shell/icons'
+import { CanvasPages } from './CanvasPages'
+import { EmptyState } from '@/components/platform-ui'
+import { CreateScene } from '@/components/platform-ui/empty-scenes'
+import { PageSpread, type SpreadPage } from '@/components/platform-ui/page-spread'
+import { Stage } from '@/components/platform-landing/primitives'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { DotsThreeIcon as MoreHorizontalIcon } from '@phosphor-icons/react/dist/ssr/DotsThree'
+import { MoreIcon as MoreHorizontalIcon } from '@/components/platform-shell/icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -53,28 +60,113 @@ const ENTRY_POINTS = [
     href: '/canvas/new?blank=1',
     title: 'Blank canvas',
     detail: 'One 16:9 artboard, nothing to configure.',
+    pages: [{ kind: 'blank', ratio: '16:9' }],
+    add: true,
   },
   {
     href: '/canvas/new?start=screenshots',
     title: 'From product screenshots',
     detail: 'Drop in screens, get editable announcements.',
+    pages: [
+      { kind: 'screen', ratio: '16:9' },
+      { kind: 'hero', ratio: '1:1' },
+      { kind: 'phone', ratio: '9:16' },
+    ],
   },
   {
     href: '/canvas/new?start=feature',
     title: 'Announce a shipped feature',
     detail: 'Quoted from a release, with its screenshots.',
+    pages: [
+      { kind: 'hero', ratio: '16:9' },
+      { kind: 'quote', ratio: '4:5' },
+    ],
+    add: true,
   },
   {
     href: '/canvas/new?start=template',
     title: 'Start from a template',
     detail: 'Walkthroughs, comparisons, explainers, social packs.',
+    pages: [
+      { kind: 'screen', ratio: '4:3' },
+      { kind: 'chart', ratio: '1:1' },
+      { kind: 'doc', ratio: '4:5' },
+    ],
   },
   {
     href: '/canvas/new?recipe=product-launch',
     title: 'Product launch presentation',
     detail: 'Five artboards from problem to call to action.',
+    pages: (['hero', 'quote', 'screen', 'chart', 'cta'] as const).map((kind) => ({
+      kind,
+      ratio: '16:9',
+    })),
   },
-] as const
+] satisfies { href: string; title: string; detail: string; pages: SpreadPage[]; add?: boolean }[]
+
+/**
+ * A canvas's cover: one artboard at a time, with Canva-style page tabs to show
+ * the others in place when it has several. The tabs sit above the card's link.
+ */
+function CanvasCover({ item, onManage }: { item: Item; onManage?: () => void }) {
+  const artboards = item.document?.artboards ?? []
+  const [chosen, setPage] = useState(0)
+  // A save elsewhere can leave fewer pages than the one last shown.
+  const page = Math.min(chosen, Math.max(artboards.length - 1, 0))
+  // Five tabs fit; past that, the last steps through the remaining artboards.
+  const tabs = artboards.length > 5 ? 4 : artboards.length
+  return (
+    <>
+      <ProjectPreview
+        className="studio-cover"
+        retryable
+        alt={artboards.length > 1 ? `${item.name}, artboard ${page + 1}` : item.name}
+        document={artboards[page]?.document ?? null}
+      />
+      <span aria-hidden="true" className="studio-shot-overlay">
+        {item.name}
+      </span>
+      {artboards.length > 1 || (onManage && artboards.length) ? (
+        <span className="studio-pages" role="group" aria-label={`${item.name} artboards`}>
+          {artboards.slice(0, tabs).map((artboard, index) => (
+            <button
+              aria-label={`Show artboard ${index + 1} of ${artboards.length}`}
+              aria-pressed={page === index}
+              key={artboard.id}
+              onClick={() => setPage(index)}
+              onFocus={() => setPage(index)}
+              onPointerEnter={() => setPage(index)}
+              type="button"
+            >
+              {index + 1}
+            </button>
+          ))}
+          {artboards.length > tabs ? (
+            <button
+              aria-label={`Show the next of ${artboards.length - tabs} more artboards`}
+              aria-pressed={page >= tabs}
+              onClick={() => setPage(page >= tabs && page < artboards.length - 1 ? page + 1 : tabs)}
+              type="button"
+            >
+              {page >= tabs ? page + 1 : `+${artboards.length - tabs}`}
+            </button>
+          ) : null}
+          {onManage ? (
+            <button
+              aria-label={`Manage the pages of ${item.name}`}
+              className="studio-pages-manage"
+              onClick={onManage}
+              title="Pages"
+              type="button"
+            >
+              <GridIcon size={13} aria-hidden="true" />
+            </button>
+          ) : null}
+        </span>
+      ) : null}
+    </>
+  )
+}
 
 export function CanvasLibrary({
   embedded = false,
@@ -102,6 +194,7 @@ export function CanvasLibrary({
   const [error, setError] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
   const [renaming, setRenaming] = useState<Item | null>(null)
+  const [managing, setManaging] = useState<Item | null>(null)
   const [deleting, setDeleting] = useState<Item | null>(null)
   const [archiving, setArchiving] = useState<Item | null>(null)
   useEffect(() => {
@@ -153,11 +246,11 @@ export function CanvasLibrary({
   }
 
   return (
-    <Root className="w-full space-y-8 p-8">
+    <Root className={embedded ? 'w-full space-y-8' : 'w-full space-y-8 p-8'}>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="mb-2 text-xs uppercase tracking-[0.16em] text-sky-400">Infinite canvas</p>
-          <Heading className="text-3xl font-semibold tracking-tight">Canvas</Heading>
+          <p className="platform-eyebrow mb-2">Infinite canvas</p>
+          <Heading className="text-3xl font-normal tracking-tight">Canvas</Heading>
           <p className="mt-2 max-w-xl text-muted-foreground">
             Lay out a whole launch on one board: announcements, social formats, walkthroughs and
             diagrams, each an editable artboard that exports at its exact size.
@@ -171,18 +264,33 @@ export function CanvasLibrary({
       </header>
 
       {canEdit ? (
-        <section aria-label="Start something" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {ENTRY_POINTS.map((entry) => (
-            <Link
-              key={entry.href}
-              href={entry.href}
-              className="rounded-xl border p-4 transition-colors hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-ring"
-            >
-              <span className="block text-sm font-medium">{entry.title}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">{entry.detail}</span>
-            </Link>
-          ))}
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm sm:col-span-2 xl:col-span-5">
+        <section aria-label="Start something" className="grid gap-5">
+          <ul className="studio-grid studio-grid-compact">
+            {ENTRY_POINTS.map((entry, index) => (
+              <li className="studio-shot" key={entry.href}>
+                <Link
+                  href={entry.href}
+                  className="block rounded-[10px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+                >
+                  {/* What the start makes, page by page, on the landing page's stage. */}
+                  <span className="studio-shot-media">
+                    <Stage className="size-full rounded-none" variant={index}>
+                      <PageSpread add={'add' in entry && entry.add} pages={entry.pages} />
+                    </Stage>
+                  </span>
+                  <span className="studio-shot-meta">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{entry.title}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {entry.detail}
+                      </span>
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
             <span className="text-muted-foreground">Bring existing work:</span>
             <Link className="underline-offset-4 hover:underline" href="/canvas/new?start=project">
               Import a project
@@ -243,30 +351,52 @@ export function CanvasLibrary({
         </p>
       ) : null}
       {!loading && !items.length ? (
-        <p className="rounded-xl border border-dashed p-12 text-center text-muted-foreground">
-          {search
-            ? 'No canvas matches that name.'
-            : archived
-              ? 'No archived canvases.'
-              : 'No canvases yet. Start with a blank canvas or a screenshot.'}
-        </p>
+        <EmptyState
+          scene={search || archived ? undefined : <CreateScene />}
+          icon={StackIcon}
+          title={
+            search ? 'No matching canvases' : archived ? 'No archived canvases' : 'No canvases yet'
+          }
+          description={
+            search
+              ? 'No canvas matches that name.'
+              : archived
+                ? 'Archived canvases appear here.'
+                : 'Start with a blank canvas or a screenshot, then lay out artboards and layers.'
+          }
+          action={
+            search || archived || !canEdit ? null : (
+              <ButtonLink href="/canvas/new">New canvas</ButtonLink>
+            )
+          }
+        />
       ) : null}
-      <ul aria-label="Canvases" className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <ul aria-label="Canvases" className="studio-grid">
         {items.map((item) => (
-          <li key={item.id} className="overflow-hidden rounded-xl border bg-foreground/[0.02]">
-            <div className="aspect-video">
-              <ProjectPreview
-                retryable
-                alt={item.name}
-                document={item.document?.artboards[0]?.document ?? null}
+          <li
+            key={item.id}
+            className={
+              (item.document?.artboards.length ?? 0) > 1 ? 'studio-shot studio-stack' : 'studio-shot'
+            }
+          >
+            <div className="studio-shot-media">
+              <CanvasCover
+                item={item}
+                onManage={canEdit && item.document ? () => setManaging(item) : undefined}
+              />
+              <Link
+                aria-hidden="true"
+                className="absolute inset-0 z-[2]"
+                href={`/canvas/${item.id}`}
+                tabIndex={-1}
               />
             </div>
-            <div className="flex items-start gap-2 p-4">
+            <div className="studio-shot-meta items-start">
               <div className="min-w-0 flex-1">
                 <h2 className="truncate font-medium">
                   <Link href={`/canvas/${item.id}`}>{item.name}</Link>
                 </h2>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground">
                   {item.document
                     ? `${item.document.artboards.length} artboard${item.document.artboards.length === 1 ? '' : 's'}`
                     : 'Saved by a newer version'}{' '}
@@ -305,6 +435,11 @@ export function CanvasLibrary({
                     <DropdownMenuItem asChild>
                       <Link href={`/canvas/${item.id}`}>Open</Link>
                     </DropdownMenuItem>
+                    {item.document ? (
+                      <DropdownMenuItem onSelect={() => setManaging(item)}>
+                        Manage pages…
+                      </DropdownMenuItem>
+                    ) : null}
                     <DropdownMenuItem onSelect={() => setRenaming(item)}>Rename…</DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() =>
@@ -365,6 +500,16 @@ export function CanvasLibrary({
         </Button>
       ) : null}
 
+      {managing?.document ? (
+        <CanvasPages
+          canvas={{ ...managing, document: managing.document }}
+          onClose={() => setManaging(null)}
+          onSaved={() => {
+            setManaging(null)
+            setRefresh((value) => value + 1)
+          }}
+        />
+      ) : null}
       {renaming ? (
         <RenameDialog
           name={renaming.name}

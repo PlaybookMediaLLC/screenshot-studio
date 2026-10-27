@@ -1,10 +1,12 @@
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import type { ReactNode } from 'react'
 import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard'
 import { PreferencesProvider } from '@/components/settings/PreferencesProvider'
+import { getPageAccess } from '@/lib/auth/page-access'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { NAVIGATION_COOKIE, parseNavigation } from '@/lib/settings/appearance'
 import { cn } from '@/lib/utils'
+import { platformFont } from './platform-font'
 import { PlatformSidebar } from './PlatformSidebar'
 import { surface } from './shell-config'
 import './platform-shell.css'
@@ -37,9 +39,14 @@ export async function PlatformShell({
   organizationName,
   variant = 'page',
 }: PlatformShellProps) {
-  const navigation = parseNavigation((await cookies()).get(NAVIGATION_COOKIE)?.value)
+  const [cookieStore, access] = await Promise.all([cookies(), headers().then(getPageAccess)])
+  const navigation = parseNavigation(cookieStore.get(NAVIGATION_COOKIE)?.value)
   return (
     <PreferencesProvider>
+      {/* On body, so dialogs and menus portaled outside the shell share the face. */}
+      <style href="platform-font" precedence="default">
+        {`body:has([data-platform-shell]){--font-platform:${platformFont.style.fontFamily}}`}
+      </style>
       <div
         data-platform-shell
         data-platform-variant={variant}
@@ -59,6 +66,7 @@ export async function PlatformShell({
           draftsEnabled={contentDraftsEnabled()}
           initialNavigation={navigation}
           organizationName={organizationName}
+          paidPlan={access?.hasPaidPlan ?? true}
           variant={variant}
         />
         {variant === 'page' ? (

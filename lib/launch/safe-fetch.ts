@@ -132,6 +132,9 @@ const defaultResolver: Resolver = async (hostname) =>
 const nodeTransport: Transport = ({ address, family, headers, timeoutMs, url }) =>
   new Promise((resolve, reject) => {
     const client = url.protocol === 'https:' ? https : http
+    const deadline = AbortSignal.timeout(timeoutMs)
+    // The deadline otherwise surfaces as "The operation was aborted" or "aborted".
+    const timedOut = () => new Error('The source took too long to respond.')
     const request = client.request(
       url,
       {
@@ -149,19 +152,21 @@ const nodeTransport: Transport = ({ address, family, headers, timeoutMs, url }) 
         method: 'GET',
         // A socket timeout only measures idle time. A trickling response must
         // still stop at the deadline, including while its body is being read.
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: deadline,
         timeout: timeoutMs,
       },
-      (response) =>
+      (response) => {
+        deadline.addEventListener('abort', () => response.destroy(timedOut()), { once: true })
         resolve({
           body: response,
           destroy: () => response.destroy(),
           headers: response.headers,
           status: response.statusCode ?? 0,
         })
+      }
     )
-    request.on('timeout', () => request.destroy(new Error('The source took too long to respond.')))
-    request.on('error', reject)
+    request.on('timeout', () => request.destroy(timedOut()))
+    request.on('error', (error) => reject(deadline.aborted ? timedOut() : error))
     request.end()
   })
 

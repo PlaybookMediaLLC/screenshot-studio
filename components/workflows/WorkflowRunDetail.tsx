@@ -448,7 +448,7 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
           <table aria-label="Event fields" className="w-full text-left text-sm">
             <tbody>
               {Object.entries(fields).map(([field, value]) => (
-                <tr className="border-t border-white/[0.06] first:border-t-0" key={field}>
+                <tr className="border-t border-border first:border-t-0" key={field}>
                   <th
                     className="px-4 py-2 font-mono text-xs font-normal text-muted-foreground"
                     scope="row"

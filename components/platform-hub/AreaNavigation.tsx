@@ -13,35 +13,20 @@ export function AreaNavigation({
   label: string
   items: { href: string; label: string }[]
 }) {
-  const currentPath = withoutLocale(usePathname())
-  const pathname =
-    currentPath === '/projects' || currentPath === '/assets' ? '/library' : currentPath
-  const searchParams = useSearchParams()
-  const params = new URLSearchParams(searchParams.toString())
-  if (currentPath === '/assets') params.set('view', 'assets')
+  const active = useActiveAreaLink(items)
   return (
     <nav aria-label={label} className="platform-tabs">
       {items.map((item) => {
-        const [path, query] = item.href.split('?')
-        const expected = new URLSearchParams(query)
-        const active =
-          pathname === path &&
-          [...expected].every(([key, value]) => params.get(key) === value) &&
-          (query ||
-            !items.some(
-              (other) =>
-                other.href.startsWith(`${path}?`) &&
-                [...new URLSearchParams(other.href.split('?')[1])].every(
-                  ([key, value]) => params.get(key) === value
-                )
-            ))
+        const isActive = item.href === active
         return (
           <SidebarLink
             data-platform-tab
-            aria-current={active ? 'page' : undefined}
+            aria-current={isActive ? 'page' : undefined}
             className={cn(
               'platform-tab',
-              active ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
+              isActive
+                ? 'font-medium text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             )}
             key={item.href}
             href={item.href}
@@ -54,8 +39,39 @@ export function AreaNavigation({
   )
 }
 
+/**
+ * The href of the area link this page is on: its path and query match, a link
+ * without a query only wins when no more specific sibling matches, and failing
+ * both, the link to this path.
+ */
+export function useActiveAreaLink(items: { href: string }[]): string | undefined {
+  const currentPath = withoutLocale(usePathname())
+  const pathname =
+    currentPath === '/projects' || currentPath === '/assets' ? '/library' : currentPath
+  const searchParams = useSearchParams()
+  const params = new URLSearchParams(searchParams.toString())
+  if (currentPath === '/assets') params.set('view', 'assets')
+  const matches = (href: string) => {
+    const [path, query] = href.split('?')
+    return (
+      pathname === path &&
+      [...new URLSearchParams(query)].every(([key, value]) => params.get(key) === value)
+    )
+  }
+  return (
+    items.find((item) => item.href.includes('?') && matches(item.href)) ??
+    items.find((item) => matches(item.href)) ??
+    // A link that only carries context, like Link checks' return path, still marks its page.
+    items.find((item) => item.href.split('?')[0] === pathname)
+  )?.href
+}
+
+/** One row of Library categories: each kind of project, then reusable resources. */
 export const LIBRARY_LINKS = [
-  { href: '/library', label: 'Projects' },
+  { href: '/library', label: 'Screenshots' },
+  { href: '/library?type=canvas', label: 'Canvas' },
+  { href: '/library?type=story', label: 'Story Sets' },
+  { href: '/library?type=store', label: 'Store screenshots' },
   { href: '/library?view=assets', label: 'Assets' },
   { href: '/library?view=templates', label: 'Templates' },
   { href: '/library?view=brand', label: 'Brand resources' },

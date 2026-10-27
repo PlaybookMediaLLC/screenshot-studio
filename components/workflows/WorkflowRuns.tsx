@@ -134,7 +134,7 @@ export function WorkflowRuns() {
       label: 'Handled by',
       options: [
         ['automation', 'Workflows'],
-        ['legacy', 'Legacy intake'],
+        ['legacy', 'Manual release intake'],
       ],
     },
   ]

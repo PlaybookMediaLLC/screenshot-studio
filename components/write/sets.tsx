@@ -63,7 +63,7 @@ export function SocialSetSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button
           aria-label={`Publishing brand: ${active?.name ?? 'none'}`}
-          className="flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-left text-sm text-white hover:bg-white/[0.05]"
+          className="flex h-9 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-left text-sm text-foreground hover:bg-foreground/[0.05]"
           data-testid="social-set-switcher"
           size={null}
           type="button"
@@ -75,11 +75,14 @@ export function SocialSetSwitcher() {
           </span>
           {active ? <SetAccounts set={active} /> : null}
           {active?.needsAttention ? (
-            <span className="text-xs text-amber-300" title="An account needs attention">
+            <span
+              className="text-xs text-amber-700 dark:text-amber-300"
+              title="An account needs attention"
+            >
               ⚠
             </span>
           ) : null}
-          <span aria-hidden className="text-neutral-400">
+          <span aria-hidden className="text-muted-foreground">
             ▾
           </span>
         </Button>
@@ -107,7 +110,7 @@ export function SocialSetSwitcher() {
             <SetDot color={set.color} />
             <span className="min-w-0 flex-1">
               <span className="block truncate">{set.name}</span>
-              <span className="block truncate text-[11px] text-neutral-400">
+              <span className="block truncate text-[11px] text-muted-foreground">
                 {set.accounts.length === 0
                   ? 'No accounts yet'
                   : set.accounts
@@ -116,7 +119,7 @@ export function SocialSetSwitcher() {
               </span>
             </span>
             {set.visibility === 'PRIVATE' ? (
-              <span className="text-[10px] text-neutral-400" title="Only its owner sees it">
+              <span className="text-[10px] text-muted-foreground" title="Only its owner sees it">
                 private
               </span>
             ) : null}
@@ -144,10 +147,10 @@ export function SocialSetSwitcher() {
 /** A set's account icons, with a warning on any that needs attention. */
 export function SetAccounts({ set }: { set: WriteSet }) {
   return (
-    <span className="flex shrink-0 items-center gap-1 text-neutral-400">
+    <span className="flex shrink-0 items-center gap-1 text-muted-foreground">
       {set.accounts.map((account) => (
         <span
-          className={cn(account.health !== 'connected' && 'text-amber-300')}
+          className={cn(account.health !== 'connected' && 'text-amber-700 dark:text-amber-300')}
           key={account.id}
           title={`${account.displayName ?? account.handle ?? account.platform}${
             account.health === 'connected' ? '' : `: ${healthLabel(account.health).toLowerCase()}`

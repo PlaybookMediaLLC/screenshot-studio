@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -468,7 +469,10 @@ function RoleSelect({
     >
       <SelectTrigger
         aria-label="Role"
-        className={name ? 'h-10 w-full rounded-lg' : 'w-32 rounded-lg'}
+        className={cn(
+          name ? 'h-10 w-full rounded-lg' : 'w-32 rounded-lg',
+          '[&_.role-summary]:hidden'
+        )}
         size={name ? 'default' : 'sm'}
       >
         <SelectValue />
@@ -481,7 +485,13 @@ function RoleSelect({
             aria-label={roleLabels[role]}
             aria-description={roleSummaries[role]}
           >
-            <span className="capitalize">{roleLabels[role]}</span> — {roleSummaries[role]}
+            <span className="grid text-left">
+              <span className="capitalize">{roleLabels[role]}</span>
+              {/* The menu shows what a role can do; the closed picker shows only its name. */}
+              <span className="role-summary text-xs text-muted-foreground">
+                {roleSummaries[role]}
+              </span>
+            </span>
           </SelectItem>
         ))}
       </SelectContent>

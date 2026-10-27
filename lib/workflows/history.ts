@@ -24,7 +24,7 @@ export function runHandler(item: {
   run: Pick<AutomationHistoryItem['run'], 'definitionId'>
 }): string {
   return item.event.mode === 'legacy'
-    ? 'Legacy intake'
+    ? 'Manual release intake'
     : item.run.definitionId
       ? 'Archived workflow'
       : 'No matching workflow'

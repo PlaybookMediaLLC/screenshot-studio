@@ -1,8 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { PlusIcon as Plus } from '@phosphor-icons/react/dist/ssr/Plus'
-import { MagnifyingGlassIcon as Search } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
+import { AddIcon, SearchIcon } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -22,69 +21,73 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { PLATFORM_DESTINATIONS, platformArea, withPublishAccess } from '@/lib/platform/navigation'
+import {
+  matchesDestination,
+  PLATFORM_DESTINATIONS,
+  platformArea,
+  withPublishAccess,
+} from '@/lib/platform/navigation'
 import { SidebarLink } from './SidebarLink'
 
 const NEW_ITEMS = [
-  { href: '/', label: 'Screenshot' },
-  { href: '/canvas/new', label: 'Canvas' },
-  { href: '/?editor=app-store', label: 'Store screenshots' },
-  { href: '/write', label: 'Post' },
-  { href: '/campaigns/new', label: 'Campaign' },
-  { href: '/workflows/new', label: 'Workflow' },
+  { href: '/', label: 'Screenshot', paid: true },
+  { href: '/canvas/new', label: 'Canvas', paid: true },
+  { href: '/?editor=app-store', label: 'Store screenshots', paid: true },
+  { href: '/write', label: 'Post', paid: false },
+  { href: '/campaigns/new', label: 'Campaign', paid: true },
+  { href: '/workflows/new', label: 'Workflow', paid: true },
 ]
+
+/** Search beside the logo: an icon that opens the command search (⌘K). */
+export function SearchButton() {
+  const t = useTranslations('platformNavigation')
+  const keys = useKeys()
+  return (
+    <Button
+      data-platform-action
+      variant="ghost"
+      size={null}
+      className="touch-hitbox grid size-8 place-items-center rounded-full p-0 text-muted-foreground hover:text-foreground"
+      aria-label={t('searchCommands')}
+      title={`${t('searchCommands')} (${keys.label({ key: 'k', mod: true })})`}
+      onClick={() => window.dispatchEvent(new Event('shots:search'))}
+    >
+      <SearchIcon className="size-[18px]" aria-hidden="true" />
+    </Button>
+  )
+}
 
 export function ShellActions({
   collapsed,
   campaignsEnabled,
   draftsEnabled,
   onNavigate,
+  paidPlan = true,
 }: {
   collapsed: boolean
   campaignsEnabled: boolean
   draftsEnabled: boolean
   onNavigate?: () => void
+  /** Without it, paid items say Pro and open the plan page instead of bouncing. */
+  paidPlan?: boolean
 }) {
   const t = useTranslations('platformNavigation')
-  const keys = useKeys()
   return (
     <div className="grid gap-1">
-      <Button
-        data-platform-action
-        variant="ghost"
-        className={cn(
-          'h-10 justify-start gap-3 px-3 text-muted-foreground hover:text-foreground',
-          collapsed && 'size-11 justify-center px-0'
-        )}
-        aria-label={t('searchCommands')}
-        title={`${t('searchCommands')} (${keys.label({ key: 'k', mod: true })})`}
-        onClick={() => window.dispatchEvent(new Event('shots:search'))}
-      >
-        <Search className="size-5" aria-hidden="true" />
-        {!collapsed ? (
-          <>
-            <span>{t('search')}</span>
-            <kbd
-              aria-hidden="true"
-              className="ms-auto rounded border border-border bg-card px-1.5 py-0.5 font-sans text-[10px] leading-none text-muted-foreground"
-            >
-              {keys.label({ key: 'k', mod: true })}
-            </kbd>
-          </>
-        ) : null}
-      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             data-platform-action
-            variant="outline"
+            variant="custom"
+            size={null}
             className={cn(
-              'h-10 justify-start gap-3 px-3',
-              collapsed && 'size-11 justify-center px-0'
+              // The landing page's primary pill.
+              'flex h-9 w-full items-center justify-start gap-2 rounded-full bg-primary px-3.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90',
+              collapsed && 'size-10 justify-center px-0'
             )}
             aria-label={t('new')}
           >
-            <Plus className="size-5" aria-hidden="true" />
+            <AddIcon className="size-[18px]" aria-hidden="true" />
             {!collapsed ? t('new') : null}
           </Button>
         </DropdownMenuTrigger>
@@ -99,9 +102,22 @@ export function ShellActions({
               (draftsEnabled || item.label !== 'Post')
           ).map((item) => (
             <DropdownMenuItem key={item.href} asChild>
-              <SidebarLink href={item.href} onClick={onNavigate}>
-                {item.label}
-              </SidebarLink>
+              {item.paid && !paidPlan ? (
+                <SidebarLink
+                  aria-label={`${item.label} (Pro)`}
+                  href={`/upgrade?from=${encodeURIComponent(item.href)}`}
+                  onClick={onNavigate}
+                >
+                  {item.label}
+                  <span aria-hidden="true" className="platform-pro-badge ms-auto">
+                    Pro
+                  </span>
+                </SidebarLink>
+              ) : (
+                <SidebarLink href={item.href} onClick={onNavigate}>
+                  {item.label}
+                </SidebarLink>
+              )}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -158,7 +174,7 @@ export function ShellSearch({
   const items = PLATFORM_DESTINATIONS.filter(
     (item) =>
       (campaignsEnabled || item.key !== 'campaigns') &&
-      t(item.key).toLowerCase().includes(query.toLowerCase())
+      matchesDestination(item.key, t(item.key), query)
   ).map((item) => withPublishAccess(item, draftsEnabled))
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -175,7 +191,7 @@ export function ShellSearch({
         </DialogHeader>
         <Input
           aria-label="Search destinations"
-          placeholder="Find a place to work…"
+          placeholder="Go to… try draft, screenshot or billing"
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -194,7 +210,7 @@ export function ShellSearch({
           ))}
           {!items.length ? (
             <p role="status" className="p-3 text-sm text-muted-foreground">
-              No destinations match.
+              No destinations match. Search finds places in Shots, not the work inside them.
             </p>
           ) : null}
         </nav>

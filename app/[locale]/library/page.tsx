@@ -29,10 +29,7 @@ export default async function LibraryPage({
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization?.name}
     >
-      <Page
-        title="Library"
-        description="Find saved creative work and reusable resources. Each document opens in its original editor."
-      >
+      <Page title="Library" tagline="Everything your team has made.">
         <AreaNavigation label="Library" items={LIBRARY_LINKS} />
         {view === 'assets' ? (
           <WorkspaceAssets />
@@ -42,15 +39,6 @@ export default async function LibraryPage({
           <ResourceCards items={BRAND_RESOURCES} />
         ) : (
           <>
-            <AreaNavigation
-              label="Project type"
-              items={[
-                { href: '/library', label: 'Screenshots' },
-                { href: '/library?type=canvas', label: 'Canvas' },
-                { href: '/library?type=story', label: 'Story Sets' },
-                { href: '/library?type=store', label: 'Store screenshots' },
-              ]}
-            />
             {query.type === 'canvas' ? (
               <CanvasLibrary
                 embedded
@@ -63,12 +51,12 @@ export default async function LibraryPage({
             ) : query.type === 'store' ? (
               <LocalStoreProjects />
             ) : (
-              <>
+              <div className="grid gap-4">
                 <p className="text-sm text-muted-foreground">
                   Screenshot projects · Saved to workspace
                 </p>
                 <ProjectLibrary canEdit={canEdit} />
-              </>
+              </div>
             )}
           </>
         )}

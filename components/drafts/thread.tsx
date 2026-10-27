@@ -1,6 +1,14 @@
 'use client'
 
 import { normalizeMentions } from '@/lib/write/normalize-mentions'
+import {
+  AddIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CloseIcon,
+  DragIcon,
+  ImageIcon,
+} from '@/components/platform-shell/icons'
 
 import * as React from 'react'
 import {
@@ -172,6 +180,17 @@ function isEmptyParagraph(node: unknown): boolean {
  * earlier post's settings. The body always starts with exactly one break,
  * and every break has a unique id.
  */
+/** Move a caret that sits on a post header into that post's text, adding a line if it has none. */
+export function leaveHeader(editor: PlateEditor): boolean {
+  const index = editor.selection?.anchor.path[0]
+  if (index === undefined || editor.children[index]?.type !== POST_BREAK) return false
+  if (!editor.children[index + 1] || editor.children[index + 1].type === POST_BREAK) {
+    editor.tf.insertNodes({ type: 'p', children: [{ text: '' }] }, { at: [index + 1] })
+  }
+  editor.tf.select(editor.api.start([index + 1]))
+  return true
+}
+
 export const PostBreakPlugin = createPlatePlugin({
   handlers: {
     onKeyDown: ({ editor, event }) => {
@@ -211,14 +230,8 @@ export const PostBreakPlugin = createPlatePlugin({
         [selection.anchor, selection.focus].some((point) => editor.children[point.path[0]]?.type === POST_BREAK)) {
         editor.tf.deleteFragment()
       }
-      const index = editor.selection?.anchor.path[0]
       // Replacing a selection that starts at a header must land in editable text.
-      if (index !== undefined && editor.children[index]?.type === POST_BREAK) {
-        if (!editor.children[index + 1] || editor.children[index + 1].type === POST_BREAK) {
-          editor.tf.insertNodes({ type: 'p', children: [{ text: '' }] }, { at: [index + 1] })
-        }
-        editor.tf.select(editor.api.start([index + 1]))
-      }
+      leaveHeader(editor)
       insertText(text, options)
     },
     deleteBackward(unit) {
@@ -334,7 +347,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
             title="Add post below"
             type="button"
           >
-            +
+            <AddIcon aria-hidden size={15} />
           </Button>
           {tools.addImage ? (
             <Button
@@ -349,7 +362,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
               title="Add media (⌘⇧I)"
               type="button"
             >
-              ▣
+              <ImageIcon aria-hidden size={15} />
             </Button>
           ) : null}
           {count < 2 ? null : (
@@ -368,7 +381,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
                 onDragEnd={(event) => event.stopPropagation()}
                 role="img"
               >
-                ⠿
+                <DragIcon aria-hidden size={15} />
               </span>
               <Button
                 variant="custom"
@@ -380,7 +393,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
                 title="Move up (⌥↑)"
                 type="button"
               >
-                ↑
+                <ArrowUpIcon aria-hidden size={14} />
               </Button>
               <Button
                 variant="custom"
@@ -392,7 +405,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
                 title="Move down (⌥↓)"
                 type="button"
               >
-                ↓
+                <ArrowDownIcon aria-hidden size={14} />
               </Button>
               <Button
                 variant="custom"
@@ -403,7 +416,7 @@ function PostHead({ number, settings }: { number: number; settings: PostSettings
                 title="Delete post"
                 type="button"
               >
-                ✕
+                <CloseIcon aria-hidden size={14} />
               </Button>
             </>
           )}

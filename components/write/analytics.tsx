@@ -192,7 +192,7 @@ export function SocialAnalytics({
                     <rect
                       key={bucket.date}
                       fill="currentColor"
-                      className="text-sky-400"
+                      className="text-sky-700 dark:text-sky-400"
                       x={(index * 600) / buckets.length + 2}
                       y={160 - (bucket.value / maximum) * 150}
                       width={Math.max(1, 600 / buckets.length - 4)}

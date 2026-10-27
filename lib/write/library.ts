@@ -1,6 +1,33 @@
 import type { DraftWire } from '@/lib/content-drafts/client'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
 
+/**
+ * The library's URL query as last asked for. Each change merges into the
+ * newest intended query rather than the address bar, which still shows the
+ * old query while a router navigation is in flight. A search alone skips the
+ * server, but not while a navigation is pending: replacing history then would
+ * discard it and keep a filter the person just removed. `settle` once the
+ * router commits a URL.
+ */
+export function libraryQuery(location: () => string) {
+  let pending: string | null = null
+  return {
+    change(next: Record<string, string | undefined>) {
+      const query = new URLSearchParams(pending ?? location())
+      for (const [key, value] of Object.entries(next)) {
+        if (value) query.set(key, value)
+        else query.delete(key)
+      }
+      const navigate = pending !== null || Object.keys(next).some((key) => key !== 'q')
+      if (navigate) pending = query.toString()
+      return { navigate, search: query.toString() }
+    },
+    settle() {
+      pending = null
+    },
+  }
+}
+
 /** The saved fields a draft contributes to the Write library. */
 export function libraryDraft(draft: DraftWire) {
   const text = draft.plainText || draftPlainText(draft.body)

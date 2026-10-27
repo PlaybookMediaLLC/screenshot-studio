@@ -113,7 +113,9 @@ for (const outcome of ['verified', 'unknown'] as const) {
       )
       await page.goto('/workspace/social-sets?bluesky=preserve')
       const originalURL = page.url()
-      await page.getByRole('button', { name: 'Add social set to your personal workspace' }).click()
+      await page
+        .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
+        .click()
       const dialog = page.getByRole('dialog')
       await dialog.getByRole('button', { name: 'Bluesky', exact: true }).click()
       await expect(dialog.getByRole('heading', { name: 'Connect Bluesky account' })).toBeVisible()
@@ -189,7 +191,7 @@ for (const outcome of ['verified', 'unknown'] as const) {
         } finally {
           await anonymous.close()
         }
-        await dialog.getByRole('link', { name: 'Open social set' }).click()
+        await dialog.getByRole('link', { name: 'Open publishing brand' }).click()
         await expect(page).toHaveURL(new RegExp(`/workspace/social-sets/${created.id}$`))
         await page.reload()
         await expect(page.getByText(account.name, { exact: false }).first()).toBeVisible()

@@ -1,6 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { StoreIcon as DeviceMobileIcon } from '@/components/platform-shell/icons'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
+import { CreateScene } from '@/components/platform-ui/empty-scenes'
+import { EmptyState } from '@/components/platform-ui'
 import { listProjects, type ProjectSummary } from '@/lib/store-screenshots/persistence/projects'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
@@ -54,38 +58,50 @@ export function LocalStoreProjects() {
       ) : projects === null ? (
         <p role="status">Loading local projects…</p>
       ) : shown?.length ? (
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="studio-grid">
           {shown.map((item) => (
-            <li key={item.id}>
+            <li className="studio-shot" key={item.id}>
               <SidebarLink
                 href={`/?editor=app-store&storeProject=${encodeURIComponent(item.id)}`}
-                className="flex h-full flex-col gap-3 rounded-xl border p-4"
+                className="block"
               >
-                {item.thumbnail ? (
-                  <img src={item.thumbnail} alt="" className="aspect-[4/3] w-full object-contain" />
-                ) : (
-                  <div className="grid aspect-[4/3] place-items-center bg-muted text-sm">
-                    {item.slideCount} slides
-                  </div>
-                )}
-                <span className="font-medium">{item.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  Store screenshots · On this browser ·{' '}
-                  {new Date(item.updatedAt).toLocaleDateString()}
+                <span className="studio-shot-media">
+                  {item.thumbnail ? (
+                    <img src={item.thumbnail} alt="" className="size-full object-contain" />
+                  ) : (
+                    <span className="grid size-full place-items-center text-sm text-muted-foreground">
+                      {item.slideCount} slides
+                    </span>
+                  )}
+                  <span aria-hidden="true" className="studio-shot-overlay">
+                    {item.name}
+                  </span>
+                </span>
+                <span className="studio-shot-meta">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{item.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      Store screenshots · On this browser ·{' '}
+                      {new Date(item.updatedAt).toLocaleDateString()}
+                    </span>
+                  </span>
                 </span>
               </SidebarLink>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          {query
-            ? 'No local projects match this search.'
-            : 'No store projects saved on this browser yet.'}{' '}
-          <SidebarLink className="underline" href="/?editor=app-store">
-            Build store screenshots
-          </SidebarLink>
-        </p>
+        <EmptyState
+          scene={query ? undefined : <CreateScene />}
+          icon={DeviceMobileIcon}
+          title={query ? 'No matching store projects' : 'No store projects on this browser'}
+          description={
+            query
+              ? 'No local projects match this search.'
+              : 'Store screenshot projects are saved on the browser that made them. Build one to see it here.'
+          }
+          action={<ButtonLink href="/?editor=app-store">Build store screenshots</ButtonLink>}
+        />
       )}
     </section>
   )

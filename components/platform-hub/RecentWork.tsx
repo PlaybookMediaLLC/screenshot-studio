@@ -1,22 +1,29 @@
 'use client'
 
-import { ArrowUpRightIcon as ArrowUpRight } from '@phosphor-icons/react/dist/ssr/ArrowUpRight'
-import { ClockIcon as Clock3 } from '@phosphor-icons/react/dist/ssr/Clock'
-import { FileTextIcon as FileText } from '@phosphor-icons/react/dist/ssr/FileText'
-import { ImageIcon as Image } from '@phosphor-icons/react/dist/ssr/Image'
-import { StackIcon as Layers } from '@phosphor-icons/react/dist/ssr/Stack'
+import { OutwardIcon as ArrowUpRight } from '@/components/platform-shell/icons'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
+import { HomeScene } from '@/components/platform-ui/empty-scenes'
+import { EmptyState } from '@/components/platform-ui'
+import { RecentIcon as Clock3 } from '@/components/platform-shell/icons'
+import { PostIcon as FileText } from '@/components/platform-shell/icons'
+import { ImageIcon as Image } from '@/components/platform-shell/icons'
+import { CanvasIcon as Layers } from '@/components/platform-shell/icons'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
 import { draftHref } from '@/components/write/write-context'
+import { ProjectPreview } from '@/components/projects/ProjectPreview'
+import { Stage, Window } from '@/components/platform-landing/primitives'
+import type { DesignDocument } from '@/lib/design/document'
 
 const draftPage = z.object({
   items: z.array(
     z.object({
       id: z.string(),
       title: z.string(),
+      plainText: z.string().catch(''),
       socialSetId: z.string().nullable(),
       updatedAt: z.coerce.date(),
     })
@@ -25,6 +32,7 @@ const draftPage = z.object({
     z.object({
       id: z.string(),
       title: z.string(),
+      plainText: z.string().catch(''),
       socialSetId: z.string().nullable(),
       updatedAt: z.coerce.date(),
     })
@@ -38,22 +46,29 @@ type Item = {
   type: string
   scope: string
   updatedAt: Date
+  /** A visual's first design, drawn as its thumbnail. */
+  document?: DesignDocument | null
+  /** A post's opening text, shown in place of a thumbnail. */
+  excerpt?: string
 }
 
 /** Bounded reads from existing tenant-authorized collections; failures stay visible. */
 export function RecentWork({
   draftsEnabled,
   organizationId,
+  paidPlan = true,
 }: {
   draftsEnabled: boolean
   organizationId: string
+  /** Without it, screenshots and canvases are a paid feature, so only posts are listed. */
+  paidPlan?: boolean
 }) {
   const client = useTRPCClient()
   const query = useQuery({
-    queryKey: ['platform', 'recent-work', organizationId, draftsEnabled],
+    queryKey: ['platform', 'recent-work', organizationId, draftsEnabled, paidPlan],
     staleTime: 30_000,
     queryFn: async () => {
-      const results = await Promise.allSettled([
+      const visuals = () => [
         client.project.list.query({ limit: 5, sort: 'updated' }).then(({ items }): Item[] =>
           items.map((item) => ({
             id: item.id,
@@ -62,6 +77,7 @@ export function RecentWork({
             type: 'Screenshot',
             scope: 'Workspace',
             updatedAt: new Date(item.updatedAt),
+            document: item.document,
           }))
         ),
         client.canvas.list.query({ limit: 5, sort: 'updated' }).then(({ items }): Item[] =>
@@ -72,8 +88,12 @@ export function RecentWork({
             type: 'Canvas',
             scope: 'Workspace',
             updatedAt: new Date(item.updatedAt),
+            document: item.document?.artboards[0]?.document ?? null,
           }))
         ),
+      ]
+      const results = await Promise.allSettled([
+        ...(paidPlan ? visuals() : []),
         draftsEnabled
           ? fetch('/api/v1/content-drafts?limit=5&sort=updated_desc').then(
               async (response): Promise<Item[]> => {
@@ -86,6 +106,7 @@ export function RecentWork({
                   type: 'Post',
                   scope: 'Publishing brand',
                   updatedAt: item.updatedAt,
+                  excerpt: item.plainText,
                 }))
               }
             )
@@ -96,7 +117,7 @@ export function RecentWork({
         items: results
           .flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
           .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-          .slice(0, 9),
+          .slice(0, 8),
       }
     },
   })
@@ -104,14 +125,14 @@ export function RecentWork({
     <section aria-label="Continue working" className="home-recent space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-medium">Continue working</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Your most recently updated work.</p>
+          <h2 className="text-lg font-normal tracking-[-0.01em]">Continue working</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">Your most recently updated work.</p>
         </div>
         <SidebarLink
-          href="/library"
+          href={paidPlan ? '/library' : '/write'}
           className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
-          View library <ArrowUpRight size={14} aria-hidden="true" />
+          {paidPlan ? 'View library' : 'View drafts'} <ArrowUpRight size={14} aria-hidden="true" />
         </SidebarLink>
       </div>
       {query.isPending ? (
@@ -131,66 +152,95 @@ export function RecentWork({
         </div>
       ) : null}
       {query.data?.items.length ? (
-        <ul className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/70 bg-background/30">
-          {query.data.items.map((item) => (
-            <li key={`${item.type}-${item.id}`}>
-              <SidebarLink
-                className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
-                href={item.href}
-              >
-                <span
-                  aria-hidden="true"
-                  className="grid size-10 shrink-0 place-items-center rounded-xl border border-border/60 bg-card text-muted-foreground"
-                >
+        <ul className="studio-grid">
+          {query.data.items.map((item, index) => (
+            <li className="studio-shot" key={`${item.type}-${item.id}`}>
+              <SidebarLink className="block" href={item.href}>
+                <span className="studio-shot-media">
                   {item.type === 'Post' ? (
-                    <FileText size={18} />
-                  ) : item.type === 'Canvas' ? (
-                    <Layers size={18} />
+                    // A post has no picture, so it sits on the landing page's grain stage.
+                    <Stage className="size-full rounded-none" variant={index}>
+                      <Window className="w-[80%]" meta="Draft" title="Post">
+                        {item.excerpt ? (
+                          <span className="line-clamp-4 block px-4 py-4 text-start text-[14px] leading-relaxed text-white/90">
+                            {item.excerpt}
+                          </span>
+                        ) : (
+                          // An empty draft shows the shape of a post rather than a label.
+                          <span aria-hidden="true" className="grid gap-2.5 px-4 py-5">
+                            <span className="h-2 w-[85%] rounded-full bg-white/15" />
+                            <span className="h-2 w-[65%] rounded-full bg-white/10" />
+                            <span className="h-2 w-[40%] rounded-full bg-white/10" />
+                          </span>
+                        )}
+                      </Window>
+                    </Stage>
                   ) : (
-                    <Image size={18} />
+                    <ProjectPreview
+                      alt=""
+                      className="studio-cover"
+                      document={item.document ?? null}
+                    />
                   )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{item.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {item.type} · {item.scope}
+                  <span aria-hidden="true" className="studio-shot-overlay">
+                    {item.title}
                   </span>
                 </span>
-                <time
-                  className="shrink-0 text-[11px] text-muted-foreground"
-                  dateTime={item.updatedAt.toISOString()}
-                >
-                  {item.updatedAt.toLocaleDateString()}
-                </time>
+                <span className="studio-shot-meta">
+                  <span aria-hidden="true" className="studio-shot-kind">
+                    {item.type === 'Post' ? (
+                      <FileText size={12} />
+                    ) : item.type === 'Canvas' ? (
+                      <Layers size={12} />
+                    ) : (
+                      <Image size={12} />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{item.title}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {item.type} · {item.scope}
+                    </span>
+                  </span>
+                  <time
+                    className="shrink-0 text-xs text-muted-foreground"
+                    dateTime={item.updatedAt.toISOString()}
+                  >
+                    {item.updatedAt.toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </time>
+                </span>
               </SidebarLink>
             </li>
           ))}
         </ul>
       ) : query.data && !query.data.partial ? (
-        <div className="home-empty">
-          <span className="home-empty-icon">
-            <Clock3 size={20} aria-hidden="true" />
-          </span>
-          <div className="home-empty-copy">
-            <p className="text-sm font-medium">Your work will appear here</p>
-            <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">
-              Save a screenshot, canvas, or post to keep everything close at hand.
-            </p>
-            <SidebarLink
-              href="/create"
-              className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              Create your first visual <ArrowUpRight size={13} aria-hidden="true" />
-            </SidebarLink>
-          </div>
-        </div>
+        <EmptyState
+          scene={<HomeScene />}
+          icon={Clock3}
+          title="Your work will appear here"
+          description={
+            paidPlan
+              ? 'Save a screenshot, canvas, or post to keep everything close at hand.'
+              : 'Drafts you write in Publish appear here.'
+          }
+          action={
+            <ButtonLink href={paidPlan ? '/create' : '/write'}>
+              {paidPlan ? 'Create your first visual' : 'Write your first post'}
+            </ButtonLink>
+          }
+        />
       ) : null}
-      <SidebarLink
-        href="/library?type=store"
-        className="inline-block text-xs text-muted-foreground underline-offset-4 hover:underline"
-      >
-        Find store projects saved on this browser
-      </SidebarLink>
+      {paidPlan ? (
+        <SidebarLink
+          href="/library?type=store"
+          className="inline-block text-xs text-muted-foreground underline-offset-4 hover:underline"
+        >
+          Find store projects saved on this browser
+        </SidebarLink>
+      ) : null}
     </section>
   )
 }

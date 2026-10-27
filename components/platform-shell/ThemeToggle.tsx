@@ -1,8 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { MoonIcon as Moon } from '@phosphor-icons/react/dist/ssr/Moon'
-import { SunIcon as Sun } from '@phosphor-icons/react/dist/ssr/Sun'
+import { DarkModeIcon, LightModeIcon } from './icons'
 import { useTheme } from 'next-themes'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useSaveState } from '@/components/settings/controls'
@@ -33,10 +32,10 @@ export function ThemeToggle() {
           onClick={() => void run(() => save({ theme: next }))}
           variant="ghost"
           size="icon"
-          className="shrink-0 text-muted-foreground"
+          className="touch-hitbox size-8 shrink-0 text-muted-foreground hover:text-foreground"
         >
-          <Sun aria-hidden="true" className="hidden dark:block" />
-          <Moon aria-hidden="true" className="dark:hidden" />
+          <LightModeIcon aria-hidden="true" className="hidden size-[17px] dark:block" />
+          <DarkModeIcon aria-hidden="true" className="size-[17px] dark:hidden" />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="right">{label}</TooltipContent>

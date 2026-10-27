@@ -12,7 +12,8 @@ KIND_NAMESPACE="screenshot-studio"
 
 compose() {
   local compose_args=(--env-file "$LOCAL_ENV" --file "$ROOT_DIR/dev/compose.yaml")
-  if [[ "${SOCIAL_ENV_OVERLAY:-}" == "true" && -f "$LOCAL_DIR/social.env" ]]; then
+  # Optional social provider credentials for the product API's channel connections.
+  if [[ -f "$LOCAL_DIR/social.env" ]]; then
     compose_args+=(--env-file "$LOCAL_DIR/social.env")
   fi
   if [[ "${E2E_DOCKER_HOST_GATEWAY:-}" == "true" ]]; then
@@ -535,20 +536,6 @@ up() {
   echo "RustFS:  http://localhost:9004/rustfs/console/"
 }
 
-social_up() {
-  ensure_env
-  SOCIAL_ENV_OVERLAY=true compose --profile social up --detach --build screenshot-studio-backend
-  wait_for_http http://localhost:3100/ "social API"
-  wait_for_http http://localhost:3102/health/status "social worker"
-  echo "Social API: http://localhost:3100/public/v1"
-  echo "Social worker: http://localhost:3102/health/status"
-}
-
-social_down() {
-  ensure_env
-  SOCIAL_ENV_OVERLAY=true compose --profile social stop screenshot-studio-backend social-temporal social-redis
-}
-
 down() {
   local mode=""
   local response=""
@@ -574,11 +561,11 @@ down() {
   fi
 
   if [[ "$mode" == "purge" ]]; then
-    compose --profile e2e --profile renderer --profile social down --volumes --remove-orphans
+    compose --profile e2e --profile renderer down --volumes --remove-orphans
     return
   fi
 
-  compose --profile e2e --profile renderer --profile social down --remove-orphans
+  compose --profile e2e --profile renderer down --remove-orphans
 }
 
 kind_up() {
@@ -646,8 +633,6 @@ Usage: dev/studio <command>
 Commands:
   env                        Create or refresh the ignored local environment.
   up                         Start the hot-reload Compose stack.
-  social-up               Start the optional social API and workers.
-  social-down             Stop the optional social API and workers.
   down [--keep-data|--purge] Stop the Compose stack and prompt for data handling.
   reset                      Stop the Compose stack and remove all local data.
   smoke                      Verify Compose service health.
@@ -668,8 +653,6 @@ EOF
 case "${1:-}" in
   env) ensure_env ;;
   up) up ;;
-  social-up) social_up ;;
-  social-down) social_down ;;
   down) shift; down "$@" ;;
   reset) down --purge --yes ;;
   smoke) smoke ;;

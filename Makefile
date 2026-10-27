@@ -9,7 +9,7 @@ E2E_BASE_URL ?= http://localhost:3000
 
 .DEFAULT_GOAL := help
 
-.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test social-up social-down logs logs-app logs-postgres logs-redis logs-rustfs kind-up kind-down kind-status kind-logs
+.PHONY: help up down reset status smoke rate-limit-smoke tenant-isolation e2e e2e-file e2e-onboarding e2e-recovery check publishing-up publishing-down publishing-test logs logs-app logs-postgres logs-redis logs-rustfs kind-up kind-down kind-status kind-logs
 
 help: ## Show local development commands.
 	@echo "Screenshot Studio local development"
@@ -29,8 +29,6 @@ help: ## Show local development commands.
 	@echo "  make publishing-up              Rebuild and restart the Go backend and orchestrator"
 	@echo "  make publishing-down            Stop the Go publishing services"
 	@echo "  make publishing-test            Run Go generation, tests, race checks, and vet"
-	@echo "  make social-up               Start the optional social API and workers"
-	@echo "  make social-down             Stop the optional social API and workers"
 	@echo ""
 	@echo "  make logs [SERVICE=app]         Follow Compose logs"
 	@echo "  make logs-app                   Follow app logs"
@@ -88,12 +86,6 @@ publishing-down:
 
 publishing-test:
 	@$(MAKE) --directory server check
-
-social-up:
-	@$(STUDIO) social-up
-
-social-down:
-	@$(STUDIO) social-down
 
 logs:
 	@$(STUDIO) logs $(SERVICE)

@@ -52,7 +52,7 @@ services:
       PLATFORM_DESIGN_RENDERER: ${PLATFORM_DESIGN_RENDERER:-}
       PLATFORM_RENDER_BASE_URL: http://localhost:3000
       PLATFORM_RENDER_CDP_URL: http://localhost:9222
-      # The MCP server Settings → AI agents shows (./dev/studio social-up serves it).
+      # The MCP server Settings → AI agents shows (publishing-backend serves it).
       PLATFORM_MCP_URL: ${PLATFORM_MCP_URL:-http://localhost:3100/mcp}
       PUBLISHING_API_URL: ${PUBLISHING_API_URL:-http://publishing-backend:8080}
       PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
@@ -181,7 +181,36 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
       PLATFORM_CREATIVE_SETS: ${PLATFORM_CREATIVE_SETS:-internal}
-      SOCIAL_API_URL: ${SOCIAL_API_URL:-http://screenshot-studio-backend:3000/public/v1}
+      # Channel connections run in process: the provider apps and their media
+      # storage. Unset, SOCIAL_API_URL keeps them in process; the browser e2e
+      # suite points it at a social API mock.
+      SOCIAL_API_URL: ${SOCIAL_API_URL:-}
+      JWT_SECRET: ${SOCIAL_JWT_SECRET:-local-social-only}
+      FRONTEND_URL: ${SOCIAL_FRONTEND_URL:-http://localhost:3000}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
+      X_API_KEY: ${SOCIAL_X_API_KEY:-}
+      X_API_SECRET: ${SOCIAL_X_API_SECRET:-}
+      THREADS_APP_ID: ${SOCIAL_THREADS_APP_ID:-}
+      THREADS_APP_SECRET: ${SOCIAL_THREADS_APP_SECRET:-}
+      MASTODON_CLIENT_ID: ${SOCIAL_MASTODON_CLIENT_ID:-}
+      MASTODON_CLIENT_SECRET: ${SOCIAL_MASTODON_CLIENT_SECRET:-}
+      FACEBOOK_APP_ID: ${SOCIAL_FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${SOCIAL_FACEBOOK_APP_SECRET:-}
+      INSTAGRAM_APP_ID: ${SOCIAL_INSTAGRAM_APP_ID:-}
+      INSTAGRAM_APP_SECRET: ${SOCIAL_INSTAGRAM_APP_SECRET:-}
+      STORAGE_PROVIDER: ${SOCIAL_STORAGE_PROVIDER:-local}
+      SOCIAL_PRIVATE_MEDIA: ${SOCIAL_PRIVATE_MEDIA:-false}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_ACCESS_KEY: ${CLOUDFLARE_ACCESS_KEY:-}
+      CLOUDFLARE_SECRET_ACCESS_KEY: ${CLOUDFLARE_SECRET_ACCESS_KEY:-}
+      CLOUDFLARE_REGION: ${CLOUDFLARE_REGION:-auto}
+      CLOUDFLARE_BUCKETNAME: ${CLOUDFLARE_BUCKETNAME:-}
+      CLOUDFLARE_BUCKET_URL: ${CLOUDFLARE_BUCKET_URL:-}
+      UPLOAD_DIRECTORY: /tmp/social-uploads
+      # The MCP server (RFC 026) and its OAuth endpoints on the public port.
+      PUBLIC_PORT: '3000'
+      PLATFORM_MCP_URL: http://localhost:3100/mcp
       # Enable only after a disposable live Bluesky connection has been verified.
       PLATFORM_SOCIAL_BLUESKY_ENABLED: ${PLATFORM_SOCIAL_BLUESKY_ENABLED:-false}
       PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED: ${PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED:-false}
@@ -205,6 +234,7 @@ services:
       SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS: ${SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS:-}
     ports:
       - '127.0.0.1:8080:8080'
+      - '127.0.0.1:3100:3000'
     depends_on:
       platform-go-migrate:
         condition: service_completed_successfully
@@ -284,7 +314,6 @@ services:
       INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
       PORT: '8081'
       DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
-      SOCIAL_API_URL: ${SOCIAL_API_URL:-http://screenshot-studio-backend:3000/public/v1}
       # Set by dev/social-gate for its isolated Go destination.
       SOCIAL_API_KEY_GATE: ${SOCIAL_API_KEY_GATE:-}
       PUBLISHING_RETRY_DELAY: ${PUBLISHING_RETRY_DELAY:-2m}
@@ -312,117 +341,9 @@ services:
       temporal:
         condition: service_healthy
 
-  social-redis:
-    profiles: ['social']
-    image: redis:7.4-alpine
-    command: redis-server --appendonly yes
-    volumes:
-      - social_redis_data:/data
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
-  social-temporal:
-    profiles: ['social']
-    image: temporalio/temporal:1.8.2
-    command: server start-dev --ip 0.0.0.0
-    ports:
-      - '127.0.0.1:7243:7233'
-      - '127.0.0.1:8243:8233'
-    healthcheck:
-      test: ['CMD', 'temporal', 'operator', 'cluster', 'health', '--address', '127.0.0.1:7233']
-      interval: 2s
-      timeout: 2s
-      retries: 30
-
-  screenshot-studio-backend:
-    profiles: ['social']
-    build:
-      context: ../server
-    image: screenshot-studio-backend:local
-    # Local API shares the product database; the combined backend entrypoint
-    # runs the tenant API and workers on a production host.
-    entrypoint: ['/screenshot-studio-backend']
-    environment:
-      PLATFORM_NOTIFICATION_ENCRYPTION_KEY: ${PLATFORM_NOTIFICATION_ENCRYPTION_KEY:-}
-      PLATFORM_SOCIAL_ENCRYPTION_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_KEY:-}
-      PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY: ${PLATFORM_SOCIAL_ENCRYPTION_PREVIOUS_KEY:-}
-      # Seals outbound webhook secrets (RFC 024); unset, webhooks are unavailable.
-      PLATFORM_WEBHOOK_ENCRYPTION_KEY: ${PLATFORM_WEBHOOK_ENCRYPTION_KEY:-}
-      PLATFORM_ACTIVITY_LEGACY_PAUSED: ${PLATFORM_ACTIVITY_LEGACY_PAUSED:-true}
-      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
-      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
-      PLATFORM_SLACK_CALLBACK_URL: ${PLATFORM_SLACK_CALLBACK_URL:-}
-      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:-}
-      DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
-      REDIS_URL: redis://social-redis:6379
-      TEMPORAL_ADDRESS: social-temporal:7233
-      JWT_SECRET: ${SOCIAL_JWT_SECRET:-local-social-only}
-      PLATFORM_SOCIAL_BLUESKY_ENABLED: ${PLATFORM_SOCIAL_BLUESKY_ENABLED:-false}
-      PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED: ${PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED:-false}
-      FRONTEND_URL: ${SOCIAL_FRONTEND_URL:-http://localhost:3000}
-      MAIN_URL: http://localhost:3100
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:3100
-      BACKEND_INTERNAL_URL: http://screenshot-studio-backend:3000
-      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
-      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
-      X_API_KEY: ${SOCIAL_X_API_KEY:-}
-      X_API_SECRET: ${SOCIAL_X_API_SECRET:-}
-      THREADS_APP_ID: ${SOCIAL_THREADS_APP_ID:-}
-      THREADS_APP_SECRET: ${SOCIAL_THREADS_APP_SECRET:-}
-      MASTODON_CLIENT_ID: ${SOCIAL_MASTODON_CLIENT_ID:-}
-      MASTODON_CLIENT_SECRET: ${SOCIAL_MASTODON_CLIENT_SECRET:-}
-      FACEBOOK_APP_ID: ${SOCIAL_FACEBOOK_APP_ID:-}
-      FACEBOOK_APP_SECRET: ${SOCIAL_FACEBOOK_APP_SECRET:-}
-      INSTAGRAM_APP_ID: ${SOCIAL_INSTAGRAM_APP_ID:-}
-      INSTAGRAM_APP_SECRET: ${SOCIAL_INSTAGRAM_APP_SECRET:-}
-      STORAGE_PROVIDER: ${SOCIAL_STORAGE_PROVIDER:-local}
-      SOCIAL_PRIVATE_MEDIA: ${SOCIAL_PRIVATE_MEDIA:-false}
-      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
-      CLOUDFLARE_ACCESS_KEY: ${CLOUDFLARE_ACCESS_KEY:-}
-      CLOUDFLARE_SECRET_ACCESS_KEY: ${CLOUDFLARE_SECRET_ACCESS_KEY:-}
-      CLOUDFLARE_REGION: ${CLOUDFLARE_REGION:-auto}
-      CLOUDFLARE_BUCKETNAME: ${CLOUDFLARE_BUCKETNAME:-}
-      CLOUDFLARE_BUCKET_URL: ${CLOUDFLARE_BUCKET_URL:-}
-      UPLOAD_DIRECTORY: /tmp/social-uploads
-      PORT: '3000'
-      RUN_CRON: 'true'
-      RUN_WORKER: 'true'
-      # The MCP server (RFC 026) serves the same domain as publishing-backend:
-      # its media bucket, its quota Redis, and its campaign rollout.
-      PLATFORM_MCP_URL: http://localhost:3100/mcp
-      PLATFORM_QUOTA_REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
-      PLATFORM_CREATIVE_SETS: ${PLATFORM_CREATIVE_SETS:-internal}
-      R2_ENDPOINT: ${R2_ENDPOINT:-http://rustfs:9000}
-      R2_BROWSER_ENDPOINT: http://localhost:9003
-      R2_REGION: ${R2_REGION:-us-east-1}
-      R2_FORCE_PATH_STYLE: ${R2_FORCE_PATH_STYLE:-true}
-      R2_BUCKET_NAME: ${R2_BUCKET_NAME:-}
-      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
-      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
-      SCREENSHOT_API_URL: ${SCREENSHOT_API_URL:-https://api.microlink.io}
-    ports:
-      - '127.0.0.1:3100:3000'
-      - '127.0.0.1:3102:3002'
-    depends_on:
-      platform-go-migrate:
-        condition: service_completed_successfully
-      social-redis:
-        condition: service_healthy
-      social-temporal:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rustfs-init:
-        condition: service_completed_successfully
-
 volumes:
   app_next_cache:
   app_node_modules:
   postgres_data:
-  social_redis_data:
   redis_data:
   rustfs_data:

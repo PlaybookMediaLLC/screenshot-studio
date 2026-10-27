@@ -1,24 +1,21 @@
 # Overlay on compose.yaml with a separate Compose project. It runs the
 # production image with its default entry point (server/cmd/combined), which
-# starts the social API, the product API, and the product worker in one
-# container. dev/combined-check uses it. Only the readiness port is published.
+# starts the product API and the product worker in one container. dev/combined-check uses it. Only the readiness port is published.
 services:
   combined-backend:
     extends:
       file: compose.yaml
-      service: screenshot-studio-backend
+      service: publishing-backend
     profiles: !override ['combined']
     entrypoint: ['/combined-backend']
     # Production passes the product settings with a TENANT_ prefix;
     # dev/combined-check writes this file from .local/dev.env.
     env_file: ../.local/combined.env
     environment:
-      BACKEND_INTERNAL_URL: http://127.0.0.1:3000
       TENANT_DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       TENANT_AUDIT_RETENTION_DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       TENANT_TEMPORAL_ADDRESS: temporal:7233
       TENANT_TEMPORAL_NAMESPACE: default
-      TENANT_SOCIAL_API_URL: http://127.0.0.1:3000/public/v1
       TENANT_PUBLISHING_SERVICE_TOKEN: ${PUBLISHING_SERVICE_TOKEN:-local-publishing-service}
       TENANT_RUN_MAINTENANCE: 'true'
       TENANT_RUN_CRON: 'true'
@@ -32,10 +29,6 @@ services:
     depends_on:
       platform-go-migrate:
         condition: service_completed_successfully
-      social-redis:
-        condition: service_healthy
-      social-temporal:
-        condition: service_healthy
       redis:
         condition: service_healthy
       rustfs-init:
@@ -55,5 +48,3 @@ services:
   temporal:
     ports: !override []
 
-  social-temporal:
-    ports: !override []

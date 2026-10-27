@@ -20,13 +20,25 @@ import {
   type Artboard,
   type CanvasDocument,
 } from '@/lib/canvas/document'
-import { nextArtboardPosition } from '@/lib/canvas/layout'
+import { ARTBOARD_GAP, nextArtboardPosition } from '@/lib/canvas/layout'
 import { blankArtboard } from '@/lib/canvas/recipes'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 
 /** Height every page thumbnail shares, so pages of different shapes line up. */
 const TILE = 132
+
+/** Pages placed in one row in their array order, starting at the board's top-left page. */
+function inRow(pages: Artboard[]): Artboard[] {
+  const rects = pages.map(artboardRect)
+  let x = Math.min(...rects.map((rect) => rect.x))
+  const y = Math.min(...rects.map((rect) => rect.y))
+  return pages.map((page, index) => {
+    const placed = { ...page, x, y }
+    x += rects[index]!.width + ARTBOARD_GAP
+    return placed
+  })
+}
 
 /**
  * A canvas's pages as a grid, Canva-style: drag a page (or use its arrows) to
@@ -49,6 +61,7 @@ export function CanvasPages({
   // Where a dragged page would land: the index it would be inserted before.
   const [target, setTarget] = useState<number | null>(null)
   const [status, setStatus] = useState('')
+  const [reordered, setReordered] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const changed =
@@ -61,6 +74,7 @@ export function CanvasPages({
     const [page] = next.splice(from, 1)
     next.splice(to, 0, page!)
     setPages(next)
+    setReordered(true)
     setStatus(`Page ${from + 1} moved to position ${to + 1}.`)
   }
 
@@ -83,7 +97,9 @@ export function CanvasPages({
   }
 
   function add() {
-    const last = artboardRect(pages[pages.length - 1]!)
+    const last = pages.length
+      ? artboardRect(pages[pages.length - 1]!)
+      : { width: 1600, height: 900 }
     const page = blankArtboard(
       { width: last.width, height: last.height },
       { ...nextArtboardPosition(pages.map(artboardRect)), name: `Page ${pages.length + 1}` }
@@ -119,7 +135,10 @@ export function CanvasPages({
     setSaving(true)
     setError(null)
     try {
-      const document = canvasDocumentSchema.parse({ ...canvas.document, artboards: pages })
+      // Export and printing read the board left to right, so a new order also
+      // lays the pages out in one row in that order, from the board's top left.
+      const artboards = reordered ? inRow(pages) : pages
+      const document = canvasDocumentSchema.parse({ ...canvas.document, artboards })
       await client.canvas.updateDocument.mutate({
         canvasId: canvas.id,
         baseRevision: canvas.revision,
@@ -148,7 +167,8 @@ export function CanvasPages({
           <DialogTitle className="font-normal">{canvas.name} · Pages</DialogTitle>
           <DialogDescription>
             Drag a page to reorder it, or use its arrows. Duplicate, delete or add pages, then save.
-            Page order is the order the canvas prints and previews in.
+            A new order also lines the pages up in a row on the board, so exports and printing
+            follow it.
           </DialogDescription>
         </div>
         <p aria-live="polite" className="sr-only">

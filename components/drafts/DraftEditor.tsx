@@ -243,7 +243,8 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
         editor.redo()
       }}
       onPasteCapture={(event) => {
-        if (!leaveHeader(editor)) return
+        // A paste over a selection replaces it through Plate's own handling.
+        if (!editor.api.isCollapsed() || !leaveHeader(editor)) return
         // Handled here, so Slate's own paste handler below does not insert it again.
         event.preventDefault()
         event.stopPropagation()

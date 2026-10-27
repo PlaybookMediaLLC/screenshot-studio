@@ -151,7 +151,7 @@ refusals on the PDF route.
   lifecycle with overrides), `test/canvas-plan.test.ts` (release plan,
   seeded repeatability), `test/workflow-contracts.test.ts` (templates with the
   canvas step, shared with Go).
-- Go: `TestCreateCanvas` in `services/internal/releaseautomation/graph_test.go`
+- Go: `TestCreateCanvas` in `server/internal/releaseautomation/graph_test.go`
   and `TestAutomationCreateCanvasLaysOutTheRelease` in the product package.
 - Renderer: `test/design-renderer.server.ts` prints two named pages over CDP.
 - Browser: `test/e2e/canvas-advanced.spec.ts` covers layers, groups, typing,

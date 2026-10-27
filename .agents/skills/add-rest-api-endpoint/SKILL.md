@@ -5,6 +5,8 @@ description: This skill should be used when the user asks to "add a REST endpoin
 
 # Add REST API Endpoint
 
+Paths below are relative to `clients/apps/web/`; run `npm` commands from `clients/`.
+
 Add versioned public operations to the existing Next.js application without duplicating domain logic. Read RFC 010, RFC 009, RFC 035, and RFC 014 before changing the REST surface.
 
 ## Workflow
@@ -78,11 +80,11 @@ For dynamic paths, declare a `params` schema such as `z.object({ exampleId: z.st
 
 ## Verification
 
-Run:
+Run from `clients/`:
 
 ```bash
-npx tsx .agents/skills/add-rest-api-endpoint/scripts/validate-rest-api.ts
-npm run api:generate && git diff --exit-code -- services/internal/shotsapi packages/shots-api-client/src
+(cd apps/web && npx tsx ../../../.agents/skills/add-rest-api-endpoint/scripts/validate-rest-api.ts)
+npm run api:generate && git diff --exit-code -- ../server/internal/shotsapi packages/shots-api-client/src
 npm run format:check
 npm run lint -- --max-warnings=0
 npm run typecheck
@@ -90,7 +92,7 @@ npm test
 DATABASE_URL='postgresql://user:password@127.0.0.1:5432/screenshot_studio' npm run build
 ```
 
-Test the happy path, invalid input, missing authentication, missing scope, and an organization-A to organization-B identifier attack. Use `scripts/verify-tenant-isolation.ts` when the operation reads or mutates stored tenant data.
+Test the happy path, invalid input, missing authentication, missing scope, and an organization-A to organization-B identifier attack. Use `clients/apps/web/scripts/verify-tenant-isolation.ts` when the operation reads or mutates stored tenant data.
 
 ## Additional resources
 

@@ -7,7 +7,7 @@
 > historical wherever it conflicts with that order or the audited architecture.
 
 **Status:** Partially implemented (Go MCP server, tool surface and OAuth present)
-**Status note (2026-10-23):** Implementation exists in services/internal/social/chat/mcp. Older server-inventory text is historical; current code and the release-readiness index govern extensions.
+**Status note (2026-10-23):** Implementation exists in server/internal/social/chat/mcp. Older server-inventory text is historical; current code and the release-readiness index govern extensions.
 **Date:** 2026-10-17  
 **Owners:** Platform Engineering  
 **Historical dependencies:** RFC 009, RFC 027, RFC 012, RFC 030, RFC 014, RFC 023
@@ -42,15 +42,15 @@ Directory approval for Claude, Raycast and Zapier is not implied by local packag
 
 Shots gives AI agents its workspace operations through the MCP server that
 already runs in the Go social backend
-(`services/internal/social/chat/mcp`). This RFC extends that
+(`server/internal/social/chat/mcp`). This RFC extends that
 server. It does not replace it, and it does not start a second one.
 
 - **One server, in Go.** MCP runs only in the Go backend. Next.js neither hosts
   nor proxies MCP. Each environment publishes one public MCP URL at the root
   of its own host, with RFC 9728 protected-resource metadata. Production is
   `https://shots-mcp.playbookmedia.io/mcp`.
-- **The same domain services as REST.** Tools call `services/internal/product`
-  and `services/internal/publishing`, the packages behind `/v1/*`. They never
+- **The same domain services as REST.** Tools call `server/internal/product`
+  and `server/internal/publishing`, the packages behind `/v1/*`. They never
   call Next.js, and they never query Ent directly, which would skip the tenant
   checks those services run.
 - **The same principal as REST.** Every call resolves to one workspace and one
@@ -77,7 +77,7 @@ to a social `Organization`. Nothing in it is about Shots.
 
 ### Mounting
 
-`services/cmd/social-api/main.go` wraps the whole router with the
+`server/cmd/social-api/main.go` wraps the whole router with the
 MCP handler (`cors().Wrap(a.MCP.Handler(...))`). The MCP handler matches its own
 paths and passes the rest on. None of the router's middleware applies to it:
 no throttler, no auth middleware, no compression. `internal/app/app.go` wires
@@ -209,7 +209,7 @@ agent client ──Streamable HTTP──► shots-mcp.playbookmedia.io/mcp   (Go
                                     │ scope, entitlement, quota   ◄── embedded openapi.json
                                     │ validate input              ◄── embedded openapi.json
                                     ▼
-                         services/internal/product, publishing   (same code as /v1/*)
+                         server/internal/product, publishing   (same code as /v1/*)
                                     │ tenant-scoped queries, audit in transaction
                                     ▼
                                 PostgreSQL
@@ -217,7 +217,7 @@ agent client ──Streamable HTTP──► shots-mcp.playbookmedia.io/mcp   (Go
 
 - The MCP package builds a `product.Configuration` from the platform Ent client
   on the same database. It uses the same object store, Redis quota counter, and
-  monthly meter that `services/cmd/product-api` wires.
+  monthly meter that `server/cmd/product-api` wires.
 - Tool adapters are thin. Each one decodes the validated input, calls one
   domain function with the resolved `product.Actor`, and returns its result.
   Business rules stay in the domain packages.
@@ -298,7 +298,7 @@ What agents cannot do, and why:
 ## Schemas from the OpenAPI document
 
 - **Snapshot.** `npm run openapi:export` writes the production document to
-  `services/internal/shotsapi/openapi.json`. That is the same document
+  `server/internal/shotsapi/openapi.json`. That is the same document
   `/openapi.json` serves, generated from the zod contracts. The file is
   committed. CI regenerates it and fails on any diff. The OpenAPI breaking-change
   check (RFC 014) compares it against `main`.

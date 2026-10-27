@@ -37,20 +37,20 @@ These are source-code findings, not claims about the running deployment.
 
 | Existing capability                                     | Evidence                                                                                                                                                                                                                                     | Consequence                                                                                                                                                                                 |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signed GitHub intake and versioned release workflows    | [Webhook route](../../app/api/webhooks/github/route.ts), [intake](../../services/internal/product/release_automation_intake.go), [workflow guide](../release-automation.md)                                                                  | Reuse trusted source-to-workspace resolution and event deduplication.                                                                                                                       |
-| Successful deployment events and background screenshots | [Deployment ingestion](../../services/internal/product/source_webhooks.go), [`captureDeployment`](../../services/internal/product/github_events.go)                                                                                          | Production pages on the deployed host are already captured, up to ten surfaces.                                                                                                             |
-| Public URL screenshot client                            | [Go capture client](../../services/internal/capture/capture.go)                                                                                                                                                                              | Current deployment capture calls a Microlink-compatible API. It has no customer browser-session input.                                                                                      |
-| Manual and agent surface capture                        | [Surface service](../../lib/tenant/product-surfaces.ts), [agent tool](../../lib/ai/tools/marketing.ts), [campaign tool](../../lib/ai/tools/campaign-studio.ts)                                                                               | These also use the public screenshot service; they need the same authenticated capture boundary.                                                                                            |
-| Product pages and capture history                       | [ProductSurface and SurfaceCapture](../../services/ent/schema/productsurface.go), [capture recording](../../services/internal/product/surfaces.go)                                                                                           | Reuse page identity, feature tags, private assets, freshness, and supersession.                                                                                                             |
-| Cloudflare CDP integration                              | [Design renderer](../../lib/design/renderer.ts), [deployment configuration](../digitalocean-deployment.md)                                                                                                                                   | The renderer already connects through `PLATFORM_RENDER_CDP_URL` and a bearer token. Customer app capture needs separate sessions and permissions.                                           |
-| Durable jobs and outbox                                 | [Maintenance workflow](../../services/internal/temporalmaintenance/maintenance.go), [outbox dispatcher](../../services/internal/maintenance/outbox.go), [release interpreter](../../services/internal/temporalreleaseautomation/workflow.go) | Keep Temporal. Dispatch capture jobs quickly instead of holding the shared outbox loop during login and browsing.                                                                           |
-| Early capture schema                                    | [Initial migration](../../services/platformmigrations/sql/20260814073500_initial_tenant_model.sql)                                                                                                                                           | `capture_recipe`, `capture_job`, and `capture` tables exist in migration history. Active Ent models and an authenticated executor were not found. Table existence is not a working feature. |
+| Signed GitHub intake and versioned release workflows    | [Webhook route](../../clients/apps/web/app/api/webhooks/github/route.ts), [intake](../../server/internal/product/release_automation_intake.go), [workflow guide](../release-automation.md)                                                                  | Reuse trusted source-to-workspace resolution and event deduplication.                                                                                                                       |
+| Successful deployment events and background screenshots | [Deployment ingestion](../../server/internal/product/source_webhooks.go), [`captureDeployment`](../../server/internal/product/github_events.go)                                                                                          | Production pages on the deployed host are already captured, up to ten surfaces.                                                                                                             |
+| Public URL screenshot client                            | [Go capture client](../../server/internal/capture/capture.go)                                                                                                                                                                              | Current deployment capture calls a Microlink-compatible API. It has no customer browser-session input.                                                                                      |
+| Manual and agent surface capture                        | [Surface service](../../clients/apps/web/lib/tenant/product-surfaces.ts), [agent tool](../../clients/apps/web/lib/ai/tools/marketing.ts), [campaign tool](../../clients/apps/web/lib/ai/tools/campaign-studio.ts)                                                                               | These also use the public screenshot service; they need the same authenticated capture boundary.                                                                                            |
+| Product pages and capture history                       | [ProductSurface and SurfaceCapture](../../server/ent/schema/productsurface.go), [capture recording](../../server/internal/product/surfaces.go)                                                                                           | Reuse page identity, feature tags, private assets, freshness, and supersession.                                                                                                             |
+| Cloudflare CDP integration                              | [Design renderer](../../clients/apps/web/lib/design/renderer.ts), [deployment configuration](../digitalocean-deployment.md)                                                                                                                                   | The renderer already connects through `PLATFORM_RENDER_CDP_URL` and a bearer token. Customer app capture needs separate sessions and permissions.                                           |
+| Durable jobs and outbox                                 | [Maintenance workflow](../../server/internal/temporalmaintenance/maintenance.go), [outbox dispatcher](../../server/internal/maintenance/outbox.go), [release interpreter](../../server/internal/temporalreleaseautomation/workflow.go) | Keep Temporal. Dispatch capture jobs quickly instead of holding the shared outbox loop during login and browsing.                                                                           |
+| Early capture schema                                    | [Initial migration](../../server/platformmigrations/sql/20260814073500_initial_tenant_model.sql)                                                                                                                                           | `capture_recipe`, `capture_job`, and `capture` tables exist in migration history. Active Ent models and an authenticated executor were not found. Table existence is not a working feature. |
 
 There are two material gaps beyond authentication:
 
 1. `ready()` only checks an HTTP response. A login page or an older deployment
    can return 200. It does not prove the intended version is visible.
-2. [`currentCapture()`](../../services/internal/product/release_automation_render.go)
+2. [`currentCapture()`](../../server/internal/product/release_automation_render.go)
    selects the latest available surface capture, independently of the release
    being rendered. The capture and campaign flows can race or use old imagery.
 
@@ -207,7 +207,7 @@ queued work and active browser leases and removes the stored state.
 Map and extend the existing `capture_recipe`, `capture_job`, and `capture`
 tables instead of creating a second job system. Verify their deployed schema
 and existing rows before migration. Add the missing Ent mappings and SQL
-migrations under `services/platformmigrations/sql`; preserve legacy data and
+migrations under `server/platformmigrations/sql`; preserve legacy data and
 the existing organization/idempotency uniqueness.
 
 | Record                 | Required additions or use                                                                                                                                                                              |
@@ -225,7 +225,7 @@ need an explicit compatible migration for an optional release association.
 
 ### Go execution and Cloudflare adapter
 
-Add focused browser-session code under `services/internal/capture/`, keeping
+Add focused browser-session code under `server/internal/capture/`, keeping
 the public Microlink path compatible. Go activities own job claims, eligibility
 checks, browser lifecycle, state protection, image storage, and receipts.
 Register a `platform-capture` Temporal queue in the existing Go orchestrator.
@@ -297,11 +297,11 @@ explore and mutate the app without limits.
 
 | Area                                                                                             | Change                                                                                                                                         |
 | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `services/internal/product/github_events.go`                                                     | Admit durable capture jobs instead of doing long captures inline; preserve legacy/public behavior.                                             |
-| `services/internal/product/release_automation_render.go`                                         | Resolve pinned capture outputs for the new action contract.                                                                                    |
-| `services/internal/temporalreleaseautomation/` and `services/internal/releaseautomation/`        | Add durable capture action, completion handling, cancellation, validation, and capability checks.                                              |
-| `services/internal/maintenance/` and Go orchestrator                                             | Dispatch new outbox events; register capture worker and abandoned-session cleanup.                                                             |
-| `services/internal/product/`, `services/internal/httpapi/`, `lib/backend/sdk.ts`                 | Connection, recipe, job, reconnection, and revoke contracts; Go remains database authority.                                                    |
+| `server/internal/product/github_events.go`                                                     | Admit durable capture jobs instead of doing long captures inline; preserve legacy/public behavior.                                             |
+| `server/internal/product/release_automation_render.go`                                         | Resolve pinned capture outputs for the new action contract.                                                                                    |
+| `server/internal/temporalreleaseautomation/` and `server/internal/releaseautomation/`        | Add durable capture action, completion handling, cancellation, validation, and capability checks.                                              |
+| `server/internal/maintenance/` and Go orchestrator                                             | Dispatch new outbox events; register capture worker and abandoned-session cleanup.                                                             |
+| `server/internal/product/`, `server/internal/httpapi/`, `lib/backend/sdk.ts`                 | Connection, recipe, job, reconnection, and revoke contracts; Go remains database authority.                                                    |
 | `lib/api/contracts/`, tenant/tRPC facades, and applicable REST/MCP surfaces                      | Zod contracts and role checks; expose IDs and status, not browser state. Preserve synchronous public APIs until consumers support queued jobs. |
 | `lib/tenant/product-surfaces.ts`, `lib/ai/tools/marketing.ts`, `lib/ai/tools/campaign-studio.ts` | Route authenticated capture through the common job service. Agent calls select owned surface/recipe IDs.                                       |
 | Workflow UI, product surfaces, app connections                                                   | Connect, test, select screens, show progress, repair recipe, reconnect, revoke. Reuse existing UI and notifications.                           |
@@ -313,7 +313,7 @@ Use a fresh isolated browser/context for each connection run. Enforce tenant
 ownership on every connection, source, surface, recipe, job, asset, and Live
 View access. Store screenshots in private R2 and use authorized short-lived
 downloads. Never send authenticated screenshots through the URL-only cache in
-[`lib/screenshot-cache.ts`](../../lib/screenshot-cache.ts). Its identity does
+[`lib/screenshot-cache.ts`](../../clients/apps/web/lib/screenshot-cache.ts). Its identity does
 not distinguish customer accounts.
 
 Set Cloudflare session guardrails at allocation for the app and its explicitly
@@ -478,10 +478,10 @@ private hosts. Surface selection compares hostname only, so an HTTPS deployment
 URL can select an HTTP surface, including a different port. `ready()` then sends
 a GET from the backend with no private-address check and follows redirects.
 
-Evidence: [`webUrlSchema`](../../lib/tenant/schemas.ts),
-[`validSurfaceURL`, line 474](../../services/internal/httpapi/configuration.go),
-[`validDeploymentURL`, line 446](../../services/internal/product/source_webhooks.go),
-and [`captureDeployment` / `ready`, lines 517–633](../../services/internal/product/github_events.go).
+Evidence: [`webUrlSchema`](../../clients/apps/web/lib/tenant/schemas.ts),
+[`validSurfaceURL`, line 474](../../server/internal/httpapi/configuration.go),
+[`validDeploymentURL`, line 446](../../server/internal/product/source_webhooks.go),
+and [`captureDeployment` / `ready`, lines 517–633](../../server/internal/product/github_events.go).
 The separate `PublicPageURL()` helper is used by the social MCP capture tool;
 the deployment path does not call it. The first, second, and fifth probes above
 demonstrated the missing boundary.
@@ -512,7 +512,7 @@ cannot protect this separate Go HTTP request.
 ### S2: Screenshot download escapes its initial host check
 
 **Local host-policy bypass reproduced; attacker reachability needs validation.**
-[`download()`, line 97](../../services/internal/capture/capture.go) validates the
+[`download()`, line 97](../../server/internal/capture/capture.go) validates the
 initial screenshot URL against the configured API host or a Microlink subdomain.
 Its HTTP client follows redirects without checking the new destination. The
 third probe returned bytes from an origin that the initial check would reject.
@@ -528,7 +528,7 @@ image validation/storage was not exercised by this probe.
 
 **Reproduced reliability defect.** The fourth probe established that login HTML
 is accepted. There is also no running-version check in `ready()`.
-[`currentCapture()`](../../services/internal/product/release_automation_render.go)
+[`currentCapture()`](../../server/internal/product/release_automation_render.go)
 selects by organization, optional surface, and capture time, without requiring
 the current release/deployment ID. The renderer can therefore select an older
 capture; this selection behavior is source-verified, not database-tested here.
@@ -545,7 +545,7 @@ The deployment loop commits each capture separately, then marks the deployment
 `CAPTURED` whenever at least one asset exists. It does not require every selected
 page to succeed. A crash after a per-page commit but before final status update
 leaves the deployment eligible for another full attempt.
-[`recordCapture()`](../../services/internal/product/surfaces.go) supersedes the
+[`recordCapture()`](../../server/internal/product/surfaces.go) supersedes the
 current image using completion time. The schema guarantees one current image
 per surface, but has no unique receipt for deployment plus surface. That
 constraint alone does not prevent a later-finishing old deployment from becoming
@@ -563,7 +563,7 @@ These are implementation requirements, not claims of vulnerabilities in a
 session system that does not exist yet.
 
 - **Strict session encryption.** The existing
-  [`credentialcipher.Open()`](../../services/internal/social/credentialcipher/cipher.go)
+  [`credentialcipher.Open()`](../../server/internal/social/credentialcipher/cipher.go)
   deliberately returns unprefixed input unchanged for legacy migration. Its
   existing test confirms that behavior along with nonce, tamper, purpose, key,
   and rotation checks. Do not reuse that reader unchanged for new browser
@@ -655,10 +655,10 @@ body named repository `999`. The returned intent carried repository `999` and
 event key `release:999:77`. The same source correctly rejected a successful
 deployment from repository `999`.
 
-[`getPublishedRelease()`, line 362](../../lib/tenant/webhook-security.ts) checks
+[`getPublishedRelease()`, line 362](../../clients/apps/web/lib/tenant/webhook-security.ts) checks
 the prerelease rule but never compares the payload's repository ID with the
 source's configured ID. The pull-request and deployment parsers do compare
-them. [`ingestSourceRelease()`](../../services/internal/product/source_webhooks.go)
+them. [`ingestSourceRelease()`](../../server/internal/product/source_webhooks.go)
 locks the source and checks its tenant, active state, and automation mode, but
 does not add the missing repository comparison.
 
@@ -683,7 +683,7 @@ deployment revision; a hostname match alone is insufficient.
 
 **Handler reproduction and source trace; security impact needs validation.**
 The GitHub App route verifies the body signature, then
-[`handleGitHubAppDelivery()`, line 227](../../lib/tenant/github.ts) processes
+[`handleGitHubAppDelivery()`, line 227](../../clients/apps/web/lib/tenant/github.ts) processes
 installation lifecycle events directly. Unlike repository-event admission,
 this branch does not use a receipt, compare event order, or fetch current
 installation status before writing.
@@ -698,10 +698,10 @@ Two dummy-event sequences reproduced the handler behavior:
 
 These checks used the unchanged handler with a recording backend stub.
 They demonstrate accepted calls, not a database-backed authorization bypass.
-The real [`upsertGitHubInstallation()`, line 198](../../services/internal/product/github_installations.go)
+The real [`upsertGitHubInstallation()`, line 198](../../server/internal/product/github_installations.go)
 unconditionally writes `ACTIVE` or `SUSPENDED` from the supplied snapshot.
 `SetGitHubInstallationStatus()` cancels automation runs on suspension.
-[`automationSourceAccess()`, line 83](../../services/internal/product/release_automation.go)
+[`automationSourceAccess()`, line 83](../../server/internal/product/release_automation.go)
 and `GitHubSources()` use the stored installation status for local eligibility.
 Suspension leaves sources in place, so restoring stale local `ACTIVE` status
 is a meaningful boundary to test before adding stored browser credentials.
@@ -735,10 +735,10 @@ commit. A webhook must never restore a revoked browser-session generation.
   expired or excessive lifetime, and a rotated key; and propagated a resource
   reader's denial without returning bytes. Those tests used a stub resource
   reader, so they do not prove database membership enforcement.
-- Source inspection confirms [`ReadAsset()`](../../services/internal/product/assets_media.go)
+- Source inspection confirms [`ReadAsset()`](../../server/internal/product/assets_media.go)
   authorizes before and after storage reads and rechecks the asset's tenant,
   status, and object key. Existing
-  [database tests](../../services/internal/product/asset_downloads_integration_test.go)
+  [database tests](../../server/internal/product/asset_downloads_integration_test.go)
   cover membership removal, session expiry, logout, API-key revocation, and
   removal during storage reads; those database tests were not run here.
 - Asset download grants remain bearer links with a two-minute lifetime.

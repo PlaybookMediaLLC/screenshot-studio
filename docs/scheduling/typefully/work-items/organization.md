@@ -12,7 +12,7 @@ Reconciled against `19390194` and the implementation in this working tree. The O
 
 **Dependencies:** Scoped draft list/search service, batch permissions and existing revision history.
 
-**Affected code and current evidence:** `components/write/library.tsx`; `components/write/composer/properties.tsx`; `services/internal/product/content_drafts.go`; `services/internal/product/content_draft_write.go`.
+**Affected code and current evidence:** `components/write/library.tsx`; `components/write/composer/properties.tsx`; `server/internal/product/content_drafts.go`; `server/internal/product/content_draft_write.go`.
 
 ### Implementation gap and disposition
 
@@ -28,7 +28,7 @@ Foreign IDs, stale state and insufficient role fail per operation. Bulk failure 
 
 ### Verification
 
-`services/internal/product/content_draft_write_integration_test.go`; `services/internal/product/content_drafts_integration_test.go`; `test/e2e/write.spec.ts`; `test/e2e/typefully-workitems.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/product/content_draft_write_integration_test.go`; `server/internal/product/content_drafts_integration_test.go`; `test/e2e/write.spec.ts`; `test/e2e/typefully-workitems.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 
@@ -44,7 +44,7 @@ Canonical audit events and revision history preserve actor/source and outcome; q
 
 **Dependencies:** Existing draft-tags user experiment; RFC 042 product decision.
 
-**Affected code and current evidence:** `components/write/tags.tsx`; `components/write/library.tsx`; `components/drafts/DraftCalendar.tsx`; `services/internal/product/content_draft_write.go`.
+**Affected code and current evidence:** `components/write/tags.tsx`; `components/write/library.tsx`; `components/drafts/DraftCalendar.tsx`; `server/internal/product/content_draft_write.go`.
 
 ### Implementation gap and disposition
 
@@ -60,7 +60,7 @@ Deleting a tag removes references safely; stale or foreign tag IDs fail validati
 
 ### Verification
 
-`services/internal/product/content_draft_write_integration_test.go`; `services/internal/product/content_draft_platform_integration_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/product/content_draft_write_integration_test.go`; `server/internal/product/content_draft_platform_integration_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 

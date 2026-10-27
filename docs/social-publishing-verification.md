@@ -26,7 +26,7 @@ in this cutover record and is not counted as passing.
 
 ## Automated local gate
 
-Run `./bin/social-gate`. It creates an isolated Compose project with the real
+Run `./dev/social-gate`. It creates an isolated Compose project with the real
 web app, published npm SDK, Go product API, Go social API and worker, one
 PostgreSQL database, Redis, Temporal, private RustFS, and a fake social API.
 The Playwright flow signs up, creates an approved variant, connects a test

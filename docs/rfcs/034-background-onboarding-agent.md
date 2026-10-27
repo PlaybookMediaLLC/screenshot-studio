@@ -153,7 +153,7 @@ Execution maps to our stack:
 | BullMQ queues + Redis slot lease | Temporal workflows on the `platform-onboarding` task queue                   |
 | One active crawl per agent       | Workflow ID `onboarding-<workspaceId>`, conflict policy `USE_EXISTING`       |
 | `emitToWebsite` realtime events  | A `progress` workflow query, mirrored onto the `OnboardingRun` row           |
-| Drizzle schema                   | Ent schemas in `services/ent/schema`, SQL in `services/platformmigrations`   |
+| Drizzle schema                   | Ent schemas in `server/ent/schema`, SQL in `server/platformmigrations`   |
 | Plan checks in the worker        | Page cap and token budget enforced in workflow code                          |
 | Worker retries                   | Activity retry policy: two retries with backoff, then the page is skipped    |
 
@@ -463,7 +463,7 @@ All of RFC 017's crawl safety rules apply unchanged: SSRF rejection, pinned DNS
 resolution, redirect re-validation, scheme allowlisting, size caps, robots
 compliance, and prompt-injection handling. Every outbound fetch of a
 user-supplied URL goes through the platform SSRF guard in
-`services/internal/social/ssrf`, which checks each dialed
+`server/internal/social/ssrf`, which checks each dialed
 address, so DNS rebinding and redirect hops are covered. Redirects are capped
 at 5, only `http` and `https` on standard web ports are allowed, and robots
 are honored for our user agent.

@@ -17,15 +17,20 @@ RustFS, and Kind commands.
 
 ## Scripts
 
+Run these from `clients/`, the npm workspace:
+
 ```bash
 npm run dev        # start dev server
 npm run build      # production build
 npm run lint       # eslint
 npm run lint:fix   # eslint --fix
-npm test           # node test runner (test/*.test.ts)
+npm test           # every workspace's tests (web: apps/web/test/*.test.ts)
 ```
 
 ## Project Structure
+
+The Go backend lives in `server/`; the clients live in `clients/` (see the
+root [AGENTS.md](AGENTS.md)). The web app in `clients/apps/web/`:
 
 ```
 app/              Next.js routes, API routes, sitemap, robots
@@ -75,8 +80,8 @@ test/             Node test files
 ### Linting
 
 ```bash
-npm run quality:check # Format, lint, type, and size checks
-npm run format        # Apply format fixes to the server boundary
+npm run quality:check # Format, lint, type, and size checks (from clients/)
+npm run format        # Apply format fixes to the server boundary (from clients/)
 ```
 
 Always run `make check` before committing. It uses the Node version in the
@@ -117,7 +122,7 @@ refactor(store): simplify state management
 docs: update contributing guide
 ```
 
-`npm install` enables the local `commit-msg` hook. It rejects commit messages
+`npm install` in `clients/` enables the local `commit-msg` hook. It rejects commit messages
 that do not follow this format.
 
 ### Pull Request

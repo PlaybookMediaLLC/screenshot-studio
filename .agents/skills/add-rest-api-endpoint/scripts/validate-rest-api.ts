@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
-import { openApiSpec } from '../../../../lib/api/openapi'
-import { documentedContracts } from '../../../../lib/api/contracts'
+import { openApiSpec } from '../../../../clients/apps/web/lib/api/openapi'
+import { documentedContracts } from '../../../../clients/apps/web/lib/api/contracts'
 
 const root = join(process.cwd(), 'app/api/v1')
 

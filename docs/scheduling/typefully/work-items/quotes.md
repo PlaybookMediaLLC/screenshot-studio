@@ -18,7 +18,7 @@ Native provider semantics are required. A text link is not a successful native q
 | Instagram | No external native quote workflow | Explicit unavailable capability |
 
 ### Changes and evidence
-`lib/write/publication.ts`, draft kind/target controls, `services/internal/social/tenantpublishing/options.go`, Bluesky `quote.go` and Mastodon `quotes.go` serialize native references. Mastodon sends credentials only to the connected instance, validates the resolved URL/URI exactly, and checks target permission before mutation. The provider's quote state is carried in `PostResponse`, `ThreadProgress.quotes` and the existing JSON receipt; no new table is needed. `components/drafts/DraftPosts.tsx` reports the state **when published** rather than promising subsequent federation approval.
+`lib/write/publication.ts`, draft kind/target controls, `server/internal/social/tenantpublishing/options.go`, Bluesky `quote.go` and Mastodon `quotes.go` serialize native references. Mastodon sends credentials only to the connected instance, validates the resolved URL/URI exactly, and checks target permission before mutation. The provider's quote state is carried in `PostResponse`, `ThreadProgress.quotes` and the existing JSON receipt; no new table is needed. `components/drafts/DraftPosts.tsx` reports the state **when published** rather than promising subsequent federation approval.
 
 ### Acceptance criteria
 1. A malformed/denied/mismatched target fails before publishing.
@@ -36,6 +36,6 @@ Publication uncertainty remains `UNKNOWN_DELIVERY`; no blind second POST. Confir
 **Source:** TF-018, TF-039, TF-108. **Gap:** Partial cross-channel native serialization. [Source requirements](../changelog-features.md).
 **Priority:** Reopened. **Size:** M. **Depends on:** WI-QUOTE-1 and existing saved closing-post templates.
 
-`components/write/composer/version-options.tsx` stores reusable text and the quote-first-post choice. `services/internal/social/tenantpublishing/options.go` resolves the actual published root before serializing X, Bluesky or Mastodon native quote options. An ordinary Threads closing post remains ordinary and is labeled accordingly.
+`components/write/composer/version-options.tsx` stores reusable text and the quote-first-post choice. `server/internal/social/tenantpublishing/options.go` resolves the actual published root before serializing X, Bluesky or Mastodon native quote options. An ordinary Threads closing post remains ordinary and is labeled accordingly.
 
 Acceptance: an inserted template remains editable; it preserves its quote flag across reload; a failed root prevents the finisher; a failed finisher preserves the successful root and prior replies; resume uses the root's recorded native ID rather than an unsent draft link. Test options/serialization, persistence, partial-thread continuation and an actual browser insertion. Local serialization tests exist; complete finisher browser and live-account evidence must be recorded before certification. Follow-up receipts and visible partial-thread counts provide recovery evidence.

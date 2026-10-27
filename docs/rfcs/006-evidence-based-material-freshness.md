@@ -18,9 +18,9 @@ materials, and do not call an old screenshot incorrect based on age alone.
 
 ## Existing foundation
 
-[Surface freshness](../../lib/tenant/surface-freshness.ts) uses a 30-day capture
-age. [Surface capture history](../../services/internal/product/surfaces.go)
-records supersession, and [revision proposals](../../lib/ai/launch/revise.ts)
+[Surface freshness](../../clients/apps/web/lib/tenant/surface-freshness.ts) uses a 30-day capture
+age. [Surface capture history](../../server/internal/product/surfaces.go)
+records supersession, and [revision proposals](../../clients/apps/web/lib/ai/launch/revise.ts)
 let reviewers apply or discard changes. Reuse those primitives, adding the
 claim/evidence and kit/destination lineage from the preceding RFCs.
 

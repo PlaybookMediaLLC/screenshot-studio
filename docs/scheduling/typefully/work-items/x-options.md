@@ -12,7 +12,7 @@ Reconciled against `19390194` and the implementation in this working tree. The O
 
 **Dependencies:** Account capabilities from verified X identity; X application access; existing approval snapshots.
 
-**Affected code and current evidence:** `lib/write/capabilities.ts`; `lib/write/publication.ts`; `components/write/composer/paste-thread.tsx`; `services/internal/product/content_draft_options.go`; `services/internal/social/integrations/social/x/article.go`.
+**Affected code and current evidence:** `lib/write/capabilities.ts`; `lib/write/publication.ts`; `components/write/composer/paste-thread.tsx`; `server/internal/product/content_draft_options.go`; `server/internal/social/integrations/social/x/article.go`.
 
 ### Implementation gap and disposition
 
@@ -28,7 +28,7 @@ Keep authored content when publishing is unavailable. Unknown or unsupported acc
 
 ### Verification
 
-`test/write-publication.test.ts`; `test/write-import.test.ts`; `services/internal/social/integrations/social/x/x_test.go`; `services/internal/product/content_draft_schedule_integration_test.go`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`test/write-publication.test.ts`; `test/write-import.test.ts`; `server/internal/social/integrations/social/x/x_test.go`; `server/internal/product/content_draft_schedule_integration_test.go`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 
@@ -44,7 +44,7 @@ Publication validation and provider receipt expose the blocked account and capab
 
 **Dependencies:** Verified X scopes and connected account; canonical publication options.
 
-**Affected code and current evidence:** `components/write/composer/version-options.tsx`; `components/write/composer/post-tools.tsx`; `lib/write/publication.ts`; `services/internal/postoptions/postoptions.go`; `services/internal/social/integrations/social/x/dto.go`.
+**Affected code and current evidence:** `components/write/composer/version-options.tsx`; `components/write/composer/post-tools.tsx`; `lib/write/publication.ts`; `server/internal/postoptions/postoptions.go`; `server/internal/social/integrations/social/x/dto.go`.
 
 ### Implementation gap and disposition
 
@@ -60,7 +60,7 @@ Reject malformed community IDs and unsupported option/channel combinations befor
 
 ### Verification
 
-`test/write-publication.test.ts`; `services/internal/social/tenantpublishing/options_test.go`; `services/internal/product/content_draft_schedule_integration_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`test/write-publication.test.ts`; `server/internal/social/tenantpublishing/options_test.go`; `server/internal/product/content_draft_schedule_integration_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 
@@ -76,7 +76,7 @@ Snapshot options, validation problems and publish attempts provide evidence. Liv
 
 **Dependencies:** X upload access, verified account tier and media processing.
 
-**Affected code and current evidence:** `services/internal/social/integrations/social/x/provider.go`; `services/internal/social/integrations/social/x/x_test.go`; `lib/write/capabilities.ts`; `services/internal/product/content_draft_options.go`.
+**Affected code and current evidence:** `server/internal/social/integrations/social/x/provider.go`; `server/internal/social/integrations/social/x/x_test.go`; `lib/write/capabilities.ts`; `server/internal/product/content_draft_options.go`.
 
 ### Implementation gap and disposition
 
@@ -92,7 +92,7 @@ Fail closed on unknown video eligibility or mixed-media support. Provider downsa
 
 ### Verification
 
-`services/internal/social/integrations/social/x/x_test.go`; `services/internal/social/tenantpublishing/provider_test.go`; `test/write-publication.test.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/social/integrations/social/x/x_test.go`; `server/internal/social/tenantpublishing/provider_test.go`; `test/write-publication.test.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 

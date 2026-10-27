@@ -80,7 +80,7 @@ Test evidence used below:
    display time zone (search, offset, detect, preview), sign-in methods,
    sessions with log out and log out everywhere, help-tip reset, and a deletion
    request with a 14-day grace period
-   (`services/internal/product/account_deletion.go`, the `account-deletions`
+   (`server/internal/product/account_deletion.go`, the `account-deletions`
    maintenance job).
 3. **Verified.** E2E: the display time zone saves and survives a reload. Go: an
    owner of a live workspace cannot request deletion. Existing E2E: name save.
@@ -113,7 +113,7 @@ Test evidence used below:
 3. **Verified.** Go `TestSocialSetNotificationGating` (per-set switch, private
    set, email switch). E2E: the email switch saves and survives a reload.
 4. **Missing.** Slack direct messages.
-5. **Files.** `services/internal/notifications/`, `internal/activity/events.go`,
+5. **Files.** `server/internal/notifications/`, `internal/activity/events.go`,
    `components/settings/NotificationExtras.tsx`,
    `components/workspace/WorkspaceNotifications.tsx`.
 6. **Migrations.** `platform_notification_preference.social_sets`.
@@ -196,7 +196,7 @@ Test evidence used below:
 
 1. **Required.** A registry with status, entitlement, dependencies and server
    enforcement.
-2. **Built.** `services/internal/product/experiments.go`: realistic previews
+2. **Built.** `server/internal/product/experiments.go`: realistic previews
    (promoted), Substack Notes (unavailable), calendar planning and draft tags
    (experimental). Opt-in per person, a workspace switch for owners and admins,
    and the backend refuses tags and planned dates unless both allow them.
@@ -318,7 +318,7 @@ Test evidence used below:
 2. **Built.** `IntegrationCatalog.tsx` states each entry's real status; there is
    no Connect button without a working flow. API keys show created, expiry, last
    used and status, and revoke behind a confirmation. Outbound webhooks
-   (`services/internal/webhooks/`): seven draft events, a versioned envelope,
+   (`server/internal/webhooks/`): seven draft events, a versioned envelope,
    HMAC signatures, the outbox, retries to dead letter, replay, SSRF checks,
    delivery history ([consumer guide](../outbound-webhooks.md)). Development
    mode shows IDs with copy; debug logs stay in the browser, redacted and
@@ -353,7 +353,7 @@ Test evidence used below:
    database; `TestEntProjectionsMatchMigratedTables`; the backfill was checked
    against seed data.
 4. **Missing.** Nothing required.
-5. **Files.** `services/ent/schema/`, `services/platformmigrations/sql/`.
+5. **Files.** `server/ent/schema/`, `server/platformmigrations/sql/`.
 6. **Migrations.** `20261029090000_settings_platform.sql`, additive. Rollback is
    in RFC 024.
 7. **Authorization.** n/a.

@@ -5,6 +5,8 @@ description: Add or change a Screenshot Studio Playwright end-to-end flow. Use f
 
 # Add End-to-End Flow
 
+Paths below are relative to `clients/apps/web/`; run `npm` commands from `clients/`.
+
 Read `test/e2e/README.md`, `test/e2e/framework/flow.ts`, and the changed feature's route,
 server boundary, and data contract before writing a test. Read
 `references/downstream-dependencies.md` when the flow crosses a downstream

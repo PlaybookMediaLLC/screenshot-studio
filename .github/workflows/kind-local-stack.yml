@@ -16,13 +16,16 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
+          cache-dependency-path: clients/package-lock.json
       - uses: helm/kind-action@v1.12.0
         with:
           install_only: true
       - run: npm ci
+        working-directory: clients
       - name: Install browser test dependencies
+        working-directory: clients
         run: npx playwright install --with-deps chromium
-      - run: ./bin/studio kind-up
+      - run: ./dev/studio kind-up
       - name: Smoke test the Helm release
         run: |
           kubectl --namespace screenshot-studio port-forward service/screenshot-studio 3000:80 &
@@ -52,7 +55,7 @@ jobs:
           source .local/dev.env
           for attempt in $(seq 1 30); do
             if curl --fail --silent --show-error http://localhost:3000/api/health; then
-              TENANT_TEST_BASE_URL=http://localhost:3000 npm run test:tenant-isolation
+              TENANT_TEST_BASE_URL=http://localhost:3000 npm --prefix clients/apps/web run test:tenant-isolation
               E2E_BASE_URL=http://localhost:3000 \
                 E2E_DATABASE_URL=postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@127.0.0.1:54329/screenshot_studio?schema=public \
                 E2E_R2_ENDPOINT=http://127.0.0.1:9003 \
@@ -69,8 +72,8 @@ jobs:
         with:
           name: kind-playwright-artifacts-${{ github.run_id }}
           path: |
-            playwright-report/
-            test-results/
+            clients/apps/web/playwright-report/
+            clients/apps/web/test-results/
           if-no-files-found: ignore
       - if: always()
-        run: ./bin/studio kind-down --yes
+        run: ./dev/studio kind-down --yes

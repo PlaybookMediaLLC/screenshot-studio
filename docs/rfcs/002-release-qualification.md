@@ -18,10 +18,10 @@ PR or successful deployment is evidence, not proof of general availability.
 
 ## Existing foundation
 
-The [release schema](../../services/ent/schema/release.go) stores a brief,
-sources, screenshots and status. [GitHub intake](../../services/internal/product/github_events.go)
+The [release schema](../../server/ent/schema/release.go) stores a brief,
+sources, screenshots and status. [GitHub intake](../../server/internal/product/github_events.go)
 collects merged changes and releases. The
-[automation classifier](../../services/internal/product/release_automation_relevance.go)
+[automation classifier](../../server/internal/product/release_automation_relevance.go)
 already judges customer relevance, and Temporal runs accepted workflows.
 Reuse these operations instead of building another webhook service or classifier.
 
@@ -204,9 +204,9 @@ metric-restatement design rather than relaxing this invariant casually.
 
 Start with manual draft/decision tables and UI; then add source bindings and
 event-assisted selection; then add merge/split. Extend the existing
-[release model](../../services/ent/schema/release.go),
-[source-event operations](../../services/internal/product/github_events.go) and
-[HTTP release adapter](../../services/internal/httpapi/releases.go) through new
+[release model](../../server/ent/schema/release.go),
+[source-event operations](../../server/internal/product/github_events.go) and
+[HTTP release adapter](../../server/internal/httpapi/releases.go) through new
 platform operations. Backfill readiness roots lazily or in resumable batches;
 historical releases have no first-qualified timestamp until a real decision.
 

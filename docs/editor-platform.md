@@ -2,7 +2,7 @@
 
 How the editor is put together: one document model, one renderer, one
 command layer, and the services built on them. Each section names the files
-to read first. [ARCHITECTURE.md](../ARCHITECTURE.md) covers the upstream editor
+to read first. [ARCHITECTURE.md](ARCHITECTURE.md) covers the upstream editor
 this grew from; [integrations.md](integrations.md) covers sharing and
 Slack, Notion, and Figma.
 
@@ -46,7 +46,7 @@ a document into the editor as one undo step.
 Local images (`blob:`/`data:`) become workspace assets (`asset:<uuid>`)
 before anything is stored. `lib/design/upload-sources.ts` uploads each one
 once per page. The Go backend checks that every `asset:` reference in a stored
-document belongs to the workspace (`services/internal/product/designs.go`).
+document belongs to the workspace (`server/internal/product/designs.go`).
 
 ## One renderer
 
@@ -108,8 +108,8 @@ kind `canvas` and share the Story Set session, history and recovery
 
 ## Persistence
 
-Every write goes through the Go backend (`services/internal/product`) and the
-SDK (`packages/screenshot-studio-backend-sdk`). The web never touches the database.
+Every write goes through the Go backend (`server/internal/product`) and the
+SDK (`clients/packages/screenshot-studio-backend-sdk`). The web never touches the database.
 
 | Feature                            | Backend                                                           | Web                                                       |
 | ---------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
@@ -120,7 +120,7 @@ SDK (`packages/screenshot-studio-backend-sdk`). The web never touches the databa
 | Integrations (F06)                 | `integration_connection`, credentials sealed by the web           | `lib/integrations/*`, `/api/integrations/<provider>/*`    |
 | AI backgrounds (F21)               | Generated workspace assets                                        | `lib/ai/images/background.ts`                             |
 
-Migrations are SQL in `services/platformmigrations/sql`. Ent schemas are in `services/ent/schema`.
+Migrations are SQL in `server/platformmigrations/sql`. Ent schemas are in `server/ent/schema`.
 
 ## Features on the platform
 

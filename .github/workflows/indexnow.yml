@@ -46,4 +46,5 @@ jobs:
           done
 
       - name: Submit changed pages to IndexNow
+        working-directory: clients/apps/web
         run: node scripts/indexnow.ts ${{ steps.previous.outputs.sha || '--all' }}

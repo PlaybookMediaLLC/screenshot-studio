@@ -110,8 +110,8 @@ npx tsx --test test/plan-analyze.test.ts test/openapi-contracts.test.ts
 # In services, using the D database environment:
 go test -count=1 -json ./internal/product -run 'TestPlanAnalyzeDatabase|TestAnalyticsGoalPeriods|TestAnalyticsRetryClassification|TestWritePublishing'
 # From the root, using the fetched develop base:
-git show origin/develop:services/internal/shotsapi/openapi.json > .local/plan-analyze/base-openapi.json
-go run github.com/oasdiff/oasdiff@v1.33.0 breaking .local/plan-analyze/base-openapi.json services/internal/shotsapi/openapi.json --fail-on ERR --format githubactions --err-ignore services/internal/shotsapi/breaking-changes-allowed.txt
+git show origin/develop:server/internal/shotsapi/openapi.json > .local/plan-analyze/base-openapi.json
+go run github.com/oasdiff/oasdiff@v1.33.0 breaking .local/plan-analyze/base-openapi.json server/internal/shotsapi/openapi.json --fail-on ERR --format githubactions --err-ignore server/internal/shotsapi/breaking-changes-allowed.txt
 ```
 
 The exact CI compatibility check above passed without adding an exception. Local evidence is in `quality-develop.log`, `go-develop.jsonl`, `vet-develop.log`, `domain-compat.jsonl`, `compat-unit.log` and `openapi-compat.log`. The PR records subsequent GitHub build/check results; the earlier counts above remain the original implementation audit.

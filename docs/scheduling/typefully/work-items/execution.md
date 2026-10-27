@@ -17,7 +17,7 @@ The combined-tree verification below supersedes corresponding historical checks.
 | `npm run quality:check` | Passed: format, zero-warning ESLint, TypeScript, 1,110 root tests, workspace tests and 18/18 RFC checks |
 | `/tmp/typefully-validation.sh tests ./... -count=1` | Passed across all Go packages with the product and notifications integration databases configured; regenerated Ent plus the final changed-package rerun also passed |
 | `npm run api:generate`, `oasdiff breaking` against `65e3f42f`, SDK build and generated-client TypeScript | Passed without adding compatibility exceptions. Anchored and ordinary comment additions retain exclusive, backward-compatible request alternatives |
-| `npm test --prefix integrations/zapier` | Four passed |
+| `npm test --prefix clients/integrations/zapier` | Four passed |
 | `/tmp/typefully-validation.sh tests ./internal/product ./internal/social/chat/mcp -count=1` | Passed with actual PostgreSQL after reconciling connected-destination planning and confirmed-content repurposing |
 | `/tmp/typefully-migration-check.sh` | Fresh/idempotent and upgrade preservation passed, 3.904s, including the develop migrations |
 | Go race checks | Publishing, Temporal publishing, notifications, tenant publishing and MCP all passed against isolated PostgreSQL databases |
@@ -78,7 +78,7 @@ Local PostgreSQL, Redis, RustFS and Temporal back the tests. Go is 1.26.8. Priva
 | `npm test` | Final3 passed: 1,038 root tests, collaboration 8 passed/1 skipped, Plate 21 passed. One later unsupported-poll assertion passed in the 25-test publication/contract regression run | Root/workspace suites; native OS tests separate |
 | `npx tsx --test test/write-preview.test.ts test/write-publication.test.ts test/settings-accent.test.ts` | 16 passed, `typefully-preview-unit2.log` | URL/emoji cutoffs, selected-version video kinds, publication rules and AA contrast |
 | `npx tsx --test test/voice-memo.test.ts` | 2 passed | Actual SDK audio serialization/credit middleware, scripted HTTP provider |
-| `npm test --prefix integrations/zapier` | 4 passed | Native Zapier runtime/schema and signed webhook/action fixtures |
+| `npm test --prefix clients/integrations/zapier` | 4 passed | Native Zapier runtime/schema and signed webhook/action fixtures |
 | `npx tsx --test test/native-shortcut.test.ts` | 1 passed | Plist/token graph and encoded review URL; not Apple import/signing |
 | `npm run lint -- --max-warnings=0` | Final4 passed; the later synced-version explanation and its test also passed targeted ESLint | One expression lint error was repaired; no lint gate weakened |
 | `npm run typecheck` | Final3 passed after API/SDK regeneration; production build includes a further TypeScript check | `next typegen` and `tsc --noEmit` |

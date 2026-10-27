@@ -42,7 +42,7 @@ findings. A rebuilt local adapter then completed another real X
 reconnect, and the stored token was confirmed encrypted without printing its value.
 
 For environments that have used the affected upsert, deploy this fix and run the
-existing `services/cmd/social-credentials` backfill with the correct database and
+existing `server/cmd/social-credentials` backfill with the correct database and
 `PLATFORM_SOCIAL_ENCRYPTION_KEY`. The command seals legacy credentials and retains
 connection IDs. No new migration or encryption format is introduced. Do not roll
 back to the defective upsert after the backfill.

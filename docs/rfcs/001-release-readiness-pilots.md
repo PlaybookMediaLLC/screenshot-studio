@@ -18,7 +18,7 @@ One meaningful product change should produce one approved kit used by the
 people responsible for explaining it. Seven posts, a new canvas, or connecting
 every social network is not a prerequisite.
 
-The [company brief](../../company.md), [vision](../../vision.md), and
+The [company brief](../company.md), [vision](../vision.md), and
 [codebase audit](../release-readiness-audit-2026-10-23.md) are the starting point.
 This RFC defines a program and measurement contract; it does not claim those
 results exist or change billing entitlements.

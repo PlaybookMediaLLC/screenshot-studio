@@ -161,7 +161,7 @@ written by the updated state producers. Authorization links issued before this
 rollout lack it and must be restarted. Drain in-flight attempts or communicate
 that reconnect is required during deployment; do not relax this check to accept
 unbound credential callbacks. Product and social adapter releases must be
-coordinated before enabling the flag. `bin/studio e2e` enables it for simulated
+coordinated before enabling the flag. `dev/studio e2e` enables it for simulated
 provider tests only; the ordinary Compose default remains false.
 
 ## Remaining connection work

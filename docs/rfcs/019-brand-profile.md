@@ -7,7 +7,7 @@
 > historical wherever it conflicts with that order or the audited architecture.
 
 **Status:** Partially implemented (brand kits/profiles, validation and copy-rule enforcement present)
-**Status note (2026-10-23):** Brand-rule validation and enforcement exist in services/internal/product/brand_rules.go and launch copy guards. Full original acceptance criteria are not re-certified by this source audit.
+**Status note (2026-10-23):** Brand-rule validation and enforcement exist in server/internal/product/brand_rules.go and launch copy guards. Full original acceptance criteria are not re-certified by this source audit.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26
 **Historical dependencies:** RFC 020

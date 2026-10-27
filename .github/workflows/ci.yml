@@ -41,13 +41,13 @@ jobs:
           --health-retries 20
     defaults:
       run:
-        working-directory: services
+        working-directory: server
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: services/go.mod
-          cache-dependency-path: services/go.sum
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
       - name: Install PostgreSQL client
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - run: go generate ./ent ./internal/social/ent
@@ -81,7 +81,7 @@ jobs:
       - run: go vet ./...
       - name: Build the backend image
         working-directory: .
-        run: docker build --tag screenshot-studio-backend:${{ github.sha }} services
+        run: docker build --tag screenshot-studio-backend:${{ github.sha }} server
 
   validate:
     name: CI validation
@@ -102,17 +102,24 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
+          cache-dependency-path: clients/package-lock.json
       - run: npm ci
+        working-directory: clients
       # Workspace scripts, as the SDK publish path builds it.
       - run: npm run build:sdk
+        working-directory: clients
       - run: python3 -m unittest discover -s infra/digitalocean -p 'test_*.py'
       - run: npm run quality:check
+        working-directory: clients
+      - run: python3 dev/verify-rfcs.py
       - run: npm run test:publishing-backend-client
+        working-directory: clients/apps/web
       - run: npm run test:screenshot-capture
+        working-directory: clients/apps/web
       - name: Validate local development configuration
         run: |
-          ./bin/studio status
-          docker compose --env-file .local/dev.env --file compose.yaml config --quiet
+          ./dev/studio status
+          docker compose --env-file .local/dev.env --file dev/compose.yaml config --quiet
       # The Docker build runs `npm run build` inside the image, so a bare
       # `npm run build` here would validate the same thing twice. The
       # GitHub Actions layer cache keeps the dependency and build layers
@@ -121,6 +128,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: clients/apps/web/Dockerfile
           tags: screenshot-studio:${{ github.sha }}
           load: true
           cache-from: type=gha
@@ -135,7 +143,7 @@ jobs:
           for attempt in $(seq 1 20); do
             if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
               curl --fail --silent --show-error http://127.0.0.1:3000/indexnow-key.txt > /tmp/indexnow-key.txt
-              diff public/indexnow-key.txt /tmp/indexnow-key.txt
+              diff clients/apps/web/public/indexnow-key.txt /tmp/indexnow-key.txt
               exit 0
             fi
             sleep 1
@@ -143,7 +151,7 @@ jobs:
           exit 1
       - name: Build and smoke test the collaboration server image
         run: |
-          docker build --file packages/collab-server/Dockerfile --tag screenshot-studio-collab:${{ github.sha }} .
+          docker build --file clients/apps/collab-server/Dockerfile --tag screenshot-studio-collab:${{ github.sha }} .
           docker run --detach --rm --name collab-smoke --publish 1234:1234 \
             --env COLLAB_BACKEND_URL=http://127.0.0.1:9 --env COLLAB_SERVICE_TOKEN=smoke \
             screenshot-studio-collab:${{ github.sha }}
@@ -155,10 +163,10 @@ jobs:
             sleep 1
           done
           exit 1
-      - run: helm lint charts/screenshot-studio
-      - run: helm template screenshot-studio charts/screenshot-studio > /dev/null
-      - run: helm lint charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
-      - run: helm template screenshot-studio charts/screenshot-studio --values charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
+      - run: helm lint infra/charts/screenshot-studio
+      - run: helm template screenshot-studio infra/charts/screenshot-studio > /dev/null
+      - run: helm lint infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
+      - run: helm template screenshot-studio infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
 
   native-clients:
     if: github.event.action != 'closed'
@@ -171,17 +179,18 @@ jobs:
           node-version: 22.23.4
           cache: npm
           cache-dependency-path: |
-            package-lock.json
-            integrations/raycast/package-lock.json
-            integrations/zapier/package-lock.json
+            clients/package-lock.json
+            clients/integrations/raycast/package-lock.json
+            clients/integrations/zapier/package-lock.json
       - run: npm ci
+        working-directory: clients
       # Native host dependencies belong to each client's own TypeScript project.
-      - run: npm ci --prefix integrations/raycast
-      - run: npm run typecheck --prefix integrations/raycast
-      - run: npm test --prefix integrations/raycast
-      - run: npm run build --prefix integrations/raycast
-      - run: npm ci --prefix integrations/zapier
-      - run: npm test --prefix integrations/zapier
+      - run: npm ci --prefix clients/integrations/raycast
+      - run: npm run typecheck --prefix clients/integrations/raycast
+      - run: npm test --prefix clients/integrations/raycast
+      - run: npm run build --prefix clients/integrations/raycast
+      - run: npm ci --prefix clients/integrations/zapier
+      - run: npm test --prefix clients/integrations/zapier
 
   # The public contract: the committed OpenAPI document and typed client must
   # match the zod contracts, and a pull request may not break the document
@@ -198,22 +207,26 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
+          cache-dependency-path: clients/package-lock.json
       - uses: actions/setup-go@v5
         with:
-          go-version-file: services/go.mod
+          go-version-file: server/go.mod
           cache: false
       - run: npm ci
+        working-directory: clients
       - name: Verify the OpenAPI document and typed client are current
+        working-directory: clients
         run: |
           npm run api:generate
-          git diff --exit-code -- services/internal/shotsapi packages/shots-api-client/src
+          git diff --exit-code -- ../server/internal/shotsapi packages/shots-api-client/src
       - name: Build the typed client
+        working-directory: clients
         run: npx tsc -p packages/shots-api-client/tsconfig.json --noEmit
       - name: Block unintended breaking API changes
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          document=services/internal/shotsapi/openapi.json
+          document=server/internal/shotsapi/openapi.json
           if ! git cat-file -e "$BASE:$document" 2>/dev/null; then
             echo "The base revision has no OpenAPI document to compare against."
             exit 0
@@ -221,7 +234,7 @@ jobs:
           git show "$BASE:$document" > "$RUNNER_TEMP/base-openapi.json"
           go run github.com/oasdiff/oasdiff@v1.33.0 breaking "$RUNNER_TEMP/base-openapi.json" "$document" \
             --fail-on ERR --format githubactions \
-            --err-ignore services/internal/shotsapi/breaking-changes-allowed.txt
+            --err-ignore server/internal/shotsapi/breaking-changes-allowed.txt
 
   # Runs in parallel with validate rather than after it. The two jobs
   # share no outputs, and the serial order added the whole validate
@@ -256,17 +269,20 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
+          cache-dependency-path: clients/package-lock.json
       - name: Install npm dependencies
         timeout-minutes: 8
+        working-directory: clients
         run: npm ci --prefer-offline --no-audit
       - name: Restore Playwright browsers
         id: browsers
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('node_modules/playwright-core/package.json') }}
+          key: playwright-${{ runner.os }}-${{ hashFiles('clients/node_modules/playwright-core/package.json') }}
       - name: Install browser system dependencies
         timeout-minutes: 12
+        working-directory: clients
         run: |
           # The Azure HTTP mirror stalls on font packages on hosted runners.
           sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
@@ -274,6 +290,7 @@ jobs:
           npx playwright install-deps chromium
       - name: Install Chromium
         timeout-minutes: 6
+        working-directory: clients
         env:
           PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
         run: npx playwright install chromium
@@ -288,22 +305,24 @@ jobs:
         # production. Once is enough, so only on shard 1.
         if: matrix.shard_index == 1
         timeout-minutes: 5
+        working-directory: clients/apps/web
         run: npm run test:design-renderer
       - name: Start and smoke-test the local stack
-        run: ./bin/studio up
+        run: ./dev/studio up
       - name: Run local stack smoke test
-        run: ./bin/studio smoke
+        run: ./dev/studio smoke
       - name: Smoke test the API reference, OpenAPI document, and agent endpoints
         if: matrix.shard_index == 1
+        working-directory: clients/apps/web
         run: VERIFY_BASE_URL=http://127.0.0.1:3000 npm run verify:agents
       - name: Verify tenant isolation
-        run: ./bin/studio tenant-isolation
+        run: ./dev/studio tenant-isolation
       - name: Verify browser end-to-end flows
         if: matrix.shard_index <= 3
-        run: ./bin/studio e2e --shard=${{ matrix.shard }}
+        run: ./dev/studio e2e --shard=${{ matrix.shard }}
       - name: Verify Plan and Analyze acceptance flows
         if: matrix.shard_index == 4
-        run: ./bin/studio e2e test/e2e/plan-analyze.spec.ts
+        run: ./dev/studio e2e test/e2e/plan-analyze.spec.ts
       # Collected before the recovery check, which calls `compose up
       # --force-recreate app` and so destroys the container that served the
       # failing tests. Collecting only at the end left every failure on the
@@ -311,7 +330,7 @@ jobs:
       # two-factor flake could not be diagnosed from CI output.
       - if: always() && hashFiles('.local/dev.env') != ''
         name: Collect end-to-end stack logs
-        run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
+        run: docker compose --env-file .local/dev.env --file dev/compose.yaml --profile e2e logs --no-color
       - name: Verify dependency failure and recovery
         if: matrix.shard_index == 3
         run: make e2e-recovery
@@ -321,15 +340,15 @@ jobs:
         with:
           name: playwright-artifacts-${{ github.run_id }}-${{ matrix.shard_index }}
           path: |
-            playwright-report/
-            test-results/
+            clients/apps/web/playwright-report/
+            clients/apps/web/test-results/
           if-no-files-found: ignore
       - if: always() && hashFiles('.local/dev.env') != ''
         name: Collect post-recovery stack logs
-        run: docker compose --env-file .local/dev.env --file compose.yaml --profile e2e logs --no-color
+        run: docker compose --env-file .local/dev.env --file dev/compose.yaml --profile e2e logs --no-color
       - if: always() && hashFiles('.local/dev.env') != ''
         name: Remove local stack data
-        run: ./bin/studio down --purge --yes
+        run: ./dev/studio down --purge --yes
 
   social-gate:
     if: github.event.action != 'closed'
@@ -341,11 +360,14 @@ jobs:
         with:
           node-version: 22.23.4
           cache: npm
+          cache-dependency-path: clients/package-lock.json
       - name: Install npm dependencies
         timeout-minutes: 8
+        working-directory: clients
         run: npm ci --prefer-offline --no-audit
       - name: Install browser system dependencies
         timeout-minutes: 12
+        working-directory: clients
         run: |
           # The Azure HTTP mirror stalls on font packages on hosted runners.
           sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' /etc/apt/apt-mirrors.txt
@@ -353,17 +375,18 @@ jobs:
           npx playwright install-deps chromium
       - name: Install Chromium
         timeout-minutes: 6
+        working-directory: clients
         env:
           PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: '60000'
         run: npx playwright install chromium
       - name: Run real Go social publishing gate
-        run: ./bin/social-gate
+        run: ./dev/social-gate
       - if: failure()
         name: Upload browser test artifacts
         uses: actions/upload-artifact@v4
         with:
           name: social-gate-${{ github.run_id }}
           path: |
-            playwright-report/
-            test-results/
+            clients/apps/web/playwright-report/
+            clients/apps/web/test-results/
           if-no-files-found: ignore

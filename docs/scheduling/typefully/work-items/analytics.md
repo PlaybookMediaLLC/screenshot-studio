@@ -11,9 +11,9 @@ This epic is reopened. Evidence is a provider observation, not a zero-filled cha
 Record actual account and published-post readings with workspace, social set, connection, subject, observation time and provider data dates. Collect recently published posts for 30 days and account history through the existing hourly maintenance task. Attribute Shots posts to their confirmed publication receipts; discover external posts only through the authorized account feed. Unsupported, unavailable, failed and genuine zero remain different states.
 
 ### Changes and evidence
-- `services/internal/product/social_analytics.go` and `services/internal/social/tenantpublishing/analytics.go`: bounded collection, authorized provider attribution and real results.
-- `services/ent/schema/platform_social_observation.go`, migration `20261102090000_platform_social_observation.sql`: unique workspace/kind/subject/day observations. Newer observations and current post metrics commit atomically.
-- Provider adapters under `services/internal/social/integrations/social`: X reads followers and a bounded latest-original-post window; LinkedIn missing fields remain unavailable. Never invent historical percentage changes.
+- `server/internal/product/social_analytics.go` and `server/internal/social/tenantpublishing/analytics.go`: bounded collection, authorized provider attribution and real results.
+- `server/ent/schema/platform_social_observation.go`, migration `20261102090000_platform_social_observation.sql`: unique workspace/kind/subject/day observations. Newer observations and current post metrics commit atomically.
+- Provider adapters under `server/internal/social/integrations/social`: X reads followers and a bounded latest-original-post window; LinkedIn missing fields remain unavailable. Never invent historical percentage changes.
 - Existing maintenance registration runs the collector; no second scheduler.
 
 ### Channel matrix
@@ -64,13 +64,13 @@ An invalid range produces an actionable date error. No observations yields an ex
 
 **Source:** TF-004. **Classification:** Exists: scoped public read and revoke passed the combined browser suite. **Priority:** Reopened. **Size:** M.
 
-The current `develop` implementation adds an explicit per-account sharing control in `components/analyze/AnalyzeWorkspace.tsx`, backed by `services/internal/product/analytics.go`. This supersedes the earlier deferral. Sharing is off until an authorized member enables it; a public draft-review token is never an analytics grant.
+The current `develop` implementation adds an explicit per-account sharing control in `components/analyze/AnalyzeWorkspace.tsx`, backed by `server/internal/product/analytics.go`. This supersedes the earlier deferral. Sharing is off until an authorized member enables it; a public draft-review token is never an analytics grant.
 
 **Dependencies and affected layers:** Existing connected-account analytics, the account's sharing settings, `lib/api/contracts/plan-analyze.ts`, authenticated settings routes and the separate public analytics token route. No account credentials or mutation controls enter the public report.
 
 **Acceptance:** An authorized member enables sharing, opens the scoped report without a session, and revokes it. The previous URL then refuses access. Unsupported metrics remain unavailable. Draft-review links, other workspaces and private accounts cannot confer a public sharing grant.
 
-**Failure and verification:** Revoked or unknown tokens return an unavailable state with no stale private report. `services/internal/product/plan_analyze_test.go` verifies scope and revocation; `test/e2e/plan-analyze.spec.ts` exercises enabling, public reading and revoke. Existing analytics audit events identify setting changes. Provider ingestion remains separately gated and is not certified by sharing a stored fixture.
+**Failure and verification:** Revoked or unknown tokens return an unavailable state with no stale private report. `server/internal/product/plan_analyze_test.go` verifies scope and revocation; `test/e2e/plan-analyze.spec.ts` exercises enabling, public reading and revoke. Existing analytics audit events identify setting changes. Provider ingestion remains separately gated and is not certified by sharing a stored fixture.
 
 ## WI-ANALYTICS-4: Save a personal accent beside analytics access
 
@@ -84,4 +84,4 @@ A person can choose an app accent without changing teammates' preferences or exp
 Apply, reload and reset the accent. A refused save restores the prior accent and reports failure. Cross-member preferences stay independent; stale versions conflict. Invalid CSS values cannot enter the property. Existing colors remain until a user explicitly chooses an accent.
 
 ### Verification and observability
-`test/e2e/typefully-appearance.spec.ts` passed real save/reload/reset and refused-save restoration. `test/settings-accent.test.ts` verifies AA contrast over 4,096 sampled colors. `services/internal/product/user_accent_integration_test.go` passed persistence, member isolation, invalid values and stale-version rejection. Migration upgrade checks preserve an existing light theme/version while adding an empty accent. Existing preference audit/version fields identify updates; no new telemetry service.
+`test/e2e/typefully-appearance.spec.ts` passed real save/reload/reset and refused-save restoration. `test/settings-accent.test.ts` verifies AA contrast over 4,096 sampled colors. `server/internal/product/user_accent_integration_test.go` passed persistence, member isolation, invalid values and stale-version rejection. Migration upgrade checks preserve an existing light theme/version while adding an empty accent. Existing preference audit/version fields identify updates; no new telemetry service.

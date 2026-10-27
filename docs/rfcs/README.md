@@ -9,9 +9,9 @@ approval. [Work-item coverage](../scheduling/typefully/work-items/coverage.md) t
 implementation, verification and provider gates separately.
 
 This is the authoritative order for new product work toward the
-[Shots north star](../../vision.md): meaningful releases become accurate,
+[Shots north star](../vision.md): meaningful releases become accurate,
 approved communications that reach and are used by their intended audiences.
-The [company brief](../../company.md) defines the customer and commercial
+The [company brief](../company.md) defines the customer and commercial
 hypotheses. Filenames and RFC numbers now follow the priority order below.
 
 **Start here:** RFC 001 runs the paid-pilot program; RFC 002 is the first

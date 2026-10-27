@@ -12,7 +12,7 @@ tests concurrently against that same database.
 
 Prerequisites: the repository's Node, npm, Go, Docker/Compose and Playwright
 dependencies. `npm ci`, `npm run build:sdk`, and `npx playwright install chromium`
-prepare the application. Follow the existing `bin/studio` local-services setup
+prepare the application. Follow the existing `dev/studio` local-services setup
 for Postgres, Redis, RustFS and its bucket-init service, and Temporal. Use a unique
 Compose project and unused host ports if other workspaces have running services.
 The runner defaults to web 3049, API 8099, GitHub 8039, destination verification 8049, and Temporal 7253; service

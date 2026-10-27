@@ -9,7 +9,7 @@
 **Status:** Superseded by Temporal
 **Status note (2026-10-16):** Trigger.dev was never adopted. AI launch runs still run in Next.js `after()` (`lib/launch/runs.ts`), not in Temporal.
 **Phase 0 update (2026-10-16):** Launch runs keep running in Next.js `after()`, now under a lease: a partial unique index allows one RUNNING run per campaign and kind, the web heartbeats every 30 seconds, a run with no heartbeat for two minutes is expired, and runs can be cancelled (`HeartbeatLaunchRun`, `CancelLaunchRun`). Runs still do not survive a web restart; that needs checkpointed, idempotent stages.
-**Superseded by:** Temporal workers in `services/internal/temporalpublishing` and `services/internal/temporalmaintenance`
+**Superseded by:** Temporal workers in `server/internal/temporalpublishing` and `server/internal/temporalmaintenance`
 **Date:** 2026-08-13
 **Historical dependencies:** RFC 046, RFC 010, and RFC 009
 **Owners:** Engineering and Operations

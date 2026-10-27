@@ -71,7 +71,9 @@ jobs:
     permissions:
       contents: write
       issues: write
-      pull-requests: read
+      # Labelling the released preparation PR "autorelease: tagged" is a PR
+      # write; with read access GitHub refuses it (403) after publishing.
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:

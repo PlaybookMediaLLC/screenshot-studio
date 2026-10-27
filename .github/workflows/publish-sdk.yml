@@ -1,6 +1,6 @@
 name: Publish SDK
 
-# Publishes packages/screenshot-studio-backend-sdk to npm when main carries a
+# Publishes clients/packages/screenshot-studio-backend-sdk to npm when main carries a
 # version npm does not have. Pull requests run the check alone, which fails
 # when the SDK changed but its version did not (that change would never
 # publish). npm trusted publishing (OIDC) authenticates; no npm token is
@@ -10,12 +10,12 @@ on:
   push:
     branches: [main]
     paths:
-      - packages/screenshot-studio-backend-sdk/**
+      - clients/packages/screenshot-studio-backend-sdk/**
       - .github/workflows/publish-sdk.yml
   pull_request:
     branches: [develop, main]
     paths:
-      - packages/screenshot-studio-backend-sdk/**
+      - clients/packages/screenshot-studio-backend-sdk/**
       - .github/workflows/publish-sdk.yml
   workflow_dispatch:
 
@@ -34,7 +34,7 @@ jobs:
       publish: ${{ steps.version.outputs.publish }}
     defaults:
       run:
-        working-directory: packages/screenshot-studio-backend-sdk
+        working-directory: clients/packages/screenshot-studio-backend-sdk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,12 +43,12 @@ jobs:
       # Install the SDK's locked peer dependencies without installing the app:
       # the app may already pin the SDK version this run is about to publish.
       - name: Install SDK dependencies
-        working-directory: .
+        working-directory: clients
         run: npm ci --ignore-scripts --workspace screenshot-studio-backend-sdk --include-workspace-root=false --no-audit --no-fund
       # Use the app's compiler version for reproducible declarations.
       - name: Build
         run: |
-          typescript="$(node -p "require('../../package.json').devDependencies.typescript")"
+          typescript="$(node -p "require('../../apps/web/package.json').devDependencies.typescript")"
           npx --yes --package "typescript@$typescript" tsc -p tsconfig.json
       - id: version
         name: Compare with npm
@@ -66,7 +66,7 @@ jobs:
           npm pack "$name@$version" --pack-destination "$RUNNER_TEMP/published" > /dev/null
           tar -xzf "$RUNNER_TEMP"/published/*.tgz -C "$RUNNER_TEMP/published"
           if ! diff -r "$RUNNER_TEMP/published/package/dist" dist; then
-            echo "::error::$name@$version is already on npm with different contents. Bump the version in packages/screenshot-studio-backend-sdk/package.json."
+            echo "::error::$name@$version is already on npm with different contents. Bump the version in clients/packages/screenshot-studio-backend-sdk/package.json."
             exit 1
           fi
           echo "$name@$version is already on npm with these contents."
@@ -83,7 +83,7 @@ jobs:
       id-token: write
     defaults:
       run:
-        working-directory: packages/screenshot-studio-backend-sdk
+        working-directory: clients/packages/screenshot-studio-backend-sdk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -93,11 +93,11 @@ jobs:
       # Trusted publishing needs npm 11.5.1 or later.
       - run: npm install --global npm@11
       - name: Install SDK dependencies
-        working-directory: .
+        working-directory: clients
         run: npm ci --ignore-scripts --workspace screenshot-studio-backend-sdk --include-workspace-root=false --no-audit --no-fund
       - name: Build
         run: |
-          typescript="$(node -p "require('../../package.json').devDependencies.typescript")"
+          typescript="$(node -p "require('../../apps/web/package.json').devDependencies.typescript")"
           npx --yes --package "typescript@$typescript" tsc -p tsconfig.json
       # The build ran above; prepack would look for tsc on the PATH.
       - run: npm publish --access public --ignore-scripts

@@ -132,8 +132,8 @@ backup kept 14 days, and stops if it fails.
 
 `platform-migrate` runs the backend image's `/platform-migrate` with
 `MIGRATION_DATABASE_URL` before deployment. It applies the product SQL in
-`services/platformmigrations/sql` and the social SQL in
-`services/internal/social/migrations` to the same database and
+`server/platformmigrations/sql` and the social SQL in
+`server/internal/social/migrations` to the same database and
 `public` schema. It records migration history and adopts product migrations
 Prisma already applied. The `Social backend image` deploy replaces
 `web-migrate` with this single job. A migration failure stops the deployment.
@@ -253,7 +253,7 @@ for Exa enrichment. The next backend deploy adds each one present to the
 backend as a `TENANT_` secret and removes each one absent. Without them the
 agent drafts from page metadata and skips Exa.
 
-Tests in `services/internal/maintenance` use a disposable, fully migrated
+Tests in `server/internal/maintenance` use a disposable, fully migrated
 `maintenance_test` database and fake provider transports. CI runs these tests
 with the race detector, plus Temporal workflow retry/schedule reconciliation
 tests. Crypto fixtures are checked against independently generated Node values.

@@ -39,7 +39,7 @@ Restore the submitted instruction after a failed assistant request. Keep the cur
 All writers in a brand need consistent tone, prohibited terms and examples. Workspace defaults are refined by set overrides and the current instruction. A member may use the guide; only authorized managers change it.
 
 ### Changes and evidence
-`services/internal/product/writing_assistant.go` merges the authorized context. `lib/write/refine.ts:voiceInstructions` fences examples as reference data. `components/write/composer/assistant.tsx:AssistantSetup` links the existing Writing Assistant settings. Reuse their contracts and persistence; no new model or user-profile store.
+`server/internal/product/writing_assistant.go` merges the authorized context. `lib/write/refine.ts:voiceInstructions` fences examples as reference data. `components/write/composer/assistant.tsx:AssistantSetup` links the existing Writing Assistant settings. Reuse their contracts and persistence; no new model or user-profile store.
 
 ### Acceptance criteria
 1. Saved samples, terminology, tone and formatting survive reload and reach both assistant and refinement calls.

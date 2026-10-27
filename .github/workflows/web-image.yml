@@ -4,21 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - app/**
-      - components/**
-      - lib/**
-      - public/**
-      - Dockerfile
-      - package.json
-      - package-lock.json
-      - packages/**
-      - next.config.ts
-      - proxy.ts
-      - instrumentation-client.ts
-      - hooks/**
-      - i18n/**
-      - messages/**
-      - types/**
+      - clients/apps/web/**
+      - '!clients/apps/web/test/**'
+      - clients/package.json
+      - clients/package-lock.json
+      - clients/packages/**
+      - server/internal/medialimits/limits.json
       - .github/workflows/web-image.yml
       - infra/digitalocean/update-web-image.py
   workflow_dispatch:
@@ -56,7 +47,7 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         with:
           context: .
-          file: Dockerfile
+          file: clients/apps/web/Dockerfile
           platforms: linux/amd64
           push: true
           provenance: false

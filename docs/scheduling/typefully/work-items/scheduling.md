@@ -12,7 +12,7 @@ The authorized expansion is implemented at the supported local boundaries. Use [
 
 **Depends on:** Publisher authority, current approved snapshot, queue locks and existing Temporal scheduled workflows.
 
-**Affected files / evidence:** `components/drafts/DraftCalendar.tsx`; `services/internal/product/content_draft_platform.go`; `services/internal/product/content_draft_schedule.go`; `app/api/v1/content-draft-posts/swap/route.ts`.
+**Affected files / evidence:** `components/drafts/DraftCalendar.tsx`; `server/internal/product/content_draft_platform.go`; `server/internal/product/content_draft_schedule.go`; `app/api/v1/content-draft-posts/swap/route.ts`.
 
 ### Problem, scope and changes
 
@@ -28,7 +28,7 @@ A worker claim or competing edit rejects the stale move without creating replace
 
 ### Verification
 
-`services/internal/product/content_draft_platform_integration_test.go`; `test/write-calendar.test.ts`; `test/write-zoned-time.test.ts`; `test/e2e/typefully-workitems.spec.ts`.
+`server/internal/product/content_draft_platform_integration_test.go`; `test/write-calendar.test.ts`; `test/write-zoned-time.test.ts`; `test/e2e/typefully-workitems.spec.ts`.
 
 ### Observability and unresolved dependencies
 
@@ -44,7 +44,7 @@ PostgreSQL races and browser exact move/swap/reload passed. Audit cancellation/r
 
 **Depends on:** Visible social sets in the active workspace; existing draft-tags experiment for tag controls.
 
-**Affected files / evidence:** `components/drafts/DraftCalendar.tsx`; `components/drafts/CalendarDraftPicker.tsx`; `app/[locale]/write/plan/page.tsx`; `services/internal/product/content_draft_platform.go`.
+**Affected files / evidence:** `components/drafts/DraftCalendar.tsx`; `components/drafts/CalendarDraftPicker.tsx`; `app/[locale]/write/plan/page.tsx`; `server/internal/product/content_draft_platform.go`.
 
 ### Problem, scope and changes
 
@@ -60,7 +60,7 @@ Invalid ranges fall back to a valid visible period; unavailable drafts show an e
 
 ### Verification
 
-`test/write-calendar.test.ts`; `services/internal/product/content_draft_platform_integration_test.go`; `test/e2e/typefully-workitems.spec.ts`; `test/e2e/social-set-scope.spec.ts`.
+`test/write-calendar.test.ts`; `server/internal/product/content_draft_platform_integration_test.go`; `test/e2e/typefully-workitems.spec.ts`; `test/e2e/social-set-scope.spec.ts`.
 
 ### Observability and unresolved dependencies
 
@@ -76,7 +76,7 @@ Fresh browser tests passed sidebar drop/picker, confirmation/reload, 42-day view
 
 **Depends on:** Approval/version checks, actual engagement observations and canonical queue settings.
 
-**Affected files / evidence:** `components/write/composer/schedule.tsx`; `components/drafts/CalendarDraftPicker.tsx`; `services/internal/product/content_draft_schedule.go`; `services/internal/product/content_draft_platform.go`; `services/internal/product/content_draft_timing.go`.
+**Affected files / evidence:** `components/write/composer/schedule.tsx`; `components/drafts/CalendarDraftPicker.tsx`; `server/internal/product/content_draft_schedule.go`; `server/internal/product/content_draft_platform.go`; `server/internal/product/content_draft_timing.go`.
 
 ### Problem, scope and changes
 
@@ -92,7 +92,7 @@ Insufficient engagement must not create fabricated scores. Invalid/foreign accou
 
 ### Verification
 
-`services/internal/product/content_draft_publish_integration_test.go`; `services/internal/product/content_draft_timing_test.go`; `services/internal/product/content_draft_platform_integration_test.go`; `test/e2e/write.spec.ts`.
+`server/internal/product/content_draft_publish_integration_test.go`; `server/internal/product/content_draft_timing_test.go`; `server/internal/product/content_draft_platform_integration_test.go`; `test/e2e/write.spec.ts`.
 
 ### Observability and unresolved dependencies
 
@@ -108,7 +108,7 @@ Publication/automation receipts distinguish main and optional outcomes. The addi
 
 **Depends on:** Canonical queue preflight, immutable import receipts, existing workspace upload and per-row human approval.
 
-**Affected files / evidence:** `components/write/bulk-import.tsx`; `components/write/bulk-schedule.tsx`; `services/internal/product/content_draft_import.go`; `services/internal/product/content_draft_batch.go`; `lib/write/bulk-import.ts`.
+**Affected files / evidence:** `components/write/bulk-import.tsx`; `components/write/bulk-schedule.tsx`; `server/internal/product/content_draft_import.go`; `server/internal/product/content_draft_batch.go`; `lib/write/bulk-import.ts`.
 
 ### Problem, scope and changes
 
@@ -124,7 +124,7 @@ Known validation errors can be edited with a new row receipt; uncertain server o
 
 ### Verification
 
-`services/internal/product/content_draft_import_integration_test.go`; `services/internal/product/content_draft_batch_test.go`; `services/internal/product/content_draft_platform_integration_test.go`; `test/write-bulk-import.test.ts`; `test/e2e/typefully-workitems.spec.ts`.
+`server/internal/product/content_draft_import_integration_test.go`; `server/internal/product/content_draft_batch_test.go`; `server/internal/product/content_draft_platform_integration_test.go`; `test/write-bulk-import.test.ts`; `test/e2e/typefully-workitems.spec.ts`.
 
 ### Observability and unresolved dependencies
 

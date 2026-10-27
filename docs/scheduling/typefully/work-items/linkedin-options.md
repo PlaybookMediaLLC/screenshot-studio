@@ -12,7 +12,7 @@ Reconciled against `19390194` and the implementation in this working tree. The O
 
 **Dependencies:** Published root receipt; existing Temporal optional-action ledger.
 
-**Affected code and current evidence:** `components/write/composer/version-options.tsx`; `lib/write/publication.ts`; `services/internal/temporalpublishing/automation.go`; `services/internal/social/tenantpublishing/automation.go`.
+**Affected code and current evidence:** `components/write/composer/version-options.tsx`; `lib/write/publication.ts`; `server/internal/temporalpublishing/automation.go`; `server/internal/social/tenantpublishing/automation.go`.
 
 ### Implementation gap and disposition
 
@@ -28,7 +28,7 @@ No comment is sent for a failed or unknown root. A comment timeout remains unkno
 
 ### Verification
 
-`services/internal/temporalpublishing/automation_test.go`; `services/internal/social/tenantpublishing/automation_test.go`; `test/write-publication.test.ts`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/temporalpublishing/automation_test.go`; `server/internal/social/tenantpublishing/automation_test.go`; `test/write-publication.test.ts`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 
@@ -44,7 +44,7 @@ Optional-action receipt, attempt count and separate failure state appear on the 
 
 **Dependencies:** Community Management permission and provider search/resolve availability.
 
-**Affected code and current evidence:** `components/write/composer/social-mention.tsx`; `services/internal/product/social_mentions.go`; `app/api/v1/social-sets/[id]/mentions/route.ts`; `lib/write/normalize-mentions.ts`.
+**Affected code and current evidence:** `components/write/composer/social-mention.tsx`; `server/internal/product/social_mentions.go`; `app/api/v1/social-sets/[id]/mentions/route.ts`; `lib/write/normalize-mentions.ts`.
 
 ### Implementation gap and disposition
 
@@ -60,7 +60,7 @@ Unsupported person/company lookup is explicit. Do not fabricate search results, 
 
 ### Verification
 
-`services/internal/product/social_mentions_test.go`; `services/internal/product/social_set_queue_integration_test.go`; `services/internal/social/tenantpublishing/options_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/product/social_mentions_test.go`; `server/internal/product/social_set_queue_integration_test.go`; `server/internal/social/tenantpublishing/options_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 
@@ -76,7 +76,7 @@ Lookup authorization and provider errors are observable without logging search t
 
 **Dependencies:** LinkedIn document upload and organization publishing permissions.
 
-**Affected code and current evidence:** `components/write/composer/pdf-carousel.tsx`; `components/write/composer/version-options.tsx`; `services/internal/social/integrations/social/linkedin/linkedin.go`; `services/internal/social/integrations/social/linkedinpage/linkedinpage.go`; `services/internal/product/content_draft_documents.go`.
+**Affected code and current evidence:** `components/write/composer/pdf-carousel.tsx`; `components/write/composer/version-options.tsx`; `server/internal/social/integrations/social/linkedin/linkedin.go`; `server/internal/social/integrations/social/linkedinpage/linkedinpage.go`; `server/internal/product/content_draft_documents.go`.
 
 ### Implementation gap and disposition
 
@@ -92,7 +92,7 @@ Document initialization/upload failures prevent the main publish. Optional first
 
 ### Verification
 
-`services/internal/social/integrations/social/linkedin/linkedin_test.go`; `services/internal/social/tenantpublishing/options_test.go`; `services/internal/product/content_draft_write_integration_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/social/integrations/social/linkedin/linkedin_test.go`; `server/internal/social/tenantpublishing/options_test.go`; `server/internal/product/content_draft_write_integration_test.go`; `test/e2e/write.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 

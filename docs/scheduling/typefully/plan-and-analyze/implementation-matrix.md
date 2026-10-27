@@ -5,11 +5,11 @@ Audit: October 24, 2026. This supplements the original research checklist withou
 ## Evidence keys
 
 - **U:** `test/plan-analyze.test.ts`; exact `test()` title below; command **U** in verification.
-- **D:** `services/internal/product/plan_analyze_test.go`, `TestPlanAnalyzeDatabase/<title>` (goal rule row uses `TestAnalyticsGoalPeriods/<title>`); P39 lives in `content_draft_publish_integration_test.go`; command **D**.
+- **D:** `server/internal/product/plan_analyze_test.go`, `TestPlanAnalyzeDatabase/<title>` (goal rule row uses `TestAnalyticsGoalPeriods/<title>`); P39 lives in `content_draft_publish_integration_test.go`; command **D**.
 - **B:** `test/e2e/plan-analyze.spec.ts`; the exact named `test.step()` below inside the Plan or Analyze acceptance test; command **B**.
 - HTTP permission/contract tests, adapter fixtures and existing publication/Temporal tests supplement these cases; see commands **G**, **H** and **S**.
 
-Implementation paths are repository-relative. Calendar domain rows also use `services/internal/product/{calendar,content_drafts,content_draft_write,content_draft_schedule,content_draft_platform}.go`. Analytics domain rows also use `{analytics,analytics_ingestion}.go` in that directory. All API rows pass through `lib/api/contracts/plan-analyze.ts`, Go HTTP handlers and the existing backend SDK.
+Implementation paths are repository-relative. Calendar domain rows also use `server/internal/product/{calendar,content_drafts,content_draft_write,content_draft_schedule,content_draft_platform}.go`. Analytics domain rows also use `{analytics,analytics_ingestion}.go` in that directory. All API rows pass through `lib/api/contracts/plan-analyze.ts`, Go HTTP handlers and the existing backend SDK.
 
 **Result interpretation:** PASS means the listed local automated assertion was executed successfully. Provider-dependent rows do not claim a live external publication/measurement; the dependency column identifies that separate release check. The browser command uses real sessions, HTTP and PostgreSQL with explicitly seeded provider fixtures.
 

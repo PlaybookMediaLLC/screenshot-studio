@@ -6,7 +6,7 @@ description: Add or change a Screenshot Studio Go/Temporal background task. Use 
 # Add Background Task
 
 Read the current deployment guide in `docs/digitalocean-deployment.md` and
-`services/internal/temporalmaintenance` / `services/internal/maintenance`.
+`server/internal/temporalmaintenance` / `server/internal/maintenance`.
 RFCs 050, 015, 011, 035 describe the original design; their Trigger.dev runtime has been replaced. A task executes a durable side
 effect; PlanetScale remains the tenant state and authorization source.
 

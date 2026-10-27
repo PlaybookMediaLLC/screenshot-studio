@@ -137,4 +137,4 @@ backend only (the product API and the product worker; in production
 `TENANT_PLATFORM_WEBHOOK_ENCRYPTION_KEY` on the combined backend). Generate one
 with `openssl rand -base64 32`. Without it, the webhook API answers
 `503 webhooks_unavailable` and the settings page says so; nothing else is
-affected. `bin/studio` creates one for local stacks.
+affected. `dev/studio` creates one for local stacks.

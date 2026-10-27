@@ -20,20 +20,20 @@
    in the root manifest. The Next.js app stays at the repository root. There
    is no `apps/` directory, no Turbo, no Nx, no pnpm and no Bun.
 2. Vendor `@canvas/platejs-editor` from oppulence-canvas into
-   `packages/platejs-editor` as `@shots/platejs-editor`, a source copy with
+   `clients/packages/platejs-editor` as `@shots/platejs-editor`, a source copy with
    its origin recorded in `UPSTREAM.md`.
 3. Its first consumer is **manual content drafts**: a user writes a post in
    the editor, saves it as a draft, and schedules it to one or more connected
    channels through the existing scheduler.
 4. Real-time co-editing ships in production through a new Hocuspocus
-   deployable, `packages/collab-server`, which authenticates and persists only
+   deployable, `clients/apps/collab-server`, which authenticates and persists only
    through the Go backend.
 
 ## Why now
 
 RFC 051 deferred workspaces until a second shared artifact existed. The
 backend SDK was the first; it shipped to npm from
-`packages/screenshot-studio-backend-sdk` without workspaces, built with
+`clients/packages/screenshot-studio-backend-sdk` without workspaces, built with
 `npm --prefix`. The editor is the second, and unlike the SDK it is consumed by
 the app at build time, carries more than a hundred dependencies, and needs to
 be linked, transpiled and traced. That is the trigger RFC 051 named. A third,
@@ -111,12 +111,12 @@ The package is copied, not linked:
 - No registry dependency: the package is private to oppulence-canvas and is
   built for a Bun, Turbo and Biome monorepo, so it cannot be installed as is.
 
-`packages/platejs-editor/UPSTREAM.md` records the source repository, path and
+`clients/packages/platejs-editor/UPSTREAM.md` records the source repository, path and
 commit, the rename, every local change, and the ownership and license
 confirmation. Pulling a later fix is a reviewed diff:
 
-1. In oppulence-canvas, `git diff <recorded commit>..<new commit> -- packages/platejs-editor`.
-2. Apply it here with `git apply --directory=packages/platejs-editor -p3`
+1. In oppulence-canvas, `git diff <recorded commit>..<new commit> -- clients/packages/platejs-editor`.
+2. Apply it here with `git apply --directory=clients/packages/platejs-editor -p3`
    (paths shift by the package prefix), resolve against the local changes
    listed in `UPSTREAM.md`, and run the package tests.
 3. Record the new commit in `UPSTREAM.md` in the same change.
@@ -145,14 +145,14 @@ dependencies shared with the app (`zod`, `ai`, `lucide-react`,
 each is accepted.
 
 Next.js compiles the package through `transpilePackages`, and the app's
-Tailwind v4 entry adds an `@source` for `packages/platejs-editor/src` so the
+Tailwind v4 entry adds an `@source` for `clients/packages/platejs-editor/src` so the
 package's classes are generated.
 
 ### Boundaries
 
 The package is a library. It must not reach into the app or the environment:
 
-- **No app imports.** Nothing under `packages/platejs-editor` imports `@/`.
+- **No app imports.** Nothing under `clients/packages/platejs-editor` imports `@/`.
   The app imports only the package's public exports.
 - **No `process.env`.** Configuration arrives as props or providers.
 - **No hard-coded routes.** No `/api/*` string appears in the package.
@@ -379,8 +379,8 @@ browser ──token request──▶ web /api/v1/content-drafts/{id}/collab-toke
 browser ──websocket + token──▶ collab-server ──authorize / load / store──▶ Go
 ```
 
-- **Deployable.** `packages/collab-server`, its own workspace package,
-  `Dockerfile` and Helm entry in `charts/screenshot-studio`.
+- **Deployable.** `clients/apps/collab-server`, its own workspace package,
+  `Dockerfile` and Helm entry in `infra/charts/screenshot-studio`.
 - **No database.** The server never connects to Postgres or Redis. It loads
   and stores the Yjs state through Go endpoints under `/v1/collab/`.
 - **Authentication.** Go issues a short-lived token (five minutes) scoped to

@@ -27,10 +27,10 @@ does not change this RFC's conditional priority or pilot limits.
 
 ## Existing foundation
 
-The [Go capture client](../../services/internal/capture/capture.go) captures
-public URLs. [Surface history](../../services/internal/product/surfaces.go)
+The [Go capture client](../../server/internal/capture/capture.go) captures
+public URLs. [Surface history](../../server/internal/product/surfaces.go)
 records assets and capture origins; the
-[deployment flow](../../services/internal/product/github_events.go) captures
+[deployment flow](../../server/internal/product/github_events.go) captures
 registered surfaces. Reuse storage, lineage, rendering and Temporal. Do not
 pass session secrets through the current public screenshot-provider API.
 

@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+
+# Starts the production backend image with its default entry point (the social
+# API, product API, and product worker in one container) and waits until its
+# readiness endpoint passes. Production runs this layout; the other stacks run
+# each binary in its own container.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+./dev/studio env
+
+# Production passes the product settings with a TENANT_ prefix
+# (infra/digitalocean/consolidate-live-spec.py). Do the same with the dev env.
+COMBINED_ENV=.local/combined.env
+grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .local/dev.env | sed 's/^/TENANT_/' >"$COMBINED_ENV"
+chmod 600 "$COMBINED_ENV"
+
+combined_compose() {
+  docker compose --env-file .local/dev.env --file dev/compose.yaml --file dev/compose.combined.yaml \
+    --project-name screenshot-studio-combined --profile social --profile combined "$@"
+}
+
+cleanup() {
+  local original_status=$?
+  trap - EXIT
+  if [[ "$original_status" -ne 0 ]]; then
+    echo 'Combined backend logs (last 200 lines per container):' >&2
+    combined_compose logs --no-color --tail=200 2>&1 |
+      sed -E 's#(https?://[^[:space:]"]+)\?[^[:space:]"]+#\1?[redacted]#g' >&2 || true
+  fi
+  combined_compose down --volumes --remove-orphans || original_status=1
+  rm -f "$COMBINED_ENV"
+  exit "$original_status"
+}
+trap cleanup EXIT
+
+combined_compose up --detach --build combined-backend
+for _ in $(seq 1 120); do
+  if curl --fail --silent --output /dev/null http://127.0.0.1:3303/readyz; then
+    echo 'Combined backend is ready: social API, product API, and product worker.'
+    exit 0
+  fi
+  sleep 2
+done
+echo 'Combined backend did not become ready: http://127.0.0.1:3303/readyz' >&2
+exit 1

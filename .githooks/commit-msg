@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
 
 set -eu
-exec npm run commitlint -- --edit "$1"
+# commitlint and its config live in the clients workspace.
+message="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
+cd clients
+exec npm run commitlint -- --edit "$message"

@@ -5,7 +5,7 @@
 This file applies Step 1 (status) and Step 2 (epic) of the [method](README.md) to all 109 entries in the [backlog](../changelog-features.md).
 
 - **Checked against:** `main` at `f4c9b830`, on 2026-10-19.
-- **Sources:** the draft code (`components/drafts`, `lib/content-drafts`, `lib/api/contracts/content-drafts.ts`, `services/internal/product/content_draft*.go`, `services/internal/postoptions`), the social adapters, RFC 013, RFC 026, and RFC 042.
+- **Sources:** the draft code (`components/drafts`, `lib/content-drafts`, `lib/api/contracts/content-drafts.ts`, `server/internal/product/content_draft*.go`, `server/internal/postoptions`), the social adapters, RFC 013, RFC 026, and RFC 042.
 - **Limit:** the triage used code search. A feature with an unusual name can hide from a search. Before you write a work item, confirm the status in the code.
 
 **October 24 update:** [implementation-evidence.md](implementation-evidence.md) supersedes the historical statuses below for the 42 entries in Sections 2, 4 and 5. It records actual implementation, executed browser/backend tests and remaining gates. The remaining 67 entries have not been re-triaged by this assignment.
@@ -46,7 +46,7 @@ Items with the status Verify need a test before they join an epic: TF-005, TF-00
 | TF-008 | Best time to post | Exists | `app/api/v1/content-draft-queue/best-times`; RFC 013, Best times. | SCHED |
 | TF-009 | Share drafts and unroll published threads | Partial | The share link with guest comments exists (`app/[locale]/d/[token]`, `components/drafts/SharedDraftView.tsx`). No unrolled view after publish. | PREVIEW |
 | TF-010 | Multiple X accounts | Exists | A draft targets many `channelConnectionIds` (RFC 013, Data model). | CHAN |
-| TF-011 | Auto-repost and auto-plug | Exists | X follow-ups repost and reply at a like count (`components/drafts/XOptions.tsx`, `services/internal/postoptions`). | FOLLOW |
+| TF-011 | Auto-repost and auto-plug | Exists | X follow-ups repost and reply at a like count (`components/drafts/XOptions.tsx`, `server/internal/postoptions`). | FOLLOW |
 | TF-012 | New editor, high-fidelity preview, focus mode, video | Partial | The Plate editor, per-channel previews, and one video per post exist. No focus mode. No live preview beside the editor. | EDITOR |
 | TF-013 | Create drafts from a URL | Missing | No `?new=` handler in `app/[locale]/drafts`. | AGENT |
 | TF-014 | Minimal Twitter integration | Skip | A third-party browser extension made for Typefully. | — |
@@ -62,16 +62,16 @@ Items with the status Verify need a test before they join an epic: TF-005, TF-00
 | TF-024 | Zapier integration | Missing | No Zapier app. The landing FAQ asks about Zapier (`components/platform-landing/pages/IntegrationsPage.tsx:274`). Check that its answer is true. | AGENT |
 | TF-025 | Reply, quote, and continue threads | Partial | "Post the rest" resumes a thread that stopped (RFC 013). No reply to or quote of an outside post. | QUOTE |
 | TF-026 | Writing prompts library | Missing | No prompt library in the composer. | AI |
-| TF-027 | Default follow-up settings | Missing | `content_draft_settings` holds slots, the time zone, and approval only (`services/internal/product/content_draft_platform.go:64`). | FOLLOW |
+| TF-027 | Default follow-up settings | Missing | `content_draft_settings` holds slots, the time zone, and approval only (`server/internal/product/content_draft_platform.go:64`). | FOLLOW |
 | TF-028 | Comments on drafts | Exists | Editor discussions and guest comments (`lib/content-drafts/discussions.ts`, `app/api/drafts/shared/[token]/comments`). | COLLAB |
 | TF-029 | Remove link previews | Missing | The composer shows a link card when a post has no media. No control removes it. | MEDIA |
 | TF-030 | AI writing assistant (Vesper) | Partial | Rewrite, thread, and shorten exist (`lib/content-drafts/assist.ts:17`). No "continue writing", no feedback. | AI |
 | TF-031 | Drag and drop in the queue | Partial | A calendar drag moves a post to another day at the same time (RFC 013). No swap. No drop into a free slot. | SCHED |
 | TF-032 | Delete multiple drafts | Missing | No multi-select in `components/drafts/DraftsRail.tsx`. | ORG |
-| TF-033 | Notifications | Partial | Campaign reviews send mail (`services/internal/product/review_mail.go`). Drafts send nothing (RFC 042 P4). | COLLAB |
+| TF-033 | Notifications | Partial | Campaign reviews send mail (`server/internal/product/review_mail.go`). Drafts send nothing (RFC 042 P4). | COLLAB |
 | TF-034 | Repurpose published posts | Missing | No action copies a posted item into a new draft. | SCHED |
-| TF-035 | Cross-post to LinkedIn | Exists | LinkedIn is a draft channel (`draftChannelLimits` in `services/internal/product/content_draft_schedule.go`). | CHAN |
-| TF-036 | Polls on X | Exists | `services/internal/product/content_draft_schedule.go:237`. | POLL |
+| TF-035 | Cross-post to LinkedIn | Exists | LinkedIn is a draft channel (`draftChannelLimits` in `server/internal/product/content_draft_schedule.go`). | CHAN |
+| TF-036 | Polls on X | Exists | `server/internal/product/content_draft_schedule.go:237`. | POLL |
 | TF-037 | Mac app | Skip | A desktop app is a distribution decision, not a draft feature. Needs a product decision. | — |
 | TF-038 | Tag users in photos | Missing | No photo tags in the draft path. | MEDIA |
 | TF-039 | Thread finisher templates | Missing | No finisher templates. | QUOTE |
@@ -108,7 +108,7 @@ Items with the status Verify need a test before they join an epic: TF-005, TF-00
 | TF-070 | Custom instructions for AI | Partial | The workspace brand voice exists (`components/workspace/WorkspaceBrandSettings.tsx:264`). Draft assist does not read it. | AI |
 | TF-071 | First comment on LinkedIn posts | Missing | RFC 042 P1, step 3. | LIOPT |
 | TF-072 | Natural posting times | Missing | No random offset. Build it with the RFC 042 P2 "Spread" random shift. | SCHED |
-| TF-073 | Publish to X Communities | Partial | The X adapter accepts a community URL (`services/internal/social/integrations/social/x/dto.go:16`). Drafts do not offer it. | XOPT |
+| TF-073 | Publish to X Communities | Partial | The X adapter accepts a community URL (`server/internal/social/integrations/social/x/dto.go:16`). Drafts do not offer it. | XOPT |
 | TF-074 | X long-form "Show more" in previews | Missing | Depends on TF-049. | PREVIEW |
 | TF-075 | Auto-numbering on all platforms | Missing | See TF-020. | EDITOR |
 | TF-076 | Mixed media on X posts | Missing | A video goes out alone, with no images beside it (RFC 013, Polls and video). | XOPT |
@@ -121,7 +121,7 @@ Items with the status Verify need a test before they join an epic: TF-005, TF-00
 | TF-083 | LinkedIn PDF carousels | Missing | No document upload in the LinkedIn adapter. | LIOPT |
 | TF-084 | Drafts sidebar, queue board, empty slots | Missing | The calendar has no drafts sidebar and no board view. | SCHED |
 | TF-085 | Exact preview cutoffs for X and LinkedIn | Missing | No cutoff in the preview. | PREVIEW |
-| TF-086 | Draft locking | Exists | Live co-editing replaces locks (RFC 013, Collaboration; `services/internal/product/content_draft_collab.go`). | COLLAB |
+| TF-086 | Draft locking | Exists | Live co-editing replaces locks (RFC 013, Collaboration; `server/internal/product/content_draft_collab.go`). | COLLAB |
 | TF-087 | AI image descriptions | Missing | Depends on TF-007. | MEDIA |
 | TF-088 | Public API, Zapier, MCP, and webhooks | Partial | REST `/api/v1/content-drafts` with `draft:write` keys exists (RFC 013). No MCP draft tools (RFC 026). No outbound webhooks. No Zapier app. | AGENT |
 | TF-089 | X Community timeline toggle | Missing | Depends on TF-073. | XOPT |
@@ -130,18 +130,18 @@ Items with the status Verify need a test before they join an epic: TF-005, TF-00
 | TF-092 | Reorder media in drafts | Missing | Posts reorder by drag (`components/drafts/thread.tsx:162`). Images inside a post do not. | MEDIA |
 | TF-093 | Writing assistant | Partial | Three assist actions. No voice learning, no saved rules, no chat. | AI |
 | TF-094 | Better LinkedIn mentions | Missing | Depends on TF-077. | LIOPT |
-| TF-095 | @mentions in comments and Slack notifications | Partial | Editor comments support mentions (`packages/platejs-editor/src/ui/comment.tsx`). No notice to the mentioned person. Slack posts designs only (`components/workspace/WorkspaceIntegrations.tsx:23`). | COLLAB |
+| TF-095 | @mentions in comments and Slack notifications | Partial | Editor comments support mentions (`clients/packages/platejs-editor/src/ui/comment.tsx`). No notice to the mentioned person. Slack posts designs only (`components/workspace/WorkspaceIntegrations.tsx:23`). | COLLAB |
 | TF-096 | Queue, mention, and quote endpoints for agents | Partial | Settings and best-times routes exist. No queue list for agents, no MCP tools. Draft scheduling by API key is Later (RFC 042). | AGENT |
 | TF-097 | X content disclosures | Missing | RFC 042 P1 adds disclosures for TikTok only. | XOPT |
 | TF-098 | LinkedIn reposts | Missing | No repost of a LinkedIn post URL. | LIOPT |
 | TF-099 | Draft comments API | Missing | Only the guest route exists (`app/api/drafts/shared/[token]/comments`). | AGENT |
 | TF-100 | Previews in the editor sidebar | Partial | The preview opens on demand in the composer. Not side by side. No mobile scale. | PREVIEW |
 | TF-101 | Slack channel notification on publish | Partial | A Slack connection exists for designs. No publish event goes to Slack. | COLLAB |
-| TF-102 | X Articles | Partial | The X adapter has `services/internal/social/integrations/social/x/article.go`. Drafts do not offer articles. | XOPT |
-| TF-103 | Substack Notes | Missing | No Substack adapter in `services/internal/social/integrations/social`. | CHAN |
+| TF-102 | X Articles | Partial | The X adapter has `server/internal/social/integrations/social/x/article.go`. Drafts do not offer articles. | XOPT |
+| TF-103 | Substack Notes | Missing | No Substack adapter in `server/internal/social/integrations/social`. | CHAN |
 | TF-104 | Team calendar, planned drafts, navigation | Missing | Draft status is `draft`, `scheduled`, or `archived` (RFC 013). The calendar shows one workspace. | SCHED |
 | TF-105 | 1080p video on X | Verify | Check the video upload of the X adapter. | XOPT |
 | TF-106 | Official Claude connector | Missing | RFC 026 is Proposed. The MCP server has no draft tools. | AGENT |
-| TF-107 | X reply settings | Partial | The X adapter accepts `who_can_reply_post` (`services/internal/social/integrations/social/x/dto.go:17`). Drafts do not offer it. | XOPT |
+| TF-107 | X reply settings | Partial | The X adapter accepts `who_can_reply_post` (`server/internal/social/integrations/social/x/dto.go:17`). Drafts do not offer it. | XOPT |
 | TF-108 | Quote posts on more platforms | Missing | No quote of an outside post on any channel. | QUOTE |
-| TF-109 | Polls on LinkedIn, Threads, and Mastodon | Missing | Go rejects them: "Polls are for X posts." (`services/internal/product/content_draft_schedule.go:240`). | POLL |
+| TF-109 | Polls on LinkedIn, Threads, and Mastodon | Missing | Go rejects them: "Polls are for X posts." (`server/internal/product/content_draft_schedule.go:240`). | POLL |

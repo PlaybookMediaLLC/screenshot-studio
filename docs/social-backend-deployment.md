@@ -15,7 +15,7 @@ not written by the customer scheduling path.
 
 ## Local Compose
 
-Run `./bin/studio up` for the web, product API and worker, PostgreSQL, Redis,
+Run `./dev/studio up` for the web, product API and worker, PostgreSQL, Redis,
 Temporal, and private RustFS. To add the social OAuth/API service and its own
 Redis and Temporal execution namespace, use:
 
@@ -38,7 +38,7 @@ organization and key through the Go social API, store the key in ignored
 `.local/dev.env`, and run:
 
 ```sh
-npx tsx scripts/bind-social-tenant.ts <workspace-id> <key-variable-name>
+(cd clients/apps/web && npx tsx scripts/bind-social-tenant.ts <workspace-id> <key-variable-name>)
 ```
 
 This binding is temporary cutover compatibility. The customer worker uses
@@ -47,7 +47,7 @@ accepting a destination; a missing or wrong binding blocks the action.
 Retiring the binding and the social identity tables is still tracked in
 [the cutover plan](plans/backend-owned-data-cutover.md).
 
-Use `./bin/social-gate` for a full isolated test stack with a fake social API.
+Use `./dev/social-gate` for a full isolated test stack with a fake social API.
 It does not access connected personal accounts. The
 [verification record](social-publishing-verification.md) lists its assertions
 and the live canaries still required.
@@ -98,7 +98,7 @@ verified media URL requirement has a separate design and live test.
 
 Social API and worker processes require `PLATFORM_SOCIAL_ENCRYPTION_KEY`, a
 base64-encoded random 32-byte key held in the backend secret store. The local
-`bin/studio` setup generates it. Supply the same value to every backend process
+`dev/studio` setup generates it. Supply the same value to every backend process
 that reads social credentials, including the product notification service's
 legacy Slack import. Never put it in the web environment. The production spec
 renderer requires the key; the social process refuses to start without it.

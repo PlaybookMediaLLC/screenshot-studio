@@ -71,7 +71,7 @@ and run details link back to that filtered page.
 
 Templates build ordinary drafts; every condition and action stays editable
 before activation. `lib/workflows/templates.ts` generates them and the shared
-fixture `services/internal/releaseautomation/testdata/workflow-templates.json`
+fixture `server/internal/releaseautomation/testdata/workflow-templates.json`
 proves the Go validator accepts each one as written.
 
 | Template                       | Graph                                                                                                   |
@@ -216,7 +216,7 @@ watching or disconnecting one workspace never uninstalls the shared App.
 
 ## Event and graph contracts
 
-`services/internal/releaseautomation` owns the graph language (versions 1 and
+`server/internal/releaseautomation` owns the graph language (versions 1 and
 2). The SDK and Zod contracts mirror the transport; the Go validator authorizes
 execution.
 

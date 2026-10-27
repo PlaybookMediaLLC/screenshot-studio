@@ -1,0 +1,26 @@
+# Upstream keeps these tests in tests/ with its own style.
+# Do not reformat them. Upstream merges stay cheap.
+apps/web/test/ad-free-routes.test.ts
+apps/web/test/agent-readiness.test.ts
+apps/web/test/animation-templates.test.ts
+apps/web/test/background-removal.test.ts
+apps/web/test/blur-regions.test.ts
+apps/web/test/browser-url.test.ts
+apps/web/test/device-mockups.test.ts
+apps/web/test/device-screen-mask.test.ts
+apps/web/test/drop-routing.test.ts
+apps/web/test/editor-feature-requests.test.ts
+apps/web/test/editor-sections.test.ts
+apps/web/test/export-filter.test.ts
+apps/web/test/ffmpeg-worker.test.ts
+apps/web/test/guides.test.ts
+apps/web/test/image-tools.test.ts
+apps/web/test/indexnow.test.ts
+apps/web/test/overlay-selection.test.ts
+apps/web/test/overlay-style.test.ts
+apps/web/test/r2-assets.test.ts
+apps/web/test/screenshot-blank.test.ts
+apps/web/test/store-screenshots.test.ts
+apps/web/test/ui-semantics.test.ts
+apps/web/test/verify-agent-endpoints.ts
+apps/web/test/video-compression.test.ts

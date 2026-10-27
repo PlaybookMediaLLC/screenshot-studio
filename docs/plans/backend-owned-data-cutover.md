@@ -134,7 +134,7 @@ the customer path after adapter parity is proven.
   session, 2FA, SSO, SCIM, and API-key handling stay in Better Auth, which
   reads and writes through a custom adapter (`lib/auth/backend-adapter.ts`)
   backed by a service-authenticated Go auth store limited to Better Auth's
-  tables (`services/internal/authstore`). Organization hooks post auth events,
+  tables (`server/internal/authstore`). Organization hooks post auth events,
   and Go provisions workspace settings and entitlements, ends a removed
   member's sessions, and audits. This was chosen over porting Better Auth to
   Go because it keeps auth behavior and cookies unchanged. Each adapter call is
@@ -169,7 +169,7 @@ the customer path after adapter parity is proven.
 - **Storage service retired.** Asset bytes stay in private R2 and the backend
   signs every transfer; the Supabase Storage service, its metadata database,
   and the web storage proxy are gone (`docs/tenant-storage.md`).
-- **Social gate on the backend path.** `bin/social-gate` runs an isolated full
+- **Social gate on the backend path.** `dev/social-gate` runs an isolated full
   stack and `test/e2e/social-gate.spec.ts` drives scheduling through the web SDK,
   backend, Temporal worker, private RustFS, and fake social API. It asserts
   canonical receipts and zero legacy social posts.

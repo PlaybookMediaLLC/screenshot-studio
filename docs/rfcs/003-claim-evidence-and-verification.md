@@ -19,10 +19,10 @@ can verify a material product claim.
 
 ## Existing foundation
 
-[Spec schemas](../../lib/launch/spec-schema.ts) include limitations, FAQs,
-open questions and source excerpts. [Citation checks](../../lib/launch/citations.ts)
-validate source IDs, while [copy guards](../../lib/launch/guards.ts) validate
-claim references. [Launch persistence](../../services/internal/product/launch.go)
+[Spec schemas](../../clients/apps/web/lib/launch/spec-schema.ts) include limitations, FAQs,
+open questions and source excerpts. [Citation checks](../../clients/apps/web/lib/launch/citations.ts)
+validate source IDs, while [copy guards](../../clients/apps/web/lib/launch/guards.ts) validate
+claim references. [Launch persistence](../../server/internal/product/launch.go)
 stores and approves versions. Extend these seams instead of replacing the
 pipeline or treating a source-fetch success as verification.
 
@@ -162,9 +162,9 @@ For legacy specs with no stable IDs, the adapter creates an explicit initial
 mapping. An ambiguous later import creates new unverified claim versions
 instead of guessing. Keep historical spec approval fields untouched and label
 their new claim coverage unverified. Extend
-[spec validation](../../lib/launch/spec-schema.ts),
-[citation validation](../../lib/launch/citations.ts) and
-[copy guards](../../lib/launch/guards.ts) to accept versioned claim references
+[spec validation](../../clients/apps/web/lib/launch/spec-schema.ts),
+[citation validation](../../clients/apps/web/lib/launch/citations.ts) and
+[copy guards](../../clients/apps/web/lib/launch/guards.ts) to accept versioned claim references
 while preserving old readers. A valid reference remains a syntactic check.
 
 ### Commands and verification transaction

@@ -11,7 +11,7 @@ authority; it asks the backend for a short-lived signed URL.
 | --- | --- |
 | Object bytes | Private R2 bucket (RustFS on `localhost:9003` in Compose) |
 | Object metadata | `asset` rows in the product database, owned by the backend |
-| Signing | `services/internal/media` in the Go backend |
+| Signing | `server/internal/media` in the Go backend |
 | Web access | `lib/storage/client.ts` and `lib/tenant/assets.ts`, through the SDK |
 
 There is no separate storage metadata database or Storage API service. The
@@ -86,10 +86,10 @@ code that references it. Never attach a public domain to the tenant bucket.
 
 ## Verification
 
-- `services/internal/media`: `TestPrivateMediaSigningAndObjectExistence`
+- `server/internal/media`: `TestPrivateMediaSigningAndObjectExistence`
   covers signing, and `TestS3StoreRoundTrip` exercises a real bucket when
   `MEDIA_TEST_ENDPOINT` and the `R2_*` variables are set.
-- `services/internal/product`: the asset integration tests cover upload
+- `server/internal/product`: the asset integration tests cover upload
   completion, duplicate completion, generated images, outbox events, and
   cross-tenant key rejection against a disposable database.
 - `test/e2e/tenant-assets.spec.ts` runs the browser path on the local stack.

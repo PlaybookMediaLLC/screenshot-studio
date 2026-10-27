@@ -18,8 +18,8 @@ downstream use. No social-network expansion or customer migration is required.
 
 ## Existing foundation
 
-[Design delivery](../../lib/integrations/deliver.ts) uploads media to Notion and
-adds a Figma comment; [share delivery](../../lib/integrations/server.ts) also
+[Design delivery](../../clients/apps/web/lib/integrations/deliver.ts) uploads media to Notion and
+adds a Figma comment; [share delivery](../../clients/apps/web/lib/integrations/server.ts) also
 uses backend Slack delivery. [Outbound webhooks](../outbound-webhooks.md) expose
 draft events. These can inform adapter design but do not yet provide an
 approved release-kit delivery ledger. Do not claim a Figma comment is an
@@ -215,7 +215,7 @@ already implement native document conversion. A lost page-create acknowledgment
 cannot be solved by automatically creating another page.
 
 Existing Notion credentials are sealed in the web facade using
-[AES-GCM v1 envelopes](../../lib/integrations/crypto.ts), while Slack delivery
+[AES-GCM v1 envelopes](../../clients/apps/web/lib/integrations/crypto.ts), while Slack delivery
 already runs in Go. A Go Notion worker therefore needs an explicit credential
 bridge: add a compatible v1 decoder with shared known-answer tests and mount
 the integration key only in the dedicated integration worker. This expands

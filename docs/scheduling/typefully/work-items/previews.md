@@ -44,7 +44,7 @@ Four new browser tests passed: phone fit at a 390px app viewport, weighted cutof
 
 **Dependencies:** Existing public share token, asset grants and immutable confirmed publication snapshots.
 
-**Affected code and current evidence:** `app/[locale]/d/[token]/page.tsx`; `components/drafts/SharedDraftView.tsx`; `services/internal/product/content_draft_platform.go`.
+**Affected code and current evidence:** `app/[locale]/d/[token]/page.tsx`; `components/drafts/SharedDraftView.tsx`; `server/internal/product/content_draft_platform.go`.
 
 ### Implementation gap and disposition
 
@@ -60,7 +60,7 @@ Missing/revoked shares return unavailable; failed image generation does not reve
 
 ### Verification
 
-`services/internal/product/shared_image_integration_test.go`; `services/internal/product/content_draft_comments_integration_test.go`; `test/e2e/typefully-workitems.spec.ts`; `test/e2e/content-drafts-platform.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
+`server/internal/product/shared_image_integration_test.go`; `server/internal/product/content_draft_comments_integration_test.go`; `test/e2e/typefully-workitems.spec.ts`; `test/e2e/content-drafts-platform.spec.ts`. Execute the relevant tests and record results in the coverage matrix; listed tests alone do not certify this item.
 
 ### Observability and activation
 

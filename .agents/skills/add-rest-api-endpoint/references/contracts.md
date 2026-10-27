@@ -61,7 +61,7 @@ Give every public contract `docs` and list it in `documentedContracts`. `lib/api
 
 Keep the raw document at `/openapi.json`; Scalar at `/api-reference` consumes it without separate configuration.
 
-After changing a contract, run `npm run api:generate`. It writes the document to `services/internal/shotsapi/openapi.json` (embedded by the Go MCP server) and regenerates the typed client in `packages/shots-api-client`. CI fails when either is stale, and runs `oasdiff` against the base branch to fail any breaking change that is not listed in `services/internal/shotsapi/breaking-changes-allowed.txt`.
+After changing a contract, run `npm run api:generate` in `clients/`. It writes the document to `server/internal/shotsapi/openapi.json` (embedded by the Go MCP server) and regenerates the typed client in `clients/packages/shots-api-client`. CI fails when either is stale, and runs `oasdiff` against the base branch to fail any breaking change that is not listed in `server/internal/shotsapi/breaking-changes-allowed.txt`.
 
 ## Compatibility
 

@@ -77,3 +77,6 @@ sec.txt
 
 # Wrangler local dev-server state
 .wrangler/
+
+# code-review-graph database (built per session)
+.code-review-graph/

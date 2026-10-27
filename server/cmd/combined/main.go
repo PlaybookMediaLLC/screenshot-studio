@@ -1,5 +1,6 @@
-// Command combined-backend runs the social API, social Temporal worker, and
-// tenant publishing/maintenance worker in one App Platform service.
+// Command combined-backend runs the product API and the product worker
+// (publishing, maintenance and channel token refresh) in one App Platform
+// service.
 package main
 
 import (
@@ -8,7 +9,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -30,21 +30,16 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	if os.Getenv("RUN_WORKER") != "true" {
-		return errors.New("RUN_WORKER=true is required for the social worker")
-	}
 	tenantEnv, err := publishingEnv(os.Environ())
 	if err != nil {
 		return err
 	}
 	children := []*exec.Cmd{
-		exec.Command("/screenshot-studio-backend"),
 		exec.Command("/publishing-orchestrator"),
 		exec.Command("/publishing-backend"),
 	}
-	children[0].Env = socialEnv(os.Environ())
-	children[1].Env = tenantEnv
-	children[2].Env = withPort(tenantEnv, "8082")
+	children[0].Env = tenantEnv
+	children[1].Env = apiEnv(os.Environ(), tenantEnv)
 	started := make([]*exec.Cmd, 0, len(children))
 	for _, child := range children {
 		child.Stdout, child.Stderr = os.Stdout, os.Stderr
@@ -129,56 +124,27 @@ func publishingEnv(environ []string) ([]string, error) {
 			return nil, fmt.Errorf("TENANT_%s=true is required", key)
 		}
 	}
-	socialURL := envValue(environ, "DATABASE_URL")
-	tenantURL := envValue(result, "DATABASE_URL")
-	if !sameLogicalDatabase(socialURL, tenantURL) {
-		return nil, errors.New("direct publishing requires social and tenant Ent clients to use one PostgreSQL database")
-	}
 	return result, nil
 }
 
-// mcpPlatformKeys are the tenant settings the social process's MCP server
-// needs to serve the same domain as the tenant API: the private media bucket,
-// the campaign workflow rollout, and the screenshot API (RFC 026).
-var sharedPlatformKeys = []string{"R2_ENDPOINT", "R2_BROWSER_ENDPOINT", "R2_REGION", "R2_FORCE_PATH_STYLE", "R2_BUCKET_NAME",
-	"R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "PLATFORM_CAMPAIGN_WORKFLOW", "SCREENSHOT_API_URL", "SCREENSHOT_API_KEY",
-	"PLATFORM_NOTIFICATION_ENCRYPTION_KEY", "SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET", "PLATFORM_SLACK_CALLBACK_URL", "INTEGRATION_ENCRYPTION_KEY"}
-
-// socialEnv is the social process's environment plus the tenant's shared
-// platform settings it does not set itself.
-func socialEnv(environ []string) []string {
-	result := append([]string{}, environ...)
-	for _, key := range sharedPlatformKeys {
-		if value := envValue(environ, tenantPrefix+key); value != "" && !hasEnv(environ, key) {
-			result = append(result, key+"="+value)
+// apiEnv is the product API's environment: the tenant settings plus the
+// settings without a TENANT_ twin (social provider credentials, JWT_SECRET,
+// PLATFORM_MCP_URL), which it needs to connect channels and serve MCP on the
+// public port. Channels connect in process, so SOCIAL_API_URL is dropped.
+func apiEnv(environ, tenantEnv []string) []string {
+	result := []string{"PUBLIC_PORT=3000"}
+	for _, item := range withPort(tenantEnv, "8082") {
+		if !strings.HasPrefix(item, "SOCIAL_API_URL=") {
+			result = append(result, item)
+		}
+	}
+	for _, item := range environ {
+		key, _, ok := strings.Cut(item, "=")
+		if ok && !strings.HasPrefix(key, tenantPrefix) && !hasEnv(environ, tenantPrefix+key) && !hasEnv(result, key) {
+			result = append(result, item)
 		}
 	}
 	return result
-}
-
-func envValue(environ []string, key string) string {
-	for _, item := range environ {
-		if value, ok := strings.CutPrefix(item, key+"="); ok {
-			return value
-		}
-	}
-	return ""
-}
-
-func sameLogicalDatabase(first, second string) bool {
-	a, errA := url.Parse(first)
-	b, errB := url.Parse(second)
-	if errA != nil || errB != nil || a.Scheme == "" || b.Scheme == "" || a.Hostname() == "" || b.Hostname() == "" || a.Path == "" || b.Path == "" {
-		return false
-	}
-	port := func(u *url.URL) string {
-		if u.Port() != "" {
-			return u.Port()
-		}
-		return "5432"
-	}
-	return strings.EqualFold(a.Hostname(), b.Hostname()) && port(a) == port(b) && a.Path == b.Path &&
-		a.Query().Get("search_path") == b.Query().Get("search_path")
 }
 
 func withPort(environ []string, port string) []string {
@@ -228,7 +194,7 @@ func readinessHandler() http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 8*time.Second)
 		defer cancel()
-		endpoints := []string{"http://127.0.0.1:3000/", "http://127.0.0.1:3002/health/status", "http://127.0.0.1:8081/readyz", "http://127.0.0.1:8082/readyz"}
+		endpoints := []string{"http://127.0.0.1:8081/readyz", "http://127.0.0.1:8082/readyz"}
 		results := make(chan bool, len(endpoints))
 		var checks sync.WaitGroup
 		for _, endpoint := range endpoints {

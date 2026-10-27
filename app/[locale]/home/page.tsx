@@ -13,7 +13,7 @@ import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { NeedsAttention } from '@/components/platform-hub/NeedsAttention'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
-import { requirePaidPageAccess } from '@/lib/auth/page-access'
+import { requirePaidPageAccess, unpaidLandingPath } from '@/lib/auth/page-access'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 export const metadata = { title: 'Home' }
@@ -34,7 +34,8 @@ export default async function HomePage({
     }
     redirect(platformHref(locale === 'en' ? '/' : `/${locale}`, `/?${search}`))
   }
-  const access = await requirePaidPageAccess(await headers(), locale, '/home')
+  const access = await requirePaidPageAccess(await headers(), locale, '/home', 'content:drafts')
+  if (!access.hasPaidPlan) redirect(unpaidLandingPath(locale, access))
   const starters = [
     {
       title: 'Create a visual',

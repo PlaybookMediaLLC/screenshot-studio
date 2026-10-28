@@ -201,7 +201,9 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
   // The page is already on /workspace, so polling the path proves nothing
   // here: it matches immediately whether or not the restore navigation ever
   // happened. Wait for the restored content instead.
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 45_000 })
+  await expect(page.getByRole('heading', { exact: true, level: 1, name: 'General' })).toBeVisible({
+    timeout: 45_000,
+  })
   expect((await browserRequest(page, '/api/tenant/releases')).status).toBe(200)
 })
 

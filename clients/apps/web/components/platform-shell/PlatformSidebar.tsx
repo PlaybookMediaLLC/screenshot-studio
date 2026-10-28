@@ -21,7 +21,7 @@ import { SearchButton, ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { type ComponentType, useCallback, useState, useSyncExternalStore } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -35,13 +35,14 @@ import type { navigationLayoutSchema } from '@/lib/api/contracts/settings-platfo
 import type { z } from 'zod'
 import { surface } from './shell-config'
 import { Button } from '@/components/ui/button'
+import { NavRow, type NavIcon } from './NavRow'
 import { SidebarLink } from './SidebarLink'
+import { SettingsNav } from '@/components/settings/SettingsNav'
 import { ThemeToggle } from './ThemeToggle'
 
-type IconComponent = ComponentType<{ className?: string; size?: number }>
 type NavItem = {
   href: string
-  icon: IconComponent
+  icon: NavIcon
   label: string
   key: (typeof PLATFORM_DESTINATIONS)[number]['key']
 }
@@ -69,7 +70,7 @@ const PAID_AREAS = new Set(['create', 'campaigns', 'library', 'automate', 'activ
 
 function NavLink({
   collapsed,
-  item: { href, icon: Icon, key },
+  item: { href, icon, key },
   onNavigate,
   paidPlan,
 }: {
@@ -80,38 +81,24 @@ function NavLink({
 }) {
   const t = useTranslations('platformNavigation')
   const locked = !paidPlan && PAID_AREAS.has(key)
-  const label = locked ? `${t(key)} (Pro)` : t(key)
   const pathname = usePathname()
-  const active = platformArea(pathname) === platformArea(href)
-  const rowClassName = cn(
-    'flex h-8 items-center gap-2.5 px-2.5',
-    collapsed && 'size-9 justify-center px-0'
-  )
-  const link = (
-    <SidebarLink
-      data-platform-nav
-      aria-current={active ? 'page' : undefined}
-      aria-label={collapsed || locked ? label : undefined}
-      className={rowClassName}
+  return (
+    <NavRow
+      active={platformArea(pathname) === platformArea(href)}
+      badge={
+        locked ? (
+          <span aria-hidden="true" className="platform-pro-badge ms-auto">
+            Pro
+          </span>
+        ) : null
+      }
+      collapsed={collapsed}
       href={href}
-      onClick={onNavigate}
-    >
-      <Icon aria-hidden="true" className="shrink-0" size={17} />
-      {collapsed ? null : <span className="truncate">{t(key)}</span>}
-      {locked && !collapsed ? (
-        <span aria-hidden="true" className="platform-pro-badge ms-auto">
-          Pro
-        </span>
-      ) : null}
-    </SidebarLink>
-  )
-  return collapsed ? (
-    <Tooltip>
-      <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
-  ) : (
-    link
+      icon={icon}
+      label={t(key)}
+      name={locked ? `${t(key)} (Pro)` : undefined}
+      onNavigate={onNavigate}
+    />
   )
 }
 
@@ -129,6 +116,10 @@ function Navigation({
   paidPlan: boolean
 }) {
   const t = useTranslations('platformNavigation')
+  // As in Polar, settings swap the destinations for their own sections.
+  if (platformArea(usePathname()) === 'settings') {
+    return <SettingsNav collapsed={collapsed} onNavigate={onNavigate} />
+  }
   return (
     <nav aria-label={t('workspace')} className="flex min-h-full flex-col gap-4">
       <ShellActions

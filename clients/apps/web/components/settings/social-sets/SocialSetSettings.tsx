@@ -75,7 +75,7 @@ export function SocialSetSettings({
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <span aria-hidden className="size-4 rounded-full" style={{ backgroundColor: set.color }} />
-          <h3 className="text-base font-medium text-foreground">{set.name}</h3>
+          <h2 className="text-base font-medium text-foreground">{set.name}</h2>
           <Pill tone={set.visibility === 'PRIVATE' ? 'purple' : 'gray'}>
             {set.visibility === 'PRIVATE' ? 'Private to you' : 'Shared with workspace'}
           </Pill>

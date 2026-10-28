@@ -424,7 +424,7 @@ test('App Store opens from the editor by keyboard, mobile navigation reaches Cre
   await page.getByRole('link', { name: /^Create App Store screenshots/ }).press('Enter')
   await expect(page).toHaveURL(/[?&]editor=app-store/)
   await page.getByRole('button', { name: 'Use the sample set' }).click()
-  // Settings is one link: its sections are listed on the settings pages.
+  // Settings is one link; as in Polar, its sections replace the destinations there.
   const workspace = page.getByRole('navigation', { name: 'Workspace', exact: true })
   const settings = workspace.getByRole('link', { name: 'Settings', exact: true })
   await expect(settings).toHaveAttribute('href', '/workspace')
@@ -432,7 +432,7 @@ test('App Store opens from the editor by keyboard, mobile navigation reaches Cre
   await page.setViewportSize({ width: 1280, height: 1000 })
   await settings.click()
   await expect(page).toHaveURL(/\/workspace$/)
-  await expect(settings).toHaveAttribute('aria-current', 'page')
+  await expect(workspace).toHaveCount(0)
   const settingsLinks = page.getByRole('navigation', { name: 'Settings sections', exact: true })
   // Every settings section, including RFC 024's Appearance, Install, Experimental,
   // Social sets. Create workspace lives in the account menu.
@@ -452,6 +452,11 @@ test('App Store opens from the editor by keyboard, mobile navigation reaches Cre
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
   const drawer = page.getByRole('dialog', { name: 'Navigation', exact: true })
+  await expect(drawer.getByRole('navigation', { name: 'Settings sections' })).toBeVisible()
+  await drawer.getByRole('link', { name: 'Settings, back to Home', exact: true }).press('Enter')
+  await expect(drawer).toBeHidden()
+  await expect(page).toHaveURL(/\/home$/)
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
   await expect(drawer.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute(
     'href',
     '/workspace'

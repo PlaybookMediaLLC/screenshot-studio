@@ -80,16 +80,27 @@ test('mobile settings puts content first and local work remains explicitly local
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
     ).toBe(true)
-    if (width < 1024) {
-      const chooser = page.getByRole('button', { name: 'Settings / Appearance' })
-      await expect(chooser).toBeVisible()
-      await chooser.click()
-      const dialog = page.getByRole('dialog', { name: 'Choose a settings section' })
-      await expect(dialog).toBeVisible()
-      await dialog.getByRole('searchbox').fill('security')
-      await expect(dialog.getByRole('link', { name: 'Security', exact: true })).toBeVisible()
+    // Settings sections live in the navigation: the drawer on phones, the sidebar beside it.
+    if (width < 768) {
+      const opener = page.getByRole('button', { name: 'Open navigation', exact: true })
+      await opener.click()
+      const drawer = page.getByRole('dialog', { name: 'Navigation', exact: true })
+      await expect(drawer).toBeVisible()
+      await drawer.getByRole('searchbox', { name: 'Search settings' }).fill('security')
+      await expect(drawer.getByRole('link', { name: 'Security', exact: true })).toBeVisible()
       await page.keyboard.press('Escape')
-      await expect(chooser).toBeFocused()
+      await expect(opener).toBeFocused()
+      // Choosing a section closes the drawer on the new page.
+      await opener.click()
+      await drawer.getByRole('link', { name: 'Security', exact: true }).click()
+      await expect(page).toHaveURL(/\/workspace\/security$/)
+      await expect(drawer).toBeHidden()
+    } else {
+      await expect(
+        page
+          .getByRole('navigation', { name: 'Settings sections', exact: true })
+          .getByRole('link', { name: 'Security', exact: true })
+      ).toBeVisible()
     }
   }
   await page.setViewportSize({ width: 390, height: 844 })
@@ -128,6 +139,10 @@ test('workflow and release views are separate, and an explicit compact preferenc
     'data-navigation',
     'compact'
   )
+  // The compact rail lists every settings section as an icon, without the search box.
+  const sections = page.getByRole('navigation', { name: 'Settings sections', exact: true })
+  await expect(sections.getByRole('link')).toHaveCount(21)
+  await expect(sections.getByRole('searchbox')).toHaveCount(0)
   await page.getByRole('button', { name: 'Expand navigation' }).click()
   await expect(page.getByRole('complementary', { name: 'Primary navigation' })).toHaveAttribute(
     'data-navigation',
@@ -450,6 +465,10 @@ test('sidebar choices persist across client navigation and content scrolls insid
     if (request.isNavigationRequest() && request.frame() === page.mainFrame())
       documents.push(request.url())
   })
+  // Settings pages list their sections; the back link returns to the destinations.
+  await sidebar.getByRole('link', { name: 'Settings, back to Home', exact: true }).click()
+  await expect(page).toHaveURL(/\/home$/)
+  await expect(sidebar).toHaveAttribute('data-navigation', 'expanded')
   for (const name of ['Home', 'Library', 'Automate', 'Create']) {
     await sidebar.getByRole('link', { name, exact: true }).click()
     await expect(page.getByRole('heading', { name, exact: true }).first()).toBeVisible()

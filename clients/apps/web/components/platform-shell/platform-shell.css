@@ -7,7 +7,7 @@
   --platform-nav-compact: 4.75rem;
   --platform-header-height: 3.5rem;
   --platform-form-width: 55rem;
-  --platform-control-radius: 0.5rem;
+  --platform-control-radius: 0.75rem;
   --platform-ease: cubic-bezier(0.2, 0, 0, 1);
   --platform-duration: 160ms;
   --nav-cta-bg: var(--primary);
@@ -18,6 +18,30 @@
   font-size: 0.875rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Polar's dashboard palette (orbit tokens): settings groups sit one step
+   below the panel, and controls one step above it. */
+.platform-shell,
+.platform-overlay {
+  --platform-group: oklch(0.985 0.002 247.839); /* gray-50 */
+  --platform-control: #ffffff;
+}
+
+/* Dark pages use Polar's neutral greys instead of pure black. The editor
+   keeps its own surfaces. Muted text stays at polar-400 for 4.5:1 contrast. */
+.dark :is(.platform-shell[data-platform-variant='page'], .platform-overlay) {
+  --background: hsl(0 0% 3.5%); /* polar-950: sidebar and page */
+  --sidebar: hsl(0 0% 3.5%);
+  --card: hsl(0 0% 6.5%); /* polar-900: the content panel */
+  --popover: hsl(0 0% 6.5%);
+  --muted: hsl(0 0% 9.5%); /* polar-800 */
+  --secondary: hsl(0 0% 9.5%);
+  --accent: hsl(0 0% 9.5%);
+  --border: hsl(0 0% 13%); /* polar-700 */
+  --muted-foreground: hsl(0 0% 52%); /* polar-400 */
+  --platform-group: hsl(0 0% 6.5%); /* polar-900 */
+  --platform-control: hsl(0 0% 9.5%); /* polar-800 */
 }
 
 .platform-shell [data-platform-scroll] {
@@ -53,14 +77,23 @@
     color var(--platform-duration) var(--platform-ease);
 }
 
-/* Like the landing navigation: muted until hovered, the current page lit. */
+/* Polar's navigation rows: muted until hovered, the current page raised as
+   a card above the sidebar (NavList's active item). */
 [data-platform-sidebar] [data-platform-nav] {
   border: 1px solid transparent;
+  border-radius: 0.5rem;
   color: var(--muted-foreground);
 }
 
 [data-platform-sidebar] [data-platform-nav][aria-current='page'] {
-  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  color: var(--foreground);
+}
+
+/* Polar's way out of settings reads as the sidebar's title. */
+[data-platform-sidebar] [data-platform-back] [data-platform-nav] {
   color: var(--foreground);
 }
 
@@ -159,8 +192,8 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   ) {
   border-color: var(--input);
   border-radius: var(--platform-control-radius);
-  background-color: var(--card);
-  box-shadow: none;
+  background-color: var(--platform-control);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
   transition:
     border-color var(--platform-duration) var(--platform-ease),
     box-shadow var(--platform-duration) var(--platform-ease),

@@ -21,5 +21,5 @@ test('a signed-out user cannot open protected routes and can return after sign-i
   await page.getByRole('button', { name: 'Sign in' }).click()
 
   await expect.poll(() => new URL(page.url()).pathname).toBe('/workspace')
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+  await expect(page.getByRole('heading', { exact: true, level: 1, name: 'General' })).toBeVisible()
 })

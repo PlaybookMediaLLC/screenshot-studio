@@ -82,7 +82,7 @@ export function TemplateStrip({ count = 4 }: { count?: number }) {
           key={template.preset.id}
           name={template.preset.name}
           description={template.preset.description}
-          href="/"
+          href={newScreenshotFrom(template.preset.id)}
           action="Use template"
         >
           <ImageTemplatePreview template={template} />
@@ -92,7 +92,10 @@ export function TemplateStrip({ count = 4 }: { count?: number }) {
   )
 }
 
-/** Shared browse-only catalog; applying a design stays in its original editor. */
+/** A new screenshot that opens with this template applied (ProjectLoader). */
+const newScreenshotFrom = (id: string) => `/?start=new&template=${encodeURIComponent(id)}`
+
+/** Shared catalog. Screenshot and Canvas templates open applied; the rest open their editor. */
 export default function TemplateCatalog() {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('Screenshots')
   const [saved, setSaved] = useState<StoreTemplate[]>([])
@@ -136,8 +139,9 @@ export default function TemplateCatalog() {
         ))}
       </div>
       <p className="text-sm text-muted-foreground">
-        Preview each template here, then choose and apply it in its editor. Browsing never changes
-        your saved work.
+        Use template opens a new screenshot or Canvas with that template applied. Animated, store
+        and workflow templates are chosen again in their editor. Browsing never changes your saved
+        work.
       </p>
       {category === 'Store screenshots' ? (
         <p className="text-sm text-muted-foreground">
@@ -157,7 +161,7 @@ export default function TemplateCatalog() {
                 key={template.preset.id}
                 name={template.preset.name}
                 description={template.preset.description}
-                href="/"
+                href={newScreenshotFrom(template.preset.id)}
                 action="Use template"
               >
                 <ImageTemplatePreview template={template} />
@@ -170,8 +174,8 @@ export default function TemplateCatalog() {
                 key={template.id}
                 name={template.name}
                 description={template.description}
-                href="/"
-                action="Use template"
+                href="/?start=new"
+                action="Open editor"
               >
                 <AnimatedTemplatePreview template={template} active={false} />
               </PreviewCard>
@@ -185,7 +189,7 @@ export default function TemplateCatalog() {
                   key={template.id}
                   name={template.name}
                   description={template.description}
-                  href="/"
+                  href={newScreenshotFrom(template.id)}
                   action="Use template"
                 >
                   <DesignTemplatePreview id={template.id} />
@@ -212,7 +216,7 @@ export default function TemplateCatalog() {
                 name={template.name}
                 description={template.description}
                 href="/?editor=app-store"
-                action="Use template"
+                action="Open studio"
               >
                 <StoreTemplatePreview template={template} />
               </PreviewCard>
@@ -225,7 +229,7 @@ export default function TemplateCatalog() {
                 name={template.name}
                 description={template.description}
                 href="/workflows/new"
-                action="Use template"
+                action="New workflow"
               >
                 <WorkflowTemplatePreview
                   name={template.name}

@@ -3,10 +3,12 @@ import test from 'node:test'
 import { type TRPCClient, TRPCClientError } from '@trpc/client'
 import { exportDesignDocument } from '@/lib/design/export'
 import { changedSections } from '@/lib/projects/compare'
+import { trackDraftRestore } from '@/lib/projects/draft-ready'
 import {
   closeProject,
   createProjectFromEditor,
   saveProjectNow,
+  startNewDesign,
   useProjectSession,
 } from '@/lib/projects/session'
 import { useImageStore } from '@/lib/store'
@@ -167,6 +169,44 @@ test('slide selection, playback, and layout measurement do not save a project', 
   await saveProjectNow()
   assert.equal(fake.writes.length, 1)
   usePlaybackStore.getState().pause()
+  closeProject()
+  useImageStore.setState(useImageStore.getInitialState(), true)
+})
+
+test('a new screenshot saves and closes the open project, then starts on a clean canvas', async () => {
+  // The editor registers its local draft restore when it mounts; here it has finished.
+  trackDraftRestore(Promise.resolve())
+  const fake = fakeClient()
+  await createProjectFromEditor(fake.client, 'Launch hero')
+  editHeadline('Not saved yet')
+  assert.equal(await startNewDesign(fake.client), 'started')
+  assert.equal(fake.writes.length, 1, 'the pending edit reached the project first')
+  assert.equal(useProjectSession.getState().projectId, null)
+  assert.equal(useImageStore.getState().textOverlays.length, 0)
+  editHeadline('New work')
+  await saveProjectNow()
+  assert.equal(fake.writes.length, 1, 'edits on the new canvas never reach the old project')
+})
+
+test('a new screenshot asks before replacing a design kept only on this device', async () => {
+  const fake = fakeClient()
+  editHeadline('Only on this device')
+  assert.equal(await startNewDesign(fake.client), 'local-design')
+  assert.equal(useImageStore.getState().textOverlays[0]?.text, 'Only on this device')
+  assert.equal(await startNewDesign(fake.client, true), 'started')
+  assert.equal(useImageStore.getState().textOverlays.length, 0)
+  // An empty canvas has nothing to lose, so it starts without asking.
+  assert.equal(await startNewDesign(fake.client), 'started')
+})
+
+test('a new screenshot does not start while the open project cannot save', async () => {
+  const fake = fakeClient()
+  await createProjectFromEditor(fake.client, 'Launch hero')
+  fake.fail = new TypeError('fetch failed')
+  editHeadline('Offline edit')
+  assert.equal(await startNewDesign(fake.client), 'not-saved')
+  assert.notEqual(useProjectSession.getState().projectId, null)
+  assert.equal(useImageStore.getState().textOverlays[0]?.text, 'Offline edit')
   closeProject()
   useImageStore.setState(useImageStore.getInitialState(), true)
 })

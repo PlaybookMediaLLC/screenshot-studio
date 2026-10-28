@@ -1,4 +1,4 @@
-import { apiRequest, draftEditor, expect, expectSaved, test } from './framework'
+import { apiRequest, db, draftEditor, expect, expectSaved, test } from './framework'
 
 // @dev-server until fixed: on the production build one early-typed title character is lost.
 test(
@@ -131,5 +131,44 @@ test(
       page.getByTestId('draft-row').filter({ hasText: 'Retry keeps this title' })
     ).toHaveCount(0)
     await expect(page.getByTestId('draft-row').filter({ hasText: 'Bulk companion' })).toHaveCount(0)
+  }
+)
+
+test(
+  'New → Post keeps the first words typed, and a retry after a lost answer makes one draft',
+  { tag: '@journey' },
+  async ({ app, page, workspace }) => {
+    await app.open('/home')
+    // The first try reaches the server, but its answer is lost on the way back.
+    let creations = 0
+    await page.route('**/api/v1/content-drafts', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      creations++
+      if (creations > 1) return route.continue()
+      await route.fetch()
+      await route.abort('connectionreset')
+    })
+    await page
+      .getByRole('complementary', { name: 'Primary navigation' })
+      .getByRole('button', { name: 'New', exact: true })
+      .click()
+    await page.getByRole('menuitem', { name: 'Post', exact: true }).click()
+    // The menu hands focus back to New as it closes; the box keeps it, so typing lands here.
+    const early = page.getByRole('textbox', { name: 'New draft text' })
+    await expect(early).toBeFocused()
+    await page.keyboard.type('Words typed straight away')
+    await page
+      .getByRole('dialog', { name: 'New draft' })
+      .getByRole('button', { name: 'Retry' })
+      .click()
+    await page.waitForURL(/\/write\/[a-z0-9]+/)
+    await expect(early).toBeHidden({ timeout: 60_000 })
+    await expect(draftEditor(page)).toContainText('Words typed straight away')
+    await expectSaved(page)
+    expect(creations).toBe(2)
+    const drafts = await db.rows('SELECT id FROM content_draft WHERE "organizationId" = $1', [
+      workspace.id,
+    ])
+    expect(drafts).toHaveLength(1)
   }
 )

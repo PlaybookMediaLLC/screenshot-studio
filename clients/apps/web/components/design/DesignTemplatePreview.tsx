@@ -1,22 +1,13 @@
 'use client'
 
 import { useMemo } from 'react'
-import { getDesignTemplate } from '@/lib/design/templates'
-import { TEMPLATE_DEMO_IMAGE_URL } from '@/lib/templates/demo-media'
+import { getDesignTemplate, TEMPLATE_DEMO_SLOTS } from '@/lib/design/templates'
 import { DocumentPreview } from './DocumentPreview'
 
 /** Native template rendering with clearly illustrative copy and bundled public media. */
 export function DesignTemplatePreview({ id }: { id: string }) {
   const template = getDesignTemplate(id)
-  const document = useMemo(
-    () =>
-      template?.build({
-        screenshot: TEMPLATE_DEMO_IMAGE_URL,
-        headline: 'Your product headline',
-        subheadline: 'Add your own supporting copy',
-      }) ?? null,
-    [template]
-  )
+  const document = useMemo(() => template?.build(TEMPLATE_DEMO_SLOTS) ?? null, [template])
   return (
     <div className="aspect-video w-full overflow-hidden rounded-md bg-muted/30">
       {template ? (

@@ -17,6 +17,9 @@ import { NeedsAttention } from '@/components/platform-hub/NeedsAttention'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
 import { TemplateHighlights } from '@/components/platform-hub/TemplateBrowser'
 import { requirePaidPageAccess } from '@/lib/auth/page-access'
+import { hasPermission, normalizeOrganizationRole, type Permission } from '@/lib/auth/permissions'
+import { roleLabels } from '@/lib/auth/role-descriptions'
+import { StartPostAction } from '@/components/platform-hub/StartPostAction'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 export const metadata = { title: 'Home' }
@@ -41,6 +44,7 @@ export default async function HomePage({
   const access = await requirePaidPageAccess(await headers(), locale, '/home', 'content:drafts')
   const paid = access.hasPaidPlan
   const gated = (href: string) => (paid ? href : `/upgrade?from=${encodeURIComponent(href)}`)
+  const can = (permission: Permission) => hasPermission(access.role, permission)
   const starters = [
     {
       title: 'Create a visual',
@@ -48,6 +52,7 @@ export default async function HomePage({
       href: gated('/create'),
       icon: ImagePlus,
       pro: !paid,
+      allowed: can('artifact:edit'),
     },
     ...(contentDraftsEnabled()
       ? [
@@ -56,6 +61,9 @@ export default async function HomePage({
             description: 'Draft and schedule your posts.',
             href: '/write',
             icon: PenLine,
+            // Makes the draft at once, as New → Post does.
+            startsPost: true,
+            allowed: can('artifact:edit'),
           },
         ]
       : []),
@@ -67,6 +75,7 @@ export default async function HomePage({
             href: gated('/campaigns/new'),
             icon: Megaphone,
             pro: !paid,
+            allowed: can('release:create'),
           },
         ]
       : []),
@@ -77,8 +86,19 @@ export default async function HomePage({
       href: '/workflows',
       icon: Workflow,
       pro: !paid,
+      allowed: can('workspace:update'),
     },
-  ] as { title: string; description: string; href: string; icon: typeof Workflow; pro?: boolean }[]
+  ] as {
+    title: string
+    description: string
+    href: string
+    icon: typeof Workflow
+    pro?: boolean
+    startsPost?: boolean
+    allowed: boolean
+  }[]
+  // Starters the role cannot use are left out, and the page says why.
+  const available = starters.filter((starter) => starter.allowed)
   return (
     <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
@@ -101,10 +121,17 @@ export default async function HomePage({
         }
       >
         <section aria-label="Start something new" className="platform-home">
+          {available.length < starters.length ? (
+            <p className="mb-3 text-sm text-muted-foreground">
+              Your {roleLabels[normalizeOrganizationRole(access.role)]} role can view this
+              workspace&apos;s work{available.length ? ' and start what is listed here' : ''}. Ask a
+              workspace owner or admin for more access.
+            </p>
+          ) : null}
           <ul className="home-actions">
-            {starters.map(({ title, description, href, icon: Icon, pro }, index) => (
-              <li key={href}>
-                <SidebarLink href={href} className="home-action group">
+            {available.map(({ title, description, href, icon: Icon, pro, startsPost }, index) => {
+              const content = (
+                <>
                   {/* A small grain stage, like the gallery's covers. */}
                   <Stage className="size-12 shrink-0 rounded-lg" variant={index}>
                     <span className="grid size-7 place-items-center rounded-md bg-[#090909]/90 text-white ring-1 ring-white/10">
@@ -121,9 +148,20 @@ export default async function HomePage({
                     </span>
                   </span>
                   <ArrowUpRight size={14} aria-hidden="true" className="home-action-arrow" />
-                </SidebarLink>
-              </li>
-            ))}
+                </>
+              )
+              return (
+                <li key={href}>
+                  {startsPost ? (
+                    <StartPostAction>{content}</StartPostAction>
+                  ) : (
+                    <SidebarLink href={href} className="home-action group">
+                      {content}
+                    </SidebarLink>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         </section>
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
+import { announceSessionChange } from '@/lib/auth/client'
 
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import type { WorkspaceCreationResult } from 'screenshot-studio-backend-sdk'
@@ -123,6 +124,7 @@ export function WorkspaceCreationDialog({
     try {
       await prepareWorkspaceSwitch()
       await client.workspace.setActive.mutate({ organizationId: created.id })
+      announceSessionChange()
       if (!mounted.current) return
       window.location.assign(path)
     } catch (cause) {

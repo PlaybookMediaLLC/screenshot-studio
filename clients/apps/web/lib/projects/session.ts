@@ -3,7 +3,11 @@
 import { type TRPCClient, TRPCClientError } from '@trpc/client'
 import { z } from 'zod'
 import { create } from 'zustand'
-import type { DesignDocument } from '@/lib/design/document'
+import {
+  DESIGN_DOCUMENT_VERSION,
+  type DesignDocument,
+  parseDesignDocument,
+} from '@/lib/design/document'
 import { documentFromState } from '@/lib/design/export'
 import { applyStoredDocument } from '@/lib/design/open-design'
 import {
@@ -488,4 +492,50 @@ export function forgetProject(projectId: string): void {
 /** The editor opened without a project: its draft belongs to no project now. */
 export function releaseDraft(): void {
   writeOwner(null)
+}
+
+/** A design with nothing on it yet, as a new screenshot starts. */
+const BLANK_DESIGN = parseDesignDocument({ version: DESIGN_DOCUMENT_VERSION, image: { src: null } })
+
+/** Whether a design holds something a person put there, beyond its styling. */
+function hasDesignContent(document: DesignDocument): boolean {
+  return Boolean(
+    document.image.src ||
+    document.devices?.mockups.length ||
+    document.texts.length ||
+    document.overlays.length ||
+    document.annotations.length ||
+    document.redactions.length ||
+    document.elements.length ||
+    document.slides?.items.length
+  )
+}
+
+/**
+ * Put a new design in the editor: a clean canvas, or `design` such as a
+ * template. An open project is saved and closed first, so its work stays in
+ * the workspace (`not-saved` when that fails). A design kept only on this
+ * device is replaced only when `discardLocal` says the person chose to
+ * (`local-design` asks first).
+ */
+export async function startNewDesign(
+  trpcClient: Client,
+  discardLocal = false,
+  design: DesignDocument = BLANK_DESIGN
+): Promise<'started' | 'local-design' | 'not-saved'> {
+  await draftRestored()
+  await running
+  if (useProjectSession.getState().projectId) {
+    await saveProjectNow()
+    if (useProjectSession.getState().status !== 'saved') return 'not-saved'
+    closeProject()
+  } else {
+    // A clean recovery record means the canvas is a saved project's copy.
+    const owner = readOwner()
+    const saved = owner !== null && !owner.dirty
+    if (!discardLocal && !saved && hasDesignContent(currentProjectDocument())) return 'local-design'
+    writeOwner(null)
+  }
+  await applyStoredDocument(trpcClient, design, 'clear', { replace: true })
+  return 'started'
 }

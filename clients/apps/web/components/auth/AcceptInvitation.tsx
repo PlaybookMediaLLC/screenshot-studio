@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { z } from 'zod'
 import { recipientInvitationSchema, type RecipientInvitation } from 'screenshot-studio-backend-sdk'
 import { Button } from '@/components/ui/button'
-import { authClient } from '@/lib/auth/client'
+import { announceSessionChange, authClient } from '@/lib/auth/client'
 import { roleLabels, roleSummaries } from '@/lib/auth/role-descriptions'
 import { isSupportedOrganizationRole, normalizeOrganizationRole } from '@/lib/auth/permissions'
 import { getAuthErrorMessage } from './error-message'
@@ -61,8 +61,11 @@ export function AcceptInvitation({ invitationId }: { invitationId: string }) {
           : await authClient.organization.rejectInvitation({ invitationId })
       if (result.error)
         throw new Error(result.error.message || 'The invitation result was not confirmed.')
-      if (action === 'accept') window.location.assign('/workspace')
-      else await refresh()
+      if (action === 'accept') {
+        // Accepting makes the new workspace active for every tab.
+        announceSessionChange()
+        window.location.assign('/workspace')
+      } else await refresh()
     } catch (failure) {
       setError(getAuthErrorMessage(failure, 'The invitation result was not confirmed.'))
       setNeedsRefresh(true)
@@ -80,6 +83,7 @@ export function AcceptInvitation({ invitationId }: { invitationId: string }) {
       })
       if (result.error)
         throw new Error(result.error.message || 'You no longer have access to this workspace.')
+      announceSessionChange()
       window.location.assign('/workspace')
     } catch (failure) {
       setError(getAuthErrorMessage(failure, 'Could not open this workspace.'))

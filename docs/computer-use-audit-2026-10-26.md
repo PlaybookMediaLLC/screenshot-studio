@@ -1,6 +1,6 @@
 # Shots computer-use bug and UX audit — 2026-10-26
 
-Status: audit pass documented; 13 confirmed functional/UX findings and one intermittent failure incident. The [implementation prompt](ui-ux-repair-prompt-2026-10-26.md) is ready. Production findings below were observed in the live app, not inferred from old test results. This is a record of defects and friction, not a claim that every possible bug has been found. Remaining coverage is explicit below.
+Status: audit pass documented; 13 confirmed functional/UX findings and one intermittent failure incident. Follow-up: [journey usability pass, 2026-10-28](product/ux-journeys-2026-10-28.md). The [implementation prompt](ui-ux-repair-prompt-2026-10-26.md) is ready. Production findings below were observed in the live app, not inferred from old test results. This is a record of defects and friction, not a claim that every possible bug has been found. Remaining coverage is explicit below.
 
 ## Environment and method
 

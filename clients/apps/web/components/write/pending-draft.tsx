@@ -1,7 +1,10 @@
 'use client'
 
 import * as React from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { draftsApi } from '@/lib/content-drafts/client'
+import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
+import { platformHref } from '@/lib/platform/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
@@ -28,11 +31,13 @@ export async function createWritingDraft(
 ) {
   if (pending) return
   update({ text: '' })
+  // One key for every try: a retry after a lost response gets the same draft back, not a second one.
+  const request = { requestKey: crypto.randomUUID(), ...input }
   retry = async () => {
     if (pending) update({ ...pending, error: undefined })
     try {
       await beforeLeave?.()
-      const draft = await draftsApi.create(input)
+      const draft = await draftsApi.create(request)
       update({ id: draft.id, text: pending?.text ?? '' })
       navigate(draft.id)
     } catch (error) {
@@ -43,6 +48,27 @@ export async function createWritingDraft(
     }
   }
   await retry()
+}
+
+/**
+ * Start a post from anywhere in the app: the draft is made at once, with the
+ * quick-compose box up meanwhile, instead of opening Publish to click New
+ * draft again. It lands in the workspace's default brand. Every open editor
+ * saves or asks first; a cancelled leave stays put.
+ */
+export function useNewPost(onStart?: () => void): () => void {
+  const router = useRouter()
+  const pathname = usePathname()
+  return () => {
+    onStart?.()
+    void prepareWorkspaceSwitch().then(
+      () =>
+        createWritingDraft({}, (id) =>
+          router.push(platformHref(pathname, `/write/${encodeURIComponent(id)}`))
+        ),
+      () => {}
+    )
+  }
 }
 
 /** Deliver buffered typing once, after the shared document has initialized. */
@@ -68,13 +94,40 @@ export function PendingDraftInput() {
     window.addEventListener('beforeunload', guard)
     return () => window.removeEventListener('beforeunload', guard)
   }, [])
+  const box = React.useRef<HTMLDivElement>(null)
+  const field = React.useRef<HTMLTextAreaElement>(null)
+  const open = Boolean(value)
+  // The box covers the page, so focus stays in it. A menu or dialog that opened
+  // it hands focus back to its own trigger as it closes, which would otherwise
+  // send the first words typed to a hidden control.
+  React.useEffect(() => {
+    if (!open) return
+    const keep = (event: FocusEvent) => {
+      // Once the draft has taken the text, focus belongs to its editor.
+      if (!pending) return
+      const target = event.target as Element
+      if (box.current?.contains(target)) return
+      // A dialog opened above this box keeps its own focus.
+      if (target.closest?.('[role="dialog"], [role="alertdialog"]')) return
+      field.current?.focus()
+    }
+    document.addEventListener('focusin', keep)
+    field.current?.focus()
+    return () => document.removeEventListener('focusin', keep)
+  }, [open])
   if (!value) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-6">
+    <div
+      aria-label="New draft"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 p-6"
+      ref={box}
+      role="dialog"
+    >
       <div className="w-full max-w-xl space-y-3">
         <p role="status">{value.error ?? 'New draft · Connecting in the background'}</p>
         <Textarea
-          autoFocus
+          ref={field}
           aria-label="New draft text"
           className="min-h-48"
           placeholder="What would you like to share?"

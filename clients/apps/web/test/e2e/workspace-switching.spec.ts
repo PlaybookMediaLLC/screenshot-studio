@@ -9,6 +9,7 @@ import {
   getActiveOrganizationId,
   requestJson,
   test,
+  trpcMutation,
 } from './framework'
 
 const invitationSchema = z.object({ id: z.string() })
@@ -103,5 +104,43 @@ test(
     } finally {
       await secondContext.close()
     }
+  }
+)
+
+test(
+  'a tab left in another workspace asks where to work before anything is saved',
+  { tag: '@journey' },
+  async ({ app, context, identity, page, workspace }) => {
+    const otherName = `Other ${identity.workspaceName}`
+    const other = await trpcMutation(page, 'workspace.create', {
+      keepCurrentActiveOrganization: true,
+      name: otherName,
+      slug: `other-${crypto.randomUUID().slice(0, 8)}`,
+    })
+    expect(other.status).toBe(200)
+    await app.open('/home')
+    const second = await context.newPage()
+    await second.goto('/home')
+    await switchWorkspace(second, otherName)
+
+    // This tab still shows its workspace, but its requests would now run in the other one.
+    const guard = page.getByRole('alertdialog', {
+      name: `This tab is in ${identity.workspaceName}`,
+    })
+    await expect(guard).toContainText(`You switched to ${otherName} in another tab.`)
+    await guard.getByRole('button', { name: `Keep working in ${identity.workspaceName}` }).click()
+    await expect(guard).toBeHidden()
+    expect(await getActiveOrganizationId(page)).toBe(workspace.id)
+    const created = await trpcMutation(page, 'project.create', {
+      name: 'Saved where this tab said',
+      document: { version: 2, image: { src: null } },
+    })
+    expect((created.body as { organizationId: string }).organizationId).toBe(workspace.id)
+
+    // The other tab is now the out-of-date one, and says so too.
+    await second.bringToFront()
+    await expect(
+      second.getByRole('alertdialog', { name: `This tab is in ${otherName}` })
+    ).toBeVisible()
   }
 )

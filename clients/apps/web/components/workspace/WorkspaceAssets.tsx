@@ -6,7 +6,7 @@ import { MoreIcon as MoreHorizontalIcon } from '@/components/platform-shell/icon
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { TRPCClientError } from '@trpc/client'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { EmptyState } from '@/components/platform-ui'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
@@ -22,6 +22,9 @@ import {
 import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { getErrorMessage } from './settings-client'
+import { createWritingDraft } from '@/components/write/pending-draft'
+import { draftAssetNode, supportedDraftMedia } from '@/lib/platform/asset-handoff'
+import { postBreak } from '@/lib/write/versions'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -138,7 +141,13 @@ function AssetPreview({
   )
 }
 
-export function WorkspaceAssets() {
+export function WorkspaceAssets({
+  canStartPost = false,
+}: {
+  /** The member may write drafts here, so an image or video can start a new post. */
+  canStartPost?: boolean
+} = {}) {
+  const router = useRouter()
   const trpcClient = useTRPCClient()
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -430,6 +439,26 @@ export function WorkspaceAssets() {
                           {/* The editor reads this parameter on load and pulls
                               the asset onto the canvas for another pass. */}
                           <a href={`/?asset=${asset.id}`}>Use image in new design</a>
+                        </DropdownMenuItem>
+                      ) : null}
+                      {canStartPost && supportedDraftMedia(asset.mediaType) ? (
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            // The draft references the asset itself, as Attach from Library does.
+                            void createWritingDraft(
+                              {
+                                assetIds: [asset.id],
+                                body: [
+                                  postBreak(),
+                                  { type: 'p', children: [{ text: '' }] },
+                                  draftAssetNode(asset),
+                                ],
+                              },
+                              (id) => router.push(`/write/${encodeURIComponent(id)}`)
+                            )
+                          }
+                        >
+                          Use in a new post
                         </DropdownMenuItem>
                       ) : null}
                       <DropdownMenuItem onSelect={() => void handleOpen(asset.id)}>

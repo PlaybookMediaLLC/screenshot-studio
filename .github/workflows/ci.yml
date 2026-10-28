@@ -314,6 +314,7 @@ jobs:
       - name: Probe the sign-up reload loop (debug)
         if: matrix.shard_index <= 2
         run: |
+          (cd clients/apps/web && VERIFY_BASE_URL=http://127.0.0.1:3000 npm run verify:agents) || true
           ./dev/studio tenant-isolation || true
           if [ "${{ matrix.shard_index }}" = 2 ]; then
             docker exec screenshot-studio-app-1 sh -c 'rm -rf /workspace/clients/apps/web/.next/* /workspace/clients/apps/web/.next/.[!.]*' || true

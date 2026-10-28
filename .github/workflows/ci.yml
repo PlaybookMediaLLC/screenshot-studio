@@ -311,6 +311,14 @@ jobs:
         run: ./dev/studio up
       - name: Run local stack smoke test
         run: ./dev/studio smoke
+      - name: Probe the sign-up reload loop (debug)
+        if: matrix.shard_index == 1
+        working-directory: clients
+        run: |
+          node ../.github/debug/hmr-probe.cjs || true
+          docker compose --env-file ../.local/dev.env --file ../dev/compose.yaml logs app --tail 60 --no-color || true
+          docker exec screenshot-studio-app-1 sh -c 'cat /proc/sys/fs/inotify/max_user_watches /proc/sys/fs/inotify/max_user_instances; ls -la /workspace/clients/apps/web | head -40' || true
+          exit 1
       - name: Smoke test the API reference, OpenAPI document, and agent endpoints
         if: matrix.shard_index == 1
         working-directory: clients/apps/web

@@ -176,7 +176,13 @@ test(
     await expect(dialog.getByTestId('blocking-problems')).toHaveCount(0)
     // Stay on this draft to cancel one of its posts below.
     await dialog.getByLabel('Open a new draft after scheduling').uncheck()
+    const submitted = page.waitForRequest(
+      (request) =>
+        request.method() === 'POST' &&
+        new URL(request.url()).pathname === `/api/v1/content-drafts/${draftId}/schedule`
+    )
     await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
+    const scheduleRequest: unknown = (await submitted).postDataJSON()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     await expect(page.getByTestId('draft-post').filter({ hasText: 'Scheduled' })).toHaveCount(2)
 
@@ -194,9 +200,18 @@ test(
       },
     ])
 
-    // A double submit of the same version replays; it never queues duplicates.
-    const version = Number(posts[0].idempotencyKey.split(':v').pop())
+    // A double submit of the same request replays; it never queues duplicates.
     const replay = await apiRequest(page, `/api/v1/content-drafts/${draftId}/schedule`, {
+      body: scheduleRequest,
+      method: 'POST',
+    })
+    expect(replay.status, JSON.stringify(replay.body)).toBe(200)
+    expect(replay.body).toMatchObject({ created: false })
+    expect(await draftPosts(draftId)).toHaveLength(2)
+
+    // The same version at another time is refused, not answered with the old schedule.
+    const version = Number(posts[0].idempotencyKey.split(':v').pop())
+    const moved = await apiRequest(page, `/api/v1/content-drafts/${draftId}/schedule`, {
       body: {
         channelConnectionIds: Object.values(workspace.channels),
         scheduledFor: new Date(Date.now() + 86_400_000).toISOString(),
@@ -204,8 +219,8 @@ test(
       },
       method: 'POST',
     })
-    expect(replay.status, JSON.stringify(replay.body)).toBe(200)
-    expect(replay.body).toMatchObject({ created: false })
+    expect(moved.status, JSON.stringify(moved.body)).toBe(409)
+    expect(moved.body).toMatchObject({ code: 'conflict' })
     expect(await draftPosts(draftId)).toHaveLength(2)
 
     // Another workspace cannot read the draft or its posts.

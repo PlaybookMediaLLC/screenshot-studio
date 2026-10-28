@@ -33,10 +33,12 @@ import {
   unusedFiles,
 } from '@/lib/write/bulk-import'
 import { importedBody, importedPosts } from '@/lib/write/import-text'
+import { readVersions, withOptions } from '@/lib/write/versions'
 import { saveExportToWorkspace } from '@/lib/workspace/save-export'
 
-/** Files a batch takes: the formats some destination publishes. */
-const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm'
+/** Files a batch takes: the formats some destination publishes; a PDF goes to LinkedIn as a document. */
+const ACCEPT =
+  'image/jpeg,image/png,image/webp,image/gif,video/mp4,video/quicktime,video/webm,application/pdf'
 /** Uploads at once: enough to keep a link busy, few enough to bound memory and sockets. */
 const UPLOAD_CONCURRENCY = 3
 const ITEM_LIMIT = 50
@@ -290,7 +292,9 @@ export function BatchWorkspace({
       })
       setBatch(next)
       itemsRef.current = next.items ?? []
-      setPreview(null)
+      // Rows that were not added stay listed with their problems, so none is lost unseen.
+      const left = preview.staged.filter((row) => row.problems.length > 0)
+      setPreview(left.length ? { mapping: preview.mapping, staged: left, unused: [] } : null)
       setCSV('')
       setChosen([])
       startUploads()
@@ -384,9 +388,10 @@ export function BatchWorkspace({
       try {
         const posts = importedPosts(item.caption)
         const body = importedBody(posts.length ? posts : [''])
+        const pdf = item.media.find((entry) => entry.mediaType === 'application/pdf')
         for (const entry of item.media)
           body.push({
-            type: entry.mediaType?.startsWith('video/') ? 'video' : 'img',
+            type: entry === pdf ? 'file' : entry.mediaType?.startsWith('video/') ? 'video' : 'img',
             assetId: entry.assetId!,
             url: assetContentUrl(entry.assetId!),
             ...(entry.mediaType ? { mimeType: entry.mediaType } : {}),
@@ -401,6 +406,16 @@ export function BatchWorkspace({
               body,
               plainText: item.caption,
               assetIds: item.media.map((entry) => entry.assetId!),
+              ...(pdf
+                ? {
+                    platformVersions: withOptions(readVersions(undefined), 'linkedin', {
+                      document: {
+                        assetId: pdf.assetId!,
+                        title: pdf.fileName?.replace(/\.pdf$/i, '').slice(0, 200) || 'Document',
+                      },
+                    }),
+                  }
+                : {}),
             },
           })
         )
@@ -563,7 +578,8 @@ export function BatchWorkspace({
         <section className="grid gap-3 rounded-lg border p-4" aria-label="Add items">
           <h2 className="font-medium">Add items</h2>
           <label className="grid gap-1 text-sm">
-            Photos and videos (one item each, or matched to CSV rows by file name)
+            Photos, videos and PDFs for LinkedIn (one item each, or matched to CSV rows by file
+            name)
             <input
               aria-label="Batch media files"
               type="file"

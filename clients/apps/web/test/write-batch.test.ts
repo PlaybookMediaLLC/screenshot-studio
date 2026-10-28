@@ -51,6 +51,12 @@ test('each chosen account is checked apart, with what Shots would change', () =>
     ],
   })
   assert.match(stagedChecks(uploading, accounts).get('li')!.problems.join(), /Finish uploading/)
+  const pdf = { ...item().media[0], mediaType: 'application/pdf', width: null, height: null }
+  const deck = stagedChecks(item({ media: [pdf] }), accounts)
+  assert.deepEqual(deck.get('li'), { changes: [], problems: [] })
+  assert.match(deck.get('ig')!.problems.join(), /Only LinkedIn posts a PDF/)
+  const mixed = stagedChecks(item({ media: [pdf, item().media[0]] }), accounts)
+  assert.match(mixed.get('li')!.problems.join(), /goes alone/)
 })
 
 test('a local time is read in its own zone, refusing skipped and unchosen repeated times', () => {

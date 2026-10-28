@@ -1,115 +1,125 @@
-import { apiRequest, expect, test } from './framework'
+import { addBatchRows, apiRequest, expect, openNewBatch, saveBatchDrafts, test } from './framework'
 
 test(
-  'bulk imports recover rejected rows and reconcile a lost response after reload',
+  'a bulk batch keeps refused rows, recovers a refused draft and a lost response after reload',
   { tag: '@journey' },
   async ({ app, page, startWorkspace }) => {
     await startWorkspace({ channels: ['x', 'linkedin'] })
-    await app.open('/write')
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
-    await page
-      .getByLabel('Batch CSV', { exact: true })
-      .fill('caption,asset,channels\nRejected draft,,x')
-    await page.getByRole('button', { name: 'Review import', exact: true }).click()
+    await openNewBatch(page, app)
+    const items = await addBatchRows(
+      page,
+      'caption,asset,channels\nRefused first,,x\nNot a channel,,myspace\nMissing file,gone.png,x'
+    )
+    await expect(items).toHaveCount(1)
+    // Rows with problems are not added and stay listed with what to fix.
+    const preview = page.getByTestId('import-preview')
+    await expect(preview).toContainText('Unknown channel myspace')
+    await expect(preview).toContainText('no selected file is named gone.png')
+    await expect(preview.getByRole('button', { name: /^Add 0 ready rows/ })).toBeDisabled()
+
     const requests: Record<string, unknown>[] = []
-    let reject = true
+    let refuse = true
     let loseResponse = false
     let acceptedId = ''
-    await page.route('**/api/v1/content-drafts', async (route) => {
-      if (route.request().method() !== 'POST') return route.continue()
+    await page.route('**/api/v1/content-batches/*/items/*/draft', async (route) => {
       requests.push(route.request().postDataJSON())
-      if (reject) {
-        reject = false
+      if (refuse) {
+        refuse = false
         return route.fulfill({ status: 422, json: { message: 'Review the rejected caption.' } })
       }
       if (loseResponse) {
         loseResponse = false
         const response = await route.fetch()
-        expect(response.status()).toBe(201)
-        acceptedId = (await response.json()).id
+        expect(response.ok()).toBe(true)
+        acceptedId = (await response.json()).draftId
         return route.abort('failed')
       }
       return route.continue()
     })
-    await page.getByRole('button', { name: 'Create remaining drafts' }).click()
-    await expect(page.getByTestId('bulk-import')).toContainText('Review the rejected caption.')
-    await expect(page.getByLabel('Caption for import row 1')).toBeDisabled()
-    await page.getByRole('button', { name: 'Edit rejected row' }).click()
-    await page.getByLabel('Caption for import row 1').fill('Corrected draft')
-    await page.getByRole('button', { name: 'Create remaining drafts' }).click()
-    await expect(page.getByRole('link', { name: 'Draft created' })).toHaveCount(1)
+    await page.getByRole('button', { name: 'Save ready items as drafts', exact: true }).click()
+    await expect(page.getByText('Review the rejected caption.')).toBeVisible()
+    await expect(items.first()).toContainText('Not saved as a draft yet')
+    const caption = page.getByLabel('Caption for item 1', { exact: true })
+    const saved = page.waitForResponse(
+      (response) => response.request().method() === 'PATCH' && response.ok()
+    )
+    await caption.fill('Corrected draft')
+    await caption.blur()
+    await saved
+    const [first] = await saveBatchDrafts(page)
     expect(requests).toHaveLength(2)
-    expect(requests[0].importKey).not.toBe(requests[1].importKey)
     expect(requests[1].plainText).toBe('Corrected draft')
-    const firstURL = await page.getByRole('link', { name: 'Draft created' }).getAttribute('href')
 
-    await page.getByRole('button', { name: 'Start a new batch' }).click()
-    await page
-      .getByLabel('Batch CSV', { exact: true })
-      .fill('caption,asset,channels\nResponse lost,,x')
-    await page.getByRole('button', { name: 'Review import', exact: true }).click()
+    await addBatchRows(page, 'caption,asset,channels\nResponse lost,,x')
     loseResponse = true
-    await page.getByRole('button', { name: 'Create remaining drafts' }).click()
-    await expect(page.getByTestId('bulk-import')).toContainText('outcome is unconfirmed')
-    await expect(page.getByRole('button', { name: 'Start a new batch' })).toBeDisabled()
-    await expect(page.getByLabel('Caption for import row 1')).toBeDisabled()
-    expect(acceptedId).not.toBe('')
-    const savedRequest = requests.at(-1)
+    await page.getByRole('button', { name: 'Save ready items as drafts', exact: true }).click()
+    await expect.poll(() => acceptedId).not.toBe('')
+    await expect(items.nth(1)).toContainText('Not saved as a draft yet')
+    // A retry returns the draft the lost response created, never a second one.
+    expect(await saveBatchDrafts(page)).toEqual([first, acceptedId])
     await app.reload()
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
-    await expect(page.getByTestId('bulk-import')).toContainText('Resumed this tab’s import')
-    await page.getByRole('button', { name: 'Create remaining drafts' }).click()
-    await expect(page.getByRole('link', { name: 'Draft created' })).toHaveAttribute(
-      'href',
-      `/write/${acceptedId}`
-    )
-    expect(requests.at(-1)).toEqual(savedRequest)
-    expect(requests).toHaveLength(4)
+    expect(
+      await items
+        .getByRole('link', { name: /^Open draft/ })
+        .evaluateAll((links) => links.map((link) => link.getAttribute('href')))
+    ).toEqual([`/write/${first}`, `/write/${acceptedId}`])
+    await expect(
+      page.getByRole('button', { name: 'Save ready items as drafts', exact: true })
+    ).toBeDisabled()
     const persisted = await apiRequest(page, `/api/v1/content-drafts/${acceptedId}`)
-    expect(persisted.status).toBe(200)
     expect((persisted.body as { plainText: string }).plainText).toBe('Response lost')
-    const first = await apiRequest(page, `/api/v1/content-drafts/${firstURL!.split('/').at(-1)}`)
-    expect((first.body as { plainText: string }).plainText).toBe('Corrected draft')
-    await app.reload()
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
-    await expect(page.getByRole('link', { name: 'Draft created' })).toHaveAttribute(
-      'href',
-      `/write/${acceptedId}`
-    )
-    await expect(page.getByRole('button', { name: 'Create remaining drafts' })).toBeDisabled()
+    const corrected = await apiRequest(page, `/api/v1/content-drafts/${first}`)
+    expect((corrected.body as { plainText: string }).plainText).toBe('Corrected draft')
   }
 )
 
 test(
-  'bulk import refuses to send when its durable browser receipt cannot be saved',
+  'an upload cut short by a reload asks for its file again instead of claiming it finished',
   { tag: '@journey' },
   async ({ app, page, startWorkspace }) => {
     await startWorkspace({ channels: ['x', 'linkedin'] })
-    await app.open('/write')
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
-    let creates = 0
-    page.on('request', (request) => {
-      if (
-        request.method() === 'POST' &&
-        new URL(request.url()).pathname === '/api/v1/content-drafts'
-      )
-        creates++
-    })
-    await page.evaluate(() => {
-      const original = Storage.prototype.setItem
-      Storage.prototype.setItem = function (key: string, value: string) {
-        if (key.startsWith('shots:import:'))
-          throw new DOMException('Browser storage is full.', 'QuotaExceededError')
-        return original.call(this, key, value)
-      }
-    })
-    await page
-      .getByLabel('Batch CSV', { exact: true })
-      .fill('caption,asset,channels\nKeep this text,,x')
-    await page.getByRole('button', { name: 'Review import', exact: true }).click()
-    await expect(page.getByText('Browser storage is full.', { exact: true })).toBeVisible()
-    await expect(page.getByLabel('Batch CSV', { exact: true })).toContainText('Keep this text')
-    await expect(page.getByRole('button', { name: 'Create remaining drafts' })).toHaveCount(0)
-    expect(creates).toBe(0)
+    await openNewBatch(page, app)
+    const file = {
+      name: 'cut.png',
+      mimeType: 'image/png',
+      // A 1×1 PNG.
+      buffer: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        'base64'
+      ),
+    }
+    // Hold the storage PUT open so the page closes mid-upload.
+    await page.route('**/*', (route) =>
+      route.request().method() === 'PUT' ? undefined : route.fallback()
+    )
+    const reserved = page.waitForResponse(
+      (response) => response.request().method() === 'PATCH' && response.ok()
+    )
+    await page.getByLabel('Batch media files').setInputFiles(file)
+    await page.getByLabel('Batch CSV', { exact: true }).fill('caption,asset\nCut short,cut.png')
+    await page.getByRole('button', { name: 'Preview import', exact: true }).click()
+    await page.getByRole('button', { name: /^Add 1 ready rows/ }).click()
+    await reserved
+    await page.unrouteAll({ behavior: 'ignoreErrors' })
+    // After the reload the page tries to finish the upload, finds no bytes, and forgets it.
+    const forgotten = page.waitForResponse(
+      (response) => response.request().method() === 'PATCH' && response.ok()
+    )
+    await app.reload()
+    await forgotten
+
+    const item = page.getByTestId('batch-item')
+    await expect(
+      page.getByRole('status').filter({ hasText: 'did not finish uploading' })
+    ).toContainText('cut.png')
+    await expect(item).toContainText('Waiting for its file to be selected again')
+    await expect(
+      page.getByRole('button', { name: 'Save ready items as drafts', exact: true })
+    ).toBeDisabled()
+    await page.getByLabel('Select the files again').setInputFiles(file)
+    await expect(item).toContainText('image/png', { timeout: 60_000 })
+    const [id] = await saveBatchDrafts(page)
+    const draft = await apiRequest(page, `/api/v1/content-drafts/${id}`)
+    expect((draft.body as { assetIds: string[] }).assetIds).toHaveLength(1)
   }
 )

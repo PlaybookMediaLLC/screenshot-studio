@@ -3,12 +3,15 @@ import { createRequire } from 'node:module'
 import sharp from 'sharp'
 import { importedBody } from '@/lib/write/import-text'
 import {
+  addBatchRows,
   apiRequest,
   db,
   draftEditor,
   enableDraftTags,
   expect,
   expectSaved,
+  openNewBatch,
+  saveBatchDrafts,
   test,
   trpcMutation,
 } from './framework'
@@ -436,45 +439,45 @@ test(
 )
 
 test(
-  'bulk import uploads assets once, resumes after refresh, and media edits persist',
+  'a bulk batch uploads assets once, resumes after refresh, and media edits persist',
   { tag: ['@dev-server', '@journey'] },
   async ({ app, page, startWorkspace }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
-    await app.open('/write')
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
+    await openNewBatch(page, app)
     const png = await sharp({
       create: { width: 48, height: 48, channels: 4, background: '#2563eb' },
     })
       .png()
       .toBuffer()
-    await page.getByLabel('Batch media files').setInputFiles([
-      { name: 'one.png', mimeType: 'image/png', buffer: png },
-      { name: 'two.png', mimeType: 'image/png', buffer: png },
-    ])
-    await page
-      .getByLabel('Batch CSV', { exact: true })
-      .fill('caption,asset,channels\nFirst imported,one.png,x\nSecond imported,two.png,x')
-    await page.getByRole('button', { name: 'Review import' }).click()
-    await page.getByRole('button', { name: 'Create remaining drafts' }).click()
-    const created = page.getByRole('link', { name: 'Draft created', exact: true })
-    await expect(created).toHaveCount(2, { timeout: 60_000 })
-    const urls = await created.evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute('href')!)
+    let uploads = 0
+    // Each file's bytes go to storage once, as a presigned PUT.
+    page.on('request', (request) => {
+      if (request.method() === 'PUT') uploads++
+    })
+    await addBatchRows(
+      page,
+      'caption,asset,channels\nFirst imported,one.png,x\nSecond imported,two.png,x',
+      [
+        { name: 'one.png', mimeType: 'image/png', buffer: png },
+        { name: 'two.png', mimeType: 'image/png', buffer: png },
+      ]
     )
+    const ids = await saveBatchDrafts(page)
+    expect(ids).toHaveLength(2)
     await app.reload()
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
-    await expect(page.getByTestId('bulk-import')).toContainText('Resumed this tab’s import')
-    await expect(created).toHaveCount(2)
+    const saved = page.getByTestId('batch-item').getByRole('link', { name: /^Open draft/ })
+    await expect(saved).toHaveCount(2)
     expect(
-      await created.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href')))
-    ).toEqual(urls)
-    await expect(page.getByRole('button', { name: 'Create remaining drafts' })).toBeDisabled()
+      await saved.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href')))
+    ).toEqual(ids.map((id) => `/write/${id}`))
+    await expect(
+      page.getByRole('button', { name: 'Save ready items as drafts', exact: true })
+    ).toBeDisabled()
+    expect(uploads).toBe(2)
     await page.screenshot({ path: '.context/shots/typefully-import-resumed.png' })
-    await page.getByRole('button', { name: 'Close', exact: true }).first().click()
 
-    const ids = urls.map((url) => url.split('/').pop()!)
     const drafts = await Promise.all(
       ids.map((id) => apiRequest(page, `/api/v1/content-drafts/${id}`))
     )

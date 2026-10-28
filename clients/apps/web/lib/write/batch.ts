@@ -31,22 +31,34 @@ export function batchMediaFacts(media: BatchItem['media']): MediaFacts[] | null 
   return facts
 }
 
+/** A PDF item goes to LinkedIn alone, as the post's document. */
+function documentProblems(channel: DraftChannel, facts: MediaFacts[]) {
+  if (channel !== 'linkedin')
+    return ['Only LinkedIn posts a PDF, as a document. Remove this account or the PDF.']
+  if (facts.length > 1)
+    return ['A LinkedIn document goes alone: remove the images or the document.']
+  return []
+}
+
 /**
  * For each chosen account: what blocks the item there, from the media rules
  * Go also applies, and what Shots would change before sending it.
  */
 export function stagedChecks(item: BatchItem, accounts: BatchAccount[]) {
   const facts = batchMediaFacts(item.media)
+  const pdf = facts?.some((fact) => fact.mimeType === 'application/pdf')
   return new Map(
     accounts
       .filter((account) => item.channelConnectionIds.includes(account.id))
       .map((account) => [
         account.id,
         {
-          changes: facts ? mediaChanges(account.channel, facts) : [],
-          problems: facts
-            ? mediaProblems(account.channel, facts)
-            : ['Finish uploading this item’s files first.'],
+          changes: facts && !pdf ? mediaChanges(account.channel, facts) : [],
+          problems: !facts
+            ? ['Finish uploading this item’s files first.']
+            : pdf
+              ? documentProblems(account.channel, facts)
+              : mediaProblems(account.channel, facts),
         },
       ])
   )

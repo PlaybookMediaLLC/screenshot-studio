@@ -126,6 +126,8 @@ export type SerializeOptions = {
   limit?: number
   /** Thread numbering, added to each post and counted in its length. */
   numbering?: Numbering
+  /** The asset LinkedIn sends as the post's document; its file block is not an attachment. */
+  documentAssetId?: string
 }
 
 /** A caption for one channel, with its limit and what it lost. */
@@ -219,6 +221,7 @@ type Context = {
   unstored: number
   /** Uploaded files and audio, which no draft channel posts as an attachment. */
   unpublishable: number
+  documentAssetId: string | undefined
   /** Uploaded videos, which go out as the post's media. */
   videos: number
 }
@@ -445,7 +448,7 @@ function blockText(node: PlateNode, context: Context): string {
   }
   if ((type === 'file' || type === 'audio') && typeof node.assetId === 'string') {
     // An uploaded attachment is never left out silently; it blocks scheduling.
-    context.unpublishable += 1
+    if (node.assetId !== context.documentAssetId) context.unpublishable += 1
     return ''
   }
   const dropped = DROPPED_BLOCKS[type]
@@ -567,6 +570,7 @@ export function serializeDraft(
     images: 0,
     unstored: 0,
     unpublishable: 0,
+    documentAssetId: options.documentAssetId,
     videos: 0,
   }
   // Each post of a thread serializes on its own; footnotes close the last.

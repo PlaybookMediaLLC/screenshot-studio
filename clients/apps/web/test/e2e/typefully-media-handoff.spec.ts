@@ -1,5 +1,14 @@
 import sharp from 'sharp'
-import { apiRequest, draftEditor, expect, expectSaved, test } from './framework'
+import {
+  addBatchRows,
+  apiRequest,
+  draftEditor,
+  expect,
+  expectSaved,
+  openNewBatch,
+  saveBatchDrafts,
+  test,
+} from './framework'
 import { importedBody } from '@/lib/write/import-text'
 
 test.use({ actionTimeout: 30_000 })
@@ -11,25 +20,19 @@ test(
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await startWorkspace({ channels: ['x', 'linkedin'] })
-    await app.open('/write')
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
+    await openNewBatch(page, app)
     const png = await sharp({
       create: { width: 640, height: 360, channels: 3, background: '#e5eef8' },
     })
       .png()
       .toBuffer()
-    await page
-      .getByLabel('Batch media files')
-      .setInputFiles({ name: 'source.png', mimeType: 'image/png', buffer: png })
-    await page
-      .getByLabel('Batch CSV', { exact: true })
-      .fill('caption,asset,channels\nFrame handoff,source.png,x')
-    await page.getByRole('button', { name: 'Review import', exact: true }).click()
-    await page.getByRole('button', { name: 'Create remaining drafts', exact: true }).click()
-    const created = page.getByRole('link', { name: 'Draft created', exact: true })
-    await expect(created).toBeVisible({ timeout: 60_000 })
-    const url = (await created.getAttribute('href'))!
-    const id = url.split('/').at(-1)!
+    await addBatchRows(page, 'caption,asset,channels\nFrame handoff,source.png,x', {
+      name: 'source.png',
+      mimeType: 'image/png',
+      buffer: png,
+    })
+    const [id] = await saveBatchDrafts(page)
+    const url = `/write/${id}`
     const before = (await apiRequest(page, `/api/v1/content-drafts/${id}`)).body as {
       assetIds: string[]
     }

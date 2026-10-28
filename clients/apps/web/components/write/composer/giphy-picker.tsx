@@ -94,7 +94,9 @@ export function GiphyPicker({ editor, onClose }: { editor: PlateEditor; onClose:
         {results?.length === 0 ? <p role="status">No GIFs found. Try another search.</p> : null}
         <div className="grid grid-cols-2 gap-2">
           {results?.map((item) => (
-            <button
+            <Button
+              variant="custom"
+              size={null}
               type="button"
               key={item.id}
               disabled={busy}
@@ -102,7 +104,7 @@ export function GiphyPicker({ editor, onClose }: { editor: PlateEditor; onClose:
               onClick={() => void attach(item)}
             >
               <img alt={item.title} src={item.previewUrl} className="w-full rounded" />
-            </button>
+            </Button>
           ))}
         </div>
         <a href="https://giphy.com" target="_blank" rel="noreferrer" className="text-xs">

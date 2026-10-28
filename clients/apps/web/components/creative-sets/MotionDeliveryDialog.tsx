@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -82,7 +83,7 @@ export function MotionDeliveryDialog({
           Render the native timeline at 24 fps and this format’s exact dimensions. The video keeps a
           revision manifest.
         </DialogDescription>
-        <label className="grid gap-1 text-sm">
+        <Label className="grid gap-1 text-sm">
           Video format
           <Select
             disabled={progress !== null}
@@ -97,7 +98,7 @@ export function MotionDeliveryDialog({
               <SelectItem value="webm">WebM</SelectItem>
             </SelectContent>
           </Select>
-        </label>
+        </Label>
         {progress !== null ? (
           <>
             <progress value={progress} max={1} aria-label="Motion rendering progress" />

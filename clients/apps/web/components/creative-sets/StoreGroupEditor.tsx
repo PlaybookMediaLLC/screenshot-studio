@@ -356,7 +356,9 @@ export function StoreGroupEditor({
                       <span key={binding.layerId} className="text-xs">
                         {binding.field} ·{' '}
                         {binding.overridden ? (
-                          <button
+                          <Button
+                            variant="custom"
+                            size={null}
                             className="underline"
                             onClick={() =>
                               command({
@@ -368,7 +370,7 @@ export function StoreGroupEditor({
                             }
                           >
                             Override · reset to story
-                          </button>
+                          </Button>
                         ) : (
                           'Linked to story'
                         )}

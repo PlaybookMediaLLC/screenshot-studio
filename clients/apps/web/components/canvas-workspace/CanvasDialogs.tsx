@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
@@ -262,7 +263,7 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
             <div className="grid min-h-0 min-w-0 gap-4 overflow-y-auto">
               <fieldset className="grid min-w-0 max-h-56 gap-1 overflow-x-hidden overflow-y-auto rounded-md border p-2">
                 <legend className="px-1 text-xs text-muted-foreground">Artboards</legend>
-                <label className="flex items-center gap-2 text-sm">
+                <Label className="flex items-center gap-2 text-sm">
                   <Checkbox
                     checked={chosen.length === document.artboards.length}
                     onCheckedChange={(checked) =>
@@ -272,9 +273,9 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
                     }
                   />
                   All ({document.artboards.length})
-                </label>
+                </Label>
                 {document.artboards.map((artboard) => (
-                  <label key={artboard.id} className="flex min-w-0 items-center gap-2 text-sm">
+                  <Label key={artboard.id} className="flex min-w-0 items-center gap-2 text-sm">
                     <Checkbox
                       checked={chosen.includes(artboard.id)}
                       onCheckedChange={(checked) =>
@@ -291,11 +292,11 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {artboardSize(artboard).width}×{artboardSize(artboard).height}
                     </span>
-                  </label>
+                  </Label>
                 ))}
               </fieldset>
               <div className="grid gap-3 sm:grid-cols-3">
-                <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+                <Label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
                   Format
                   <Select
                     value={format}
@@ -323,8 +324,8 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                </label>
-                <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+                </Label>
+                <Label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
                   Scale
                   <Select
                     value={String(scale)}
@@ -343,8 +344,8 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
                       <SelectItem value="3">3×</SelectItem>
                     </SelectContent>
                   </Select>
-                </label>
-                <label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
+                </Label>
+                <Label className="grid min-w-0 gap-1 text-xs text-muted-foreground">
                   Order
                   <Select
                     value={order}
@@ -361,25 +362,25 @@ function ExportDialog({ onClose, session, canEdit, flush }: Props) {
                       <SelectItem value="layers">Artboard list order</SelectItem>
                     </SelectContent>
                   </Select>
-                </label>
+                </Label>
               </div>
               <div className="flex flex-wrap gap-4 text-sm">
-                <label className="flex items-center gap-2">
+                <Label className="flex items-center gap-2">
                   <Checkbox
                     checked={transparent}
                     disabled={format !== 'png' && format !== 'webp'}
                     onCheckedChange={(checked) => setTransparent(checked === true)}
                   />
                   Transparent background
-                </label>
-                <label className="flex items-center gap-2">
+                </Label>
+                <Label className="flex items-center gap-2">
                   <Checkbox
                     checked={includeHidden}
                     disabled={format === 'pdf-text'}
                     onCheckedChange={(checked) => setIncludeHidden(checked === true)}
                   />
                   Include hidden layers
-                </label>
+                </Label>
               </div>
               {error ? (
                 <p role="alert" className="text-sm text-destructive">
@@ -727,18 +728,18 @@ function BrandDialog({ onClose, session, actions }: Props) {
               onValueChange={(value) => setScope(value === 'all' ? 'all' : 'selection')}
               className="flex gap-3 text-sm"
             >
-              <label className="flex items-center gap-2">
+              <Label className="flex items-center gap-2">
                 <RadioGroupItem value="selection" disabled={!selection.length} />
                 Selected ({selection.length})
-              </label>
-              <label className="flex items-center gap-2">
+              </Label>
+              <Label className="flex items-center gap-2">
                 <RadioGroupItem value="all" />
                 All artboards
-              </label>
+              </Label>
             </RadioGroup>
             <fieldset className="flex flex-wrap gap-3 text-sm">
               {BRAND_CATEGORIES.map((category) => (
-                <label key={category} className="flex items-center gap-1.5 capitalize">
+                <Label key={category} className="flex items-center gap-1.5 capitalize">
                   <Checkbox
                     checked={categories.includes(category)}
                     onCheckedChange={(checked) =>
@@ -750,13 +751,13 @@ function BrandDialog({ onClose, session, actions }: Props) {
                     }
                   />
                   {category}
-                </label>
+                </Label>
               ))}
             </fieldset>
-            <label className="flex items-center gap-2 text-sm">
+            <Label className="flex items-center gap-2 text-sm">
               <Checkbox checked={reset} onCheckedChange={(checked) => setReset(checked === true)} />
               Reset my overrides to the kit
-            </label>
+            </Label>
             {preview && preview.keptOverrides > 0 && !reset ? (
               <p className="text-xs text-muted-foreground">
                 {preview.keptOverrides} property changes you made will be kept.
@@ -864,7 +865,7 @@ function HandoffDialog({ onClose, session, flush, canEdit }: Props) {
               })()
             }}
           >
-            <label className="grid gap-1 text-xs text-muted-foreground">
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Delivered file
               <Select value={deliveryId} onValueChange={setDeliveryId}>
                 <SelectTrigger aria-label="Delivered file" className="w-full text-foreground">
@@ -878,8 +879,8 @@ function HandoffDialog({ onClose, session, flush, canEdit }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </label>
-            <label className="grid gap-1 text-xs text-muted-foreground">
+            </Label>
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Campaign
               <Select value={campaignId} onValueChange={setCampaignId}>
                 <SelectTrigger aria-label="Campaign" className="w-full text-foreground">
@@ -895,8 +896,8 @@ function HandoffDialog({ onClose, session, flush, canEdit }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </label>
-            <label className="grid gap-1 text-xs text-muted-foreground">
+            </Label>
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Channel
               <Select
                 value={channel}
@@ -911,8 +912,8 @@ function HandoffDialog({ onClose, session, flush, canEdit }: Props) {
                   <SelectItem value="instagram">Instagram</SelectItem>
                 </SelectContent>
               </Select>
-            </label>
-            <label className="grid gap-1 text-xs text-muted-foreground">
+            </Label>
+            <Label className="grid gap-1 text-xs text-muted-foreground">
               Post copy
               <Textarea
                 aria-label="Post copy"
@@ -921,7 +922,7 @@ function HandoffDialog({ onClose, session, flush, canEdit }: Props) {
                 maxLength={4000}
                 onChange={(event) => setCopy(event.target.value)}
               />
-            </label>
+            </Label>
             {error ? (
               <p role="alert" className="text-sm text-destructive">
                 {error}

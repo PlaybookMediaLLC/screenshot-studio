@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -48,9 +49,9 @@ export function LocalePicker({
   const id = useId()
   return (
     <div className="grid gap-1.5">
-      <label className="sr-only" htmlFor={id}>
+      <Label className="sr-only" htmlFor={id}>
         Locale
-      </label>
+      </Label>
       <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger id={id} className="w-full">
           <SelectValue />

@@ -10,7 +10,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { call, draftsApi } from '@/lib/content-drafts/client'
 import type { contentDraftScheduleSchema } from '@/lib/api/contracts/content-drafts'
 import { zonedDayKey } from '@/lib/settings/zoned-time'
@@ -147,30 +150,38 @@ export function BulkScheduleDialog({
         </DialogHeader>
         {!rows ? (
           <>
-            <label>
+            <Label>
               Mode{' '}
-              <select
+              <NativeSelect
                 aria-label="Batch mode"
-                className="rounded border bg-background p-2"
                 value={mode}
                 disabled={busy}
                 onChange={(event) => setMode(event.target.value as 'queue' | 'spread')}
               >
-                <option value="queue">Fill the queue</option>
-                <option value="spread">Spread</option>
-              </select>
-            </label>
+                <NativeSelectOption value="queue">Fill the queue</NativeSelectOption>
+                <NativeSelectOption value="spread">Spread</NativeSelectOption>
+              </NativeSelect>
+            </Label>
             {mode === 'spread' && (
               <div className="grid gap-3 sm:grid-cols-2">
-                <label>
+                <Label className="grid gap-1">
                   Start
-                  <Input
-                    type="datetime-local"
-                    value={start}
-                    onChange={(event) => setStart(event.target.value)}
-                  />
-                </label>
-                <label>
+                  <span className="grid grid-cols-2 gap-2">
+                    <DatePicker
+                      aria-label="Start day"
+                      className="w-full"
+                      value={start.slice(0, 10)}
+                      onChange={(day) => setStart(`${day}T${start.slice(11)}`)}
+                    />
+                    <Input
+                      aria-label="Start time"
+                      type="time"
+                      value={start.slice(11)}
+                      onChange={(event) => setStart(`${start.slice(0, 10)}T${event.target.value}`)}
+                    />
+                  </span>
+                </Label>
+                <Label className="grid gap-1">
                   Posts per day
                   <Input
                     type="number"
@@ -179,8 +190,8 @@ export function BulkScheduleDialog({
                     value={perDay}
                     onChange={(event) => setPerDay(Number(event.target.value))}
                   />
-                </label>
-                <label>
+                </Label>
+                <Label className="grid gap-1">
                   Spacing in minutes
                   <Input
                     type="number"
@@ -189,8 +200,8 @@ export function BulkScheduleDialog({
                     value={spacing}
                     onChange={(event) => setSpacing(Number(event.target.value))}
                   />
-                </label>
-                <label>
+                </Label>
+                <Label className="grid gap-1">
                   Random shift in minutes
                   <Input
                     type="number"
@@ -200,7 +211,7 @@ export function BulkScheduleDialog({
                     value={shift}
                     onChange={(event) => setShift(Number(event.target.value))}
                   />
-                </label>
+                </Label>
               </div>
             )}
             <Button disabled={busy || selected.length > 50} onClick={() => void preview()}>

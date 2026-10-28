@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { searchEmoji } from '@shots/platejs-editor/lib'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 /** Searchable, keyboard-operated emoji choices shared with Plate's alias plugin. */
@@ -42,7 +43,7 @@ export function ComposerEmojiPicker({ onSelect }: { onSelect: (emoji: string) =>
         className="grid max-h-56 grid-cols-8 gap-1 overflow-y-auto"
       >
         {choices.map((emoji, index) => (
-          <button
+          <Button
             id={`${id}-${index}`}
             key={emoji.id}
             role="option"
@@ -51,6 +52,8 @@ export function ComposerEmojiPicker({ onSelect }: { onSelect: (emoji: string) =>
             title={emoji.name}
             type="button"
             tabIndex={-1}
+            variant="custom"
+            size={null}
             className="rounded p-1 text-lg aria-selected:bg-accent"
             ref={(node) => {
               if (index === active) node?.scrollIntoView({ block: 'nearest' })
@@ -59,7 +62,7 @@ export function ComposerEmojiPicker({ onSelect }: { onSelect: (emoji: string) =>
             onClick={() => onSelect(emoji.native)}
           >
             {emoji.native}
-          </button>
+          </Button>
         ))}
       </div>
       {!choices.length ? (

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { domToPng } from 'modern-screenshot'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -345,22 +346,18 @@ export function AnalyzeWorkspace({
           </Label>
           <Label className="grid gap-1.5">
             From
-            <Input
-              type="date"
+            <DatePicker
               aria-label="From"
               value={form.from}
-              onChange={(e) => setForm((f) => ({ ...f, from: e.target.value }))}
-              required
+              onChange={(day) => setForm((f) => ({ ...f, from: day }))}
             />
           </Label>
           <Label className="grid gap-1.5">
             To
-            <Input
-              type="date"
+            <DatePicker
               aria-label="To"
               value={form.to}
-              onChange={(e) => setForm((f) => ({ ...f, to: e.target.value }))}
-              required
+              onChange={(day) => setForm((f) => ({ ...f, to: day }))}
             />
           </Label>
           <Label className="grid gap-1.5">

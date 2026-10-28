@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import type { Value } from '@shots/platejs-editor/platejs'
 import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { importedBody, importedPosts, splitThread } from '@/lib/write/import-text'
 import type { DraftChannel } from '@/lib/write/document'
@@ -71,16 +73,15 @@ export function PasteThreadDialog({
           rows={8}
           maxLength={100_000}
         />
-        <label className="flex gap-2 text-sm">
-          <input
-            type="checkbox"
+        <Label className="flex gap-2 text-sm">
+          <Checkbox
             checked={automatic}
-            onChange={(event) => setAutomatic(event.target.checked)}
+            onCheckedChange={(checked) => setAutomatic(checked === true)}
           />
           Split by post length
-        </label>
+        </Label>
         {automatic && (
-          <label className="text-sm">
+          <Label className="block text-sm">
             Maximum post length
             <Input
               type="number"
@@ -89,7 +90,7 @@ export function PasteThreadDialog({
               value={length}
               onChange={(event) => setLength(Number(event.target.value))}
             />
-          </label>
+          </Label>
         )}
         {preview.error && <p role="alert">{preview.error}</p>}
         <ol className="grid max-h-60 gap-3 overflow-auto text-sm">

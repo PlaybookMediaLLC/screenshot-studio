@@ -44,7 +44,9 @@ ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST \
     NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 
 # The editor bundle exceeds Node's default 2 GiB heap on some build hosts.
-RUN NODE_OPTIONS=--max-old-space-size=4096 npm run build
+# Compiler caches stay on the builder instead of inflating exported image layers.
+RUN --mount=type=cache,target=/app/clients/apps/web/.next/cache \
+    NODE_OPTIONS=--max-old-space-size=4096 npm run build
 
 # Public images are versioned in R2; fonts and other runtime files stay bundled.
 # Keep local files only for self-contained builds without R2.

@@ -84,10 +84,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: server
-          load: true
-          tags: screenshot-studio-backend:${{ github.sha }}
           cache-from: type=gha,scope=social-backend
-          cache-to: type=gha,mode=max,scope=social-backend
+          # PR caches cannot seed other PRs; branch pushes refresh the shared cache.
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=social-backend' || '' }}
 
   quality:
     name: Client quality
@@ -160,7 +159,6 @@ jobs:
           tags: screenshot-studio:${{ github.sha }}
           load: true
           cache-from: type=gha,scope=screenshot-studio-web
-          cache-to: type=gha,mode=max,scope=screenshot-studio-web
       - name: Smoke test production container
         run: |
           # No database: the web reaches all data through the Go backend.
@@ -186,6 +184,15 @@ jobs:
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
+      # Browser shards can consume the smoke-tested image while this cache uploads.
+      # PRs restore the shared branch cache without exporting a PR-only copy.
+      - name: Update the shared web build cache
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: clients/apps/web/Dockerfile
+          cache-to: type=gha,mode=max,scope=screenshot-studio-web
 
   validate:
     name: CI validation

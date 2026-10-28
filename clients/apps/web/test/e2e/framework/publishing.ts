@@ -42,6 +42,9 @@ export async function apiRequest(
     data: input.body === undefined ? undefined : JSON.stringify(input.body),
     headers: {
       ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
+      // A fresh connection per call: the dev server closes idle keep-alive sockets
+      // after 5s, and a request written as it does fails with "socket hang up".
+      connection: 'close',
       origin: new URL(getE2EUrl('/')).origin,
       ...input.headers,
     },

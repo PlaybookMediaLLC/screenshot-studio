@@ -233,9 +233,11 @@ test('interrupted saves recover and a real second writer cannot be overwritten',
     url.pathname.endsWith('/creativeSet.updateDocument') && url.searchParams.has('batch')
   let release = () => {}
   const held = new Promise<void>((resolve) => (release = resolve))
-  const hold = async (route: Route) => {
-    await held
-    await route.continue()
+  const continued: Promise<void>[] = []
+  const hold = (route: Route) => {
+    const sent = held.then(() => route.continue())
+    continued.push(sent)
+    return sent
   }
   await page.route(pageSave, hold)
   const saving = page.waitForRequest((request) => pageSave(new URL(request.url())))
@@ -252,8 +254,9 @@ test('interrupted saves recover and a real second writer cannot be overwritten',
     ).status
   ).toBe(200)
   release()
-  // Waits for the held save to continue, so the route is not handled twice.
-  await page.unrouteAll({ behavior: 'wait' })
+  // Unrouting first would hand the held saves on itself, and their continue() would throw.
+  await Promise.all(continued)
+  await page.unroute(pageSave, hold)
   await expect(
     page.getByText('This set changed elsewhere. Your local work is preserved.')
   ).toBeVisible()

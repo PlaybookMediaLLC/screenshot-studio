@@ -156,8 +156,6 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       await page.getByRole('button', { name: 'Next month', exact: true }).click()
       await page.getByRole('button', { name: 'Today', exact: true }).click()
       await expect(page.locator('time[aria-current="date"]')).toHaveCount(1)
-      // Back to the planned day, which can fall in next month's view near a month's end.
-      await page.goto(`/write/plan?day=${day}`)
     })
     await test.step('P27 P28 P29 picker search and distinct source tabs cancel without a commit', async () => {
       await page.getByRole('button', { name: `Create draft ${day}`, exact: true }).click()
@@ -198,9 +196,7 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       .getByRole('textbox', { name: 'Post content' })
       .fill('A planned post from the authenticated calendar')
     await page.getByRole('checkbox', { name: 'Open in editor' }).uncheck()
-    // A New York morning is the same day in Tokyo (P22, P23), so the card keeps its day in the
-    // month view whatever the date.
-    await page.getByRole('textbox', { name: 'Date and time', exact: true }).fill(`${day}T08:07`)
+    await page.getByRole('textbox', { name: 'Date and time', exact: true }).fill(`${day}T12:07`)
     await page.getByRole('button', { name: 'Plan draft', exact: true }).click()
     const card = page
       .getByTestId('calendar-planned')
@@ -314,12 +310,7 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       await page.getByText('Filters', { exact: true }).click()
     })
     await test.step('P34 browser drag swap and Undo persist both placements', async () => {
-      // The drop target must share the month view with the dragged card; the
-      // day before is still in the future, since plannedFor is three days out.
-      const planned = new Date(plannedFor)
-      const sameMonth =
-        new Date(planned.getTime() + 86400000).getUTCMonth() === planned.getUTCMonth()
-      const targetTime = new Date(planned.getTime() + (sameMonth ? 1 : -1) * 86400000).toISOString()
+      const targetTime = new Date(Date.parse(plannedFor) + 86400000).toISOString()
       const other = await apiRequest(page, '/api/v1/calendar/mutations', {
         method: 'POST',
         body: {

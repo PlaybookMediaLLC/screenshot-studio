@@ -4,6 +4,7 @@ import * as React from 'react'
 import { GroupIcon, InfoIcon, PollIcon, PublicIcon } from '@/components/platform-shell/icons'
 import { useEditorRef } from '@shots/platejs-editor/platejs/react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -401,14 +402,13 @@ export function PollEditor({
         <p className="text-xs text-muted-foreground">The post’s text is the question.</p>
       )}
       {channel === 'mastodon' ? (
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
+        <Label className="flex items-center gap-2">
+          <Checkbox
             checked={poll.multiple ?? false}
-            onChange={(event) => onChange({ ...poll, multiple: event.target.checked })}
+            onCheckedChange={(checked) => onChange({ ...poll, multiple: checked === true })}
           />
           Allow multiple choices
-        </label>
+        </Label>
       ) : null}
       {poll.options.map((option, index) => (
         <Label className="grid gap-1 text-xs text-muted-foreground" key={index}>

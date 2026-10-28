@@ -3,6 +3,7 @@
 import { useRef } from 'react'
 import type { FocusRegion } from '@/lib/creative-sets/document'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 /** Drag on the actual evidence, with equivalent keyboard-accessible numeric controls. */
 export function FocusPicker({
@@ -71,7 +72,7 @@ export function FocusPicker({
       </div>
       <div className="grid grid-cols-4 gap-2">
         {(['x', 'y', 'width', 'height'] as const).map((field) => (
-          <label key={field} className="text-xs capitalize">
+          <Label key={field} className="block text-xs capitalize">
             {field} %
             <Input
               aria-label={`Focus ${field} percent`}
@@ -95,7 +96,7 @@ export function FocusPicker({
                 onChange(next)
               }}
             />
-          </label>
+          </Label>
         ))}
       </div>
     </div>

@@ -4,6 +4,9 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
 import {
   Dialog,
   DialogContent,
@@ -164,19 +167,22 @@ export function MediaFrame({
             Beta: the original remains in your library. A new image is saved for this attachment.
           </DialogDescription>
         </DialogHeader>
-        <label>
+        <Label>
           Frame color{' '}
-          <input
+          <Input
             aria-label="Frame color"
             type="color"
             value={settings.color}
             onChange={(event) => setSettings({ ...settings, color: event.target.value })}
+            className="w-12 p-1"
           />
-        </label>
+        </Label>
         {palette.length ? (
           <div className="flex gap-2" aria-label="Brand colors">
             {palette.map((color) => (
-              <button
+              <Button
+                variant="custom"
+                size={null}
                 key={color}
                 type="button"
                 aria-label={`Use brand color ${color}`}
@@ -187,28 +193,26 @@ export function MediaFrame({
             ))}
           </div>
         ) : null}
-        <label>
+        <Label>
           Padding{' '}
-          <input
+          <Slider
             aria-label="Frame padding"
-            type="range"
-            min="0"
-            max="100"
-            value={settings.padding}
-            onChange={(event) => setSettings({ ...settings, padding: Number(event.target.value) })}
+            min={0}
+            max={100}
+            value={[settings.padding]}
+            onValueChange={([padding]) => setSettings({ ...settings, padding })}
           />
-        </label>
-        <label>
+        </Label>
+        <Label>
           Corner radius{' '}
-          <input
+          <Slider
             aria-label="Corner radius"
-            type="range"
-            min="0"
-            max="100"
-            value={settings.radius}
-            onChange={(event) => setSettings({ ...settings, radius: Number(event.target.value) })}
+            min={0}
+            max={100}
+            value={[settings.radius]}
+            onValueChange={([radius]) => setSettings({ ...settings, radius })}
           />
-        </label>
+        </Label>
         {result ? (
           <img
             alt="Framed image preview"

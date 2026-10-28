@@ -4,10 +4,10 @@ import { useTranslations } from 'next-intl'
 import { AddIcon, SearchIcon } from './icons'
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { usePathname, useRouter } from 'next/navigation'
-import { createWritingDraft } from '@/components/write/pending-draft'
-import { DraftRequestError } from '@/lib/content-drafts/client'
-import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
+import { usePathname } from 'next/navigation'
+import { useNewPost } from '@/components/write/pending-draft'
+import { loadWork, recentWorkQuery } from '@/components/platform-hub/work'
+import { useTRPCClient } from '@/lib/trpc/react'
 import { cn } from '@/lib/utils'
 import { useKeys } from '@/components/write/shortcuts'
 import { Button } from '@/components/ui/button'
@@ -22,25 +22,30 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { roleLabels } from '@/lib/auth/role-descriptions'
+import { hasPermission, normalizeOrganizationRole, type Permission } from '@/lib/auth/permissions'
 import { Input } from '@/components/ui/input'
 import {
   matchesDestination,
   PLATFORM_DESTINATIONS,
   platformArea,
-  platformHref,
   withPublishAccess,
 } from '@/lib/platform/navigation'
 import { SidebarLink } from './SidebarLink'
 
-const NEW_ITEMS = [
-  { href: '/', label: 'Screenshot', paid: true },
-  { href: '/canvas/new', label: 'Canvas', paid: true },
+// `permission` is what the destination checks before it creates anything.
+// Store screenshots stay on this browser, so any role may make them.
+const NEW_ITEMS: { href: string; label: string; paid: boolean; permission?: Permission }[] = [
+  { href: '/?start=new', label: 'Screenshot', paid: true, permission: 'artifact:edit' },
+  { href: '/canvas/new', label: 'Canvas', paid: true, permission: 'artifact:edit' },
   { href: '/?editor=app-store', label: 'Store screenshots', paid: true },
-  { href: '/write', label: 'Post', paid: false },
-  { href: '/campaigns/new', label: 'Campaign', paid: true },
-  { href: '/workflows/new', label: 'Workflow', paid: true },
+  { href: '/write', label: 'Post', paid: false, permission: 'artifact:edit' },
+  { href: '/campaigns/new', label: 'Campaign', paid: true, permission: 'release:create' },
+  { href: '/workflows/new', label: 'Workflow', paid: true, permission: 'workspace:update' },
 ]
 
 /** Search beside the logo: an icon that opens the command search (⌘K). */
@@ -65,38 +70,29 @@ export function SearchButton() {
 export function ShellActions({
   collapsed,
   campaignsEnabled,
-  canWriteDrafts,
   draftsEnabled,
   onNavigate,
   paidPlan = true,
+  role,
 }: {
   collapsed: boolean
   campaignsEnabled: boolean
-  /** Without it, Post opens the drafts the member may read instead of making one. */
-  canWriteDrafts: boolean
   draftsEnabled: boolean
   onNavigate?: () => void
   /** Without it, paid items say Pro and open the plan page instead of bouncing. */
   paidPlan?: boolean
+  /** Items the role may not create are shown unavailable, with who can grant access. */
+  role: string
 }) {
   const t = useTranslations('platformNavigation')
-  const router = useRouter()
-  const pathname = usePathname()
-  // New → Post makes the draft here, with the quick-compose box up meanwhile,
-  // instead of opening Publish to click New draft again. It lands in the
-  // workspace's default brand; the draft page shows that brand's library.
-  const newPost = () => {
-    onNavigate?.()
-    // Every open editor saves or asks first; a cancelled leave stays put
-    // instead of stranding the quick-compose box on the guard's error.
-    void prepareWorkspaceSwitch().then(
-      () =>
-        createWritingDraft({}, (id) =>
-          router.push(platformHref(pathname, `/write/${encodeURIComponent(id)}`))
-        ),
-      () => {}
-    )
-  }
+  const newPost = useNewPost(onNavigate)
+  const items = NEW_ITEMS.filter(
+    (item) =>
+      (campaignsEnabled || item.label !== 'Campaign') && (draftsEnabled || item.label !== 'Post')
+  )
+  const allowed = (item: (typeof NEW_ITEMS)[number]) =>
+    !item.permission || hasPermission(role, item.permission)
+  const unavailable = items.filter((item) => !allowed(item))
   return (
     <div className="grid gap-1">
       <DropdownMenu>
@@ -121,12 +117,12 @@ export function ShellActions({
           className="platform-overlay min-w-52"
           collisionPadding={12}
         >
-          {NEW_ITEMS.filter(
-            (item) =>
-              (campaignsEnabled || item.label !== 'Campaign') &&
-              (draftsEnabled || item.label !== 'Post')
-          ).map((item) =>
-            item.label === 'Post' && canWriteDrafts ? (
+          {items.map((item) =>
+            !allowed(item) ? (
+              <DropdownMenuItem disabled key={item.href}>
+                {item.label}
+              </DropdownMenuItem>
+            ) : item.label === 'Post' ? (
               <DropdownMenuItem key={item.href} onSelect={newPost}>
                 {item.label}
               </DropdownMenuItem>
@@ -151,6 +147,16 @@ export function ShellActions({
               </DropdownMenuItem>
             )
           )}
+          {unavailable.length ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="max-w-60 text-xs font-normal text-muted-foreground">
+                Not available to your {roleLabels[normalizeOrganizationRole(role)]} role:{' '}
+                {unavailable.map((item) => item.label).join(', ')}. Ask a workspace owner or admin
+                for access.
+              </DropdownMenuLabel>
+            </>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -161,12 +167,19 @@ export function ShellActions({
 export function ShellSearch({
   campaignsEnabled,
   draftsEnabled,
+  paidPlan,
+  workspaceId,
 }: {
   campaignsEnabled: boolean
   draftsEnabled: boolean
+  /** Screenshots and canvases are a paid feature; without it only posts are searched. */
+  paidPlan: boolean
+  /** The workspace this page shows, so its recent work is shared with Home's. */
+  workspaceId?: string
 }) {
   const t = useTranslations('platformNavigation')
   const pathname = usePathname()
+  const client = useTRPCClient()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const launcher = useRef<HTMLElement | null>(null)
@@ -207,36 +220,34 @@ export function ShellSearch({
       (campaignsEnabled || item.key !== 'campaigns') &&
       matchesDestination(item.key, t(item.key), query)
   ).map((item) => withPublishAccess(item, draftsEnabled))
-  // Drafts are found by their text too, a moment after typing stops.
+  const searchesWork = draftsEnabled || paidPlan
+  // Work is found by its name or words too, a moment after typing stops.
   const [term, setTerm] = useState('')
   useEffect(() => {
     const timer = setTimeout(() => setTerm(query.trim()), 200)
     return () => clearTimeout(timer)
   }, [query])
-  const drafts = useQuery({
-    enabled: open && draftsEnabled && term.length >= 2,
-    queryKey: ['shell-search', 'drafts', term],
-    queryFn: async ({ signal }) => {
-      const response = await fetch(
-        `/api/v1/content-drafts?${new URLSearchParams({ limit: '6', search: term })}`,
-        { signal }
-      )
-      // A failure stays a failure: the dialog says search is unavailable, not that nothing matched.
-      if (!response.ok)
-        throw new DraftRequestError('Drafts could not be searched.', response.status)
-      type Found = { id: string; plainText: string; title: string }
-      const page = (await response.json()) as { items: Found[]; pinned: Found[] }
-      // An untitled draft is named by its opening words, so results can be told apart.
-      return [...page.pinned, ...page.items].slice(0, 6).map((draft) => ({
-        id: draft.id,
-        label:
-          draft.title && draft.title !== 'Untitled draft'
-            ? draft.title
-            : draft.plainText.trim().slice(0, 80) || 'Untitled draft',
-      }))
-    },
+  const searching = term.length >= 2
+  // An empty box offers the work the person was last on, as Home does.
+  const recent = useQuery({
+    ...recentWorkQuery(client, workspaceId ?? '', draftsEnabled, paidPlan),
+    enabled: open && searchesWork && Boolean(workspaceId) && !query.trim(),
   })
-  const draftResults = term.length >= 2 ? (drafts.data ?? []) : []
+  const found = useQuery({
+    enabled: open && searchesWork && searching,
+    queryKey: ['shell-search', workspaceId, term, draftsEnabled, paidPlan],
+    queryFn: ({ signal }) =>
+      loadWork(client, { draftsEnabled, limit: 4, paidPlan, search: term, signal }),
+  })
+  const work = !query.trim() ? recent : searching ? found : null
+  const workItems = (work?.data?.items ?? []).slice(0, 6)
+  // A failure stays a failure: the dialog says what could not be searched, not that nothing matched.
+  const failed = Boolean(work && (work.isError || work.data?.partial))
+  const kinds = new Intl.ListFormat('en', { type: 'conjunction' }).format([
+    ...(draftsEnabled ? ['posts'] : []),
+    ...(paidPlan ? ['screenshots', 'canvases'] : []),
+  ])
+  const link = 'min-h-11 justify-between rounded-lg font-normal'
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
@@ -250,14 +261,14 @@ export function ShellSearch({
         <DialogHeader className="text-start">
           <DialogTitle>{t('searchCommands')}</DialogTitle>
           <DialogDescription>
-            This workspace · Destinations{draftsEnabled ? ' and drafts' : ''}
+            This workspace · Places{kinds ? `, plus ${kinds} by name or words` : ''}
           </DialogDescription>
         </DialogHeader>
         <Input
           aria-label="Search destinations"
           placeholder={
-            draftsEnabled
-              ? 'Go to a place or find a draft… try billing or a draft’s words'
+            searchesWork
+              ? 'Go to a place or find your work… try billing or a post’s words'
               : 'Go to… try screenshot or billing'
           }
           type="search"
@@ -265,49 +276,56 @@ export function ShellSearch({
           onChange={(event) => setQuery(event.target.value)}
         />
         <nav aria-label="Search results" className="grid max-h-[50dvh] gap-1 overflow-y-auto">
+          {!query.trim() && workItems.length ? (
+            <p className="px-3 pt-1 text-xs text-muted-foreground">Recent work</p>
+          ) : null}
+          {!query.trim()
+            ? workItems.map((item) => (
+                <Button asChild className={link} key={`${item.type}-${item.id}`} variant="ghost">
+                  <SidebarLink href={item.href} onClick={() => setOpen(false)}>
+                    <span className="min-w-0 truncate">{item.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{item.type}</span>
+                  </SidebarLink>
+                </Button>
+              ))
+            : null}
+          {!query.trim() && workItems.length ? (
+            <p className="px-3 pt-3 text-xs text-muted-foreground">Places</p>
+          ) : null}
           {items.map((item) => (
-            <Button
-              asChild
-              className="min-h-11 justify-between rounded-lg font-normal"
-              key={item.key}
-              variant="ghost"
-            >
+            <Button asChild className={link} key={item.key} variant="ghost">
               <SidebarLink href={item.href} onClick={() => setOpen(false)}>
                 {t(item.key)}
                 <span className="shrink-0 text-xs text-muted-foreground">Destination</span>
               </SidebarLink>
             </Button>
           ))}
-          {draftResults.map((draft) => (
-            <Button
-              asChild
-              className="min-h-11 justify-between rounded-lg font-normal"
-              key={draft.id}
-              variant="ghost"
-            >
-              <SidebarLink
-                href={`/write/${encodeURIComponent(draft.id)}`}
-                onClick={() => setOpen(false)}
-              >
-                <span className="min-w-0 truncate">{draft.label}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">Draft</span>
-              </SidebarLink>
-            </Button>
-          ))}
-          {draftsEnabled && term.length >= 2 && drafts.isError ? (
+          {query.trim()
+            ? workItems.map((item) => (
+                <Button asChild className={link} key={`${item.type}-${item.id}`} variant="ghost">
+                  <SidebarLink href={item.href} onClick={() => setOpen(false)}>
+                    <span className="min-w-0 truncate">{item.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{item.type}</span>
+                  </SidebarLink>
+                </Button>
+              ))
+            : null}
+          {failed ? (
             <p role="status" className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
-              Drafts could not be searched right now.
-              <Button onClick={() => void drafts.refetch()} size="sm" variant="outline">
+              {searching
+                ? 'Some work could not be searched right now.'
+                : 'Some recent work could not load.'}
+              <Button onClick={() => void work?.refetch()} size="sm" variant="outline">
                 Try again
               </Button>
             </p>
           ) : null}
-          {!items.length && !draftResults.length && !drafts.isError ? (
+          {query.trim() && !items.length && !workItems.length && !failed ? (
             <p role="status" className="p-3 text-sm text-muted-foreground">
-              {draftsEnabled && term.length >= 2 && drafts.isFetching
-                ? 'Searching drafts…'
-                : draftsEnabled
-                  ? 'Nothing matches. Search finds places in Shots and drafts by their words.'
+              {searchesWork && (!searching || found.isFetching)
+                ? 'Searching…'
+                : searchesWork
+                  ? `Nothing matches. Search finds places in Shots and ${kinds} by name or words.`
                   : 'No destinations match. Search finds places in Shots, not the work inside them.'}
             </p>
           ) : null}

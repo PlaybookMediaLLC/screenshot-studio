@@ -1,3 +1,4 @@
+import { format } from 'date-fns'
 import { apiRequest, db, draftEditor, expect, test } from './framework'
 
 test(
@@ -63,9 +64,17 @@ test(
     // The same backend operation is accessible without dragging.
     await card('Calendar first').click()
     const dialog = page.getByRole('dialog')
-    await dialog
-      .getByLabel('Date and time', { exact: true })
-      .fill(`${later.toISOString().slice(0, 10)}T13:15`)
+    const [year, month, date] = later.toISOString().slice(0, 10).split('-').map(Number)
+    await dialog.getByLabel('Day', { exact: true }).click()
+    // react-day-picker names each day button with its full date.
+    const nextMonth = page.getByRole('button', { name: 'Go to the Next Month' })
+    await expect(nextMonth).toBeVisible()
+    const dayButton = page.getByRole('button', {
+      name: format(new Date(year, month - 1, date), 'PPPP'),
+    })
+    if (!(await dayButton.isVisible())) await nextMonth.click()
+    await dayButton.click()
+    await dialog.getByLabel('Time', { exact: true }).fill('13:15')
     await dialog.getByRole('button', { name: 'Move', exact: true }).click()
     await expect(day(later)).toContainText('Calendar first')
     await app.reload()

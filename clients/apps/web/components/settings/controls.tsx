@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import type { SaveResult } from '@/components/settings/PreferencesProvider'
+import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
 
@@ -90,9 +91,9 @@ export function ChoiceGroup<Value extends string>({
         value={value ?? ''}
       >
         {choices.map((choice) => (
-          <label
+          <Label
             className={cn(
-              'flex cursor-pointer flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
+              'flex cursor-pointer flex-col items-stretch gap-0.5 rounded-xl border px-3 py-2.5 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring',
               value === choice.value
                 ? 'border-foreground/40 bg-foreground/[0.05] text-foreground'
                 : 'border-border text-foreground/80 hover:bg-foreground/[0.03]'
@@ -104,7 +105,7 @@ export function ChoiceGroup<Value extends string>({
               {choice.label}
             </span>
             {choice.description ? <span className="text-xs text-muted-foreground">{choice.description}</span> : null}
-          </label>
+          </Label>
         ))}
       </RadioGroup>
     </fieldset>

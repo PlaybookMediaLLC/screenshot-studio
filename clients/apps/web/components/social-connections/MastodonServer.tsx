@@ -5,6 +5,7 @@ import { mastodonInstanceSchema, socialInstanceServerSchema } from 'screenshot-s
 import type { z } from 'zod'
 import { useSocialSetScope } from '@/components/settings/social-sets/scope'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -70,7 +71,7 @@ export function MastodonServer({
   }, [server, valid, ready, request, onVerified])
   return (
     <div className="grid gap-3">
-      <label className="grid gap-1.5 text-sm">
+      <Label className="grid gap-1.5 text-sm">
         <span>Mastodon server</span>
         <Select
           disabled={disabled}
@@ -92,9 +93,9 @@ export function MastodonServer({
             <SelectItem value="custom">Custom server…</SelectItem>
           </SelectContent>
         </Select>
-      </label>
+      </Label>
       {custom ? (
-        <label className="grid gap-1.5 text-sm">
+        <Label className="grid gap-1.5 text-sm">
           <span>Custom server hostname</span>
           <Input
             disabled={disabled}
@@ -106,7 +107,7 @@ export function MastodonServer({
             onChange={(event) => onChange(event.target.value)}
             maxLength={2048}
           />
-        </label>
+        </Label>
       ) : null}
       <div
         aria-live="polite"

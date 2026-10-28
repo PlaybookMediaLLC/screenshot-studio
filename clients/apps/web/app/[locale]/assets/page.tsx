@@ -7,6 +7,8 @@ import { AreaNavigation, LIBRARY_LINKS } from '@/components/platform-hub/AreaNav
 import { Page } from '@/components/platform-ui'
 import { WorkspaceAssets } from '@/components/workspace/WorkspaceAssets'
 import { getLocalizedPath, getPageAccess, upgradePath } from '@/lib/auth/page-access'
+import { hasPermission } from '@/lib/auth/permissions'
+import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 export const metadata: Metadata = { title: 'Assets' }
 
@@ -35,7 +37,9 @@ export default async function AssetsPage({ params }: AssetsPageProps) {
         title="Assets"
       >
         <AreaNavigation label="Library" items={LIBRARY_LINKS} />
-        <WorkspaceAssets />
+        <WorkspaceAssets
+          canStartPost={hasPermission(access.role, 'artifact:edit') && contentDraftsEnabled()}
+        />
       </Page>
     </PlatformShell>
   )

@@ -10,6 +10,8 @@ import {
 import * as React from 'react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { LocalTime } from '@/components/drafts/local-time'
 import { DraftRequestError, draftsApi, type DraftWire } from '@/lib/content-drafts/client'
 import { readDiscussions } from '@/lib/content-drafts/discussions'
@@ -204,14 +206,14 @@ export function MemberComments({
           )
         }}
       >
-        <label className="text-xs text-foreground" htmlFor="member-comment-text">
+        <Label className="text-xs text-foreground" htmlFor="member-comment-text">
           {composer.commentId
             ? 'Edit your comment'
             : composer.threadId
               ? 'Reply to discussion'
               : 'Comment on draft'}
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           id="member-comment-text"
           ref={formRef}
           className="min-h-24 rounded-md border border-border bg-background p-2"
@@ -222,7 +224,7 @@ export function MemberComments({
           onChange={(event) => setComposer({ ...composer, text: event.target.value })}
         />
         {members.length > 0 ? (
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             Mention teammates
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -259,7 +261,7 @@ export function MemberComments({
                   ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          </label>
+          </Label>
         ) : null}
         <div className="flex gap-2">
           <Button size="sm" type="submit" disabled={busy || needsRefresh || !composer.text.trim()}>

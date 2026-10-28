@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useTRPCClient } from '@/lib/trpc/react'
 import type { TRPCClient } from '@trpc/client'
@@ -266,7 +267,9 @@ export function NewCanvas({
           {choices
             .filter((choice) => !choice.hidden)
             .map((choice) => (
-              <button
+              <Button
+                variant="custom"
+                size={null}
                 key={choice.id}
                 type="button"
                 aria-pressed={start === choice.id}
@@ -274,11 +277,11 @@ export function NewCanvas({
                   setStart(choice.id)
                   setRecipe(choice.id === 'launch' ? 'product-launch' : null)
                 }}
-                className={`rounded-xl border p-4 text-left transition-colors hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-ring ${start === choice.id ? 'border-foreground/30 bg-foreground/[0.04]' : ''}`}
+                className={`rounded-xl border p-4 text-left transition-colors hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring ${start === choice.id ? 'border-foreground/30 bg-foreground/[0.04]' : ''}`}
               >
                 <span className="block font-medium">{choice.title}</span>
                 <span className="mt-1 block text-xs text-muted-foreground">{choice.detail}</span>
-              </button>
+              </Button>
             ))}
         </nav>
         <section aria-label="Starting point" className="min-h-64 rounded-xl border p-5">
@@ -397,7 +400,7 @@ function ScreenshotStart({
   const [error, setError] = useState<string | null>(null)
   return (
     <div className="grid gap-3">
-      <label className="grid gap-2 text-sm">
+      <Label className="grid gap-2 text-sm">
         Choose up to six screenshots
         <Input
           type="file"
@@ -416,7 +419,7 @@ function ScreenshotStart({
             }
           }}
         />
-      </label>
+      </Label>
       <p className="text-xs text-muted-foreground">
         Images upload to this workspace&apos;s assets when the canvas is created.
       </p>
@@ -449,12 +452,14 @@ export function RecipeGallery({ onPick }: { onPick: (recipe: CanvasRecipe) => vo
             {canvasRecipeSchema.options
               .filter((recipe) => CANVAS_RECIPES[recipe].outcome === outcome)
               .map((recipe) => (
-                <button
+                <Button
+                  variant="custom"
+                  size={null}
                   key={recipe}
                   type="button"
                   aria-label={CANVAS_RECIPES[recipe].name}
                   onClick={() => onPick(recipe)}
-                  className="flex min-w-0 flex-col rounded-lg border p-3 text-left hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-ring"
+                  className="flex min-w-0 flex-col rounded-lg border p-3 text-left hover:bg-foreground/[0.03] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring"
                 >
                   <RecipePreview recipe={recipe} />
                   <span className="block text-sm font-medium">{CANVAS_RECIPES[recipe].name}</span>
@@ -464,7 +469,7 @@ export function RecipeGallery({ onPick }: { onPick: (recipe: CanvasRecipe) => vo
                   <span className="mt-auto block pt-2 text-[11px] text-muted-foreground">
                     {CANVAS_RECIPES[recipe].artboards}
                   </span>
-                </button>
+                </Button>
               ))}
           </div>
         </section>
@@ -534,7 +539,7 @@ export function RecipeForm({
         <h2 className="font-medium">{info.name}</h2>
         <p className="text-xs text-muted-foreground">{info.description}</p>
       </div>
-      <label className="grid gap-1 text-sm">
+      <Label className="grid gap-1 text-sm">
         Headline
         <Input
           value={headline}
@@ -542,8 +547,8 @@ export function RecipeForm({
           placeholder="What did you ship?"
           onChange={(event) => setHeadline(event.target.value)}
         />
-      </label>
-      <label className="grid gap-1 text-sm">
+      </Label>
+      <Label className="grid gap-1 text-sm">
         Supporting line
         <Input
           value={supporting}
@@ -551,15 +556,15 @@ export function RecipeForm({
           placeholder="Why it matters to your customer"
           onChange={(event) => setSupporting(event.target.value)}
         />
-      </label>
+      </Label>
       {recipe === 'walkthrough' ? (
-        <label className="grid gap-1 text-sm">
+        <Label className="grid gap-1 text-sm">
           Steps, one per line
           <Textarea value={steps} rows={4} onChange={(event) => setSteps(event.target.value)} />
-        </label>
+        </Label>
       ) : null}
       {recipe === 'technical-explainer' ? (
-        <label className="grid gap-1 text-sm">
+        <Label className="grid gap-1 text-sm">
           Code
           <Textarea
             value={code}
@@ -568,10 +573,10 @@ export function RecipeForm({
             maxLength={4000}
             onChange={(event) => setCode(event.target.value)}
           />
-        </label>
+        </Label>
       ) : null}
       {info.screenshots > 0 || recipe === 'walkthrough' || recipe === 'release-announcement' ? (
-        <label className="grid gap-1 text-sm">
+        <Label className="grid gap-1 text-sm">
           {recipe === 'before-after' ? 'Before and after screenshots' : 'Screenshots'}
           <Input
             type="file"
@@ -594,7 +599,7 @@ export function RecipeForm({
               ? shots.map((shot) => shot.name).join(', ')
               : 'Optional: placeholders keep the layout until you add one.'}
           </span>
-        </label>
+        </Label>
       ) : null}
       {error ? (
         <p role="alert" className="text-sm text-destructive">

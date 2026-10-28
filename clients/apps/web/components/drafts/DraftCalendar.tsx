@@ -13,7 +13,10 @@ import { cn } from '@/lib/utils'
 import { ChannelIcon } from './channel-meta'
 import { TargetDialog } from '@/components/write/library'
 import { CALENDAR_DRAFT_DRAG } from '@/lib/write/calendar'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
   Dialog,
   DialogContent,
@@ -268,16 +271,15 @@ export function DraftCalendar({
                 } else void move(chosen.id, chosen.day, chosen.time)
               }}
             >
-              <label>
+              <Label className="grid gap-1">
                 Day
-                <Input
-                  type="date"
-                  required
+                <DatePicker
+                  aria-label="Day"
                   value={moving.day}
-                  onChange={(event) => setMoving({ ...moving, day: event.target.value })}
+                  onChange={(day) => setMoving({ ...moving, day })}
                 />
-              </label>
-              <label>
+              </Label>
+              <Label className="grid gap-1">
                 Time
                 <Input
                   type="time"
@@ -285,15 +287,14 @@ export function DraftCalendar({
                   value={moving.time}
                   onChange={(event) => setMoving({ ...moving, time: event.target.value })}
                 />
-              </label>
-              <label className="grid gap-1">
+              </Label>
+              <Label className="grid gap-1">
                 Swap with
-                <select
-                  className="rounded border bg-background p-2"
+                <NativeSelect
                   value={moving.swapId}
                   onChange={(event) => setMoving({ ...moving, swapId: event.target.value })}
                 >
-                  <option value="">Use the date and time above</option>
+                  <NativeSelectOption value="">Use the date and time above</NativeSelectOption>
                   {posts
                     .filter(
                       (post) =>
@@ -304,15 +305,15 @@ export function DraftCalendar({
                           posts.find((item) => item.id === moving.id)?.channelConnectionId
                     )
                     .map((post) => (
-                      <option value={post.id} key={post.id}>
+                      <NativeSelectOption value={post.id} key={post.id}>
                         {post.caption.slice(0, 50)} ·{' '}
                         {new Date(post.slotAt ?? post.scheduledFor).toLocaleString(undefined, {
                           timeZone,
                         })}
-                      </option>
+                      </NativeSelectOption>
                     ))}
-                </select>
-              </label>
+                </NativeSelect>
+              </Label>
               <DialogFooter>
                 <Button disabled={busy} type="submit">
                   {moving.swapId ? 'Confirm swap' : 'Confirm move'}
@@ -358,69 +359,74 @@ export function DraftCalendar({
             {mode}
           </Link>
         ))}
-        <select
+        <NativeSelect
           aria-label="Filter by platform"
+          size="sm"
           value={platform}
           onChange={(event) => setFilter('platform', event.target.value)}
         >
-          <option value="all">All platforms</option>
+          <NativeSelectOption value="all">All platforms</NativeSelectOption>
           {[...new Set(posts.map((post) => post.platform))].map((item) => (
-            <option key={item}>{item}</option>
+            <NativeSelectOption key={item}>{item}</NativeSelectOption>
           ))}
-        </select>
-        <select
+        </NativeSelect>
+        <NativeSelect
           aria-label="Filter by campaign"
+          size="sm"
           value={campaign}
           onChange={(event) => setFilter('campaign', event.target.value)}
         >
-          <option value="all">All campaigns and drafts</option>
+          <NativeSelectOption value="all">All campaigns and drafts</NativeSelectOption>
           {Array.from(
             new Set(posts.flatMap((post) => (post.campaignId ? [post.campaignId] : [])))
           ).map((id) => (
-            <option key={id} value={id}>
+            <NativeSelectOption key={id} value={id}>
               {posts.find((post) => post.campaignId === id)?.campaignTitle ?? 'Campaign'}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
-        <select
+        </NativeSelect>
+        <NativeSelect
           aria-label="Filter by status"
+          size="sm"
           value={status}
           onChange={(event) => setFilter('status', event.target.value)}
         >
-          <option value="all">All statuses</option>
+          <NativeSelectOption value="all">All statuses</NativeSelectOption>
           {['planned', 'SCHEDULED', 'PROCESSING', 'PUBLISHED', 'FAILED', 'UNKNOWN_DELIVERY'].map(
             (item) => (
-              <option key={item}>{item}</option>
+              <NativeSelectOption key={item}>{item}</NativeSelectOption>
             )
           )}
-        </select>
+        </NativeSelect>
         {workspaceScope ? (
-          <select
+          <NativeSelect
             aria-label="Calendar publishing brand"
+            size="sm"
             value={filteredSet}
             onChange={(event) => setFilter('calendarSet', event.target.value)}
           >
-            <option value="all">All publishing brands</option>
+            <NativeSelectOption value="all">All publishing brands</NativeSelectOption>
             {sets.map((set) => (
-              <option key={set.id} value={set.id}>
+              <NativeSelectOption key={set.id} value={set.id}>
                 {set.name}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
         ) : null}
         {tags.length ? (
-          <select
+          <NativeSelect
             aria-label="Calendar tag"
+            size="sm"
             value={tag}
             onChange={(event) => setFilter('calendarTag', event.target.value)}
           >
-            <option value="all">All tags</option>
+            <NativeSelectOption value="all">All tags</NativeSelectOption>
             {tags.map((item) => (
-              <option key={item.id} value={item.id}>
+              <NativeSelectOption key={item.id} value={item.id}>
                 {item.name}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
+          </NativeSelect>
         ) : null}
         <Link
           href={`/write/plan?${new URLSearchParams({ ...Object.fromEntries(params), scope: workspaceScope ? 'set' : 'workspace' })}`}

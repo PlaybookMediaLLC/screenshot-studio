@@ -3,6 +3,7 @@ import * as React from 'react'
 import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import type { Article } from '@/lib/write/document'
 import { toast } from 'sonner'
 
@@ -22,18 +23,18 @@ export function ArticleTools({
   const [busy, setBusy] = React.useState(false)
   return (
     <div className="grid gap-2 px-4 py-2">
-      <label className="grid gap-1 text-xs">
+      <Label className="grid gap-1 text-xs">
         Article title
         <Input
           value={article?.title ?? ''}
           maxLength={200}
           onChange={(event) => onChange({ ...article, title: event.target.value })}
         />
-      </label>
+      </Label>
       <div className="flex flex-wrap gap-2 items-center text-xs">
-        <label>
+        <Label className="block text-xs">
           Cover image
-          <input
+          <Input
             aria-label="Article cover image"
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -59,7 +60,7 @@ export function ArticleTools({
               }
             }}
           />
-        </label>
+        </Label>
         {article?.coverAssetId ? (
           <Button size="sm" variant="ghost" onClick={() => onChange({ title: article.title })}>
             Remove cover

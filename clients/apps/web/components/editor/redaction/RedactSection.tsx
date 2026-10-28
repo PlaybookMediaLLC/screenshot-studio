@@ -10,6 +10,7 @@ import {
 
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { useDeviceUIStore } from '@/lib/store/device-ui'
 import { useImageStore } from '@/lib/store'
 import { SectionWrapper } from '../sections/SectionWrapper'
@@ -41,7 +42,7 @@ export function RedactSection() {
           good. Runs on this device.
         </p>
         {screens.length > 0 ? (
-          <label className="grid gap-1 text-xs">
+          <Label className="grid gap-1 text-xs">
             Screenshot to redact
             <Select value={screen?.id ?? ''} onValueChange={setChosenId}>
               <SelectTrigger aria-label="Screenshot to redact" className="w-full">
@@ -58,7 +59,7 @@ export function RedactSection() {
             <span className="text-muted-foreground">
               Scan each screen before exporting the composition.
             </span>
-          </label>
+          </Label>
         ) : null}
         <div className="grid grid-cols-2 gap-1.5">
           <Button

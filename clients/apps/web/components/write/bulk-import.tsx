@@ -5,6 +5,9 @@ import { z } from 'zod'
 import { contentDraftCreateSchema } from '@/lib/api/contracts/content-drafts'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
   DialogContent,
@@ -248,9 +251,9 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
         ) : null}
         {rows.length > 0 &&
         rows.some((row) => row.asset && !row.assetId && !row.request && !row.file) ? (
-          <label className="grid gap-1.5 text-sm font-medium">
+          <Label className="grid gap-1.5 text-sm font-medium">
             Files to resume
-            <input
+            <Input
               aria-label="Resume batch files"
               className="text-sm text-muted-foreground file:me-3 file:rounded-full file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-foreground/[0.04]"
               type="file"
@@ -273,13 +276,13 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                 )
               }}
             />
-          </label>
+          </Label>
         ) : null}
         {!rows.length ? (
           <>
-            <label className="grid gap-1.5 text-sm font-medium">
+            <Label className="grid gap-1.5 text-sm font-medium">
               Images, videos, or design exports
-              <input
+              <Input
                 aria-label="Batch media files"
                 className="text-sm text-muted-foreground file:me-3 file:rounded-full file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-foreground/[0.04]"
                 type="file"
@@ -287,10 +290,10 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                 accept="image/*,video/mp4,video/webm,application/pdf"
                 onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
               />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
+            </Label>
+            <Label className="grid gap-1.5 text-sm font-medium">
               CSV file
-              <input
+              <Input
                 aria-label="Batch CSV file"
                 className="text-sm text-muted-foreground file:me-3 file:rounded-full file:border file:border-border file:bg-transparent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-foreground/[0.04]"
                 type="file"
@@ -301,18 +304,18 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                   else toast.error('CSV files must be smaller than 1 MB.')
                 }}
               />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
+            </Label>
+            <Label className="grid gap-1.5 text-sm font-medium">
               Or paste CSV
-              <textarea
+              <Textarea
                 aria-label="Batch CSV"
                 rows={6}
                 value={csv}
                 placeholder={'caption,asset,channels\n"Launch day",hero.png,x;linkedin'}
                 onChange={(event) => setCSV(event.target.value)}
-                className="w-full rounded-lg border border-input bg-background p-3 font-mono text-xs font-normal"
+                className="w-full rounded-lg border border-input bg-background p-3 font-mono text-xs font-normal field-sizing-fixed md:text-xs"
               />
-            </label>
+            </Label>
             <Button onClick={build}>Review import</Button>
           </>
         ) : (
@@ -326,7 +329,7 @@ export function BulkImportDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-xs text-muted-foreground">
                     Channels: {row.channels.join(', ') || 'every connected account'}
                   </p>
-                  <textarea
+                  <Textarea
                     aria-label={`Caption for import row ${index + 1}`}
                     disabled={busy || !!row.id || !!row.request}
                     value={row.caption}

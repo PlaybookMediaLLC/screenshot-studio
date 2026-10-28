@@ -1,5 +1,7 @@
 'use client'
 
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
+
 import { useState } from 'react'
 import { Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
@@ -109,6 +111,9 @@ function SourceRow({
       }
       layout="stacked"
     >
+      <ButtonLink href={`/workflows/sources/${source.id}/production`} variant="outline">
+        Production policy and event history
+      </ButtonLink>
       {!connected ? (
         <p className="text-sm text-amber-700 dark:text-amber-300">
           Restore access in GitHub, reconnect the installation above, and watch this repository

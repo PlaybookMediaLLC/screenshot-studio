@@ -32,6 +32,7 @@ export const ingestGitHubAppWebhookContract = defineContract({
   bodyFormat: 'text',
   method: 'POST',
   name: 'webhooks.github',
+  maxBodyBytes: 25 * 1024 * 1024,
   // How many records the delivery touched; zero means it shipped nothing.
   output: z.object({ handled: z.number().int().nonnegative() }),
   path: '/api/webhooks/github',

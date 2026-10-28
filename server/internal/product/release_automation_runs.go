@@ -92,7 +92,9 @@ func automationRun(row *ent.ReleaseAutomationRun) AutomationRun {
 	return AutomationRun{ID: row.ID, EventID: row.EventID, DefinitionID: row.DefinitionID, VersionID: row.VersionID, WorkflowID: row.WorkflowID, TemporalRunID: row.TemporalRunID, Status: row.Status, CancelRequested: row.CancelRequested, RecoveryAttempt: row.RecoveryAttempt, FailureCode: row.FailureCode, Reason: row.Reason, Outputs: row.Outputs, CreatedAt: row.CreatedAt, CompletedAt: row.CompletedAt}
 }
 func automationEvent(row *ent.ReleaseSourceEvent) AutomationEvent {
-	return AutomationEvent{ID: row.ID, SourceAppID: row.SourceAppID, DeliveryID: row.DeliveryID, Snapshot: row.Snapshot, VersionIDs: row.VersionIds, Mode: row.Mode, Disposition: row.Disposition, Reason: row.Reason, ReceivedAt: row.ReceivedAt, EnrichedAt: row.EnrichedAt, Enrichment: row.Enrichment}
+	snapshot := row.Snapshot
+	snapshot.URL = automation.SafeEvidenceURL(snapshot.URL)
+	return AutomationEvent{ID: row.ID, SourceAppID: row.SourceAppID, DeliveryID: row.DeliveryID, Snapshot: snapshot, VersionIDs: row.VersionIds, Mode: row.Mode, Disposition: row.Disposition, Reason: row.Reason, ReceivedAt: row.ReceivedAt, EnrichedAt: row.EnrichedAt, Enrichment: row.Enrichment}
 }
 
 // AutomationHistoryFilter narrows persisted run history. Every field is

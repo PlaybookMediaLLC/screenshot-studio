@@ -238,10 +238,10 @@ func (a *App) UserInstallations(ctx context.Context, userToken string) ([]Instal
 			installations = append(installations, installation.installation())
 		}
 		if len(out.Installations) < 100 {
-			break
+			return installations, nil
 		}
 	}
-	return installations, nil
+	return nil, ErrIncompleteEvidence
 }
 
 // Repositories lists the repositories an installation can read.
@@ -268,10 +268,10 @@ func (a *App) Repositories(ctx context.Context, installationID int64) ([]Reposit
 			repositories = append(repositories, Repository{ID: r.ID, FullName: r.FullName, DefaultBranch: r.DefaultBranch, Private: r.Private})
 		}
 		if len(out.Repositories) < 100 {
-			break
+			return repositories, nil
 		}
 	}
-	return repositories, nil
+	return nil, ErrIncompleteEvidence
 }
 
 // Repository reads one repository by its immutable ID.
@@ -457,6 +457,10 @@ func (a *App) request(ctx context.Context, method, target, authorization, accept
 	if response.StatusCode < 200 || response.StatusCode > 299 {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 1<<16))
 		return StatusError{Status: response.StatusCode, RateLimited: response.StatusCode == 429 || response.Header.Get("Retry-After") != "" || response.Header.Get("X-RateLimit-Remaining") == "0"}
+	}
+	if out == nil {
+		_, err := io.Copy(io.Discard, io.LimitReader(response.Body, 1<<16))
+		return err
 	}
 	return json.NewDecoder(io.LimitReader(response.Body, 32<<20)).Decode(out)
 }

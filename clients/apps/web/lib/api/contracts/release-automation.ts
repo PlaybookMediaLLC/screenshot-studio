@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { productionQualificationSchema } from 'screenshot-studio-backend-sdk'
 
 /** Independent GitHub event families; selecting one does not correlate events. */
 export const automationFamilySchema = z.enum([
@@ -182,6 +183,7 @@ export const automationEventSchema = z.object({
   url: z.string().max(2000),
   defaultBranch: z.string().max(200).optional(),
   fields: z.record(z.string(), automationValueSchema),
+  production: productionQualificationSchema.optional(),
 })
 
 /** Pure preview against exactly one supplied example or tenant-owned stored event. */

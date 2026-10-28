@@ -176,6 +176,13 @@ func TestContentBatches(t *testing.T) {
 		if err != nil || reloaded.Items[0].Media[0].Status != "local" || reloaded.Items[0].Media[0].FileName != "launch.mov" || reloaded.Items[1].Media[0].Status != "UPLOADED" {
 			t.Fatalf("reloaded: %+v %v", reloaded, err)
 		}
+		// A staged file keeps its size in the record, so the item can be saved back unchanged.
+		if body, _ := json.Marshal(reloaded.Items[0].Media[0]); !strings.Contains(string(body), `"bytes":2048`) {
+			t.Fatalf("staged media record = %s", body)
+		}
+		if reloaded.Items[0].Media[0].Status != "local" {
+			t.Fatalf("reloaded: %+v %v", reloaded, err)
+		}
 		// An unfinished upload cannot become a draft; once it completes it can.
 		if _, err := repo.CreateContentBatchItemDraft(ctx, owner, batch.ID, reloaded.Items[0].ID, ContentDraftInput{PlainText: "x"}); !errors.Is(err, publishing.ErrConflict) {
 			t.Fatalf("draft with an unfinished upload: %v", err)

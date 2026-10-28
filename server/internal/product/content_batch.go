@@ -245,7 +245,8 @@ func (c *Configuration) GetContentBatch(ctx context.Context, actor Actor, id str
 		entry := ContentBatchItemRecord{Caption: item.Caption, ChannelConnectionIDs: item.ChannelConnectionIds, DraftID: item.DraftID, ID: item.ID,
 			ImportKey: item.ImportKey, Position: item.Position, Posts: []ContentDraftPost{}, Timing: item.Timing, Media: make([]BatchMediaRecord, 0, len(item.Media))}
 		for _, media := range item.Media {
-			view := BatchMediaRecord{BatchMedia: media, Status: "local"}
+			// A file not uploaded yet keeps its own size, so the item can be saved back as it is.
+			view := BatchMediaRecord{BatchMedia: media, Bytes: media.Bytes, Status: "local"}
 			id := media.AssetID
 			if id == "" {
 				id = media.UploadAssetID

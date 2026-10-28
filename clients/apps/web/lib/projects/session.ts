@@ -109,6 +109,12 @@ let saveTimer: ReturnType<typeof setTimeout> | undefined
 let running: Promise<void> | null = null
 let rerun = false
 let unsubscribe: (() => void) | null = null
+/**
+ * This tab unlinked its canvas from any project. The recovery record is
+ * shared by every tab, so another tab's clean record then says nothing about
+ * what is on this canvas.
+ */
+let unlinkedHere = false
 
 // The draft owner record. The editor has one local draft, so one record.
 const OWNER_KEY = 'shots.project-draft'
@@ -228,6 +234,7 @@ function listen(): void {
 function adopt(trpcClient: Client, project: StoredProject, key: string | null): void {
   client = trpcClient
   savedKey = key
+  unlinkedHere = false
   useProjectSession.setState({
     error: null,
     name: project.name,
@@ -354,6 +361,7 @@ export function closeProject(): void {
   stopSession()
   writeOwner(null)
   setProjectParam(null)
+  unlinkedHere = true
 }
 
 /**
@@ -492,6 +500,7 @@ export function forgetProject(projectId: string): void {
 /** The editor opened without a project: its draft belongs to no project now. */
 export function releaseDraft(): void {
   writeOwner(null)
+  unlinkedHere = true
 }
 
 /** A design with nothing on it yet, as a new screenshot starts. */
@@ -530,12 +539,14 @@ export async function startNewDesign(
     if (useProjectSession.getState().status !== 'saved') return 'not-saved'
     closeProject()
   } else {
-    // A clean recovery record means the canvas is a saved project's copy.
+    // A clean recovery record means the canvas is a saved project's copy,
+    // unless this tab unlinked its canvas and the record is another tab's.
     const owner = readOwner()
-    const saved = owner !== null && !owner.dirty
+    const saved = !unlinkedHere && owner !== null && !owner.dirty
     if (!discardLocal && !saved && hasDesignContent(currentProjectDocument())) return 'local-design'
     writeOwner(null)
   }
   await applyStoredDocument(trpcClient, design, 'clear', { replace: true })
+  unlinkedHere = true
   return 'started'
 }

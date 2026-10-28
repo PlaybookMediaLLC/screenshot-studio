@@ -7,6 +7,7 @@ import { trackDraftRestore } from '@/lib/projects/draft-ready'
 import {
   closeProject,
   createProjectFromEditor,
+  releaseDraft,
   saveProjectNow,
   startNewDesign,
   useProjectSession,
@@ -209,4 +210,36 @@ test('a new screenshot does not start while the open project cannot save', async
   assert.equal(useImageStore.getState().textOverlays[0]?.text, 'Offline edit')
   closeProject()
   useImageStore.setState(useImageStore.getInitialState(), true)
+})
+
+test("another tab's saved project never stands in for this tab's unsaved canvas", async () => {
+  // Every tab of the browser shares one recovery record in localStorage.
+  const shared = new Map<string, string>()
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => shared.get(key) ?? null,
+      removeItem: (key: string) => void shared.delete(key),
+      setItem: (key: string, value: string) => void shared.set(key, value),
+    },
+  })
+  try {
+    trackDraftRestore(Promise.resolve())
+    const fake = fakeClient()
+    // This tab opened the editor without a project and made something.
+    releaseDraft()
+    editHeadline('Only in this tab')
+    // Another tab then saved a project, leaving a clean record behind.
+    shared.set(
+      'shots.project-draft',
+      JSON.stringify({ baseRevision: 1, dirty: false, projectId: 'cprojectsessiontest0000001' })
+    )
+    assert.equal(await startNewDesign(fake.client), 'local-design')
+    assert.equal(useImageStore.getState().textOverlays[0]?.text, 'Only in this tab')
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'localStorage', original)
+    else delete (globalThis as { localStorage?: unknown }).localStorage
+    useImageStore.setState(useImageStore.getInitialState(), true)
+  }
 })

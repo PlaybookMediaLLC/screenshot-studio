@@ -315,6 +315,58 @@ func TestContentDraftScheduleReliability(t *testing.T) {
 		}
 	})
 
+	t.Run("only a reviewer sending the draft back stops its approved, queued snapshot", func(t *testing.T) {
+		required := true
+		if _, err := repo.UpdateContentDraftSettings(ctx, owner, ContentDraftSettingsUpdate{RequireApproval: &required}); err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			off := false
+			_, _ = repo.UpdateContentDraftSettings(ctx, owner, ContentDraftSettingsUpdate{RequireApproval: &off})
+		}()
+		draft := newDraft("Approved snapshot")
+		if _, err := repo.ReviewContentDraft(ctx, owner, draft.ID, ContentDraftReviewInput{Action: "approve"}); err != nil {
+			t.Fatal(err)
+		}
+		result, err := repo.ScheduleContentDraft(ctx, owner, draft.ID, ScheduleContentDraftInput{ScheduledFor: time.Now().Add(time.Hour), Version: draft.Version, Targets: targets("Approved snapshot")})
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := result.Posts[0].ID
+		exec(`UPDATE scheduled_post SET "scheduledFor"=now()-interval '1 second' WHERE id=$1`, id)
+		eligibility := func(run string) string {
+			t.Helper()
+			if claimed, err := repo.auth.Claim(ctx, id, run, time.Now()); err != nil || !claimed {
+				t.Fatalf("claim %s: %v %v", run, claimed, err)
+			}
+			job, err := repo.auth.LoadPublishJob(ctx, id, run)
+			if err != nil {
+				t.Fatal(err)
+			}
+			exec(`UPDATE scheduled_post SET status='SCHEDULED',"triggerRunId"=NULL WHERE id=$1`, id)
+			return job.Ineligible
+		}
+		// An edit after scheduling, then a new review request, then approving the newer version.
+		title := "Approved snapshot, edited"
+		if _, err := repo.UpdateContentDraft(ctx, owner, draft.ID, ContentDraftUpdate{BaseVersion: result.Draft.Version, Title: &title}); err != nil {
+			t.Fatal(err)
+		}
+		for _, action := range []string{"request", "approve"} {
+			if _, err := repo.ReviewContentDraft(ctx, owner, draft.ID, ContentDraftReviewInput{Action: action}); err != nil {
+				t.Fatal(err)
+			}
+			if reason := eligibility("run-" + action); reason != "" {
+				t.Fatalf("after %s the queued snapshot is ineligible: %s", action, reason)
+			}
+		}
+		if _, err := repo.ReviewContentDraft(ctx, owner, draft.ID, ContentDraftReviewInput{Action: "changes"}); err != nil {
+			t.Fatal(err)
+		}
+		if reason := eligibility("run-changes"); reason != publishing.FailureChangesRequested {
+			t.Fatalf("a draft sent back still publishes: %q", reason)
+		}
+	})
+
 	t.Run("a post keeps the zone its local time was read in", func(t *testing.T) {
 		draft := newDraft("Tokyo time")
 		local := time.Now().Add(72*time.Hour).In(time.FixedZone("JST", 9*3600)).Format("2006-01-02") + "T10:00"

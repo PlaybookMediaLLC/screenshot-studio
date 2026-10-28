@@ -49,13 +49,13 @@ Each lead was reproduced with a failing test before it was fixed.
 | The calendar placed a natural-time post at its slot and said nothing else | Cards and the detail used `slotAt ?? scheduledFor`; the detail called the slot the "publication instant" | The actual instant, up to four minutes off, was invisible | Cards keep their slot position and add "publishes 9:02:37"; the detail shows slot, instant and zone |
 | Calendar Unschedule cancelled every destination from one card | `MutateCalendar` cancels all of the draft's queued posts; the button said "Unschedule" | Cancelling one card silently cancelled other networks | The button names the scope ("Unschedule all 3 destinations") and the sheet lists them; per-destination cancel stays in the editor. Move already changed one destination and now says so |
 | Rescheduling replaced all queued destinations without saying so | `cancelLiveDraftPosts` cancels every queued post; the dialog did not list them | A destination switched off was cancelled unannounced | Schedule and Publish now list each queued post they replace and mark those that will be cancelled |
-| The calendar collapsed states | `PROCESSING` and `SCHEDULED` showed "Scheduled"; `UNKNOWN_DELIVERY` showed "Failed" | A post that may be live looked retryable | Planned, Scheduled, Overdue, Publishing, Published, Failed and Needs check, each filterable. The Write queue labels the same states and keeps overdue and unconfirmed posts from the last two days |
-| Withdrawn approval did not stop a timed post | The worker never re-checked draft approval; only Publish now did | A post a reviewer sent back still published | The worker re-checks approval for the post's scheduled version and cancels it as `APPROVAL_REQUIRED` |
+| The calendar collapsed states | `PROCESSING` and `SCHEDULED` showed "Scheduled"; `UNKNOWN_DELIVERY` showed "Failed" | A post that may be live looked retryable | Planned, Scheduled, Overdue, Publishing, Published, Failed and Needs check. The status filter keeps its four saved groups (Overdue and Publishing count as Scheduled, Needs check as Failed), so no saved filter hides a post. The Write queue labels the same states and keeps overdue and unconfirmed posts from the last two days |
+| A draft sent back by a reviewer still published | The worker never re-checked draft review state; only Publish now did | Content a reviewer rejected after scheduling went out at its time | In a workspace that approves drafts, the worker cancels the queued posts of a draft whose reviewer asked for changes (`CHANGES_REQUESTED`). Editing the draft, asking for review or approving a newer version leaves the approved snapshot queued |
 | Missing media cancelled a post with a generic reason | `CancelIneligible` with "workspace, connection, or approval…" | Not actionable | `FAILED` with `MEDIA_UNAVAILABLE`, nothing sent |
 | No late-publication policy | A post whose worker was down for days published when it came back | Stale posts could appear far from their moment | See [late publication](#late-publication) |
 | A receipt write could fail permanently | `Complete` had 3 attempts two minutes apart; then the workflow failed and the post stayed `PROCESSING` forever | A live post looked unpublished and nothing reconciled it | Outcome writes retry for 24 hours; the provider ID is logged first; a stalled post is settled (below) |
 | Nothing recovered a post stuck in `PROCESSING` | Recovery listed only `SCHEDULED` posts | A lost workflow left a permanent "Publishing" | The dispatcher settles posts whose workflow run has closed |
-| A failed workflow wakeup reported a failed schedule | The handler answered 503 after committing | People retried a schedule that had succeeded | The committed result is returned and the failure logged; the dispatcher starts the due post |
+| A failed workflow wakeup read as a failed schedule | The handler answered 503 "could not start publishing workflow" after committing | People thought the schedule was lost | It still answers 503, but says the schedule is saved and starts within a minute; the dispatcher starts the due post and a retry replays |
 
 ## Scheduling identity
 
@@ -91,13 +91,13 @@ retry or recovery lands on the same instant.
 | Failure | Behavior | Test |
 | --- | --- | --- |
 | Validation fails | 4xx before any write; nothing scheduled or charged | `TestContentDraftScheduling`, batch case in `TestContentDraftScheduleReliability` |
-| Commit succeeds, workflow start fails | Committed result returned; the once-a-minute dispatcher starts the due post (`DispatchDue`, `ListRecoverablePosts`) | `TestScheduleContentDraftReportsCommittedPostsWhenWorkflowWakeupFails`, `TestRecoverablePostsAreDueScheduledPostsInsideTheWindow` |
+| Commit succeeds, workflow start fails | 503 saying the schedule is saved; the once-a-minute dispatcher starts the due post (`DispatchDue`, `ListRecoverablePosts`); a retry replays | `TestScheduleContentDraftReportsSavedScheduleWhenWorkflowWakeupFails`, `TestRecoverablePostsAreDueScheduledPostsInsideTheWindow` |
 | Worker stops before the provider call | The post is `PROCESSING` without an open attempt. Once its run has closed, the sweep queues it again and it publishes once | `TestSchedulingThroughTemporal` "vanished before sending" |
 | Provider refuses (4xx, 5xx without ambiguity) | `FAILED` with the provider's status; no automatic retry | `TestSchedulingThroughTemporal` "refusal" |
 | Provider rate-limits (429) | Durable retry after `PUBLISHING_RETRY_DELAY`, up to `PUBLISHING_MAX_ATTEMPTS` | `TestSchedulingThroughTemporal` "rate limit" |
-| Response lost after the provider may have accepted | `UNKNOWN_DELIVERY`; retry refused until a person reconciles it as live (with its URL) or not live | `TestSchedulingThroughTemporal` "lost response" |
+| Response lost after the provider may have accepted | `UNKNOWN_DELIVERY`; retry refused until a person reconciles it as live (with its URL, clearing the code) or not live (`NOT_LIVE`, retryable) | `TestSchedulingThroughTemporal` "lost response", `TestWritePublishing` |
 | Provider accepted, receipt write fails | The write retries for 24 hours; the provider ID is in the worker log. If the run still closes, the sweep marks the post `UNKNOWN_DELIVERY`. It is never sent again | `TestSchedulingThroughTemporal` "receipt" |
-| Destination or approval becomes ineligible | `CANCELLED` with `ACCOUNT_UNAVAILABLE`, `APPROVAL_REQUIRED` or `WORKSPACE_INACTIVE`; nothing sent | `TestSchedulingThroughTemporal` "withdrawn approval", `TestPrepareSendsOnlyEligibleOnTimePosts` |
+| Destination or approval becomes ineligible | `CANCELLED` with `ACCOUNT_UNAVAILABLE`, `CHANGES_REQUESTED` (draft), `APPROVAL_REQUIRED` (campaign variant) or `WORKSPACE_INACTIVE`, checked before media; nothing sent | `TestSchedulingThroughTemporal` "withdrawn approval", `TestContentDraftScheduleReliability`, `TestPrepareSendsOnlyEligibleOnTimePosts` |
 | Media unavailable at send time | `FAILED` with `MEDIA_UNAVAILABLE`; nothing sent. A signing failure fails with 503, also before sending | `TestSchedulingThroughTemporal` "missing media" |
 | Worker down past the time | Overdue after 5 minutes; published late within the window; `MISSED_WINDOW` after it | `TestSchedulingThroughTemporal` "late window", `TestPrepareSendsOnlyEligibleOnTimePosts` |
 | Cancel races the provider call | The calendar refuses: "Publication has started or needs reconciliation"; the post finishes with its real result | `TestSchedulingThroughTemporal` "cancellation racing" |
@@ -122,8 +122,11 @@ The `scheduled-posts` maintenance job first settles posts that have been
 longer running in Temporal (a run ID Temporal never issued counts as not
 running). An open attempt means the provider may have been called, so the
 post becomes `UNKNOWN_DELIVERY` and operators are notified; no open attempt
-means nothing was sent, so it is queued again. A sweep failure is logged and
-never stops due posts from starting.
+means nothing was sent, so it is queued again. The run that takes it over
+numbers its attempts after the earlier ones, so their outcomes are kept and
+an unknown result closes the right attempt. The sweep samples stalled posts
+at random, so ones whose workflow still runs cannot starve the rest. A sweep
+failure fails the job but never stops due posts from starting.
 
 ## Batch scheduling
 
@@ -132,8 +135,9 @@ previews queue or Spread times, validates every draft without writing, shows
 each row's time and destinations, and asks before skipping blocked rows.
 Rows are scheduled one at a time with their previewed slot. A refused row
 stays blocked with its reason and can be previewed again without touching
-scheduled rows; a row without an answer is retried with the same request,
-which replays. All destinations of a draft share its time; per-destination
+scheduled rows; Spread keeps each row's place in the sequence. A row without
+an answer is retried with the same request, which replays, and the dialog
+offers no new preview until every such row has an answer. All destinations of a draft share its time; per-destination
 times are not offered.
 
 ## Data and rollout
@@ -150,13 +154,12 @@ activity options changed, which replay does not compare.
 
 Rollback: redeploy the previous API, worker and web. The two columns are
 ignored by older code and can stay. Posts that the new worker failed as
-`MISSED_WINDOW` or cancelled as `APPROVAL_REQUIRED` stay so; retry them by
+`MISSED_WINDOW` or cancelled as `CHANGES_REQUESTED` stay so; retry them by
 hand if wanted.
 
-Behavior changes to announce: turning on "Require approval" now stops
-queued, unapproved draft posts at their time, as the composer already says
-("This workspace approves drafts before they publish"); a post more than an
-hour late is no longer sent automatically.
+Behavior changes to announce: in a workspace that approves drafts, a
+reviewer asking for changes now stops that draft's queued posts; a post more
+than an hour late is no longer sent automatically.
 
 ## Operations
 

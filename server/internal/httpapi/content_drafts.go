@@ -167,10 +167,11 @@ func (s *Server) deleteContentDraft(w http.ResponseWriter, r *http.Request) {
 }
 
 // scheduleContentDraft queues the draft to its channels, then stops the
-// workflows of posts a reschedule replaced and starts the new ones. The
-// committed posts are the result: a cancelled post is never claimed, and the
-// once-a-minute dispatcher starts a due post whose wakeup failed here, so a
-// Temporal error is logged rather than reported as a failed schedule.
+// workflows of posts a reschedule replaced and starts the new ones. The posts
+// are committed either way: a cancelled post is never claimed, and the
+// once-a-minute dispatcher starts a due post whose wakeup failed here. A
+// Temporal failure is still answered as one, saying the schedule is saved; a
+// retry of the same request replays it.
 func (s *Server) scheduleContentDraft(w http.ResponseWriter, r *http.Request) {
 	id, ok := contentDraftID(w, r)
 	if !ok {
@@ -186,17 +187,20 @@ func (s *Server) scheduleContentDraft(w http.ResponseWriter, r *http.Request) {
 		writeContentDraftError(w, err)
 		return
 	}
+	var wakeup error
 	for _, postID := range result.Cancelled {
-		if err := s.scheduler.Cancel(r.Context(), postID); err != nil {
-			slog.WarnContext(r.Context(), "replaced post workflow was not signalled", "post", postID, "error", err)
-		}
+		wakeup = errors.Join(wakeup, s.scheduler.Cancel(r.Context(), postID))
 	}
 	for _, post := range result.Scheduled {
-		if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
+		wakeup = errors.Join(wakeup, s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
 			OrganizationID: post.OrganizationID, PostID: post.ID, ScheduledFor: post.ScheduledFor,
-		}); err != nil {
-			slog.WarnContext(r.Context(), "post workflow not started; the dispatcher starts it when due", "post", post.ID, "error", err)
-		}
+		}))
+	}
+	if wakeup != nil {
+		slog.WarnContext(r.Context(), "scheduled post workflows were not woken", "draft", id, "error", wakeup)
+		writeError(w, http.StatusServiceUnavailable,
+			"The schedule is saved, but the publisher could not be reached. It starts within a minute; refresh to see it.")
+		return
 	}
 	status := http.StatusOK
 	if result.Created {

@@ -63,7 +63,8 @@ export function BulkScheduleDialog({
       )
     )
   )
-  // Rows already scheduled are kept; the rest are validated and timed again.
+  // Scheduled rows are kept; the rest are validated and timed again. It is
+  // offered only once no row awaits an answer, which only its retry may settle.
   const preview = async () => {
     if (!set) return
     setBusy(true)
@@ -73,11 +74,13 @@ export function BulkScheduleDialog({
       await beforeLeaveRef.current?.()
       const kept = (rows ?? []).filter((row) => row.status === 'Scheduled')
       const pending = selected.filter((id) => !kept.some((row) => row.id === id))
+      // Spread keeps each draft's place in the selection; the queue offers fresh free slots.
+      const spread = mode === 'spread'
       const { times } = await call<{ times: string[] }>('/api/v1/content-draft-batch/times', {
         method: 'POST',
         body: {
           socialSetId: set.id,
-          count: pending.length,
+          count: spread ? selected.length : pending.length,
           mode,
           localTime: start,
           postsPerDay: perDay,
@@ -91,7 +94,7 @@ export function BulkScheduleDialog({
         const row: Row = {
           id,
           title: data.library.find((draft) => draft.id === id)?.title ?? id,
-          at: times[index],
+          at: times[spread ? selected.indexOf(id) : index],
           destinations: [],
           input: { channelConnectionIds: [], version: 1 },
           status: 'Blocked',
@@ -107,8 +110,8 @@ export function BulkScheduleDialog({
             version: draft.version,
             naturalPostingTime: false,
             ...(mode === 'queue'
-              ? { queue: true, expectedQueueSlot: times[index] }
-              : { scheduledFor: times[index] }),
+              ? { queue: true, expectedQueueSlot: row.at }
+              : { scheduledFor: row.at }),
           }
           await call(`/api/v1/content-drafts/${id}/schedule/validate`, {
             method: 'POST',
@@ -165,6 +168,7 @@ export function BulkScheduleDialog({
     router.refresh()
   }
   const blocked = rows?.filter((row) => row.status === 'Blocked').length ?? 0
+  const unconfirmed = rows?.some((row) => row.status === 'Retry same request') ?? false
   const submittable =
     rows?.filter((row) => row.status === 'Ready' || row.status === 'Retry same request').length ?? 0
   return (
@@ -288,7 +292,7 @@ export function BulkScheduleDialog({
                     ? 'Retry unconfirmed rows'
                     : `Schedule valid drafts (${submittable})`}
               </Button>
-              {blocked > 0 ? (
+              {blocked > 0 && !unconfirmed ? (
                 <Button disabled={busy} onClick={() => void preview()} variant="outline">
                   Preview the remaining drafts again
                 </Button>

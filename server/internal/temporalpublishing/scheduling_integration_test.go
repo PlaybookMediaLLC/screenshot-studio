@@ -254,6 +254,7 @@ func TestSchedulingThroughTemporal(t *testing.T) {
 	store.lose.Store(receipt.Posts[0].ID, true)
 	late := schedule(owner, "late post", connections["main"])
 	restart := schedule(owner, "restart post", connections["main"])
+	lostAgain := schedule(owner, "lost after requeue post", connections["main"])
 	planned, err := repo.CreateContentDraft(ctx, owner, product.ContentDraftInput{PlainText: "planned post", Title: "planned post"})
 	if err != nil {
 		t.Fatal(err)
@@ -441,7 +442,7 @@ func TestSchedulingThroughTemporal(t *testing.T) {
 		if row := settle(media.Posts[0].ID, scheduledpost.StatusFAILED); code(row) != publishing.FailureMediaUnavailable || provider.count("media post") != 0 {
 			t.Fatalf("media=%+v calls=%d", row, provider.count("media post"))
 		}
-		if row := settle(approval.Posts[0].ID, scheduledpost.StatusCANCELLED); code(row) != publishing.FailureApprovalRequired || provider.count("approval post") != 0 {
+		if row := settle(approval.Posts[0].ID, scheduledpost.StatusCANCELLED); code(row) != publishing.FailureChangesRequested || provider.count("approval post") != 0 {
 			t.Fatalf("approval=%+v calls=%d", row, provider.count("approval post"))
 		}
 	})
@@ -457,9 +458,26 @@ func TestSchedulingThroughTemporal(t *testing.T) {
 		}
 	})
 
+	// stall leaves a post as a run that rate-limited once, then vanished before its next send.
+	stall := func(id, run string) {
+		t.Helper()
+		exec(`INSERT INTO publication_attempt (id,"organizationId","scheduledPostId","attemptNumber","startedAt","completedAt",outcome,"failureCode")
+			VALUES ($1,$2,$3,1,now()-interval '30 minutes',now()-interval '29 minutes','FAILED','429')`, cuid.New(), owner.OrganizationID, id)
+		exec(`UPDATE scheduled_post SET status='PROCESSING',"triggerRunId"=$2,"updatedAt"=now()-interval '20 minutes' WHERE id=$1`, id, run)
+	}
+	attempts := func(id string) []*ent.PublicationAttempt {
+		t.Helper()
+		rows, err := db.Client.PublicationAttempt.Query().Where(publicationattempt.ScheduledPostID(id)).
+			Order(ent.Asc(publicationattempt.FieldAttemptNumber)).All(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return rows
+	}
+
 	t.Run("a post claimed by a worker that vanished before sending is queued again and publishes once", func(t *testing.T) {
 		id := restart.Posts[0].ID
-		exec(`UPDATE scheduled_post SET status='PROCESSING',"triggerRunId"='vanished-run',"updatedAt"=now()-interval '20 minutes' WHERE id=$1`, id)
+		stall(id, "vanished-run")
 		stalled, err := accounts.ListStalledPosts(ctx, time.Now().Add(-15*time.Minute), 1000)
 		if err != nil || !containsStalled(stalled, id) {
 			t.Fatalf("stalled=%v err=%v", stalled, err)
@@ -474,6 +492,29 @@ func TestSchedulingThroughTemporal(t *testing.T) {
 		start(post(id))
 		if row := settle(id, scheduledpost.StatusPUBLISHED); provider.count("restart post") != 1 || row.RemotePostID == nil {
 			t.Fatalf("restart=%+v calls=%d", row, provider.count("restart post"))
+		}
+		// The new run numbers after the earlier attempt instead of overwriting it.
+		rows := attempts(id)
+		if len(rows) != 2 || *rows[0].FailureCode != "429" || *rows[1].Outcome != publicationattempt.OutcomeSUCCEEDED || rows[1].AttemptNumber != 2 {
+			t.Fatalf("attempts=%+v", rows)
+		}
+	})
+
+	t.Run("a requeued post whose next send is lost waits for a person, and is never sent again", func(t *testing.T) {
+		id := lostAgain.Posts[0].ID
+		stall(id, "vanished-run-2")
+		if outcome, err := accounts.ReleaseStalled(ctx, id, "vanished-run-2"); err != nil || outcome != "requeued" {
+			t.Fatalf("outcome=%q err=%v", outcome, err)
+		}
+		start(post(id))
+		row := settle(id, scheduledpost.StatusUNKNOWN_DELIVERY)
+		rows := attempts(id)
+		if provider.count("lost after requeue post") != 1 || code(row) != publishing.FailureUnknownDelivery || len(rows) != 2 ||
+			*rows[0].FailureCode != "429" || rows[1].CompletedAt == nil || *rows[1].FailureCode != publishing.FailureUnknownDelivery {
+			t.Fatalf("row=%+v attempts=%+v calls=%d", row, rows, provider.count("lost after requeue post"))
+		}
+		if outcome, err := accounts.ReleaseStalled(ctx, id, *row.TriggerRunID); err != nil || outcome != "" {
+			t.Fatalf("an unknown delivery was released again: %q %v", outcome, err)
 		}
 	})
 

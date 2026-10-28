@@ -2,12 +2,14 @@ package product
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/scheduledpost"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 )
 
 // PublishQueuedContentDraftPost consumes one queued commitment and starts an
@@ -53,8 +55,9 @@ func (c *Configuration) PublishQueuedContentDraftPost(ctx context.Context, actor
 	}
 	// Scheduling increments the draft version without changing the content.
 	// Review must still approve the version in this immutable commitment's key.
-	version, ok := publishing.DraftPostVersion(post.IdempotencyKey, draft.ID, post.ChannelConnectionID)
-	if !ok {
+	prefix := fmt.Sprintf("content-draft:%s:%s:v", draft.ID, post.ChannelConnectionID)
+	version, err := strconv.Atoi(strings.Split(strings.TrimPrefix(post.IdempotencyKey, prefix), ":")[0])
+	if err != nil || !strings.HasPrefix(post.IdempotencyKey, prefix) {
 		return nil, conflict("Review and reschedule this legacy post before publishing now.")
 	}
 	approval := *draft

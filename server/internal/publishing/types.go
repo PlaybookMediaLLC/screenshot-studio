@@ -99,14 +99,18 @@ const (
 	FailureWorkspaceInactive = "WORKSPACE_INACTIVE"
 	// The account was disconnected or removed from the workspace.
 	FailureAccountUnavailable = "ACCOUNT_UNAVAILABLE"
-	// The workspace approves posts and this version is not approved.
+	// A campaign variant is no longer approved.
 	FailureApprovalRequired = "APPROVAL_REQUIRED"
+	// The workspace approves drafts and a reviewer sent this one back.
+	FailureChangesRequested = "CHANGES_REQUESTED"
 	// An image, video or document was deleted before the post went out.
 	FailureMediaUnavailable = "MEDIA_UNAVAILABLE"
 	// The post could not start within the late publication window.
 	FailureMissedWindow = "MISSED_WINDOW"
 	// The provider may have received it; a person reconciles before a retry.
 	FailureUnknownDelivery = "UNKNOWN_DELIVERY"
+	// A person checked an unknown delivery and found it was not published.
+	FailureNotLive = "NOT_LIVE"
 )
 
 // StalledPost is a claimed post that has made no progress for a while.

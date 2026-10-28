@@ -38,7 +38,7 @@ import { calendarPostSchema } from '@/lib/api/contracts/content-draft-platform'
 import { contentDraftSchema } from '@/lib/api/contracts/content-drafts'
 import { calendarResultSchema, type CalendarPlacement } from '@/lib/api/contracts/plan-analyze'
 import { call, draftsApi, type DraftWire, type DraftPostWire } from '@/lib/content-drafts/client'
-import { postFailureReason, postState } from '@/lib/content-drafts/post-status'
+import { postFailureReason, postState, STATUS_GROUPS } from '@/lib/content-drafts/post-status'
 import { draftPlainText, channelForPlatform } from '@/lib/content-drafts/serialize'
 import {
   writeApi,
@@ -70,16 +70,6 @@ const QuickBody = dynamic(() => import('./QuickBody'), {
   loading: () => <p role="status">Loading editor…</p>,
 })
 const DRAG = 'application/x-shots-calendar-placement'
-/** Every state a calendar card can be in, for the status filter. */
-const PLAN_STATES = [
-  'Planned',
-  'Scheduled',
-  'Overdue',
-  'Publishing',
-  'Published',
-  'Failed',
-  'Needs check',
-] as const
 const readable = (
   day: string,
   options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
@@ -747,7 +737,7 @@ export function PlanWorkspace({
               <PopoverContent align="end" className="grid w-64 gap-3 p-3">
                 <fieldset>
                   <legend>Status</legend>
-                  {PLAN_STATES.map((s) => (
+                  {STATUS_GROUPS.map((s) => (
                     <Label className="py-1 font-normal" key={s}>
                       <Checkbox
                         checked={prefs.statuses.includes(s)}
@@ -1667,7 +1657,8 @@ function PlanDetail({
               <>Planned for: {new Date(item.at).toISOString()} · planning never publishes</>
             )}
           </p>
-          {postFailureReason(item.failureCode) ? (
+          {['Failed', 'Needs check', 'Cancelled'].includes(item.status) &&
+          postFailureReason(item.failureCode) ? (
             <p className="text-xs text-red-700 dark:text-red-300" role="status">
               {postFailureReason(item.failureCode)}
             </p>

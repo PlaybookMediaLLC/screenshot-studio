@@ -2,6 +2,7 @@ package temporalpublishing
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -34,13 +35,10 @@ func (a *RecoveryActivities) Recover(ctx context.Context) (int, error) {
 // settles posts whose workflow stopped mid-publication, then starts stable
 // post workflows; all provider sends remain in the publishing worker.
 func (a *RecoveryActivities) DispatchDue(ctx context.Context) (int, error) {
-	// A failed sweep must not stop due posts from starting.
-	released, err := a.ReleaseStalled(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx, "stalled publication sweep failed", "error", err)
-	}
+	// A failed sweep must not stop due posts from starting; the job reports both.
+	released, sweep := a.ReleaseStalled(ctx)
 	started, err := a.dispatch(ctx, time.Time{}, time.Now().UTC())
-	return released + started, err
+	return released + started, errors.Join(sweep, err)
 }
 
 // ReleaseStalled settles claimed posts whose workflow run has closed without

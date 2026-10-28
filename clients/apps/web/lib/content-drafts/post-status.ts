@@ -9,6 +9,20 @@
 export type ScheduledPostStatus =
   'DRAFT' | 'SCHEDULED' | 'PROCESSING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED' | 'UNKNOWN_DELIVERY'
 
+/**
+ * The status filter's groups, which keep the names saved before the finer
+ * states: overdue and publishing posts are scheduled; one that needs a check
+ * is grouped with failures, as it was.
+ */
+export const STATUS_GROUPS = ['Planned', 'Scheduled', 'Published', 'Failed'] as const
+
+/** The filter group a card state belongs to. */
+export function statusGroup(state: string): string {
+  if (state === 'Overdue' || state === 'Publishing') return 'Scheduled'
+  if (state === 'Needs check') return 'Failed'
+  return state
+}
+
 /** What a person reads for one destination. */
 export type PostState =
   'Scheduled' | 'Overdue' | 'Publishing' | 'Published' | 'Failed' | 'Needs check' | 'Cancelled'
@@ -54,8 +68,12 @@ export function postFailureReason(code: string | null | undefined): string | nul
       return 'An attachment was deleted or is unavailable, so nothing was sent. Restore it and schedule again.'
     case 'MISSED_WINDOW':
       return 'Publishing could not start within an hour of its time, so it was not sent. Publish it now or reschedule it.'
+    case 'CHANGES_REQUESTED':
+      return 'A reviewer asked for changes, so it was not sent. Revise it, get it approved, then schedule again.'
     case 'APPROVAL_REQUIRED':
-      return 'This version is not approved, so it was not sent. Get it approved, then schedule again.'
+      return 'Its content is no longer approved, so it was not sent. Get it approved, then schedule again.'
+    case 'NOT_LIVE':
+      return 'Checked on the account: it was not published. Retry it.'
     case 'ACCOUNT_UNAVAILABLE':
       return 'The account was disconnected or removed, so it was not sent. Reconnect it, then schedule again.'
     case 'WORKSPACE_INACTIVE':

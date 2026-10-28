@@ -2,11 +2,11 @@ package publishing
 
 import (
 	"context"
-	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
+
+	entsql "entgo.io/ent/dialect/sql"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/activity"
 
@@ -368,16 +368,20 @@ func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (Publ
 	if approvalEntity, edgeErr := variant.Edges.ApprovalOrErr(); edgeErr != nil || approvalEntity.Status != approval.StatusAPPROVED {
 		approved = false
 	}
-	asset, err := variant.Edges.SourceAssetOrErr()
-	if err != nil {
-		return PublishJob{Post: post, Connection: connection, WorkspaceActive: false, Ineligible: FailureMediaUnavailable}, nil
-	}
-	approved = approved && asset.OrganizationID == post.OrganizationID
 	workspaceActive, err := r.workspaceActive(ctx, post.OrganizationID)
 	if err != nil {
 		return PublishJob{}, err
 	}
-	reason := ineligibility(workspaceActive, approved, connection)
+	asset, err := variant.Edges.SourceAssetOrErr()
+	if err != nil {
+		reason := ineligibility(workspaceActive, connection, variantApproval(approved))
+		if reason == "" {
+			reason = FailureMediaUnavailable
+		}
+		return PublishJob{Post: post, Connection: connection, WorkspaceActive: false, Ineligible: reason}, nil
+	}
+	approved = approved && asset.OrganizationID == post.OrganizationID
+	reason := ineligibility(workspaceActive, connection, variantApproval(approved))
 	return PublishJob{
 		AssetObjectKey: asset.ObjectKey, AssetMediaType: asset.MediaType,
 		Assets:     []MediaAsset{{MediaType: asset.MediaType, ObjectKey: asset.ObjectKey}},
@@ -385,52 +389,40 @@ func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (Publ
 	}, nil
 }
 
-// ineligibility is the first reason a job may not publish, or "".
-func ineligibility(workspaceActive, approved bool, connection *ent.ChannelConnection) string {
+// ineligibility is the first reason a job may not publish, or "". approval
+// is the review's reason, or "" when the content may publish.
+func ineligibility(workspaceActive bool, connection *ent.ChannelConnection, approval string) string {
 	switch {
 	case !workspaceActive:
 		return FailureWorkspaceInactive
 	case connection.Status != channelconnection.StatusACTIVE:
 		return FailureAccountUnavailable
-	case !approved:
-		return FailureApprovalRequired
 	}
-	return ""
+	return approval
 }
 
-// DraftPostVersion is the draft version a draft post's key was scheduled at:
-// content-draft:<draft>:<connection>:v<N>, with any :moved/:retry/:resume
-// suffix. Publish-now and legacy keys carry none.
-func DraftPostVersion(key, draftID, connectionID string) (int, bool) {
-	prefix := fmt.Sprintf("content-draft:%s:%s:v", draftID, connectionID)
-	if !strings.HasPrefix(key, prefix) {
-		return 0, false
+// variantApproval is a campaign variant's review reason for ineligibility.
+func variantApproval(approved bool) string {
+	if approved {
+		return ""
 	}
-	version, err := strconv.Atoi(strings.Split(strings.TrimPrefix(key, prefix), ":")[0])
-	return version, err == nil
+	return FailureApprovalRequired
 }
 
-// draftApproved reports whether a workspace that approves drafts still
-// approves the version this post was scheduled at (RFC 013): a review that
-// asked for changes after scheduling stops it, as it stops Publish now.
-func (r *Repository) draftApproved(ctx context.Context, post *ent.ScheduledPost) (bool, error) {
+// draftSentBack reports whether a workspace that approves drafts has a
+// reviewer's request for changes on this post's draft (RFC 013): a draft sent
+// back after scheduling stops its queued posts. Approving a newer version or
+// asking for review does not withdraw the approval the snapshot was queued with.
+func (r *Repository) draftSentBack(ctx context.Context, post *ent.ScheduledPost) (bool, error) {
 	settings, err := r.client.ContentDraftSettings.Get(ctx, post.OrganizationID)
 	if ent.IsNotFound(err) {
-		return true, nil
+		return false, nil
 	}
 	if err != nil || !settings.RequireApproval {
-		return err == nil, err
-	}
-	version, ok := DraftPostVersion(post.IdempotencyKey, *post.ContentDraftID, post.ChannelConnectionID)
-	if !ok {
-		// Publish now checked approval when it made this post, moments before.
-		return true, nil
-	}
-	draft, err := r.client.ContentDraft.Get(ctx, *post.ContentDraftID)
-	if err != nil {
 		return false, err
 	}
-	return draft.ReviewStatus == contentdraft.ReviewStatusApproved && draft.ApprovedVersion != nil && *draft.ApprovedVersion == version, nil
+	return r.client.ContentDraft.Query().Where(contentdraft.ID(*post.ContentDraftID),
+		contentdraft.ReviewStatusEQ(contentdraft.ReviewStatusChangesRequested)).Exist(ctx)
 }
 
 // loadDraftPublishJob publishes a content draft's post: its caption was
@@ -446,7 +438,23 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 	if !owned {
 		return PublishJob{Post: post, Connection: connection, WorkspaceActive: false, Ineligible: FailureWorkspaceInactive}, nil
 	}
-	job := PublishJob{Connection: connection, Post: post}
+	// An ineligible post is cancelled for that reason, whatever its media.
+	workspaceActive, err := r.workspaceActive(ctx, post.OrganizationID)
+	if err != nil {
+		return PublishJob{}, err
+	}
+	sentBack, err := r.draftSentBack(ctx, post)
+	if err != nil {
+		return PublishJob{}, err
+	}
+	approval := ""
+	if sentBack {
+		approval = FailureChangesRequested
+	}
+	if reason := ineligibility(workspaceActive, connection, approval); reason != "" {
+		return PublishJob{Post: post, Connection: connection, WorkspaceActive: false, Ineligible: reason}, nil
+	}
+	job := PublishJob{Connection: connection, Post: post, WorkspaceActive: true}
 	ids := post.AssetIds
 	if len(ids) == 0 && post.AssetID != nil {
 		ids = []string{*post.AssetID}
@@ -486,16 +494,6 @@ func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.Schedule
 	if len(job.Assets) > 0 {
 		job.AssetObjectKey, job.AssetMediaType = job.Assets[0].ObjectKey, job.Assets[0].MediaType
 	}
-	workspaceActive, err := r.workspaceActive(ctx, post.OrganizationID)
-	if err != nil {
-		return PublishJob{}, err
-	}
-	approved, err := r.draftApproved(ctx, post)
-	if err != nil {
-		return PublishJob{}, err
-	}
-	job.Ineligible = ineligibility(workspaceActive, approved, connection)
-	job.WorkspaceActive = job.Ineligible == ""
 	return job, nil
 }
 
@@ -557,24 +555,28 @@ func (r *Repository) StartAttempt(ctx context.Context, post *ent.ScheduledPost, 
 	if owned != 1 {
 		return Attempt{}, ErrInvalidState
 	}
-	existing, err := tx.PublicationAttempt.Query().Where(
-		publicationattempt.ScheduledPostID(post.ID),
-		publicationattempt.AttemptNumber(attemptNumber),
-	).Only(ctx)
-	if err == nil {
-		if err := tx.Commit(); err != nil {
-			return Attempt{}, err
-		}
-		return Attempt{ID: existing.ID, Number: existing.AttemptNumber}, nil
-	}
-	if !ent.IsNotFound(err) {
+	// A retried start finds this run's open attempt. A run that took over a
+	// post an earlier run attempted numbers after those attempts, so their
+	// outcomes are never reused or overwritten.
+	attempts, err := tx.PublicationAttempt.Query().Where(publicationattempt.ScheduledPostID(post.ID)).All(ctx)
+	if err != nil {
 		return Attempt{}, err
+	}
+	number := attemptNumber
+	for _, existing := range attempts {
+		if existing.CompletedAt == nil {
+			if err := tx.Commit(); err != nil {
+				return Attempt{}, err
+			}
+			return Attempt{ID: existing.ID, Number: existing.AttemptNumber}, nil
+		}
+		number = max(number, existing.AttemptNumber+1)
 	}
 	attempt, err := tx.PublicationAttempt.Create().
 		SetID(cuid.New()).
 		SetOrganizationID(post.OrganizationID).
 		SetScheduledPostID(post.ID).
-		SetAttemptNumber(attemptNumber).
+		SetAttemptNumber(number).
 		Save(ctx)
 	if err != nil {
 		return Attempt{}, err
@@ -585,7 +587,9 @@ func (r *Repository) StartAttempt(ctx context.Context, post *ent.ScheduledPost, 
 	return Attempt{ID: attempt.ID, Number: attempt.AttemptNumber}, nil
 }
 
-func (r *Repository) FailUnknown(ctx context.Context, postID, runID string, attemptNumber int) error {
+// FailUnknown records that the provider may have published the post. It
+// closes the post's open attempt, whose number may follow an earlier run's.
+func (r *Repository) FailUnknown(ctx context.Context, postID, runID string, _ int) error {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return err
@@ -614,7 +618,6 @@ func (r *Repository) FailUnknown(ctx context.Context, postID, runID string, atte
 	}
 	updatedAttempts, err := tx.PublicationAttempt.Update().Where(
 		publicationattempt.ScheduledPostID(postID),
-		publicationattempt.AttemptNumber(attemptNumber),
 		publicationattempt.CompletedAtIsNil(),
 	).SetCompletedAt(time.Now().UTC()).SetOutcome(publicationattempt.OutcomeFAILED).SetFailureCode("UNKNOWN_DELIVERY").Save(ctx)
 	if err != nil || updatedAttempts != 1 {
@@ -805,11 +808,13 @@ func (r *Repository) FailUnsent(ctx context.Context, post *ent.ScheduledPost, co
 }
 
 // ListStalledPosts lists claimed posts that have made no progress since
-// before, for the sweep that checks whether their workflow still runs.
+// before, for the sweep that checks whether their workflow still runs. The
+// sample is random, so posts whose workflows still run (and are skipped)
+// cannot keep the sweep from reaching the rest.
 func (r *Repository) ListStalledPosts(ctx context.Context, before time.Time, limit int) ([]StalledPost, error) {
 	posts, err := r.client.ScheduledPost.Query().Where(scheduledpost.StatusEQ(scheduledpost.StatusPROCESSING),
 		scheduledpost.UpdatedAtLT(before), scheduledpost.TriggerRunIDNotNil()).
-		Order(ent.Asc(scheduledpost.FieldUpdatedAt)).Limit(limit).All(ctx)
+		Order(func(s *entsql.Selector) { s.OrderExpr(entsql.Expr("random()")) }).Limit(limit).All(ctx)
 	if err != nil {
 		return nil, err
 	}

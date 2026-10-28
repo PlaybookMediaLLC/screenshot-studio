@@ -2,7 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { analyticsReportSchema, analyticsQuerySchema } from '../lib/api/contracts/plan-analyze'
 import { draftPlanInputSchema } from '../lib/api/contracts/write'
-import { OVERDUE_AFTER_MS, postFailureReason, postState } from '../lib/content-drafts/post-status'
+import {
+  OVERDUE_AFTER_MS,
+  postFailureReason,
+  postState,
+  STATUS_GROUPS,
+} from '../lib/content-drafts/post-status'
 import {
   displayDaySlots,
   calendarDays,
@@ -422,9 +427,41 @@ test('every recorded failure code reads as something a person can act on', () =>
   assert.match(postFailureReason('MEDIA_UNAVAILABLE') ?? '', /nothing was sent/)
   assert.match(postFailureReason('MISSED_WINDOW') ?? '', /not sent.*Publish it now or reschedule/)
   assert.match(postFailureReason('APPROVAL_REQUIRED') ?? '', /approved/)
+  assert.match(postFailureReason('CHANGES_REQUESTED') ?? '', /asked for changes/)
+  assert.match(postFailureReason('NOT_LIVE') ?? '', /not published\. Retry/)
   assert.match(postFailureReason('ACCOUNT_UNAVAILABLE') ?? '', /Reconnect/)
   assert.match(postFailureReason('UNKNOWN_DELIVERY') ?? '', /may already be live/)
   assert.match(postFailureReason('503') ?? '', /platform had an error/)
   assert.match(postFailureReason('400') ?? '', /rejected/)
   assert.match(postFailureReason('SOCIAL_ERROR') ?? '', /SOCIAL_ERROR/)
+})
+
+test('a status filter saved before the finer states still shows every post in its group', () => {
+  const base = {
+    draftId: 'd',
+    version: 1,
+    calendarVersion: 1,
+    setId: 's',
+    platform: 'x',
+    at: '2026-11-02T09:00:00Z',
+    zone: 'UTC',
+    title: '',
+    text: '',
+    tagIds: [],
+  }
+  const items: PlanItem[] = [
+    'Scheduled',
+    'Overdue',
+    'Publishing',
+    'Published',
+    'Failed',
+    'Needs check',
+    'Planned',
+  ].map((status) => ({ ...base, id: status, status }))
+  const shown = (statuses: string[]) =>
+    visibleItems(items, planPreferencesSchema.parse({ statuses })).map((item) => item.id)
+  assert.deepEqual(STATUS_GROUPS, ['Planned', 'Scheduled', 'Published', 'Failed'])
+  assert.deepEqual(shown(['Scheduled']), ['Scheduled', 'Overdue', 'Publishing'])
+  assert.deepEqual(shown(['Failed']), ['Failed', 'Needs check'])
+  assert.equal(shown([]).length, items.length)
 })

@@ -167,8 +167,9 @@ func (c *Configuration) ReconcileContentDraftPost(ctx context.Context, actor Act
 		if remote != "" {
 			update.SetRemotePostID(remote)
 		}
+		update.ClearFailureCode()
 	} else {
-		update.SetStatus(scheduledpost.StatusFAILED)
+		update.SetStatus(scheduledpost.StatusFAILED).SetFailureCode(publishing.FailureNotLive)
 	}
 	count, err := update.Save(ctx)
 	if err != nil {

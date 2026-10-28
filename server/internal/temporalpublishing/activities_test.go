@@ -165,7 +165,7 @@ func TestPrepareSendsOnlyEligibleOnTimePosts(t *testing.T) {
 		{"late within the window", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-LatePublicationWindow)}, Connection: connection, WorkspaceActive: true}, true, "", ""},
 		{"past the window", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-LatePublicationWindow - time.Second)}, Connection: connection, WorkspaceActive: true}, false, publishing.FailureMissedWindow, ""},
 		{"media deleted", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now}, Connection: connection, Ineligible: publishing.FailureMediaUnavailable}, false, publishing.FailureMediaUnavailable, ""},
-		{"approval withdrawn", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now}, Connection: connection, Ineligible: publishing.FailureApprovalRequired}, false, "", publishing.FailureApprovalRequired},
+		{"approval withdrawn", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now}, Connection: connection, Ineligible: publishing.FailureChangesRequested}, false, "", publishing.FailureChangesRequested},
 		{"account disconnected, even when late", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-48 * time.Hour)}, Connection: connection, Ineligible: publishing.FailureAccountUnavailable}, false, "", publishing.FailureAccountUnavailable},
 	}
 	for _, test := range cases {

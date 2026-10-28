@@ -108,14 +108,14 @@ func (*unreachableScheduler) Cancel(context.Context, string) error {
 	return errors.New("temporal unavailable")
 }
 
-// A committed schedule is the result even when Temporal cannot be reached:
-// the dispatcher starts the due post, and a replaced post is never claimed.
-func TestScheduleContentDraftReportsCommittedPostsWhenWorkflowWakeupFails(t *testing.T) {
+// When Temporal cannot be reached the request fails, but says the schedule is
+// saved: the dispatcher starts the due post, and a replaced post is never claimed.
+func TestScheduleContentDraftReportsSavedScheduleWhenWorkflowWakeupFails(t *testing.T) {
 	handler := NewWithConfiguration(&fakeStore{}, &unreachableScheduler{}, &fakeVerifier{}, "secret", &draftScheduleFake{})
 	at := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
 	response := configurationRequest(handler, http.MethodPost, "/v1/content-drafts/c123456789012345678901234/schedule",
 		fmt.Sprintf(`{"scheduledFor":%q,"targets":[{"caption":"Hi","channelConnectionId":"c123456789012345678901235"}],"version":2}`, at.Format(time.RFC3339)))
-	if response.Code != http.StatusCreated {
+	if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), "schedule is saved") {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 }

@@ -135,4 +135,46 @@ export const loadLocalCopy = (
   };
 };
 
+/**
+ * Sends the local cursor at most once every `wait` ms: the first move at once,
+ * the last one always. Every awareness update is a message the collaboration
+ * server authorizes, and typing moves the cursor on each keystroke; other
+ * fields (name, colour) still go out at once. Returns a function that restores
+ * the awareness and drops a pending send.
+ */
+export const throttleCursor = (
+  awareness: { setLocalStateField: (field: string, value: unknown) => void },
+  wait = 200
+): (() => void) => {
+  const set = awareness.setLocalStateField;
+  let last = 0;
+  let pending: unknown;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const send = (value: unknown) => {
+    last = Date.now();
+    set.call(awareness, "selection", value);
+  };
+  awareness.setLocalStateField = (field, value) => {
+    if (field !== "selection") {
+      set.call(awareness, field, value);
+      return;
+    }
+    pending = value;
+    if (timer) return;
+    const elapsed = Date.now() - last;
+    if (elapsed >= wait) {
+      send(value);
+      return;
+    }
+    timer = setTimeout(() => {
+      timer = null;
+      send(pending);
+    }, wait - elapsed);
+  };
+  return () => {
+    if (timer) clearTimeout(timer);
+    awareness.setLocalStateField = set;
+  };
+};
+
 export { YjsPlugin };

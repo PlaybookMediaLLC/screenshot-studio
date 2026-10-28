@@ -238,6 +238,9 @@ export function WriteComposer({
       showSaved({ excerpt, id: initial.id, title, updatedAt: new Date().toISOString() })
     )
   }, [excerpt, initial.id, showSaved, title])
+  // Only the first render's token: each refresh issues another, and a new
+  // collaboration object would rebuild the editor under the writer's caret.
+  const [issued] = React.useState(collabToken)
   const collaboration = React.useMemo(
     () =>
       collabUrl
@@ -245,10 +248,10 @@ export function WriteComposer({
             draftId: initial.id,
             url: collabUrl,
             generation: server.collabGeneration,
-            issued: collabToken ?? undefined,
+            issued: issued ?? undefined,
           }
         : null,
-    [collabToken, collabUrl, initial.id, server.collabGeneration]
+    [collabUrl, initial.id, issued, server.collabGeneration]
   )
   React.useEffect(() => {
     beforeLeaveRef.current = async () => {

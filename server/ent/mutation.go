@@ -6879,6 +6879,7 @@ type AssetMutation struct {
 	duration_ms     *int
 	addduration_ms  *int
 	codecs          *string
+	upload_id       *string
 	status          *asset.Status
 	alt_text        *string
 	created_at      *time.Time
@@ -7566,6 +7567,55 @@ func (m *AssetMutation) ResetCodecs() {
 	delete(m.clearedFields, asset.FieldCodecs)
 }
 
+// SetUploadID sets the "upload_id" field.
+func (m *AssetMutation) SetUploadID(s string) {
+	m.upload_id = &s
+}
+
+// UploadID returns the value of the "upload_id" field in the mutation.
+func (m *AssetMutation) UploadID() (r string, exists bool) {
+	v := m.upload_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUploadID returns the old "upload_id" field's value of the Asset entity.
+// If the Asset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssetMutation) OldUploadID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUploadID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUploadID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUploadID: %w", err)
+	}
+	return oldValue.UploadID, nil
+}
+
+// ClearUploadID clears the value of the "upload_id" field.
+func (m *AssetMutation) ClearUploadID() {
+	m.upload_id = nil
+	m.clearedFields[asset.FieldUploadID] = struct{}{}
+}
+
+// UploadIDCleared returns if the "upload_id" field was cleared in this mutation.
+func (m *AssetMutation) UploadIDCleared() bool {
+	_, ok := m.clearedFields[asset.FieldUploadID]
+	return ok
+}
+
+// ResetUploadID resets all changes to the "upload_id" field.
+func (m *AssetMutation) ResetUploadID() {
+	m.upload_id = nil
+	delete(m.clearedFields, asset.FieldUploadID)
+}
+
 // SetStatus sets the "status" field.
 func (m *AssetMutation) SetStatus(a asset.Status) {
 	m.status = &a
@@ -7811,7 +7861,7 @@ func (m *AssetMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AssetMutation) Fields() []string {
-	fields := make([]string, 0, 15)
+	fields := make([]string, 0, 16)
 	if m.organization_id != nil {
 		fields = append(fields, asset.FieldOrganizationID)
 	}
@@ -7844,6 +7894,9 @@ func (m *AssetMutation) Fields() []string {
 	}
 	if m.codecs != nil {
 		fields = append(fields, asset.FieldCodecs)
+	}
+	if m.upload_id != nil {
+		fields = append(fields, asset.FieldUploadID)
 	}
 	if m.status != nil {
 		fields = append(fields, asset.FieldStatus)
@@ -7887,6 +7940,8 @@ func (m *AssetMutation) Field(name string) (ent.Value, bool) {
 		return m.DurationMs()
 	case asset.FieldCodecs:
 		return m.Codecs()
+	case asset.FieldUploadID:
+		return m.UploadID()
 	case asset.FieldStatus:
 		return m.Status()
 	case asset.FieldAltText:
@@ -7926,6 +7981,8 @@ func (m *AssetMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldDurationMs(ctx)
 	case asset.FieldCodecs:
 		return m.OldCodecs(ctx)
+	case asset.FieldUploadID:
+		return m.OldUploadID(ctx)
 	case asset.FieldStatus:
 		return m.OldStatus(ctx)
 	case asset.FieldAltText:
@@ -8019,6 +8076,13 @@ func (m *AssetMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCodecs(v)
+		return nil
+	case asset.FieldUploadID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUploadID(v)
 		return nil
 	case asset.FieldStatus:
 		v, ok := value.(asset.Status)
@@ -8150,6 +8214,9 @@ func (m *AssetMutation) ClearedFields() []string {
 	if m.FieldCleared(asset.FieldCodecs) {
 		fields = append(fields, asset.FieldCodecs)
 	}
+	if m.FieldCleared(asset.FieldUploadID) {
+		fields = append(fields, asset.FieldUploadID)
+	}
 	if m.FieldCleared(asset.FieldAltText) {
 		fields = append(fields, asset.FieldAltText)
 	}
@@ -8187,6 +8254,9 @@ func (m *AssetMutation) ClearField(name string) error {
 		return nil
 	case asset.FieldCodecs:
 		m.ClearCodecs()
+		return nil
+	case asset.FieldUploadID:
+		m.ClearUploadID()
 		return nil
 	case asset.FieldAltText:
 		m.ClearAltText()
@@ -8231,6 +8301,9 @@ func (m *AssetMutation) ResetField(name string) error {
 		return nil
 	case asset.FieldCodecs:
 		m.ResetCodecs()
+		return nil
+	case asset.FieldUploadID:
+		m.ResetUploadID()
 		return nil
 	case asset.FieldStatus:
 		m.ResetStatus()

@@ -37,6 +37,8 @@ const (
 	FieldDurationMs = "durationMs"
 	// FieldCodecs holds the string denoting the codecs field in the database.
 	FieldCodecs = "codecs"
+	// FieldUploadID holds the string denoting the upload_id field in the database.
+	FieldUploadID = "uploadId"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldAltText holds the string denoting the alt_text field in the database.
@@ -72,6 +74,7 @@ var Columns = []string{
 	FieldHeight,
 	FieldDurationMs,
 	FieldCodecs,
+	FieldUploadID,
 	FieldStatus,
 	FieldAltText,
 	FieldCreatedAt,
@@ -186,6 +189,11 @@ func ByDurationMs(opts ...sql.OrderTermOption) OrderOption {
 // ByCodecs orders the results by the codecs field.
 func ByCodecs(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCodecs, opts...).ToFunc()
+}
+
+// ByUploadID orders the results by the upload_id field.
+func ByUploadID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUploadID, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

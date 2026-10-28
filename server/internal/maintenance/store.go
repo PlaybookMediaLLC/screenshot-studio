@@ -19,6 +19,11 @@ type ObjectDeleter interface {
 	Delete(context.Context, string, string) error
 }
 
+// uploadAborter discards the parts of a multipart upload that never finished.
+type uploadAborter interface {
+	AbortUpload(ctx context.Context, organizationID, key, uploadID string) error
+}
+
 // ProductEvents does the side effects of product events that take more than
 // SQL: GitHub reads, screenshots, and captures. It reports false for an event
 // it does not own.

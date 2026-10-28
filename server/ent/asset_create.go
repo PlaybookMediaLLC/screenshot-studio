@@ -143,6 +143,20 @@ func (_c *AssetCreate) SetNillableCodecs(v *string) *AssetCreate {
 	return _c
 }
 
+// SetUploadID sets the "upload_id" field.
+func (_c *AssetCreate) SetUploadID(v string) *AssetCreate {
+	_c.mutation.SetUploadID(v)
+	return _c
+}
+
+// SetNillableUploadID sets the "upload_id" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableUploadID(v *string) *AssetCreate {
+	if v != nil {
+		_c.SetUploadID(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *AssetCreate) SetStatus(v asset.Status) *AssetCreate {
 	_c.mutation.SetStatus(v)
@@ -375,6 +389,10 @@ func (_c *AssetCreate) createSpec() (*Asset, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Codecs(); ok {
 		_spec.SetField(asset.FieldCodecs, field.TypeString, value)
 		_node.Codecs = &value
+	}
+	if value, ok := _c.mutation.UploadID(); ok {
+		_spec.SetField(asset.FieldUploadID, field.TypeString, value)
+		_node.UploadID = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)

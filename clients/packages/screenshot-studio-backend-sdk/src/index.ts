@@ -618,6 +618,15 @@ export type BackendAssetListItem = {
 
 export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
 
+/** How a large file is sent: `parts` parts of `partBytes` each, the last one shorter. */
+export type BackendAssetMultipart = { partBytes: number; parts: number }
+
+/** A multipart upload's stored parts and signed part URLs (valid 15 minutes). */
+export type BackendAssetUploadParts = BackendAssetMultipart & {
+  uploaded: number[]
+  urls: { number: number; url: string }[]
+}
+
 export type BackendAssetUploadInput = {
   parentAssetId?: string
   projectId?: string
@@ -1166,7 +1175,12 @@ export type BackendContentDraftPost = {
   url: string | null
   /** A thread: its reply count and how many went out. */
   replies: number
-  threadProgress: { lastReplyId?: string; posted: number; total: number; quotes?: {postId: string; state: string}[] }
+  threadProgress: {
+    lastReplyId?: string
+    posted: number
+    total: number
+    quotes?: { postId: string; state: string }[]
+  }
   /** Its follow-ups once live, each with its receipt (RFC 025). */
   automations?: BackendPostAutomation[]
   /** How the instant was chosen (RFC 024). */
@@ -2543,9 +2557,30 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
-  async completeAssetUpload(id: string, sha256?: string) {
+  /**
+   * Reserve an upload the browser may send in parts: a file larger than one
+   * part gets `multipart` instead of `uploadUrl` when storage takes parts.
+   */
+  async signAssetUploadInParts(input: BackendAssetUploadInput) {
+    return this.request<{
+      asset: BackendAsset
+      uploadUrl: string
+      multipart?: BackendAssetMultipart
+    }>('v1/assets/upload-url', { body: { ...input, multipart: true }, method: 'POST' })
+  }
+
+  /** Which parts of a multipart upload storage holds, and signed PUTs for the parts asked for. */
+  async signAssetUploadParts(id: string, parts: number[]) {
+    return this.request<BackendAssetUploadParts>(
+      `v1/assets/${encodeURIComponent(id)}/upload-parts`,
+      { body: { parts }, method: 'POST' }
+    )
+  }
+
+  /** Complete an upload; `partSha256` is each part's digest for a file sent in parts. */
+  async completeAssetUpload(id: string, sha256?: string, partSha256?: string[]) {
     return this.request<{ asset: BackendAsset }>(`v1/assets/${encodeURIComponent(id)}/complete`, {
-      body: sha256 ? { sha256 } : {},
+      body: { ...(sha256 ? { sha256 } : {}), ...(partSha256 ? { partSha256 } : {}) },
       method: 'POST',
     })
   }
@@ -2807,7 +2842,11 @@ export class ScreenshotStudioBackendSDK {
   /** Schedules at `scheduledFor`, or with `queue` at the set's next free slot, which the backend reserves. */
   async scheduleContentDraft(
     id: string,
-    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number; baseCalendarVersion?: number }
+    input: BackendScheduleTiming & {
+      targets: BackendContentDraftScheduleTarget[]
+      version: number
+      baseCalendarVersion?: number
+    }
   ) {
     return this.request<{
       created: boolean
@@ -2968,7 +3007,13 @@ export class ScreenshotStudioBackendSDK {
   /** Pin, tag or annotate a draft; its version and approval stay. */
   async updateContentDraftProperties(
     id: string,
-    input: { addTagIds?: string[]; pinned?: boolean; removeTagIds?: string[]; scratchpad?: string; suppressSlackOnPublish?: boolean }
+    input: {
+      addTagIds?: string[]
+      pinned?: boolean
+      removeTagIds?: string[]
+      scratchpad?: string
+      suppressSlackOnPublish?: boolean
+    }
   ) {
     return this.request<BackendContentDraft>(
       `v1/content-drafts/${encodeURIComponent(id)}/properties`,
@@ -2984,21 +3029,38 @@ export class ScreenshotStudioBackendSDK {
     return this.request<unknown>('v1/calendar/mutations', { body: input, method: 'POST' })
   }
   async getAnalytics(id: string, query: Record<string, string | number | undefined>) {
-    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    const params = new URLSearchParams(
+      Object.entries(query)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [key, String(value)])
+    )
     return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}?${params}`)
   }
   async refreshAnalytics(id: string) {
-    return this.request<{ refreshed: boolean }>(`v1/analytics/${encodeURIComponent(id)}/refresh`, { method: 'POST', body: {} })
+    return this.request<{ refreshed: boolean }>(`v1/analytics/${encodeURIComponent(id)}/refresh`, {
+      method: 'POST',
+      body: {},
+    })
   }
   async updateAnalyticsSettings(id: string, input: unknown) {
-    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}/settings`, { method: 'PUT', body: input })
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}/settings`, {
+      method: 'PUT',
+      body: input,
+    })
   }
   async getPublicAnalytics(token: string, query: Record<string, string | number | undefined>) {
-    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    const params = new URLSearchParams(
+      Object.entries(query)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [key, String(value)])
+    )
     return this.request<unknown>(`v1/internal/analytics/${encodeURIComponent(token)}?${params}`)
   }
 
-  async planContentDraft(id: string, input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }) {
+  async planContentDraft(
+    id: string,
+    input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }
+  ) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/plan`, {
       body: input,
       method: 'POST',
@@ -3006,10 +3068,13 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async duplicateContentDraft(id: string, requestKey?: string) {
-    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`, {
-      body: {},
-      method: 'POST',
-    })
+    return this.request<BackendDraftCopy>(
+      `v1/content-drafts/${encodeURIComponent(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`,
+      {
+        body: {},
+        method: 'POST',
+      }
+    )
   }
 
   async copyContentDraft(id: string, input: { socialSetId: string; tagMode: 'match' | 'drop' }) {
@@ -3149,7 +3214,9 @@ export class ScreenshotStudioBackendSDK {
   async updateContentBatchItem(
     id: string,
     itemId: string,
-    input: Partial<Pick<BackendContentBatchItemInput, 'caption' | 'channelConnectionIds' | 'media' | 'timing'>> & {
+    input: Partial<
+      Pick<BackendContentBatchItemInput, 'caption' | 'channelConnectionIds' | 'media' | 'timing'>
+    > & {
       position?: number
     }
   ) {
@@ -3224,9 +3291,18 @@ export class ScreenshotStudioBackendSDK {
 
   /** Apply a comment-only action with revision conflict protection. */
   /** Read the existing discussion document with optional lifecycle and platform filters. */
-  async listContentDraftComments(id: string, query: {status?: 'all'|'open'|'resolved'; platform?: string} = {}) {
-    const params = new URLSearchParams(Object.fromEntries(Object.entries(query).filter(([,value])=>value !== undefined)) as Record<string,string>)
-    return this.request<{id:string;version:number;discussions: Record<string,unknown>}>(`v1/content-drafts/${encodeURIComponent(id)}/comments?${params}`)
+  async listContentDraftComments(
+    id: string,
+    query: { status?: 'all' | 'open' | 'resolved'; platform?: string } = {}
+  ) {
+    const params = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(query).filter(([, value]) => value !== undefined)
+      ) as Record<string, string>
+    )
+    return this.request<{ id: string; version: number; discussions: Record<string, unknown> }>(
+      `v1/content-drafts/${encodeURIComponent(id)}/comments?${params}`
+    )
   }
 
   async mutateContentDraftComment(id: string, input: DraftCommentInput) {
@@ -3258,7 +3334,10 @@ export class ScreenshotStudioBackendSDK {
   /** A guest's view of a shared draft (service credential). */
   /** Read only the current shared image; the share token is checked again after storage. */
   async readSharedDraftImage(token: string) {
-    return this.request<Uint8Array>(`v1/internal/content-draft-shares/${encodeURIComponent(token)}/image`, {responseType: 'bytes'})
+    return this.request<Uint8Array>(
+      `v1/internal/content-draft-shares/${encodeURIComponent(token)}/image`,
+      { responseType: 'bytes' }
+    )
   }
 
   async getSharedContentDraft(token: string) {
@@ -3325,8 +3404,17 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Change future queue defaults without moving existing deliveries. */
-  async updateSocialSetQueue(id: string, input: Pick<SocialSetUpdate, 'baseVersion' | 'timeZone' | 'postingSlots' | 'naturalPostingTimes'>) {
-    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}/queue`, { body: input, method: 'PATCH' })
+  async updateSocialSetQueue(
+    id: string,
+    input: Pick<
+      SocialSetUpdate,
+      'baseVersion' | 'timeZone' | 'postingSlots' | 'naturalPostingTimes'
+    >
+  ) {
+    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}/queue`, {
+      body: input,
+      method: 'PATCH',
+    })
   }
 
   /** Deletes a set; `confirmation` is its name. */
@@ -3480,10 +3568,17 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async deleteContentDraft(id: string, expected?: { version?: number; calendarVersion?: number }) {
-    const params = new URLSearchParams(Object.entries(expected ?? {}).filter(([,v]) => v !== undefined).map(([k,v]) => [k,String(v)]))
-    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}?${params}`, {
-      method: 'DELETE',
-    })
+    const params = new URLSearchParams(
+      Object.entries(expected ?? {})
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)])
+    )
+    return this.request<{ deleted: true }>(
+      `v1/content-drafts/${encodeURIComponent(id)}?${params}`,
+      {
+        method: 'DELETE',
+      }
+    )
   }
 
   async listProjects(query: BackendProjectListQuery = {}) {

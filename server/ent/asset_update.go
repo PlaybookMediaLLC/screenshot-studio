@@ -211,6 +211,26 @@ func (_u *AssetUpdate) ClearCodecs() *AssetUpdate {
 	return _u
 }
 
+// SetUploadID sets the "upload_id" field.
+func (_u *AssetUpdate) SetUploadID(v string) *AssetUpdate {
+	_u.mutation.SetUploadID(v)
+	return _u
+}
+
+// SetNillableUploadID sets the "upload_id" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableUploadID(v *string) *AssetUpdate {
+	if v != nil {
+		_u.SetUploadID(*v)
+	}
+	return _u
+}
+
+// ClearUploadID clears the value of the "upload_id" field.
+func (_u *AssetUpdate) ClearUploadID() *AssetUpdate {
+	_u.mutation.ClearUploadID()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *AssetUpdate) SetStatus(v asset.Status) *AssetUpdate {
 	_u.mutation.SetStatus(v)
@@ -406,6 +426,12 @@ func (_u *AssetUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CodecsCleared() {
 		_spec.ClearField(asset.FieldCodecs, field.TypeString)
+	}
+	if value, ok := _u.mutation.UploadID(); ok {
+		_spec.SetField(asset.FieldUploadID, field.TypeString, value)
+	}
+	if _u.mutation.UploadIDCleared() {
+		_spec.ClearField(asset.FieldUploadID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
@@ -666,6 +692,26 @@ func (_u *AssetUpdateOne) ClearCodecs() *AssetUpdateOne {
 	return _u
 }
 
+// SetUploadID sets the "upload_id" field.
+func (_u *AssetUpdateOne) SetUploadID(v string) *AssetUpdateOne {
+	_u.mutation.SetUploadID(v)
+	return _u
+}
+
+// SetNillableUploadID sets the "upload_id" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableUploadID(v *string) *AssetUpdateOne {
+	if v != nil {
+		_u.SetUploadID(*v)
+	}
+	return _u
+}
+
+// ClearUploadID clears the value of the "upload_id" field.
+func (_u *AssetUpdateOne) ClearUploadID() *AssetUpdateOne {
+	_u.mutation.ClearUploadID()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *AssetUpdateOne) SetStatus(v asset.Status) *AssetUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -891,6 +937,12 @@ func (_u *AssetUpdateOne) sqlSave(ctx context.Context) (_node *Asset, err error)
 	}
 	if _u.mutation.CodecsCleared() {
 		_spec.ClearField(asset.FieldCodecs, field.TypeString)
+	}
+	if value, ok := _u.mutation.UploadID(); ok {
+		_spec.SetField(asset.FieldUploadID, field.TypeString, value)
+	}
+	if _u.mutation.UploadIDCleared() {
+		_spec.ClearField(asset.FieldUploadID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)

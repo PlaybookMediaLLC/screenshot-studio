@@ -56,6 +56,12 @@ export interface SaveToWorkspaceInput {
   blob: Blob
   fileName: string
   trpcClient: TRPCClient<AppRouter>
+  /**
+   * The reservation an interrupted upload of this same file made. When it
+   * is sent in parts, only the parts storage does not hold are sent again;
+   * otherwise this throws and the caller starts a new upload.
+   */
+  resumeAssetId?: string
 }
 
 export interface SavedAsset {
@@ -112,16 +118,29 @@ function assertSupported(blob: Blob, plan: string): void {
   }
 }
 
+/**
+ * The server's part size (uploadPartBytes in Go): a larger file goes in
+ * parts, so a dropped connection resends one part and the browser never
+ * holds the whole file in memory.
+ */
+const PART_BYTES = 16 * 1024 * 1024
+
 export async function saveExportToWorkspace(input: SaveToWorkspaceInput): Promise<SavedAsset> {
   const { blob, fileName, trpcClient } = input
+  if (input.resumeAssetId) {
+    const partSha256 = await sendParts(trpcClient, input.resumeAssetId, blob, input.onProgress)
+    await trpcClient.asset.completeUpload.mutate({ assetId: input.resumeAssetId, partSha256 })
+    return { assetId: input.resumeAssetId }
+  }
   // Read the current entitlement for each transfer: a stale browser session must
   // not advertise a paid upload ceiling after a workspace/plan change.
   const { plan } = await trpcClient.billing.summary.query()
   assertSupported(blob, plan)
 
-  const sha256 = await digestBlob(blob)
-
-  const { asset, uploadUrl } = await trpcClient.asset.signUpload.mutate({
+  const large = blob.size > PART_BYTES
+  // A large file is checked part by part instead; the server records its digest.
+  const sha256 = large ? undefined : await digestBlob(blob)
+  const reservation = {
     bytes: blob.size,
     classification: input.classification ?? 'input',
     projectId: input.projectId,
@@ -129,15 +148,72 @@ export async function saveExportToWorkspace(input: SaveToWorkspaceInput): Promis
     contentType: blob.type,
     fileName,
     sha256,
-  })
+  } as const
+  const { asset, uploadUrl, multipart } = large
+    ? await trpcClient.asset.signUploadInParts.mutate(reservation)
+    : { ...(await trpcClient.asset.signUpload.mutate(reservation)), multipart: undefined }
 
   await input.onReserved?.(asset.id)
-  // The signed URL is write-once; storage refuses a second PUT.
-  await uploadWithProgress(uploadUrl, blob, input.onProgress)
-
-  await trpcClient.asset.completeUpload.mutate({ assetId: asset.id, sha256 })
+  if (multipart) {
+    const partSha256 = await sendParts(trpcClient, asset.id, blob, input.onProgress)
+    await trpcClient.asset.completeUpload.mutate({ assetId: asset.id, partSha256 })
+  } else {
+    // The signed URL is write-once; storage refuses a second PUT.
+    await uploadWithProgress(uploadUrl, blob, WRITE_ONCE, percent(blob.size, input.onProgress))
+    await trpcClient.asset.completeUpload.mutate({ assetId: asset.id, sha256 })
+  }
 
   return { assetId: asset.id }
+}
+
+/**
+ * Send a reserved file in parts, skipping the parts storage already holds,
+ * and return each part's SHA-256 for the server to check against what it
+ * stored. One part is in memory at a time; a part that fails is sent again
+ * with a fresh URL, twice at most, since storage replaces a part sent again.
+ */
+async function sendParts(
+  trpcClient: TRPCClient<AppRouter>,
+  assetId: string,
+  blob: Blob,
+  onProgress?: (progress: number) => void
+): Promise<string[] | undefined> {
+  const plan = await trpcClient.asset.uploadParts.mutate({ assetId, parts: [] })
+  const stored = new Set(plan.uploaded)
+  const digests: (string | undefined)[] = []
+  let sent = 0
+  for (let number = 1; number <= plan.parts; number++) {
+    const part = blob.slice((number - 1) * plan.partBytes, number * plan.partBytes)
+    digests.push(await digestBlob(part))
+    for (let attempt = 1; !stored.has(number); attempt++) {
+      const { urls } = await trpcClient.asset.uploadParts.mutate({ assetId, parts: [number] })
+      try {
+        await uploadWithProgress(
+          urls[0].url,
+          part,
+          {},
+          onProgress && ((loaded) => percent(blob.size, onProgress)?.(sent + loaded))
+        )
+        break
+      } catch (error) {
+        if (attempt === 3) throw error
+      }
+    }
+    sent += part.size
+    onProgress?.(Math.round((sent / blob.size) * 95))
+  }
+  // Without a digest for every part (no Web Crypto), the server's own reading stands.
+  return digests.every(Boolean) ? (digests as string[]) : undefined
+}
+
+/** Headers a single signed PUT carries: both are part of its signature. */
+const WRITE_ONCE = { 'if-none-match': '*' }
+
+/** Report bytes sent as a percentage of `total`, held under 95 until the server confirms. */
+function percent(total: number, onProgress?: (progress: number) => void) {
+  return (
+    onProgress && ((loaded: number) => onProgress(Math.min(95, Math.round((loaded / total) * 95))))
+  )
 }
 
 /**
@@ -153,16 +229,20 @@ export function buildExportFileName(contentType: string, now = new Date()): stri
   return `shots-${stamp}.${extension}`
 }
 
-/** Transfer progress measures bytes actually sent; completion still waits for Go verification. */
+/**
+ * PUT bytes to a signed URL with `headers`; `onLoaded` gets the bytes sent so
+ * far. Completion still waits for Go verification.
+ */
 async function uploadWithProgress(
   url: string,
   blob: Blob,
-  onProgress?: (progress: number) => void
+  headers: Record<string, string>,
+  onLoaded?: (loaded: number) => void
 ): Promise<void> {
-  if (!onProgress || typeof XMLHttpRequest === 'undefined') {
+  if (!onLoaded || typeof XMLHttpRequest === 'undefined') {
     const response = await fetch(url, {
       body: blob,
-      headers: { 'content-type': blob.type, 'if-none-match': '*' },
+      headers: { 'content-type': blob.type, ...headers },
       method: 'PUT',
     })
     if (!response.ok)
@@ -173,11 +253,10 @@ async function uploadWithProgress(
     const request = new XMLHttpRequest()
     request.open('PUT', url)
     request.setRequestHeader('content-type', blob.type)
-    request.setRequestHeader('if-none-match', '*')
+    for (const [name, value] of Object.entries(headers)) request.setRequestHeader(name, value)
     request.timeout = 15 * 60 * 1000
     request.upload.onprogress = (event) => {
-      if (event.lengthComputable)
-        onProgress(Math.min(95, Math.round((event.loaded / event.total) * 95)))
+      if (event.lengthComputable) onLoaded(event.loaded)
     }
     const fail = () =>
       reject(

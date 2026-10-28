@@ -246,6 +246,7 @@ var (
 		{Name: "height", Type: field.TypeInt, Nullable: true},
 		{Name: "durationMs", Type: field.TypeInt, Nullable: true},
 		{Name: "codecs", Type: field.TypeString, Nullable: true},
+		{Name: "uploadId", Type: field.TypeString, Nullable: true},
 		{Name: "status", Type: field.TypeEnum, Enums: []string{"PENDING", "UPLOADED", "FAILED", "DELETED"}, Default: "PENDING"},
 		{Name: "altText", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
@@ -265,7 +266,7 @@ var (
 			{
 				Name:    "asset_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{AssetColumns[1], AssetColumns[14]},
+				Columns: []*schema.Column{AssetColumns[1], AssetColumns[15]},
 			},
 		},
 	}

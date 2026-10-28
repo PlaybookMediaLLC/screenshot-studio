@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"hash"
 	"image"
 	"io"
 	"net/http"
@@ -101,15 +102,54 @@ func countPDFPages(object io.Reader) (int, bool) { return mediadocument.CountPag
 // probedVideo are the containers whose movie header scheduling reads.
 var probedVideo = map[string]bool{"video/mp4": true, "video/quicktime": true}
 
+// partHashes hashes a stream in multipart upload parts.
+type partHashes struct {
+	current hash.Hash
+	filled  int
+	sums    []string
+}
+
+func (p *partHashes) Write(data []byte) (int, error) {
+	written := len(data)
+	for len(data) > 0 {
+		if p.current == nil {
+			p.current, p.filled = sha256.New(), 0
+		}
+		take := min(len(data), uploadPartBytes-p.filled)
+		p.current.Write(data[:take])
+		p.filled += take
+		data = data[take:]
+		if p.filled == uploadPartBytes {
+			p.close()
+		}
+	}
+	return written, nil
+}
+
+func (p *partHashes) close() {
+	if p.current != nil {
+		p.sums = append(p.sums, fmt.Sprintf("%x", p.current.Sum(nil)))
+		p.current = nil
+	}
+}
+
+// uploadedContent is what verification read: the bytes' SHA-256 and, for an
+// MP4 or QuickTime movie, what the container holds.
+type uploadedContent struct {
+	video  *mediavideo.Info
+	sha256 string
+}
+
 // verifyUploadedContent consumes at most the reserved size plus one byte. Neither
 // a dishonest Content-Length nor a caller-supplied checksum establishes readiness.
-// For an MP4 or QuickTime movie it also returns what the container holds.
-func verifyUploadedContent(source io.Reader, mediaType string, size int, digest *string) (*mediavideo.Info, error) {
+// partDigests, when given, are each upload part's expected SHA-256.
+func verifyUploadedContent(source io.Reader, mediaType string, size int, digest *string, partDigests ...string) (uploadedContent, error) {
 	hash := sha256.New()
+	parts := &partHashes{}
 	limited := &io.LimitedReader{R: source, N: int64(size) + 1}
-	reader := bufio.NewReader(io.TeeReader(limited, hash))
+	reader := bufio.NewReader(io.TeeReader(limited, io.MultiWriter(hash, parts)))
 	if err := verifyAssetBytes(mediaType, reader); err != nil {
-		return nil, err
+		return uploadedContent{}, err
 	}
 	var video *mediavideo.Info
 	var probeErr error
@@ -118,16 +158,22 @@ func verifyUploadedContent(source io.Reader, mediaType string, size int, digest 
 		video, probeErr = &info, err
 	}
 	if _, err := io.Copy(io.Discard, reader); err != nil {
-		return nil, err
+		return uploadedContent{}, err
 	}
 	if int64(size)+1-limited.N != int64(size) {
-		return nil, invalid("The stored file size differs from the reserved upload. Upload the complete file again.")
+		return uploadedContent{}, invalid("The stored file size differs from the reserved upload. Upload the complete file again.")
 	}
 	if digest != nil && !strings.EqualFold(fmt.Sprintf("%x", hash.Sum(nil)), *digest) {
-		return nil, invalid("The uploaded file checksum does not match. Upload the file again.")
+		return uploadedContent{}, invalid("The uploaded file checksum does not match. Upload the file again.")
+	}
+	parts.close()
+	for i, want := range partDigests {
+		if i >= len(parts.sums) || !strings.EqualFold(parts.sums[i], want) {
+			return uploadedContent{}, invalid(fmt.Sprintf("Part %d of the upload differs from the file that was sent. Upload the file again.", i+1))
+		}
 	}
 	if probeErr != nil {
-		return nil, invalid("This file is not a complete MP4 or MOV video. Export it again and upload the whole file.")
+		return uploadedContent{}, invalid("This file is not a complete MP4 or MOV video. Export it again and upload the whole file.")
 	}
-	return video, nil
+	return uploadedContent{video: video, sha256: fmt.Sprintf("%x", hash.Sum(nil))}, nil
 }

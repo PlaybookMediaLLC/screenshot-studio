@@ -120,6 +120,11 @@ func Codecs(v string) predicate.Asset {
 	return predicate.Asset(sql.FieldEQ(FieldCodecs, v))
 }
 
+// UploadID applies equality check predicate on the "upload_id" field. It's identical to UploadIDEQ.
+func UploadID(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldUploadID, v))
+}
+
 // AltText applies equality check predicate on the "alt_text" field. It's identical to AltTextEQ.
 func AltText(v string) predicate.Asset {
 	return predicate.Asset(sql.FieldEQ(FieldAltText, v))
@@ -818,6 +823,81 @@ func CodecsEqualFold(v string) predicate.Asset {
 // CodecsContainsFold applies the ContainsFold predicate on the "codecs" field.
 func CodecsContainsFold(v string) predicate.Asset {
 	return predicate.Asset(sql.FieldContainsFold(FieldCodecs, v))
+}
+
+// UploadIDEQ applies the EQ predicate on the "upload_id" field.
+func UploadIDEQ(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldUploadID, v))
+}
+
+// UploadIDNEQ applies the NEQ predicate on the "upload_id" field.
+func UploadIDNEQ(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldNEQ(FieldUploadID, v))
+}
+
+// UploadIDIn applies the In predicate on the "upload_id" field.
+func UploadIDIn(vs ...string) predicate.Asset {
+	return predicate.Asset(sql.FieldIn(FieldUploadID, vs...))
+}
+
+// UploadIDNotIn applies the NotIn predicate on the "upload_id" field.
+func UploadIDNotIn(vs ...string) predicate.Asset {
+	return predicate.Asset(sql.FieldNotIn(FieldUploadID, vs...))
+}
+
+// UploadIDGT applies the GT predicate on the "upload_id" field.
+func UploadIDGT(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldGT(FieldUploadID, v))
+}
+
+// UploadIDGTE applies the GTE predicate on the "upload_id" field.
+func UploadIDGTE(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldGTE(FieldUploadID, v))
+}
+
+// UploadIDLT applies the LT predicate on the "upload_id" field.
+func UploadIDLT(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldLT(FieldUploadID, v))
+}
+
+// UploadIDLTE applies the LTE predicate on the "upload_id" field.
+func UploadIDLTE(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldLTE(FieldUploadID, v))
+}
+
+// UploadIDContains applies the Contains predicate on the "upload_id" field.
+func UploadIDContains(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldContains(FieldUploadID, v))
+}
+
+// UploadIDHasPrefix applies the HasPrefix predicate on the "upload_id" field.
+func UploadIDHasPrefix(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldHasPrefix(FieldUploadID, v))
+}
+
+// UploadIDHasSuffix applies the HasSuffix predicate on the "upload_id" field.
+func UploadIDHasSuffix(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldHasSuffix(FieldUploadID, v))
+}
+
+// UploadIDIsNil applies the IsNil predicate on the "upload_id" field.
+func UploadIDIsNil() predicate.Asset {
+	return predicate.Asset(sql.FieldIsNull(FieldUploadID))
+}
+
+// UploadIDNotNil applies the NotNil predicate on the "upload_id" field.
+func UploadIDNotNil() predicate.Asset {
+	return predicate.Asset(sql.FieldNotNull(FieldUploadID))
+}
+
+// UploadIDEqualFold applies the EqualFold predicate on the "upload_id" field.
+func UploadIDEqualFold(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEqualFold(FieldUploadID, v))
+}
+
+// UploadIDContainsFold applies the ContainsFold predicate on the "upload_id" field.
+func UploadIDContainsFold(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldContainsFold(FieldUploadID, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

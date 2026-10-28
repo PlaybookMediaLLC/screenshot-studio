@@ -39,6 +39,8 @@ type Asset struct {
 	DurationMs *int `json:"duration_ms,omitempty"`
 	// Codecs holds the value of the "codecs" field.
 	Codecs *string `json:"codecs,omitempty"`
+	// UploadID holds the value of the "upload_id" field.
+	UploadID *string `json:"upload_id,omitempty"`
 	// Status holds the value of the "status" field.
 	Status asset.Status `json:"status,omitempty"`
 	// AltText holds the value of the "alt_text" field.
@@ -78,7 +80,7 @@ func (*Asset) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case asset.FieldBytes, asset.FieldWidth, asset.FieldHeight, asset.FieldDurationMs:
 			values[i] = new(sql.NullInt64)
-		case asset.FieldID, asset.FieldOrganizationID, asset.FieldCaptureID, asset.FieldParentAssetID, asset.FieldObjectKey, asset.FieldSha256, asset.FieldMediaType, asset.FieldCodecs, asset.FieldStatus, asset.FieldAltText:
+		case asset.FieldID, asset.FieldOrganizationID, asset.FieldCaptureID, asset.FieldParentAssetID, asset.FieldObjectKey, asset.FieldSha256, asset.FieldMediaType, asset.FieldCodecs, asset.FieldUploadID, asset.FieldStatus, asset.FieldAltText:
 			values[i] = new(sql.NullString)
 		case asset.FieldCreatedAt, asset.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -175,6 +177,13 @@ func (_m *Asset) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Codecs = new(string)
 				*_m.Codecs = value.String
+			}
+		case asset.FieldUploadID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field upload_id", values[i])
+			} else if value.Valid {
+				_m.UploadID = new(string)
+				*_m.UploadID = value.String
 			}
 		case asset.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -286,6 +295,11 @@ func (_m *Asset) String() string {
 	builder.WriteString(", ")
 	if v := _m.Codecs; v != nil {
 		builder.WriteString("codecs=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.UploadID; v != nil {
+		builder.WriteString("upload_id=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

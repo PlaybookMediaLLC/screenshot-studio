@@ -20,7 +20,12 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type objects struct{ deleted []string }
+type objects struct{ deleted, aborted []string }
+
+func (o *objects) AbortUpload(_ context.Context, org, key, uploadID string) error {
+	o.aborted = append(o.aborted, org+"/"+key+"#"+uploadID)
+	return nil
+}
 
 func (o *objects) Delete(_ context.Context, org, key string) error {
 	if !strings.HasPrefix(key, "org/"+org+"/") {
@@ -425,6 +430,8 @@ func TestAssetCleanupRetiresOnlyUnneededMedia(t *testing.T) {
 	asset("stale-pending", "PENDING", "org/a/input/stale-pending/1/a.png", "25 hours")
 	asset("fresh-pending", "PENDING", "org/a/input/fresh-pending/1/a.png", "1 hour")
 	asset("old-failed", "FAILED", "org/a/input/old-failed/1/a.png", "2 hours")
+	// A large upload abandoned partway: its parts are discarded with it.
+	exec(t, s.DB, `UPDATE asset SET "uploadId"='upload-1' WHERE id='stale-pending'`)
 	asset("original", "UPLOADED", "org/a/input/original/1/a.png", "90 days")
 	asset("unused-copy", "UPLOADED", derived+"unused/1/x.png", "31 days")
 	asset("queued-copy", "UPLOADED", derived+"queued/1/x.png", "31 days")
@@ -462,5 +469,8 @@ func TestAssetCleanupRetiresOnlyUnneededMedia(t *testing.T) {
 	}
 	if len(o.deleted) != 4 {
 		t.Fatalf("objects deleted: %v", o.deleted)
+	}
+	if strings.Join(o.aborted, ",") != "a/org/a/input/stale-pending/1/a.png#upload-1" {
+		t.Fatalf("uploads aborted: %v", o.aborted)
 	}
 }

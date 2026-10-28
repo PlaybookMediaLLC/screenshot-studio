@@ -20,6 +20,17 @@ export const assetCompleteSchema = z.object({
   sha256: sha256Schema.optional(),
 })
 
+/** Completing a file sent in parts: each part's SHA-256, as the browser read it. */
+export const assetPartsCompleteSchema = assetCompleteSchema.extend({
+  partSha256: z.array(sha256Schema).max(10_000).optional(),
+})
+
+/** The parts of a multipart upload to sign, at most 20 at a time; none asks only what is stored. */
+export const assetUploadPartsSchema = z.object({
+  assetId: assetIdSchema,
+  parts: z.array(z.number().int().min(1).max(10_000)).max(20),
+})
+
 export const assetListQuerySchema = z.object({
   search: z.string().trim().max(200).optional(),
   classification: z.enum(assetClassifications).optional(),

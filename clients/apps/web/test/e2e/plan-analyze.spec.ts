@@ -28,6 +28,12 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     expect(all.status, JSON.stringify(all.body)).toBe(200)
     const sets = (all.body as { items: { id: string; version: number; name: string }[] }).items
     const first = sets[0]
+    // The planned day: three days out, so it is never past, but never a month's last day.
+    // Later steps move it a day or show it in Tokyo time, and the month view opened on
+    // this day must still contain it.
+    const daysAhead = (count: number) =>
+      new Date(Date.now() + count * 86400000).toISOString().slice(0, 10)
+    const day = daysAhead(3).slice(0, 7) === daysAhead(4).slice(0, 7) ? daysAhead(3) : daysAhead(4)
     expect(
       (
         await apiRequest(page, `/api/v1/social-sets/${first.id}`, {
@@ -36,10 +42,8 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
             baseVersion: first.version,
             name: 'Same name',
             timeZone: 'America/New_York',
-            // The slot falls on the planned day, three days out, so it is never already past.
-            postingSlots: [
-              { weekday: new Date(Date.now() + 3 * 86400000).getUTCDay(), time: '09:15' },
-            ],
+            // The slot falls on the planned day, so it is never already past.
+            postingSlots: [{ weekday: new Date(`${day}T00:00:00Z`).getUTCDay(), time: '09:15' }],
           },
         })
       ).status
@@ -59,7 +63,6 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     } finally {
       await db.end()
     }
-    const day = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
     const sourceDraft = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {

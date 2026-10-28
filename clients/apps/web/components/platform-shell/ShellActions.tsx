@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { usePathname, useRouter } from 'next/navigation'
 import { createWritingDraft } from '@/components/write/pending-draft'
+import { DraftRequestError } from '@/lib/content-drafts/client'
 import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
 import { cn } from '@/lib/utils'
 import { useKeys } from '@/components/write/shortcuts'
@@ -220,7 +221,9 @@ export function ShellSearch({
         `/api/v1/content-drafts?${new URLSearchParams({ limit: '6', search: term })}`,
         { signal }
       )
-      if (!response.ok) return []
+      // A failure stays a failure: the dialog says search is unavailable, not that nothing matched.
+      if (!response.ok)
+        throw new DraftRequestError('Drafts could not be searched.', response.status)
       type Found = { id: string; plainText: string; title: string }
       const page = (await response.json()) as { items: Found[]; pinned: Found[] }
       // An untitled draft is named by its opening words, so results can be told apart.
@@ -291,7 +294,15 @@ export function ShellSearch({
               </SidebarLink>
             </Button>
           ))}
-          {!items.length && !draftResults.length ? (
+          {draftsEnabled && term.length >= 2 && drafts.isError ? (
+            <p role="status" className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
+              Drafts could not be searched right now.
+              <Button onClick={() => void drafts.refetch()} size="sm" variant="outline">
+                Try again
+              </Button>
+            </p>
+          ) : null}
+          {!items.length && !draftResults.length && !drafts.isError ? (
             <p role="status" className="p-3 text-sm text-muted-foreground">
               {draftsEnabled && term.length >= 2 && drafts.isFetching
                 ? 'Searching drafts…'

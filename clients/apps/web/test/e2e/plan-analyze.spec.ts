@@ -90,7 +90,7 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       const all = page.getByRole('checkbox', { name: 'All publishing brands' })
       await expect(all).toBeChecked()
       await page.getByRole('checkbox', { name: 'Show Same name linkedin', exact: true }).uncheck()
-      expect(await all.evaluate((node: HTMLInputElement) => node.indeterminate)).toBe(true)
+      await expect(all).toBeChecked({ indeterminate: true })
       await page.getByRole('checkbox', { name: 'Show Same name x', exact: true }).uncheck()
       await expect(all).not.toBeChecked()
       await all.check()

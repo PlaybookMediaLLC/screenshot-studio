@@ -2,7 +2,9 @@ import { cookies, headers } from 'next/headers'
 import type { ReactNode } from 'react'
 import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard'
 import { PreferencesProvider } from '@/components/settings/PreferencesProvider'
+import { PendingDraftInput } from '@/components/write/pending-draft'
 import { getPageAccess } from '@/lib/auth/page-access'
+import { hasPermission } from '@/lib/auth/permissions'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { NAVIGATION_COOKIE, parseNavigation } from '@/lib/settings/appearance'
 import { cn } from '@/lib/utils'
@@ -63,8 +65,14 @@ export async function PlatformShell({
         </a>
         <PlatformSidebar
           campaignsEnabled={campaignsEnabled}
+          canWriteDrafts={access ? hasPermission(access.role, 'artifact:edit') : false}
           draftsEnabled={contentDraftsEnabled()}
           initialNavigation={navigation}
+          notificationIdentity={
+            access?.organization
+              ? { userId: access.session.user.id, workspaceId: access.organization.id }
+              : undefined
+          }
           organizationName={organizationName}
           paidPlan={access?.hasPaidPlan ?? true}
           variant={variant}
@@ -96,6 +104,8 @@ export async function PlatformShell({
           </div>
         )}
         <OnboardingProgressCard />
+        {/* New → Post types here from any page while the draft is made. */}
+        <PendingDraftInput />
       </div>
     </PreferencesProvider>
   )

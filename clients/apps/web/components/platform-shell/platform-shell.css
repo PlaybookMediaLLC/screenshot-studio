@@ -184,12 +184,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
 
 /* Page controls share states without changing editor tools or rendered artwork. */
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
-    [type='radio'],
-    [type='checkbox'],
-    [type='range'],
-    [type='color']
-  ) {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):not([type='radio'], [type='checkbox'], [type='range'], [type='color']) {
   border-color: var(--input);
   border-radius: var(--platform-control-radius);
   background-color: var(--platform-control);
@@ -201,7 +201,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):focus-visible {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):focus-visible {
   border-color: var(--ring);
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
@@ -211,7 +216,8 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   :where(
     [data-slot='input'],
     [data-slot='textarea'],
-    [data-slot='select-trigger']
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
   )[aria-invalid='true'] {
   border-color: var(--destructive);
 }
@@ -220,13 +226,19 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   :where(
     [data-slot='input'],
     [data-slot='textarea'],
-    [data-slot='select-trigger']
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
   )[aria-invalid='true']:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 18%, transparent);
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):disabled {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):disabled {
   background-color: var(--muted);
   cursor: not-allowed;
 }
@@ -282,7 +294,8 @@ body:has([data-platform-shell]) [data-slot='button']:active {
     :where(
       [data-slot='input'],
       [data-slot='textarea'],
-      [data-slot='select-trigger']
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
     ):focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 2px;
@@ -300,7 +313,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   }
 
   :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+    :where(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ):not(
       :disabled,
       :focus-visible,
       [aria-invalid='true'],
@@ -335,19 +353,24 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   }
 
   .platform-shell[data-platform-variant='page']
-    :where([data-slot='button'], [data-slot='input'], [data-slot='select-trigger']):not(
-      [type='radio'],
-      [type='checkbox'],
-      [type='range'],
-      [type='color']
-    ) {
+    :where(
+      [data-slot='button'],
+      [data-slot='input'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ):not([type='radio'], [type='checkbox'], [type='range'], [type='color']) {
     min-height: 2.75rem;
   }
 }
 
 @media (max-width: 767px) {
   :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']) {
+    :where(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ) {
     font-size: 1rem;
   }
 }
@@ -420,4 +443,60 @@ body:has([data-platform-shell]) input:-webkit-autofill {
 :where(.platform-shell [data-platform-scroll] *) {
   scrollbar-color: var(--hairline-strong) transparent;
   scrollbar-width: thin;
+}
+
+/* SidebarLink's pending bar: instant feedback while the next page loads. */
+.platform-nav-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 200;
+  height: 2px;
+  pointer-events: none;
+  background: var(--primary);
+  transform-origin: left;
+  animation: platform-nav-progress 1.2s var(--platform-ease, ease-out) forwards;
+}
+
+@keyframes platform-nav-progress {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-nav-progress {
+    animation: none;
+    transform: scaleX(0.6);
+  }
+}
+
+/* An open composer panel (preview, comments) takes the drafts rail's room on
+   screens too narrow for both, so the editor keeps a readable column. */
+@media (max-width: 1535px) {
+  [data-testid='write-frame']:has([data-composer-panel]) [data-write-rail-column] {
+    display: none;
+  }
+}
+
+/* While a settings save bar is up, scrolling to a field (focus, Tab) keeps it
+   clear of the bar instead of underneath it. */
+.platform-shell [data-platform-scroll]:has([data-settings-save-bar]) {
+  scroll-padding-bottom: 6rem;
+}
+
+/* Menus and dialogs arrive opaque and keep their short scale-in: fading in
+   from transparent left the page's text showing through them as they opened. */
+body:has([data-platform-shell])
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='select-content']
+  ) {
+  --tw-enter-opacity: 1;
 }

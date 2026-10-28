@@ -59,6 +59,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { DraftDiscussions } from '@/lib/content-drafts/discussions'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
+import { divLinesAsParagraphs } from '@/lib/content-drafts/paste'
 import { cn } from '@/lib/utils'
 import { POST_COLUMN } from './layout'
 import {
@@ -97,7 +98,13 @@ const UploadPlaceholderPlugin = MediaKit.find(
 export type DraftEditorUser = { id: string; name: string }
 
 /** A live session: the collab server's URL and the draft it edits. */
-export type DraftCollaboration = { draftId: string; url: string; generation?: number }
+export type DraftCollaboration = {
+  draftId: string
+  url: string
+  generation?: number
+  /** A token the page issued with its own render, used for the first connection. */
+  issued?: { documentName: string; expiresAt: Date; token: string }
+}
 
 function collaborationRoom(session: DraftCollaboration): string {
   return `content-draft:${session.draftId}${session.generation ? `:${session.generation}` : ''}`
@@ -243,12 +250,20 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
         editor.redo()
       }}
       onPasteCapture={(event) => {
+        const clipboard = event.clipboardData
+        const html = clipboard.files.length ? '' : clipboard.getData('text/html')
+        const lines = html ? divLinesAsParagraphs(html) : null
         // A paste over a selection replaces it through Plate's own handling.
-        if (!editor.api.isCollapsed() || !leaveHeader(editor)) return
+        const header = editor.api.isCollapsed() && leaveHeader(editor)
+        if (!lines && !header) return
         // Handled here, so Slate's own paste handler below does not insert it again.
         event.preventDefault()
         event.stopPropagation()
-        editor.tf.insertData(event.clipboardData)
+        if (!lines) return editor.tf.insertData(clipboard)
+        const data = new DataTransfer()
+        for (const type of clipboard.types)
+          if (type !== 'Files') data.setData(type, type === 'text/html' ? lines : clipboard.getData(type))
+        editor.tf.insertData(data)
       }}
     >
       <EditorContainer
@@ -313,7 +328,7 @@ function Presence() {
     <div className="flex flex-wrap justify-end gap-1.5 px-6 py-2" data-testid="presence">
       {people.map((person, index) => (
         <span
-          className="rounded-full px-2 py-0.5 text-xs text-foreground"
+          className="max-w-48 truncate whitespace-nowrap rounded-full px-2 py-0.5 text-xs text-foreground"
           key={`${person.name}-${index}`}
           style={{ background: person.color }}
         >
@@ -644,13 +659,23 @@ export default function DraftEditor({
   // Read once: later saves must not re-seed the plugin and reset its state.
   const [initialDiscussions] = React.useState(storedDiscussions)
   const plugins = React.useMemo(() => {
+    let issued = collaboration?.issued
     const live = collaboration
       ? createYjsPlugin(
           {
             access: readOnly ? 'read' : 'write',
             documentName: documentName ?? collaborationRoom(collaboration),
-            getToken: () =>
-              collabToken(collaboration.draftId, documentName ?? collaborationRoom(collaboration)),
+            getToken: () => {
+              const room = documentName ?? collaborationRoom(collaboration)
+              const first = issued
+              issued = undefined
+              // The page's token saves a round trip; reconnects ask for a fresh one.
+              return first &&
+                first.documentName === room &&
+                first.expiresAt.getTime() - Date.now() > 15_000
+                ? Promise.resolve(first.token)
+                : collabToken(collaboration.draftId, room)
+            },
             hocuspocusUrl: collaboration.url,
             // WebRTC stays off: it would need our own signaling and TURN servers.
             webrtc: null,

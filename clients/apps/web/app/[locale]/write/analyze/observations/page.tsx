@@ -1,4 +1,5 @@
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
+import { AnalyzeNav } from '@/components/plan/WorkspaceNav'
 import { WriteFrame } from '@/components/write/WriteFrame'
 import { SocialAnalytics } from '@/components/write/analytics'
 import { hasPermission } from '@/lib/auth/permissions'
@@ -28,17 +29,19 @@ export default async function AnalyzePage({
   } catch (error) {
     rangeError = error instanceof Error ? error.message : 'Choose valid dates.'
   }
-  const observations =
+  const [observations, recommendations] = await Promise.all([
     data.activeSet && !rangeError
-      ? await backendSDK(access.tenant).listSocialAnalytics({
+      ? backendSDK(access.tenant).listSocialAnalytics({
           socialSetId: data.activeSet.id,
           from: range.from,
           to: range.to,
         })
-      : { items: [] }
-  const recommendations = data.activeSet
-    ? await backendSDK(access.tenant).bestPostingTimes(data.activeSet.id)
-    : { items: [] }
+      : { items: [] },
+    // The backend refuses best times (403) on plans without advanced scheduling.
+    data.activeSet && data.advancedScheduling
+      ? backendSDK(access.tenant).bestPostingTimes(data.activeSet.id)
+      : { items: [] },
+  ])
   return (
     <PlatformShell
       campaignsEnabled={access.campaignWorkflowEnabled}
@@ -46,13 +49,18 @@ export default async function AnalyzePage({
     >
       <WriteFrame
         activeId="analyze"
+        section="analyze"
         data={data}
-        campaignsEnabled={access.campaignWorkflowEnabled}
+        campaignsEnabled={access.campaignWorkflowEnabled && access.hasPaidPlan}
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canManageSets={hasPermission(access.role, 'workspace:update')}
         canPublish={hasPermission(access.role, 'publish:manage')}
         canReview={hasPermission(access.role, 'release:approve')}
       >
+        <AnalyzeNav
+          active="Recorded observations and CSV"
+          scope={data.activeSet ? `?set=${data.activeSet.id}` : ''}
+        />
         <SocialAnalytics
           observations={observations.items}
           recommendations={recommendations.items}

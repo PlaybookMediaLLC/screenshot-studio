@@ -38,16 +38,25 @@ type WriteContextValue = {
   canReview: boolean
   /** Update the library's URL state; undefined removes a key. */
   setQuery: (next: Record<string, string | undefined>) => void
-  /** The draft list as last saved here: the open draft's line stays current. */
-  showSaved: (draft: { excerpt: string; id: string; title: string; updatedAt: string }) => void
+  /** The draft list as last saved or edited here: the open draft's line stays current. */
+  showSaved: (draft: { id: string } & DraftLine) => void
   hideDraft: (id: string) => void
   beforeLeaveRef: React.MutableRefObject<(() => Promise<void>) | null>
   /** Opens the mounted composer's preview without navigation or an editor remount. */
   openPreviewRef: React.MutableRefObject<(() => void) | null>
-  saved: Record<string, { excerpt: string; title: string; updatedAt: string }>
+  /** Archives or restores the open draft through its composer, which keeps its version. */
+  archiveRef: React.MutableRefObject<((status: 'draft' | 'archived') => Promise<void>) | null>
+  saved: Record<string, DraftLine>
+  /** The list for the chosen tab or search is still loading. */
+  libraryPending: boolean
 }
 
+/** What this browser knows about a draft's row before the server's list does. */
+type DraftLine = { excerpt?: string; pinned?: boolean; title?: string; updatedAt?: string }
+
 const WriteContext = React.createContext<WriteContextValue | null>(null)
+
+const TABS = ['drafts', 'queue', 'posted', 'archived'] as const
 
 /** The Write context; every Write component sits inside a provider. */
 export function useWrite(): WriteContextValue {
@@ -79,6 +88,7 @@ export function WriteProvider({
   const params = useSearchParams()
   const beforeLeaveRef = React.useRef<(() => Promise<void>) | null>(null)
   const openPreviewRef = React.useRef<(() => void) | null>(null)
+  const archiveRef = React.useRef<((status: 'draft' | 'archived') => Promise<void>) | null>(null)
   React.useEffect(() => registerNavigationGuard(() => beforeLeaveRef.current?.()), [])
   React.useEffect(() => {
     const guard = (event: MouseEvent) => {
@@ -137,24 +147,42 @@ export function WriteProvider({
     [pathname, query, router]
   )
   const showSaved = React.useCallback<WriteContextValue['showSaved']>(
-    ({ id, ...draft }) => setSaved((current) => ({ ...current, [id]: draft })),
+    ({ id, ...draft }) => setSaved((current) => ({ ...current, [id]: { ...current[id], ...draft } })),
     []
   )
+  // A pin shows at once, until the server's list arrives; from then on, it is the server's.
+  React.useEffect(
+    () =>
+      setSaved((current) =>
+        Object.values(current).some((line) => line.pinned !== undefined)
+          ? Object.fromEntries(
+              Object.entries(current).map(([id, line]) => {
+                const next = { ...line }
+                delete next.pinned
+                return [id, next]
+              })
+            )
+          : current
+      ),
+    [data]
+  )
   const search = params.get('q') ?? ''
+  // Tabs switch in the browser: Drafts and Queue share the loaded list, others load as JSON.
+  const tab = TABS.find((item) => item === params.get('tab')) ?? 'drafts'
+  const view = tab === 'queue' ? 'drafts' : tab
+  const loaded = view === (data.query.tab === 'queue' ? 'drafts' : data.query.tab)
   const [results, setResults] = React.useState<{ key: string; items: LibraryDraft[] } | null>(null)
-  const searchQuery = new URLSearchParams({
-    limit: '100',
-    search,
-    view: data.query.tab === 'queue' ? 'drafts' : data.query.tab,
-  })
+  const searchQuery = new URLSearchParams({ limit: '100', search, view })
   if (data.activeSet) searchQuery.set('socialSetId', data.activeSet.id)
   if (data.query.kind) searchQuery.set('kind', data.query.kind)
   if (data.query.sort) searchQuery.set('sort', data.query.sort)
   if (data.experiments.tags && data.query.tag) searchQuery.set('tagId', data.query.tag)
   const searchKey = searchQuery.toString()
+  // Another tab, or a search past the loaded page, comes from the drafts API.
+  const fetched = !loaded || Boolean(search && data.hasMore)
   React.useEffect(() => {
-    if (!search || !data.hasMore) return
-    // Search beyond the loaded page through JSON, without remounting the route.
+    if (!fetched) return
+    // Search beyond the loaded page, or load another tab, through JSON without remounting the route.
     const controller = new AbortController()
     void fetch(`/api/v1/content-drafts?${searchKey}`, { signal: controller.signal })
       .then(async (response) => {
@@ -164,31 +192,39 @@ export function WriteProvider({
           setResults({ key: searchKey, items: [...page.pinned, ...page.items].map(libraryDraft) })
       })
       .catch(() => {
-        if (!controller.signal.aborted)
-          toast.error('Search failed. Showing matches from loaded drafts.')
+        if (controller.signal.aborted) return
+        toast.error(
+          loaded
+            ? 'Search failed. Showing matches from loaded drafts.'
+            : 'This list could not load. Try again.'
+        )
+        // A tab with nothing loaded stops showing its loading rows.
+        if (!loaded) setResults({ key: searchKey, items: [] })
       })
     return () => controller.abort()
-  }, [data.hasMore, search, searchKey])
+    // A refreshed page (after an archive, restore or pin) reloads the fetched list too.
+  }, [data, fetched, loaded, searchKey])
+  const remote = fetched && results?.key === searchKey ? results.items : null
+  const libraryPending = !loaded && !remote
   const visibleData = React.useMemo(
     () => ({
       ...data,
-      query: { ...data.query, q: search || undefined },
-      library: (data.hasMore && results?.key === searchKey ? results.items : data.library).filter(
-        (draft) => {
-          if (removed.includes(draft.id)) return false
-          const latest = saved[draft.id]
-          return `${latest?.title ?? draft.title} ${draft.searchText} ${latest?.excerpt ?? ''}`
-            .toLocaleLowerCase()
-            .includes(search.toLocaleLowerCase())
-        }
-      ),
+      query: { ...data.query, q: search || undefined, tab },
+      library: (remote ?? (loaded ? data.library : [])).filter((draft) => {
+        if (removed.includes(draft.id)) return false
+        const latest = saved[draft.id]
+        return `${latest?.title ?? draft.title} ${draft.searchText} ${latest?.excerpt ?? ''}`
+          .toLocaleLowerCase()
+          .includes(search.toLocaleLowerCase())
+      }),
     }),
-    [data, removed, results, saved, search, searchKey]
+    [data, loaded, removed, remote, saved, search, tab]
   )
   const value = React.useMemo(
     () => ({
       beforeLeaveRef,
       openPreviewRef,
+      archiveRef,
       hideDraft,
       activeId,
       canEdit,
@@ -196,6 +232,7 @@ export function WriteProvider({
       canPublish,
       canReview,
       data: visibleData,
+      libraryPending,
       saved,
       setQuery,
       showSaved,
@@ -208,6 +245,7 @@ export function WriteProvider({
       canReview,
       hideDraft,
       visibleData,
+      libraryPending,
       saved,
       setQuery,
       showSaved,

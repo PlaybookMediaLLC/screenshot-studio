@@ -46,6 +46,10 @@ if (posthogKey) {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
       ui_host: 'https://us.posthog.com',
       defaults: '2026-01-30',
+      // The project's remote config turned recording on for every page: an extra
+      // script and network traffic on each navigation, and the only console error
+      // (React #441, from inside the recorder). Events still flow.
+      disable_session_recording: true,
       before_send: scrubEvent,
     })
   }

@@ -1111,9 +1111,6 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	if input.BaseVersion < 1 {
 		return nil, invalid("baseVersion is required.")
 	}
-	if _, err := c.loadDraft(ctx, actor, id); err != nil {
-		return nil, err
-	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err

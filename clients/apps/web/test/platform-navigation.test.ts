@@ -4,6 +4,7 @@ import {
   matchesDestination,
   paidCapability,
   platformArea,
+  publishLinks,
   platformHref,
   safeReturnPath,
   PLATFORM_DESTINATIONS,
@@ -168,6 +169,7 @@ test('the plan page names the paid capability a free workspace asked for', () =>
   assert.equal(paidCapability('/?editor=app-store'), 'Store screenshots')
   assert.equal(paidCapability('/canvas/new'), 'Canvas')
   assert.equal(paidCapability('/compress-image'), 'Image tools')
+  assert.equal(paidCapability('/write/deliveries'), 'Campaign deliveries')
   // Free areas and unsafe or missing destinations name nothing.
   for (const from of ['/write', '/home', '/workspace', '//evil.test', 'https://evil.test', null])
     assert.equal(paidCapability(from), null, String(from))
@@ -189,4 +191,17 @@ test('destination search understands task words, not just area names', () => {
 
 test('the in-app plan page follows the theme like the rest of the app', () => {
   assert.equal(followsTheme('/upgrade'), true)
+})
+
+test('Publish lists Campaign deliveries only where campaigns can be used', () => {
+  const labels = (campaigns: boolean) =>
+    publishLinks('?set=a', undefined, campaigns).map((item) => item.label)
+  assert.deepEqual(labels(true), [
+    'Drafts',
+    'Calendar',
+    'Analyze',
+    'Campaign deliveries',
+    'Link checks',
+  ])
+  assert.deepEqual(labels(false), ['Drafts', 'Calendar', 'Analyze', 'Link checks'])
 })

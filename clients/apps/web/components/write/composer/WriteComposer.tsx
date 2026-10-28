@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/sheet'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { DraftPosts } from '@/components/drafts/DraftPosts'
-import type { DraftEditorUser } from '@/components/drafts/DraftEditor'
+import type { DraftCollaboration, DraftEditorUser } from '@/components/drafts/DraftEditor'
 import { DraftSettingsDrawer } from '@/components/drafts/DraftSettingsDrawer'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { ReviewControls } from '@/components/drafts/DraftTools'
@@ -166,6 +166,7 @@ const POST_OPTIONS_KEY = 'shots-post-options'
 
 export function WriteComposer({
   aiEnabled,
+  collabToken = null,
   collabUrl,
   draft: initial,
   posts: initialPosts,
@@ -175,6 +176,8 @@ export function WriteComposer({
   vocabulary,
 }: {
   aiEnabled: boolean
+  /** The first collaboration token, issued with the page. */
+  collabToken?: DraftCollaboration['issued'] | null
   collabUrl: string | null
   draft: DraftWire
   posts: DraftPostWire[]
@@ -191,6 +194,7 @@ export function WriteComposer({
   const {
     beforeLeaveRef,
     openPreviewRef,
+    archiveRef,
     canEdit,
     canPublish,
     canReview,
@@ -223,12 +227,38 @@ export function WriteComposer({
         updatedAt: saved.updatedAt,
       }),
   })
+  // The list follows what is typed, not the save that confirms it seconds later.
+  const [opened] = React.useState(document)
+  const typed = document === opened ? null : document
+  // The opening blocks give the excerpt without serializing a long draft per keystroke.
+  const excerpt =
+    typed &&
+    draftPlainText(Array.isArray(typed.value) ? typed.value.slice(0, 12) : typed.value).slice(
+      0,
+      180
+    )
+  const title = typed && (typed.title.trim() || 'Untitled draft')
+  React.useEffect(() => {
+    if (excerpt === null || title === null) return
+    // A transition, so redrawing the list never holds up the next keystroke.
+    React.startTransition(() =>
+      showSaved({ excerpt, id: initial.id, title, updatedAt: new Date().toISOString() })
+    )
+  }, [excerpt, initial.id, showSaved, title])
+  // Only the first render's token: each refresh issues another, and a new
+  // collaboration object would rebuild the editor under the writer's caret.
+  const [issued] = React.useState(collabToken)
   const collaboration = React.useMemo(
     () =>
       collabUrl
-        ? { draftId: initial.id, url: collabUrl, generation: server.collabGeneration }
+        ? {
+            draftId: initial.id,
+            url: collabUrl,
+            generation: server.collabGeneration,
+            issued: issued ?? undefined,
+          }
         : null,
-    [collabUrl, initial.id, server.collabGeneration]
+    [collabUrl, initial.id, issued, server.collabGeneration]
   )
   React.useEffect(() => {
     beforeLeaveRef.current = async () => {
@@ -569,12 +599,15 @@ export function WriteComposer({
     if (number > 0) movePost(current, number, number + delta)
   }
   async function pin() {
+    // The list shows the pin at once; a refusal puts it back.
+    showSaved({ id: initial.id, pinned: !server.pinnedAt })
     try {
       const saved = await writeApi.properties(initial.id, { pinned: !server.pinnedAt })
       setServer(saved)
       toast.success(saved.pinnedAt ? 'Pinned.' : 'Unpinned.')
       router.refresh()
     } catch (error) {
+      showSaved({ id: initial.id, pinned: Boolean(server.pinnedAt) })
       toast.error(error instanceof Error ? error.message : 'The pin did not change.')
     }
   }
@@ -588,6 +621,12 @@ export function WriteComposer({
       toast.error(error instanceof Error ? error.message : 'The draft did not change.')
     }
   }
+  React.useEffect(() => {
+    archiveRef.current = archive
+    return () => {
+      archiveRef.current = null
+    }
+  })
   const postHeader = (number: number) => {
     const account = accounts.find((item) => item.channel === active)
     const post = activePublication.serialized.posts.find((item) => item.group === number)
@@ -779,7 +818,8 @@ export function WriteComposer({
         )}
         data-testid="write-composer"
       >
-        <div className="flex min-w-0 flex-1 flex-col">
+        {/* The panel gives way before the editor drops below a readable column. */}
+        <div className="flex min-w-[min(26rem,100%)] flex-1 flex-col">
           <header className="sticky top-0 z-20 flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-border bg-card/90 px-3 py-2 backdrop-blur">
             <DraftsDrawerButton />
             {set ? (
@@ -1169,7 +1209,9 @@ export function WriteComposer({
                 collaboration={collaboration}
                 initialDiscussions={readDiscussionsOnce(initial)}
                 initialValue={document.value}
-                key={`primary-${editorKey}-${server.collabGeneration}`}
+                // A new generation is a new live room. Without one, every body save
+                // bumps it, and keying on it remounted the editor (and lost focus) per save.
+                key={`primary-${editorKey}${collaboration ? `-${server.collabGeneration}` : ''}`}
                 onChange={(next) => update({ value: next })}
                 onDiscussionsChange={onDiscussionsChange}
                 onEditor={(next) => {
@@ -1306,7 +1348,8 @@ export function WriteComposer({
         {panel && !focus && !narrow && !params.has('settings') ? (
           <aside
             aria-label={PANEL_TITLES[panel]}
-            className="relative max-w-[48vw] shrink-0 overflow-y-auto border-l border-border animate-in fade-in duration-150"
+            className="relative min-w-64 max-w-[48vw] overflow-y-auto border-l border-border animate-in fade-in duration-150"
+            data-composer-panel
             style={{ width: panelWidth }}
           >
             <div

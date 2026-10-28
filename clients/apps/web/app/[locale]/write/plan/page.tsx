@@ -41,6 +41,7 @@ export default async function WritePlanPage({
           initialDay={query.day ?? query.week}
           initialView={query.view}
           advancedScheduling={advanced.allowed}
+          campaignsEnabled={access.campaignWorkflowEnabled && access.hasPaidPlan}
         />
       </div>
     </PlatformShell>

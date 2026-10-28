@@ -1,14 +1,21 @@
 'use client'
 
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { platformHref } from '@/lib/platform/navigation'
 import { usePathname, useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { hasLinkNavigationGuards, prepareLinkNavigation } from '@/lib/platform/navigation-guard'
 import { type ComponentProps, useState } from 'react'
 
+/** While the clicked link's page loads, a bar across the top says the click landed. */
+function PendingBar() {
+  const { pending } = useLinkStatus()
+  return pending ? <span aria-hidden="true" className="platform-nav-progress" /> : null
+}
+
 /** Prefetch sidebar destinations only after hover or keyboard focus. */
 export function SidebarLink({
+  children,
   href,
   onMouseEnter,
   onFocus,
@@ -52,6 +59,9 @@ export function SidebarLink({
         setIntentPath(pathname)
         onFocus?.(event)
       }}
-    />
+    >
+      {children}
+      <PendingBar />
+    </Link>
   )
 }

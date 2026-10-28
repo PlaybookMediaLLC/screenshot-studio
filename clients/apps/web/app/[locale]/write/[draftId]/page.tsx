@@ -6,6 +6,7 @@ import { WriteFrame } from '@/components/write/WriteFrame'
 import { contentDraftPostSchema, contentDraftSchema } from '@/lib/api/contracts/content-drafts'
 import { hasPermission } from '@/lib/auth/permissions'
 import {
+  createContentDraftCollabToken,
   getContentDraft,
   getContentDraftSettings,
   listContentDraftPosts,
@@ -25,16 +26,26 @@ type WriteDraftPageProps = {
 export default async function WriteDraftPage({ params, searchParams }: WriteDraftPageProps) {
   const { draftId, locale } = await params
   const access = await requireDraftsPageAccess(locale, `/write/${draftId}`)
-  const draft = await getContentDraft(access.tenant, draftId)
-  if (!draft) notFound()
   const canManageSets = hasPermission(access.role, 'workspace:update')
-  const [data, posts, aiEnabled, settings] = await Promise.all([
+  // Real-time co-editing runs when the collaboration server is configured.
+  const collabUrl = process.env.PLATFORM_COLLAB_URL || null
+  // Every read starts at once; only the library's draft list waits for the draft's set.
+  const loadingDraft = getContentDraft(access.tenant, draftId)
+  const query = await searchParams
+  const [draft, data, posts, aiEnabled, settings, collabToken] = await Promise.all([
+    loadingDraft,
     // The library shows the set the draft belongs to, whatever was open before.
-    loadWrite(access.tenant, { ...(await searchParams), set: draft.socialSetId ?? undefined }),
+    loadWrite(
+      access.tenant,
+      loadingDraft.then((loaded) => ({ ...query, set: loaded?.socialSetId ?? undefined }))
+    ),
     listContentDraftPosts(access.tenant, draftId),
     isAiEnabled(access.tenant).catch(() => false),
     getContentDraftSettings(access.tenant),
+    // Issued with the page, so the editor connects without waiting for another request.
+    collabUrl ? createContentDraftCollabToken(access.tenant, draftId).catch(() => null) : null,
   ])
+  if (!draft) notFound()
   const canEdit = hasPermission(access.role, 'artifact:edit')
   return (
     <PlatformShell
@@ -42,7 +53,7 @@ export default async function WriteDraftPage({ params, searchParams }: WriteDraf
       organizationName={access.organization.name}
     >
       <WriteFrame
-        campaignsEnabled={access.campaignWorkflowEnabled}
+        campaignsEnabled={access.campaignWorkflowEnabled && access.hasPaidPlan}
         activeId={draft.id}
         canEdit={canEdit}
         canManageSets={canManageSets}
@@ -52,8 +63,8 @@ export default async function WriteDraftPage({ params, searchParams }: WriteDraf
       >
         <WriteComposer
           aiEnabled={aiEnabled}
-          // Real-time co-editing runs when the collaboration server is configured.
-          collabUrl={process.env.PLATFORM_COLLAB_URL || null}
+          collabToken={collabToken}
+          collabUrl={collabUrl}
           draft={contentDraftSchema.parse(draft)}
           key={draft.id}
           posts={(posts ?? []).map((post) => contentDraftPostSchema.parse(post))}

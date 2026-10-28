@@ -130,8 +130,11 @@ func (c *Configuration) Authorize(ctx context.Context, actor Actor) error {
 }
 
 func (c *Configuration) AuthorizeRead(ctx context.Context, actor Actor) error {
-	return c.authorizeRoles(ctx, actor, "owner", "admin", "creator", "approver", "publisher", "viewer", "member")
+	return c.authorizeRoles(ctx, actor, readRoles...)
 }
+
+// readRoles may read a workspace: every member role.
+var readRoles = []string{"owner", "admin", "creator", "approver", "publisher", "viewer", "member"}
 
 // authorizeRoles checks the actor against the workspace on every operation.
 // A session must hold one of the roles. An API key, support grant, or service

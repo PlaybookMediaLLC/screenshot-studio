@@ -27,7 +27,7 @@ export default async function WriteSettingsPage({ params, searchParams }: Settin
       organizationName={access.organization.name}
     >
       <WriteFrame
-        campaignsEnabled={access.campaignWorkflowEnabled}
+        campaignsEnabled={access.campaignWorkflowEnabled && access.hasPaidPlan}
         activeId="settings"
         canEdit={hasPermission(access.role, 'artifact:edit')}
         canManageSets={canManageSets}

@@ -93,7 +93,8 @@ function NavLink({
         ) : null
       }
       collapsed={collapsed}
-      href={href}
+      // Locked areas open the plan page directly instead of bouncing off a server redirect.
+      href={locked ? `/upgrade?from=${encodeURIComponent(href)}` : href}
       icon={icon}
       label={t(key)}
       name={locked ? `${t(key)} (Pro)` : undefined}
@@ -104,12 +105,14 @@ function NavLink({
 
 function Navigation({
   campaignsEnabled,
+  canWriteDrafts,
   collapsed,
   draftsEnabled,
   onNavigate,
   paidPlan,
 }: {
   campaignsEnabled: boolean
+  canWriteDrafts: boolean
   collapsed: boolean
   draftsEnabled: boolean
   onNavigate?: () => void
@@ -125,6 +128,7 @@ function Navigation({
       <ShellActions
         collapsed={collapsed}
         campaignsEnabled={campaignsEnabled}
+        canWriteDrafts={canWriteDrafts}
         draftsEnabled={draftsEnabled}
         onNavigate={onNavigate}
         paidPlan={paidPlan}
@@ -313,9 +317,13 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 export interface PlatformSidebarProps {
   campaignsEnabled: boolean
   /** Show Drafts; content drafts are behind PLATFORM_CONTENT_DRAFTS. */
+  /** The member may write drafts, so New → Post creates one at once. */
+  canWriteDrafts?: boolean
   draftsEnabled?: boolean
   /** The layout the navigation cookie names, for the first paint. */
   initialNavigation?: z.infer<typeof navigationLayoutSchema>
+  /** Who is signed in where, from the server, for the notification count. */
+  notificationIdentity?: { userId: string; workspaceId: string }
   organizationName?: string
   /** False on free basic scheduling, which marks the paid areas before they are opened. */
   paidPlan?: boolean
@@ -379,8 +387,10 @@ function useNavigationExpanded(
  */
 export function PlatformSidebar({
   campaignsEnabled,
+  canWriteDrafts = false,
   draftsEnabled = false,
   initialNavigation = 'expanded',
+  notificationIdentity,
   organizationName = 'Workspace',
   paidPlan = true,
   variant,
@@ -414,7 +424,7 @@ export function PlatformSidebar({
         >
           <Brand collapsed={collapsed} />
           <div className={cn('flex items-center gap-0.5', collapsed && 'flex-col')}>
-            <NotificationCenter />
+            <NotificationCenter initialIdentity={notificationIdentity} />
             <SearchButton />
           </div>
         </div>
@@ -422,6 +432,7 @@ export function PlatformSidebar({
         <div className="mt-5 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-0.5 py-1">
           <Navigation
             campaignsEnabled={campaignsEnabled}
+            canWriteDrafts={canWriteDrafts}
             collapsed={collapsed}
             draftsEnabled={draftsEnabled}
             paidPlan={paidPlan}
@@ -445,7 +456,7 @@ export function PlatformSidebar({
         <Brand collapsed={false} />
         <div className="ms-auto flex items-center gap-1">
           <ThemeToggle />
-          <NotificationCenter />
+          <NotificationCenter initialIdentity={notificationIdentity} />
           <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
             <SheetTrigger asChild>
               <Button
@@ -471,6 +482,7 @@ export function PlatformSidebar({
               <div className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1">
                 <Navigation
                   campaignsEnabled={campaignsEnabled}
+                  canWriteDrafts={canWriteDrafts}
                   collapsed={false}
                   draftsEnabled={draftsEnabled}
                   paidPlan={paidPlan}

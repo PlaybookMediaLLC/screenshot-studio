@@ -39,6 +39,7 @@ import { calendarPostSchema } from '@/lib/api/contracts/content-draft-platform'
 import { contentDraftSchema } from '@/lib/api/contracts/content-drafts'
 import { calendarResultSchema, type CalendarPlacement } from '@/lib/api/contracts/plan-analyze'
 import { call, draftsApi, type DraftWire, type DraftPostWire } from '@/lib/content-drafts/client'
+import { postFailureReason, postState, STATUS_GROUPS } from '@/lib/content-drafts/post-status'
 import { draftPlainText, channelForPlatform } from '@/lib/content-drafts/serialize'
 import {
   writeApi,
@@ -235,15 +236,13 @@ export function PlanWorkspace({
             setId: p.socialSetId ?? '',
             accountId: p.channelConnectionId,
             platform: p.platform,
+            // Placed at its slot; publishAt is the instant after any natural offset.
             at: p.slotAt ?? p.scheduledFor,
+            publishAt: p.scheduledFor,
             zone: p.scheduleTimeZone ?? 'UTC',
             deliveryStatus: p.status,
-            status:
-              p.status === 'PUBLISHED'
-                ? 'Published'
-                : p.status === 'FAILED' || p.status === 'UNKNOWN_DELIVERY'
-                  ? 'Failed'
-                  : 'Scheduled',
+            status: postState(p.status, p.scheduledFor),
+            failureCode: p.failureCode,
             title: p.draftTitle,
             text: p.caption,
             tagIds: p.tagIds,
@@ -427,7 +426,7 @@ export function PlanWorkspace({
         !item.campaignId &&
         (item.status === 'Planned'
           ? canEdit
-          : item.status === 'Scheduled' && item.deliveryStatus === 'SCHEDULED' && canPublish)
+          : ['Scheduled', 'Overdue'].includes(item.status) && canPublish)
       }
       onDragStart={(e) => {
         e.dataTransfer.setData(DRAG, item.id)
@@ -440,7 +439,7 @@ export function PlanWorkspace({
       onClick={() =>
         item.campaignId ? router.push(`/campaigns/${item.campaignId}`) : setDetail(item)
       }
-      className={`block h-auto w-full min-w-0 rounded-lg border p-2 text-left text-xs font-normal whitespace-normal shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
+      className={`block h-auto w-full min-w-0 rounded-lg border p-2 text-left text-xs font-normal whitespace-normal shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : item.status === 'Needs check' || item.status === 'Overdue' ? 'border-amber-500' : 'border-sky-500'} bg-background`}
     >
       <span className="block truncate text-muted-foreground">
         {new Date(item.at).toLocaleTimeString(undefined, {
@@ -448,13 +447,19 @@ export function PlanWorkspace({
           minute: '2-digit',
           timeZone: prefs.zone,
         })}{' '}
-        ·{' '}
-        {item.deliveryStatus === 'PROCESSING'
-          ? 'Publishing'
-          : item.deliveryStatus === 'UNKNOWN_DELIVERY'
-            ? 'Needs reconciliation'
-            : item.status}
+        · {item.status}
       </span>
+      {item.publishAt && new Date(item.publishAt).getTime() !== new Date(item.at).getTime() ? (
+        <span className="block truncate text-muted-foreground" data-testid="calendar-publish-at">
+          publishes{' '}
+          {new Date(item.publishAt).toLocaleTimeString(undefined, {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: prefs.zone,
+          })}
+        </span>
+      ) : null}
       <strong className="block truncate">
         {sets.find((s) => s.id === item.setId)?.name ?? 'Account'}{' '}
         {prefs.platforms ? `· ${item.platform}` : ''}
@@ -733,7 +738,7 @@ export function PlanWorkspace({
               <PopoverContent align="end" className="grid w-64 gap-3 p-3">
                 <fieldset>
                   <legend>Status</legend>
-                  {['Planned', 'Scheduled', 'Published', 'Failed'].map((s) => (
+                  {STATUS_GROUPS.map((s) => (
                     <Label className="py-1 font-normal" key={s}>
                       <Checkbox
                         checked={prefs.statuses.includes(s)}
@@ -1037,7 +1042,7 @@ export function PlanWorkspace({
                     candidate.id !== detail.id &&
                     candidate.setId === detail.setId &&
                     candidate.accountId === detail.accountId &&
-                    candidate.deliveryStatus === 'SCHEDULED' &&
+                    candidate.status === 'Scheduled' &&
                     !candidate.campaignId
                 )
               : []
@@ -1622,6 +1627,8 @@ function PlanDetail({
     }
   }, [item.draftId, item.setId, reload])
   const set = sets.find((s) => s.id === item.setId)
+  // A calendar unschedule returns the draft to a plan, so it cancels all of these.
+  const queued = receipts.filter((post) => post.status === 'SCHEDULED')
   return (
     <Sheet
       open
@@ -1641,8 +1648,30 @@ function PlanDetail({
           <p className="text-xs">
             Original scheduling timezone: {item.zone}
             <br />
-            Publication instant: {new Date(item.at).toISOString()}
+            {item.postId ? (
+              <>
+                {item.publishAt &&
+                new Date(item.publishAt).getTime() !== new Date(item.at).getTime()
+                  ? `Queue slot: ${new Date(item.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: item.zone })} · `
+                  : ''}
+                Scheduled for:{' '}
+                {new Date(item.publishAt ?? item.at).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'medium',
+                  timeZone: item.zone,
+                })}{' '}
+                ({item.zone}) · {new Date(item.publishAt ?? item.at).toISOString()}
+              </>
+            ) : (
+              <>Planned for: {new Date(item.at).toISOString()} · planning never publishes</>
+            )}
           </p>
+          {['Failed', 'Needs check', 'Cancelled'].includes(item.status) &&
+          postFailureReason(item.failureCode) ? (
+            <p className="text-xs text-red-700 dark:text-red-300" role="status">
+              {postFailureReason(item.failureCode)}
+            </p>
+          ) : null}
           {item.url ? (
             <Button asChild className="h-auto justify-start p-0" size={null} variant="link">
               <a href={item.url} rel="noreferrer" target="_blank">
@@ -1692,8 +1721,7 @@ function PlanDetail({
               disabled={
                 busy ||
                 (item.status === 'Planned' ? !canEdit : !canPublish) ||
-                !['Planned', 'Scheduled'].includes(item.status) ||
-                (item.status === 'Scheduled' && !canPublish)
+                !['Planned', 'Scheduled', 'Overdue'].includes(item.status)
               }
               onClick={() =>
                 void run(async () => {
@@ -1702,7 +1730,7 @@ function PlanDetail({
                 })
               }
             >
-              Move
+              {item.postId && queued.length > 1 ? `Move this ${item.platform} post` : 'Move'}
             </Button>
             {item.status === 'Planned' ? (
               <>
@@ -1734,16 +1762,24 @@ function PlanDetail({
                 </Button>
               </>
             ) : null}
-            {item.status === 'Scheduled' ? (
+            {['Scheduled', 'Overdue'].includes(item.status) ? (
               <Button
                 variant="outline"
                 disabled={busy || !canPublish}
                 onClick={() => void mutate('unschedule', [placement(item, item.at)])}
               >
-                Unschedule
+                {queued.length > 1 ? `Unschedule all ${queued.length} destinations` : 'Unschedule'}
               </Button>
             ) : null}
           </div>
+          {item.postId && queued.length > 1 ? (
+            <p className="text-xs text-muted-foreground" data-testid="unschedule-scope">
+              Move changes only this {item.platform} post. Unschedule returns the whole draft to a
+              plan and cancels every queued destination:{' '}
+              {queued.map((post) => post.platform).join(', ')}. To stop one destination only, cancel
+              it from the draft’s posts in the editor.
+            </p>
+          ) : null}
           {!canEdit ? (
             <p className="text-sm">Your role can view content. Editing requires an editor role.</p>
           ) : !canPublish ? (

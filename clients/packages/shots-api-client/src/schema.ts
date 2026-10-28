@@ -1657,6 +1657,10 @@ export interface components {
                 slotAt: string | null;
                 /** @default null */
                 socialSetId: string | null;
+                /** @default null */
+                failureCode: string | null;
+                /** @default null */
+                publishedAt: string | null;
             }[];
             undo: {
                 draftId: string;
@@ -3086,6 +3090,10 @@ export interface components {
                 slotAt: string | null;
                 /** @default null */
                 socialSetId: string | null;
+                /** @default null */
+                failureCode: string | null;
+                /** @default null */
+                publishedAt: string | null;
             }[];
         };
         ContentDraftCopy: {
@@ -4619,6 +4627,10 @@ export interface operations {
                             /** @default null */
                             slotAt: string | null;
                             socialSetId: string | null;
+                            /** @default null */
+                            failureCode: string | null;
+                            /** @default null */
+                            publishedAt: string | null;
                             campaignId?: string | null;
                             campaignTitle?: string;
                             version: number;

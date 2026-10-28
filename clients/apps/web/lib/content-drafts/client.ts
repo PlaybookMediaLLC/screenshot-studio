@@ -33,7 +33,9 @@ export type DraftPostWire = z.output<typeof contentDraftPostSchema>
 export class DraftRequestError extends Error {
   constructor(
     message: string,
-    readonly status: number
+    readonly status: number,
+    /** A failure's extra fields, such as a taken queue slot's `nextQueueSlot`. */
+    readonly details: Record<string, unknown> = {}
   ) {
     super(message)
     this.name = 'DraftRequestError'
@@ -57,7 +59,8 @@ export async function call<T>(
   if (!response.ok) {
     throw new DraftRequestError(
       body?.message ?? body?.error ?? `The request failed (${response.status}).`,
-      response.status
+      response.status,
+      body ?? {}
     )
   }
   return body as T

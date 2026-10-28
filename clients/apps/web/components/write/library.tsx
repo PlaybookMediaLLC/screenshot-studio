@@ -1253,6 +1253,9 @@ function QueueList() {
                 value={item.at}
               />
               · {item.kind === 'planned' ? 'planned, not scheduled' : item.platform}
+              {item.state && item.state !== 'Scheduled' ? (
+                <span className="text-amber-700 dark:text-amber-300">· {item.state}</span>
+              ) : null}
             </p>
             <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-foreground">
               {item.caption}

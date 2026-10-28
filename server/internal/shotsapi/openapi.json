@@ -2849,6 +2849,20 @@
                               "null"
                             ]
                           },
+                          "failureCode": {
+                            "default": null,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "publishedAt": {
+                            "default": null,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
                           "campaignId": {
                             "type": [
                               "string",
@@ -2900,6 +2914,8 @@
                           "scheduleTimeZone",
                           "slotAt",
                           "socialSetId",
+                          "failureCode",
+                          "publishedAt",
                           "version",
                           "calendarVersion",
                           "draftId",
@@ -15124,6 +15140,20 @@
                     "string",
                     "null"
                   ]
+                },
+                "failureCode": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "publishedAt": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
               "required": [
@@ -15144,7 +15174,9 @@
                 "scheduleMode",
                 "scheduleTimeZone",
                 "slotAt",
-                "socialSetId"
+                "socialSetId",
+                "failureCode",
+                "publishedAt"
               ],
               "additionalProperties": false
             }
@@ -21645,6 +21677,20 @@
                     "string",
                     "null"
                   ]
+                },
+                "failureCode": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "publishedAt": {
+                  "default": null,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
               "required": [
@@ -21665,7 +21711,9 @@
                 "scheduleMode",
                 "scheduleTimeZone",
                 "slotAt",
-                "socialSetId"
+                "socialSetId",
+                "failureCode",
+                "publishedAt"
               ],
               "additionalProperties": false
             }

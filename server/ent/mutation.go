@@ -79240,6 +79240,8 @@ type ScheduledPostMutation struct {
 	natural_offset_seconds    *int
 	addnatural_offset_seconds *int
 	schedule_time_zone        *string
+	schedule_intent           *string
+	failure_code              *string
 	created_at                *time.Time
 	updated_at                *time.Time
 	clearedFields             map[string]struct{}
@@ -80606,6 +80608,104 @@ func (m *ScheduledPostMutation) ResetScheduleTimeZone() {
 	delete(m.clearedFields, scheduledpost.FieldScheduleTimeZone)
 }
 
+// SetScheduleIntent sets the "schedule_intent" field.
+func (m *ScheduledPostMutation) SetScheduleIntent(s string) {
+	m.schedule_intent = &s
+}
+
+// ScheduleIntent returns the value of the "schedule_intent" field in the mutation.
+func (m *ScheduledPostMutation) ScheduleIntent() (r string, exists bool) {
+	v := m.schedule_intent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScheduleIntent returns the old "schedule_intent" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldScheduleIntent(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScheduleIntent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScheduleIntent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScheduleIntent: %w", err)
+	}
+	return oldValue.ScheduleIntent, nil
+}
+
+// ClearScheduleIntent clears the value of the "schedule_intent" field.
+func (m *ScheduledPostMutation) ClearScheduleIntent() {
+	m.schedule_intent = nil
+	m.clearedFields[scheduledpost.FieldScheduleIntent] = struct{}{}
+}
+
+// ScheduleIntentCleared returns if the "schedule_intent" field was cleared in this mutation.
+func (m *ScheduledPostMutation) ScheduleIntentCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldScheduleIntent]
+	return ok
+}
+
+// ResetScheduleIntent resets all changes to the "schedule_intent" field.
+func (m *ScheduledPostMutation) ResetScheduleIntent() {
+	m.schedule_intent = nil
+	delete(m.clearedFields, scheduledpost.FieldScheduleIntent)
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (m *ScheduledPostMutation) SetFailureCode(s string) {
+	m.failure_code = &s
+}
+
+// FailureCode returns the value of the "failure_code" field in the mutation.
+func (m *ScheduledPostMutation) FailureCode() (r string, exists bool) {
+	v := m.failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCode returns the old "failure_code" field's value of the ScheduledPost entity.
+// If the ScheduledPost object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ScheduledPostMutation) OldFailureCode(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCode: %w", err)
+	}
+	return oldValue.FailureCode, nil
+}
+
+// ClearFailureCode clears the value of the "failure_code" field.
+func (m *ScheduledPostMutation) ClearFailureCode() {
+	m.failure_code = nil
+	m.clearedFields[scheduledpost.FieldFailureCode] = struct{}{}
+}
+
+// FailureCodeCleared returns if the "failure_code" field was cleared in this mutation.
+func (m *ScheduledPostMutation) FailureCodeCleared() bool {
+	_, ok := m.clearedFields[scheduledpost.FieldFailureCode]
+	return ok
+}
+
+// ResetFailureCode resets all changes to the "failure_code" field.
+func (m *ScheduledPostMutation) ResetFailureCode() {
+	m.failure_code = nil
+	delete(m.clearedFields, scheduledpost.FieldFailureCode)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *ScheduledPostMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -80793,7 +80893,7 @@ func (m *ScheduledPostMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ScheduledPostMutation) Fields() []string {
-	fields := make([]string, 0, 28)
+	fields := make([]string, 0, 30)
 	if m.organization_id != nil {
 		fields = append(fields, scheduledpost.FieldOrganizationID)
 	}
@@ -80872,6 +80972,12 @@ func (m *ScheduledPostMutation) Fields() []string {
 	if m.schedule_time_zone != nil {
 		fields = append(fields, scheduledpost.FieldScheduleTimeZone)
 	}
+	if m.schedule_intent != nil {
+		fields = append(fields, scheduledpost.FieldScheduleIntent)
+	}
+	if m.failure_code != nil {
+		fields = append(fields, scheduledpost.FieldFailureCode)
+	}
 	if m.created_at != nil {
 		fields = append(fields, scheduledpost.FieldCreatedAt)
 	}
@@ -80938,6 +81044,10 @@ func (m *ScheduledPostMutation) Field(name string) (ent.Value, bool) {
 		return m.NaturalOffsetSeconds()
 	case scheduledpost.FieldScheduleTimeZone:
 		return m.ScheduleTimeZone()
+	case scheduledpost.FieldScheduleIntent:
+		return m.ScheduleIntent()
+	case scheduledpost.FieldFailureCode:
+		return m.FailureCode()
 	case scheduledpost.FieldCreatedAt:
 		return m.CreatedAt()
 	case scheduledpost.FieldUpdatedAt:
@@ -81003,6 +81113,10 @@ func (m *ScheduledPostMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldNaturalOffsetSeconds(ctx)
 	case scheduledpost.FieldScheduleTimeZone:
 		return m.OldScheduleTimeZone(ctx)
+	case scheduledpost.FieldScheduleIntent:
+		return m.OldScheduleIntent(ctx)
+	case scheduledpost.FieldFailureCode:
+		return m.OldFailureCode(ctx)
 	case scheduledpost.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case scheduledpost.FieldUpdatedAt:
@@ -81198,6 +81312,20 @@ func (m *ScheduledPostMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetScheduleTimeZone(v)
 		return nil
+	case scheduledpost.FieldScheduleIntent:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScheduleIntent(v)
+		return nil
+	case scheduledpost.FieldFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCode(v)
+		return nil
 	case scheduledpost.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -81317,6 +81445,12 @@ func (m *ScheduledPostMutation) ClearedFields() []string {
 	if m.FieldCleared(scheduledpost.FieldScheduleTimeZone) {
 		fields = append(fields, scheduledpost.FieldScheduleTimeZone)
 	}
+	if m.FieldCleared(scheduledpost.FieldScheduleIntent) {
+		fields = append(fields, scheduledpost.FieldScheduleIntent)
+	}
+	if m.FieldCleared(scheduledpost.FieldFailureCode) {
+		fields = append(fields, scheduledpost.FieldFailureCode)
+	}
 	return fields
 }
 
@@ -81390,6 +81524,12 @@ func (m *ScheduledPostMutation) ClearField(name string) error {
 		return nil
 	case scheduledpost.FieldScheduleTimeZone:
 		m.ClearScheduleTimeZone()
+		return nil
+	case scheduledpost.FieldScheduleIntent:
+		m.ClearScheduleIntent()
+		return nil
+	case scheduledpost.FieldFailureCode:
+		m.ClearFailureCode()
 		return nil
 	}
 	return fmt.Errorf("unknown ScheduledPost nullable field %s", name)
@@ -81476,6 +81616,12 @@ func (m *ScheduledPostMutation) ResetField(name string) error {
 		return nil
 	case scheduledpost.FieldScheduleTimeZone:
 		m.ResetScheduleTimeZone()
+		return nil
+	case scheduledpost.FieldScheduleIntent:
+		m.ResetScheduleIntent()
+		return nil
+	case scheduledpost.FieldFailureCode:
+		m.ResetFailureCode()
 		return nil
 	case scheduledpost.FieldCreatedAt:
 		m.ResetCreatedAt()

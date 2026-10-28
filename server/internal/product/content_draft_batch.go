@@ -77,16 +77,14 @@ func (c *Configuration) PreviewDraftBatchTimes(ctx context.Context, actor Actor,
 	if input.Mode != "queue" {
 		return nil, invalid("Choose queue or spread.")
 	}
-	result := make([]time.Time, 0, input.Count)
-	for i := 0; i < input.Count; i++ {
-		at, err := nextFreeSlot(ctx, c.client, set, now)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, at)
-		now = at.Add(-time.Minute + time.Nanosecond)
+	free, err := freeQueueSlots(ctx, c.client, set, now)
+	if err != nil {
+		return nil, err
 	}
-	return result, nil
+	if len(free) < input.Count {
+		return nil, conflict(fmt.Sprintf("The queue has %d free slots in the next twelve weeks. Select fewer drafts or add posting times.", len(free)))
+	}
+	return free[:input.Count], nil
 }
 
 // ValidateContentDraftSchedule checks a batch row without quota charges,

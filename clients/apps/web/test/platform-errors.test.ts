@@ -94,6 +94,18 @@ test('a backend plan gate becomes the entitlement envelope', () => {
   assert.deepEqual(failure?.headers, { 'x-current-plan': 'free', 'x-required-plan': 'pro' })
 })
 
+test('a taken queue slot is a conflict that names the next free slot', () => {
+  const failure = toApiFailure(
+    new BackendSDKError('The queue slot you reviewed is no longer free.', 409, {
+      code: 'queue_slot_taken',
+      nextQueueSlot: '2026-11-02T09:00:00Z',
+    })
+  )
+  assert.equal(failure?.status, 409)
+  assert.equal(failure?.code, 'conflict')
+  assert.deepEqual(failure?.extra, { nextQueueSlot: '2026-11-02T09:00:00Z' })
+})
+
 test('unknown errors are left for the caller to log as a 500', () => {
   assert.equal(toApiFailure(new Error('Unexpected.')), null)
   assert.equal(toApiFailure(namedError('PrismaClientKnownRequestError', 'P2028')), null)

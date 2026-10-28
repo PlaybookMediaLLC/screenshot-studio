@@ -399,7 +399,7 @@ func TestWritePublishing(t *testing.T) {
 		}
 		failed, unknown := result.Posts[0].ID, result.Posts[1].ID
 		w.exec(t, `UPDATE scheduled_post SET status='FAILED' WHERE id=$1`, failed)
-		w.exec(t, `UPDATE scheduled_post SET status='UNKNOWN_DELIVERY' WHERE id=$1`, unknown)
+		w.exec(t, `UPDATE scheduled_post SET status='UNKNOWN_DELIVERY',"failureCode"='UNKNOWN_DELIVERY' WHERE id=$1`, unknown)
 		retried, err := repo.RetryContentDraftPost(ctx, owner, failed)
 		if err != nil || retried.Post.ChannelConnectionID != x || retried.Post.Status != "SCHEDULED" {
 			t.Fatalf("retried=%+v err=%v", retried, err)
@@ -415,7 +415,7 @@ func TestWritePublishing(t *testing.T) {
 		}
 		live, err := repo.ReconcileContentDraftPost(ctx, owner, unknown, ReconcileInput{Live: true,
 			URL: "https://www.linkedin.com/feed/update/urn:li:share:7100000000000000000/"})
-		if err != nil || live.Status != "PUBLISHED" || live.URL == nil {
+		if err != nil || live.Status != "PUBLISHED" || live.URL == nil || live.FailureCode != nil {
 			t.Fatalf("live=%+v err=%v", live, err)
 		}
 		other := draft(ContentDraftInput{})
@@ -423,9 +423,9 @@ func TestWritePublishing(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		w.exec(t, `UPDATE scheduled_post SET status='UNKNOWN_DELIVERY' WHERE id=$1`, again.Posts[0].ID)
+		w.exec(t, `UPDATE scheduled_post SET status='UNKNOWN_DELIVERY',"failureCode"='UNKNOWN_DELIVERY' WHERE id=$1`, again.Posts[0].ID)
 		notLive, err := repo.ReconcileContentDraftPost(ctx, owner, again.Posts[0].ID, ReconcileInput{Live: false})
-		if err != nil || notLive.Status != "FAILED" {
+		if err != nil || notLive.Status != "FAILED" || notLive.FailureCode == nil || *notLive.FailureCode != publishing.FailureNotLive {
 			t.Fatalf("not live=%+v err=%v", notLive, err)
 		}
 		if _, err := repo.RetryContentDraftPost(ctx, owner, again.Posts[0].ID); err != nil {

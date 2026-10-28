@@ -8,6 +8,7 @@
 
 **Status:** Deferred; original priority order superseded
 **Status note (2026-10-23):** Broader network parity, bulk social scheduling and social analytics are deferred. Maintain the existing Write and settings implementation; prioritize approved release kits.
+**Scope update (2026-10-28):** A specific assignment authorizes completing the reliability of the existing scheduling path: reviewed queue slots, scheduling identity, batch partial submission, failure recovery and visibility. See [scheduling reliability](../scheduling/reliability.md). It adds no channels or bulk import.
 **Scope update (2026-10-24):** A specific assignment authorizes the [Plan calendar and Analyze workspace](../scheduling/typefully/plan-and-analyze/implementation.md), including their [80 acceptance criteria](../scheduling/typefully/plan-and-analyze/implementation-matrix.md). This exception implements calendar filtering, placement/lifecycle interactions and account analytics. It does not reactivate the entire bulk-scheduling or network-expansion roadmap.
 
 **Date:** 2026-10-19  

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
@@ -176,6 +177,10 @@ type ContentDraftPost struct {
 	ThreadProgress postoptions.ThreadProgress `json:"threadProgress"`
 	// Its follow-ups once live (RFC 025), each with its receipt.
 	Automations []PostAutomation `json:"automations"`
+	// Why it did not publish (failed, outcome unknown, or cancelled by the
+	// worker), and when its provider confirmed it.
+	FailureCode *string    `json:"failureCode"`
+	PublishedAt *time.Time `json:"publishedAt"`
 }
 
 // livePostURL is a live post's address on its platform, where one can be
@@ -202,6 +207,37 @@ func contentDraftPostKey(draftID, connectionID string, version int) string {
 	return fmt.Sprintf("content-draft:%s:%s:v%d", draftID, connectionID, version)
 }
 
+// scheduleIntent fingerprints when a request asks to publish. A retry under the
+// same post keys replays only the same intent; another time is a conflict.
+func scheduleIntent(input ScheduleContentDraftInput) string {
+	utc := func(at *time.Time) *time.Time {
+		if at == nil || at.IsZero() {
+			return nil
+		}
+		value := at.UTC()
+		return &value
+	}
+	raw, _ := json.Marshal(struct {
+		Disambiguation, LocalTime, TimeZone string
+		ExpectedQueueSlot, ScheduledFor     *time.Time
+		NaturalPostingTime                  *bool
+		PublishNow, Queue                   bool
+	}{input.Disambiguation, input.LocalTime, input.TimeZone, utc(input.ExpectedQueueSlot), utc(&input.ScheduledFor),
+		input.NaturalPostingTime, input.PublishNow, input.Queue})
+	return fmt.Sprintf("%x", sha256.Sum256(raw))
+}
+
+// QueueSlotTakenError is a reviewed queue slot that another schedule took or
+// that the set's schedule no longer offers. Next is its next free slot, for
+// the person to review; nothing was scheduled.
+type QueueSlotTakenError struct{ Next time.Time }
+
+func (e *QueueSlotTakenError) Error() string {
+	return "The queue slot you reviewed is no longer free. Review the next free slot and confirm again."
+}
+
+func (e *QueueSlotTakenError) Unwrap() error { return publishing.ErrConflict }
+
 func contentDraftPost(post *ent.ScheduledPost, platform string) ContentDraftPost {
 	var mode *string
 	if post.ScheduleMode != nil {
@@ -213,7 +249,8 @@ func contentDraftPost(post *ent.ScheduledPost, platform string) ContentDraftPost
 		Status: string(post.Status), Metrics: post.Metrics, MetricsAt: post.MetricsAt,
 		URL: livePostURL(platform, post.RemotePostID), Replies: len(post.Replies), ThreadProgress: post.ThreadProgress,
 		NaturalOffsetSeconds: post.NaturalOffsetSeconds, ScheduleMode: mode, ScheduleTimeZone: post.ScheduleTimeZone,
-		SlotAt: post.SlotAt, SocialSetID: post.SocialSetID, Automations: []PostAutomation{}}
+		SlotAt: post.SlotAt, SocialSetID: post.SocialSetID, Automations: []PostAutomation{},
+		FailureCode: post.FailureCode, PublishedAt: post.PublishedAt}
 }
 
 // validateDraftTargets checks the shape of a schedule before any lookup.
@@ -539,6 +576,12 @@ func replayDraftSchedule(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraf
 	if len(existing) != len(keys) {
 		return nil, conflict("This draft was already scheduled to other channels at this version. Reload it and try again.")
 	}
+	intent := scheduleIntent(input)
+	for _, post := range existing {
+		if post.ScheduleIntent != nil && *post.ScheduleIntent != intent {
+			return nil, conflict("This version was already scheduled for another time. Reload to see the current schedule, then change it.")
+		}
+	}
 	return existing, nil
 }
 
@@ -611,6 +654,10 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	}
 	defer tx.Rollback()
 	if _, err := tx.PlatformExec(ctx, `SELECT id FROM organization WHERE id=$1 FOR SHARE`, actor.OrganizationID); err != nil {
+		return nil, err
+	}
+	// One schedule of a draft at a time: a concurrent double submit waits, then replays.
+	if _, err := tx.PlatformExec(ctx, `SELECT pg_advisory_xact_lock(hashtext('content-draft-schedule:' || $1))`, draftID); err != nil {
 		return nil, err
 	}
 	draft, err := visibleContentDraft(ctx, tx.Client(), actor, draftID)
@@ -691,6 +738,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		}
 	}()
 	result := &ScheduleContentDraftResult{Cancelled: cancelled, Created: true}
+	intent := scheduleIntent(input)
 	channelIDs := make([]string, 0, len(input.Targets))
 	for _, target := range input.Targets {
 		create := tx.ScheduledPost.Create()
@@ -715,7 +763,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		post, err := create.SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 			SetContentDraftID(draft.ID).SetChannelConnectionID(target.ChannelConnectionID).
 			SetSocialSetID(set.ID).SetScheduleMode(placement.mode).SetSlotAt(placement.base).
-			SetNaturalOffsetSeconds(placement.offset).SetScheduleTimeZone(set.TimeZone).
+			SetNaturalOffsetSeconds(placement.offset).SetScheduleTimeZone(placement.zone).SetScheduleIntent(intent).
 			SetScheduledFor(placement.at).SetStatus(scheduledpost.StatusSCHEDULED).
 			SetCaption(strings.TrimSpace(target.Caption)).
 			SetIdempotencyKey(contentDraftPostKey(draft.ID, target.ChannelConnectionID, input.Version)).Save(ctx)
@@ -750,7 +798,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_scheduled", "content_draft", draft.ID,
 		map[string]any{"cancelledPostIds": cancelled, "scheduledPostIds": postIDs, "version": input.Version,
-			"scheduledFor": placement.at.Format(time.RFC3339), "reason": reason, "timeZone": set.TimeZone}); err != nil {
+			"scheduledFor": placement.at.Format(time.RFC3339), "reason": reason, "timeZone": placement.zone}); err != nil {
 		return nil, err
 	}
 	updated, err := tx.ContentDraft.Get(ctx, draft.ID)
@@ -786,16 +834,26 @@ type draftPlacement struct {
 	at, base time.Time
 	mode     scheduledpost.ScheduleMode
 	offset   int
+	// zone is the time zone the instant was chosen in.
+	zone string
 }
 
 // placeDraftSchedule picks a schedule's instant. A queued draft takes the
-// set's next free slot under the set's advisory lock, held until the
-// transaction ends, so a concurrent request waits and then sees this one's
-// posts. A natural posting time adds the draft's stored offset; an offset
-// that would land in the past is mirrored forward.
+// slot the person reviewed, or else the set's next free slot, under the set's
+// advisory lock held until the transaction ends, so a concurrent request
+// waits and then sees this one's posts. A reviewed slot that is no longer
+// free is refused, never silently moved. A natural posting time adds the
+// draft's stored offset; an offset that would land in the past is mirrored
+// forward.
 func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, draft *ent.ContentDraft,
 	input ScheduleContentDraftInput, now time.Time) (draftPlacement, error) {
-	placement := draftPlacement{base: input.ScheduledFor.UTC(), mode: scheduledpost.ScheduleModeExplicit}
+	placement := draftPlacement{base: input.ScheduledFor.UTC(), mode: scheduledpost.ScheduleModeExplicit, zone: set.TimeZone}
+	if input.TimeZone != "" && !input.Queue {
+		if _, err := time.LoadLocation(input.TimeZone); err != nil {
+			return placement, invalid("Schedule in an IANA time zone, such as Europe/Paris.")
+		}
+		placement.zone = input.TimeZone
+	}
 	// Write (RFC 025): publish now goes out now, with no offset; a wall time
 	// is resolved in its zone (the set's when it names none), refusing a time
 	// the clocks skip and asking which of a repeated hour.
@@ -804,11 +862,7 @@ func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, dra
 		return placement, nil
 	}
 	if input.LocalTime != "" {
-		zone := input.TimeZone
-		if zone == "" {
-			zone = set.TimeZone
-		}
-		resolved, err := resolveLocalTime(input.LocalTime, zone, input.Disambiguation)
+		resolved, err := resolveLocalTime(input.LocalTime, placement.zone, input.Disambiguation)
 		if err != nil {
 			return placement, err
 		}
@@ -821,12 +875,16 @@ func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, dra
 		if _, err := tx.PlatformExec(ctx, `SELECT pg_advisory_xact_lock(hashtext('social-set-queue:' || $1))`, set.ID); err != nil {
 			return placement, err
 		}
-		slot, err := nextFreeSlot(ctx, tx.Client(), set, now)
+		free, err := freeQueueSlots(ctx, tx.Client(), set, now)
 		if err != nil {
 			return placement, err
 		}
-		if input.ExpectedQueueSlot != nil && !slot.Equal(*input.ExpectedQueueSlot) {
-			return placement, conflict("The queue changed after preview. Preview the remaining drafts again.")
+		slot := free[0]
+		if input.ExpectedQueueSlot != nil {
+			if !slices.ContainsFunc(free, input.ExpectedQueueSlot.Equal) {
+				return placement, &QueueSlotTakenError{Next: free[0]}
+			}
+			slot = input.ExpectedQueueSlot.UTC()
 		}
 		placement.base, placement.mode = slot, scheduledpost.ScheduleModeQueue
 	}

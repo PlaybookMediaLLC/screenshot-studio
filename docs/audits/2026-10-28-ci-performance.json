@@ -1,0 +1,161 @@
+{
+  "from": "2026-10-21T00:00:00Z",
+  "through": "2026-10-28T20:10:26Z",
+  "runCount": 1149,
+  "attempts": "latest only",
+  "workflows": [
+    {
+      "workflow": "Branch policy",
+      "runs": 115,
+      "conclusions": {
+        "success": 94,
+        "failure": 16,
+        "action_required": 5
+      },
+      "successfulMedianMinutes": 0.06666666666666667,
+      "successfulP90Minutes": 0.08333333333333333,
+      "jobMinutes": 6.916666666666667,
+      "cancelledJobMinutes": 0
+    },
+    {
+      "workflow": "CI",
+      "runs": 352,
+      "conclusions": {
+        "skipped": 72,
+        "success": 10,
+        "cancelled": 190,
+        "": 1,
+        "failure": 74,
+        "action_required": 5
+      },
+      "successfulMedianMinutes": 35.81666666666666,
+      "successfulP90Minutes": 44.18333333333333,
+      "jobMinutes": 19014.0,
+      "cancelledJobMinutes": 13225.816666666668
+    },
+    {
+      "workflow": "Commitlint",
+      "runs": 205,
+      "conclusions": {
+        "failure": 47,
+        "success": 152,
+        "action_required": 5,
+        "cancelled": 1
+      },
+      "successfulMedianMinutes": 1.1,
+      "successfulP90Minutes": 1.3833333333333333,
+      "jobMinutes": 189.2,
+      "cancelledJobMinutes": 9.75
+    },
+    {
+      "workflow": "Dependabot Updates",
+      "runs": 2,
+      "conclusions": {
+        "success": 2
+      },
+      "successfulMedianMinutes": 1.4166666666666667,
+      "successfulP90Minutes": 2.0,
+      "jobMinutes": 2.8333333333333335,
+      "cancelledJobMinutes": 0
+    },
+    {
+      "workflow": "Dependency Graph",
+      "runs": 4,
+      "conclusions": {
+        "success": 4
+      },
+      "successfulMedianMinutes": 0.8500000000000001,
+      "successfulP90Minutes": 1.05,
+      "jobMinutes": 3.466666666666667,
+      "cancelledJobMinutes": 0
+    },
+    {
+      "workflow": "Helm chart",
+      "runs": 20,
+      "conclusions": {
+        "success": 18,
+        "failure": 2
+      },
+      "successfulMedianMinutes": 0.16666666666666666,
+      "successfulP90Minutes": 0.2,
+      "jobMinutes": 3.1,
+      "cancelledJobMinutes": 0
+    },
+    {
+      "workflow": "IndexNow",
+      "runs": 222,
+      "conclusions": {
+        "success": 32,
+        "skipped": 156,
+        "cancelled": 23,
+        "failure": 11
+      },
+      "successfulMedianMinutes": 0.2833333333333333,
+      "successfulP90Minutes": 0.38333333333333336,
+      "jobMinutes": 12.85,
+      "cancelledJobMinutes": 0.0
+    },
+    {
+      "workflow": "Publish SDK",
+      "runs": 66,
+      "conclusions": {
+        "failure": 28,
+        "success": 38
+      },
+      "successfulMedianMinutes": 0.2583333333333333,
+      "successfulP90Minutes": 0.65,
+      "jobMinutes": 18.883333333333333,
+      "cancelledJobMinutes": 0
+    },
+    {
+      "workflow": "Release Please",
+      "runs": 90,
+      "conclusions": {
+        "success": 77,
+        "cancelled": 2,
+        "failure": 11
+      },
+      "successfulMedianMinutes": 0.4166666666666667,
+      "successfulP90Minutes": 0.6666666666666666,
+      "jobMinutes": 35.53333333333333,
+      "cancelledJobMinutes": 0.0
+    },
+    {
+      "workflow": "Social backend image",
+      "runs": 19,
+      "conclusions": {
+        "success": 13,
+        "failure": 5,
+        "cancelled": 1
+      },
+      "successfulMedianMinutes": 9.0,
+      "successfulP90Minutes": 15.533333333333333,
+      "jobMinutes": 116.26666666666667,
+      "cancelledJobMinutes": 0.5666666666666667
+    },
+    {
+      "workflow": "Sync Upstream",
+      "runs": 8,
+      "conclusions": {
+        "failure": 8
+      },
+      "successfulMedianMinutes": null,
+      "successfulP90Minutes": null,
+      "jobMinutes": 2.25,
+      "cancelledJobMinutes": 0
+    },
+    {
+      "workflow": "Web image",
+      "runs": 46,
+      "conclusions": {
+        "success": 31,
+        "failure": 7,
+        "cancelled": 8
+      },
+      "successfulMedianMinutes": 15.216666666666667,
+      "successfulP90Minutes": 22.05,
+      "jobMinutes": 549.8166666666667,
+      "cancelledJobMinutes": 25.016666666666666
+    }
+  ]
+}

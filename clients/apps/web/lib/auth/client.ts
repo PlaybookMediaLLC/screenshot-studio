@@ -3,6 +3,7 @@
 import { apiKeyClient } from '@better-auth/api-key/client'
 import { scimClient } from '@better-auth/scim/client'
 import { ssoClient } from '@better-auth/sso/client'
+import { getGlobalBroadcastChannel } from 'better-auth/client'
 import { createAuthClient } from 'better-auth/react'
 import { useSyncExternalStore } from 'react'
 import { organizationClient, twoFactorClient } from 'better-auth/client/plugins'
@@ -24,6 +25,18 @@ export const authClient = createAuthClient({
     scimClient(),
   ],
 })
+
+/**
+ * Tell this browser's other tabs that the session changed, such as its active
+ * workspace, so they read it again. Better Auth's own tab sync carries it.
+ */
+export function announceSessionChange(): void {
+  getGlobalBroadcastChannel().post({
+    event: 'session',
+    data: { trigger: 'getSession' },
+    clientId: crypto.randomUUID(),
+  })
+}
 
 const subscribeToNothing = () => () => {}
 

@@ -370,6 +370,8 @@ start_e2e_app() {
     # mismatch", reloading each page in a loop so sign-up never hydrated.
     compose run --rm --no-deps app sh -c 'rm -rf apps/web/.next/* apps/web/.next/.[!.]*'
   fi
+  # Plain node does not reload bind-mounted mock code between local runs.
+  compose --profile e2e up --detach --force-recreate screenshot-mock
   BETTER_AUTH_URL="${app_url%/}" \
     BETTER_AUTH_TRUSTED_ORIGINS="$trusted_origins" \
     NEXT_PUBLIC_APP_URL="${app_url%/}" \
@@ -383,7 +385,7 @@ start_e2e_app() {
     PLATFORM_ENRICHMENT_DISABLED="github,appstore" \
     PLATFORM_ENRICHMENT_EXA_API_KEY="" \
     PLATFORM_CREATIVE_SETS="enabled" \
-    PLATFORM_AI_SCRIPTED=1 compose ${lane_files[@]+"${lane_files[@]}"} --profile e2e up --detach --force-recreate screenshot-mock publishing-backend publishing-orchestrator app
+    PLATFORM_AI_SCRIPTED=1 compose ${lane_files[@]+"${lane_files[@]}"} --profile e2e up --detach screenshot-mock publishing-backend publishing-orchestrator app
   wait_for_screenshot_mock
   # Publishing runs in the backend, so it is the service that must reach the
   # suite's social API mock.

@@ -116,8 +116,10 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 	if (documentName != "" && documentName != expectedName) || (draftID != "" && draftID != claims.DraftID) {
 		return collab.Claims{}, publishing.ErrForbidden
 	}
-	actor := Actor{Kind: "session", OrganizationID: claims.OrganizationID, UserID: claims.UserID, SessionID: claims.SessionID}
-	if err := c.AuthorizeRead(ctx, actor); err != nil {
+	// The session check reads the member's role; it decides read or write below,
+	// so the membership is queried once per authorization.
+	role, err := c.auth.AuthorizedRole(ctx, claims.OrganizationID, claims.UserID, claims.SessionID, readRoles...)
+	if err != nil {
 		return collab.Claims{}, err
 	}
 	if claims.Kind != "creative-set" {
@@ -161,11 +163,7 @@ func (c *Configuration) collabClaims(ctx context.Context, token, documentName, d
 			return collab.Claims{}, publishing.ErrNotFound
 		}
 	}
-	current, err := memberAccess(ctx, c.client, claims.OrganizationID, claims.UserID)
-	if err != nil {
-		return collab.Claims{}, err
-	}
-	if current != collab.AccessWrite {
+	if !workspaceroles.Allows(role, contentDraftEditRoles...) {
 		claims.Access = collab.AccessRead
 	}
 	return claims, nil
@@ -179,13 +177,8 @@ func (c *Configuration) AuthorizeCollab(ctx context.Context, token, documentName
 	if err != nil {
 		return nil, err
 	}
-	access, err := memberAccess(ctx, c.client, claims.OrganizationID, claims.UserID)
-	if err != nil {
-		return nil, err
-	}
-	if claims.Access == collab.AccessRead {
-		access = collab.AccessRead
-	}
+	// collabClaims already lowered a member who may not edit to read-only.
+	access := claims.Access
 	person, err := c.client.User.Query().Where(user.ID(claims.UserID)).Only(ctx)
 	if err != nil {
 		return nil, err

@@ -14,3 +14,8 @@ docs
 # The browser and Go enforce the same media limits from this embedded document.
 !/server/internal/medialimits/limits.json
 *.md
+# Browser tests and their output never ship in an image; excluding them keeps
+# the e2e production build cached when only tests change.
+clients/apps/web/test
+clients/apps/web/playwright-report
+clients/apps/web/test-results

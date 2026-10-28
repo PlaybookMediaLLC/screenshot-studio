@@ -1,61 +1,51 @@
 import { z } from 'zod'
 import {
   acceptInvitation,
+  browserRequest,
+  createWorkspace,
+  db,
   enableTwoFactor,
+  expect,
   getActiveOrganizationId,
+  grantWorkspacePlan,
   openWorkspaceSetting,
+  requestJson,
   signUp,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
-import { trpcMutation } from './framework/trpc'
+  test,
+  trpcMutation,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const apiKeySchema = z.object({ apiKey: z.object({ key: z.string().min(1) }) })
 const workspaceCreateResponseSchema = z.object({ organization: z.object({ id: z.string() }) })
 
 async function getInvitationId(email: string): Promise<string> {
-  const database = createE2EDatabase()
-  try {
-    const invitation = await queryRow<{ id: string }>(
-      database,
-      `SELECT id FROM invitation WHERE email = $1 AND status = 'pending'
+  const invitation = await db.row<{ id: string }>(
+    `SELECT id FROM invitation WHERE email = $1 AND status = 'pending'
        ORDER BY "createdAt" DESC LIMIT 1`,
-      [email]
-    )
-    if (!invitation) throw new Error('Invitation was not created.')
-    return invitation.id
-  } finally {
-    await database.end()
-  }
+    [email]
+  )
+  if (!invitation) throw new Error('Invitation was not created.')
+  return invitation.id
 }
 
 async function getMember(email: string): Promise<{ id: string; role: string }> {
-  const database = createE2EDatabase()
-  try {
-    const member = await queryRow<{ id: string; role: string }>(
-      database,
-      `SELECT member.id, member.role FROM member
+  const member = await db.row<{ id: string; role: string }>(
+    `SELECT member.id, member.role FROM member
        JOIN "user" ON "user".id = member."userId"
        WHERE "user".email = $1 LIMIT 1`,
-      [email]
-    )
-    if (!member) throw new Error('Workspace member was not found.')
-    return member
-  } finally {
-    await database.end()
-  }
+    [email]
+  )
+  if (!member) throw new Error('Workspace member was not found.')
+  return member
 }
-
-configureE2EFlow()
 
 test('ownership transfer preserves an owner and prevents the former owner from transferring', async ({
   browser,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const owner = await getMember(identity.email)
   expect((await trpcMutation(page, 'workspace.leave', {})).status).toBe(409)
   expect((await trpcMutation(page, 'workspace.removeMember', { memberId: owner.id })).status).toBe(
@@ -97,10 +87,10 @@ test('ownership transfer preserves an owner and prevents the former owner from t
 })
 
 test('an MFA-protected owner can schedule and restore workspace deletion', async ({
+  app,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
   const recoveryWorkspaceName = `${identity.workspaceName} recovery`
   const recovery = workspaceCreateResponseSchema.parse(
@@ -143,7 +133,7 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
   await page.locator('input[name="confirmation"]').fill(identity.workspaceName)
   await page.getByRole('button', { name: 'Schedule deletion' }).click()
   await expect(page.getByRole('heading', { name: 'Workspace deletion is scheduled' })).toBeVisible()
-  await page.goto('/')
+  await app.open('/')
   await expect.poll(() => new URL(page.url()).pathname).toBe('/workspace')
   await page.getByRole('button', { name: 'Open account menu' }).click()
   await page.getByRole('button', { name: `Switch to ${recoveryWorkspaceName}` }).click()
@@ -191,11 +181,10 @@ test('an MFA-protected owner can schedule and restore workspace deletion', async
     await restoreButton.click({ timeout: 2_000 }).catch(() => {
       // The button goes away once the restore navigation starts.
     })
-    // Give the click that just landed a chance to reach the server before
-    // clicking again, so a slow-but-working request is not clicked twice.
-    await page.waitForTimeout(2_000)
     if (restoreStatus === null) throw new Error('restore click did not reach the server')
-  }).toPass({ timeout: 45_000 })
+    // The interval gives a click that just landed time to reach the server
+    // before the next attempt, so a slow-but-working request is not clicked twice.
+  }).toPass({ intervals: [2_000], timeout: 45_000 })
   expect(restoreStatus).toBe(200)
 
   // The page is already on /workspace, so polling the path proves nothing
@@ -212,7 +201,6 @@ test('member mutations cannot target another workspace membership', async ({
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const otherIdentity = {
     ...identity,
     email: `other-workspace-${identity.email}`,
@@ -222,7 +210,7 @@ test('member mutations cannot target another workspace membership', async ({
   const otherContext = await browser.newContext()
   try {
     const otherPage = await otherContext.newPage()
-    await signUpAndCreateWorkspace(otherIdentity, otherPage)
+    await createWorkspace(otherIdentity, otherPage)
     const otherMember = await getMember(otherIdentity.email)
     expect(
       (await trpcMutation(page, 'workspace.removeMember', { memberId: otherMember.id })).status

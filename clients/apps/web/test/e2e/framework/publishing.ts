@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto'
 import { expect, type Page } from '@playwright/test'
 import { z } from 'zod'
 import { signUpViaApi, getE2EUrl } from './auth'
-import type { E2EIdentity } from './flow'
-import { createE2EDatabase, grantWorkspacePlan } from './services'
+import { type E2EIdentity, setupStep } from './flow'
+import { db, grantWorkspacePlan } from './services'
+import { socialSecretReference } from './social-mock'
 import { getTotpCode } from './totp'
 
 /** Publishing setup shared by the scheduling flows and the social gate. */
@@ -41,6 +42,9 @@ export async function apiRequest(
     data: input.body === undefined ? undefined : JSON.stringify(input.body),
     headers: {
       ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
+      // A fresh connection per call: the dev server closes idle keep-alive sockets
+      // after 5s, and a request written as it does fails with "socket hang up".
+      connection: 'close',
       origin: new URL(getE2EUrl('/')).origin,
       ...input.headers,
     },
@@ -56,7 +60,7 @@ export async function apiRequest(
   return { body, status: response.status() }
 }
 
-export async function getActiveOrganizationId(page: Page): Promise<string> {
+async function getActiveOrganizationId(page: Page): Promise<string> {
   const response = await apiRequest(page, '/api/auth/get-session')
   expect(response.status).toBe(200)
   return activeSessionSchema.parse(response.body).session.activeOrganizationId
@@ -83,7 +87,7 @@ export async function trpcMutation(
   return response
 }
 
-export async function requestJson(
+async function requestJson(
   page: Page,
   path: string,
   body: unknown,
@@ -93,7 +97,7 @@ export async function requestJson(
   return apiRequest(page, path, { body, headers, method })
 }
 
-export async function uploadSignedAsset(
+async function uploadSignedAsset(
   page: Page,
   uploadUrl: string,
   bytes: readonly number[],
@@ -106,7 +110,7 @@ export async function uploadSignedAsset(
   return response.status()
 }
 
-export async function createPublishingWorkspace(identity: E2EIdentity, page: Page): Promise<void> {
+async function createPublishingWorkspaceSteps(identity: E2EIdentity, page: Page): Promise<void> {
   await signUpViaApi(identity, page)
   const workspace = await trpcMutation(page, 'workspace.create', {
     name: identity.workspaceName,
@@ -116,8 +120,12 @@ export async function createPublishingWorkspace(identity: E2EIdentity, page: Pag
   // Publishing fixtures default to Pro; free-tier cases explicitly replace this plan.
   await grantWorkspacePlan(await getActiveOrganizationId(page), 'pro')
 }
+export const createPublishingWorkspace = setupStep(
+  'create a workspace through the API',
+  createPublishingWorkspaceSteps
+)
 
-export async function enablePublishingTwoFactor(page: Page, password: string): Promise<void> {
+async function enablePublishingTwoFactorSteps(page: Page, password: string): Promise<void> {
   const headers = { origin: new URL(getE2EUrl('/')).origin }
   const enable = await page.context().request.post(getE2EUrl('/api/auth/two-factor/enable'), {
     data: { password },
@@ -131,6 +139,10 @@ export async function enablePublishingTwoFactor(page: Page, password: string): P
   })
   expect(verify.status()).toBe(200)
 }
+export const enablePublishingTwoFactor = setupStep(
+  'enable two-factor through the API',
+  enablePublishingTwoFactorSteps
+)
 
 export async function createUploadedAsset(page: Page): Promise<string> {
   const sha256 = createHash('sha256').update(png).digest('hex')
@@ -213,38 +225,33 @@ export async function createScheduledPost(
   return { response, scheduledPost: scheduledPostSchema.parse(response.body).scheduledPost }
 }
 
-/** The social API credential the e2e stack binds test workspaces to. */
-export const e2eSecretReference = 'SOCIAL_API_KEY_E2E'
+/**
+ * This worker's social secret: workspaces bind to it, and its token routes the
+ * backend's social API calls to this worker's mock (framework/social-mock.ts).
+ */
+export const e2eSecretReference = socialSecretReference(
+  Number(process.env.TEST_PARALLEL_INDEX ?? 0)
+)
 
 /** Bind the active workspace to the social API mock's organization, `go-<organizationId>`. */
 export async function bindTestGoOrganization(page: Page): Promise<string> {
   const organizationId = await getActiveOrganizationId(page)
   const goOrganizationId = `go-${organizationId}`
-  const database = createE2EDatabase()
-  try {
-    await database.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
-      e2eSecretReference,
-    ])
-    await database.query(
-      `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
+  await db.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
+    e2eSecretReference,
+  ])
+  await db.query(
+    `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
        VALUES ($1, $2, $3)`,
-      [organizationId, goOrganizationId, e2eSecretReference]
-    )
-  } finally {
-    await database.end()
-  }
+    [organizationId, goOrganizationId, e2eSecretReference]
+  )
   return organizationId
 }
 
 export async function unbindTestGoOrganization(organizationId: string | null): Promise<void> {
   if (!organizationId) return
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      'DELETE FROM social_tenant_binding WHERE "organizationId" = $1 AND "secretReference" = $2',
-      [organizationId, e2eSecretReference]
-    )
-  } finally {
-    await database.end()
-  }
+  await db.query(
+    'DELETE FROM social_tenant_binding WHERE "organizationId" = $1 AND "secretReference" = $2',
+    [organizationId, e2eSecretReference]
+  )
 }

@@ -1,8 +1,17 @@
 import { z } from 'zod'
-import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { createE2EDatabase, queryRow } from './framework/services'
+import {
+  browserRequest,
+  db,
+  type E2EIdentity,
+  expect,
+  getE2EUrl,
+  openWorkspaceSetting,
+  requestJson,
+  signUp,
+  test,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const invitationSchema = z.object({ id: z.string() })
 const sessionSchema = z.object({
@@ -18,19 +27,13 @@ async function createInvitation(page: Parameters<typeof openWorkspaceSetting>[0]
   await page.locator('input[name="email"]').fill(email)
   await page.getByRole('button', { name: 'Invite' }).click()
   await expect(page.getByText('Invitation created.')).toBeVisible()
-  const database = createE2EDatabase()
-  try {
-    const invitation = await queryRow<{ id: string }>(
-      database,
-      `SELECT id FROM invitation WHERE email = $1 AND status = 'pending'
+  const invitation = await db.row<{ id: string }>(
+    `SELECT id FROM invitation WHERE email = $1 AND status = 'pending'
        ORDER BY "createdAt" DESC LIMIT 1`,
-      [email]
-    )
-    if (!invitation) throw new Error('Invitation was not created.')
-    return invitationSchema.parse(invitation)
-  } finally {
-    await database.end()
-  }
+    [email]
+  )
+  if (!invitation) throw new Error('Invitation was not created.')
+  return invitationSchema.parse(invitation)
 }
 
 async function expectNoActiveWorkspace(
@@ -58,56 +61,46 @@ async function expectInvitationRejection(
 }
 
 async function expireInvitation(invitationId: string): Promise<void> {
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      `UPDATE invitation SET "expiresAt" = now() - interval '1 minute' WHERE id = $1`,
-      [invitationId]
-    )
-  } finally {
-    await database.end()
-  }
+  await db.query(`UPDATE invitation SET "expiresAt" = now() - interval '1 minute' WHERE id = $1`, [
+    invitationId,
+  ])
 }
 
-configureE2EFlow()
+test(
+  'an invitation accepts once for its intended recipient',
+  { tag: '@smoke' },
+  async ({ browser, identity, page }) => {
+    const member = getMemberIdentity(identity, 'accepted')
+    const invitation = await createInvitation(page, member.email)
+    const memberContext = await browser.newContext()
+    const memberPage = await memberContext.newPage()
 
-test('an invitation accepts once for its intended recipient', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
-  const member = getMemberIdentity(identity, 'accepted')
-  const invitation = await createInvitation(page, member.email)
-  const memberContext = await browser.newContext()
-  const memberPage = await memberContext.newPage()
-
-  try {
-    await signUp(member, memberPage)
-    await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
-    await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
-    await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/workspace')
-    await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
-    await expect(memberPage.getByText('This invitation has already been accepted.')).toBeVisible()
-    await expect(memberPage.getByRole('button', { name: 'Accept invitation' })).toHaveCount(0)
-    expect(
-      (
-        await requestJson(memberPage, '/api/auth/organization/accept-invitation', {
-          invitationId: invitation.id,
-        })
-      ).status
-    ).toBe(409)
-  } finally {
-    await memberContext.close()
+    try {
+      await signUp(member, memberPage)
+      await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
+      await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
+      await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/workspace')
+      await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
+      await expect(memberPage.getByText('This invitation has already been accepted.')).toBeVisible()
+      await expect(memberPage.getByRole('button', { name: 'Accept invitation' })).toHaveCount(0)
+      expect(
+        (
+          await requestJson(memberPage, '/api/auth/organization/accept-invitation', {
+            invitationId: invitation.id,
+          })
+        ).status
+      ).toBe(409)
+    } finally {
+      await memberContext.close()
+    }
   }
-})
+)
 
 test('an invitation cannot be accepted by another user or after cancellation', async ({
   browser,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const intendedMember = getMemberIdentity(identity, 'intended')
   const invitation = await createInvitation(page, intendedMember.email)
   const otherContext = await browser.newContext()
@@ -137,7 +130,6 @@ test('an expired invitation does not grant workspace access', async ({
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const member = getMemberIdentity(identity, 'expired')
   const invitation = await createInvitation(page, member.email)
   await expireInvitation(invitation.id)
@@ -153,7 +145,6 @@ test('an expired invitation does not grant workspace access', async ({
 })
 
 test('a workspace cannot create duplicate active invitations', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const member = getMemberIdentity(identity, 'duplicate')
   await createInvitation(page, member.email)
   await page.locator('input[name="email"]').fill(member.email)

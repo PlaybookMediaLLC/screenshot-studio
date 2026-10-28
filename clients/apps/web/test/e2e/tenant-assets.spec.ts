@@ -1,15 +1,21 @@
 import { createHash } from 'node:crypto'
-import { type Browser, expect, type Page } from '@playwright/test'
-import { z } from 'zod'
-import { signUpAndCreateWorkspace } from './framework/auth'
 import {
+  type Browser,
   browserRequest,
+  createWorkspace,
+  db,
   downloadSignedAsset,
+  type E2EIdentity,
+  expect,
+  grantWorkspacePlan,
+  type Page,
   requestJson,
+  test,
   uploadSignedAsset,
-} from './framework/browser'
-import { configureE2EFlow, test, type E2EIdentity } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
+} from './framework'
+import { z } from 'zod'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
@@ -63,7 +69,7 @@ async function assertCrossTenantIsolation({
   const context = await browser.newContext()
   const page = await context.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `other-${identity.email}`,
@@ -112,124 +118,116 @@ async function assertCrossTenantIsolation({
   }
 }
 
-configureE2EFlow()
+test(
+  'an uploaded asset stays private to its workspace through completion and download',
+  { tag: '@smoke' },
+  async ({ browser, identity, page, workspace }) => {
+    const organizationId = workspace.id
+    const sha256 = createHash('sha256').update(png).digest('hex')
+    const request: AssetRequest = {
+      bytes: png.byteLength,
+      classification: 'input',
+      contentType: 'image/png',
+      fileName: 'product.png',
+      sha256,
+    }
+    const signed = await signAsset(page, request)
+    const duplicate = await signAsset(page, request)
+    const interrupted = await signAsset(page, request)
 
-test('an uploaded asset stays private to its workspace through completion and download', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  const organizationId = await signUpAndCreateWorkspace(identity, page)
-  const sha256 = createHash('sha256').update(png).digest('hex')
-  const request: AssetRequest = {
-    bytes: png.byteLength,
-    classification: 'input',
-    contentType: 'image/png',
-    fileName: 'product.png',
-    sha256,
-  }
-  const signed = await signAsset(page, request)
-  const duplicate = await signAsset(page, request)
-  const interrupted = await signAsset(page, request)
-
-  expect(duplicate.asset.id).not.toBe(signed.asset.id)
-  expect(duplicate.uploadUrl).not.toBe(signed.uploadUrl)
-  expect(getSignedUrlLifetime(signed.uploadUrl)).toBeLessThanOrEqual(120)
-  expect(
-    (
-      await requestJson(page, `/api/tenant/assets/${interrupted.asset.id}/complete`, {
-        sha256,
-      })
-    ).status
-  ).toBe(400)
-  expect(await uploadSignedAsset(page, signed.uploadUrl, [...png], request.contentType)).toBe(200)
-  const completed = completedAssetSchema.parse(
-    (await requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, { sha256 })).body
-  )
-  expect(completed.asset.status).toBe('UPLOADED')
-
-  const download = downloadSchema.parse(
-    (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).body
-  )
-  await expect(downloadSignedAsset(page, download.downloadUrl)).resolves.toEqual({
-    bytes: png.byteLength,
-    status: 200,
-  })
-
-  await assertCrossTenantIsolation({
-    browser,
-    downloadUrl: download.downloadUrl,
-    identity,
-    request,
-    signed,
-  })
-
-  // There is no free plan: a workspace without a subscription can't touch its
-  // assets. Drop the plan to assert the gate, then restore it the way billing
-  // would so the deletion lifecycle can be exercised. Ownership resolves
-  // before the plan check, so this 403 proves the caller owns the asset.
-  await grantWorkspacePlan(organizationId, 'free')
-  expect(
-    await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
-  ).toMatchObject({
-    body: { code: 'workspace_feature_not_entitled' },
-    status: 403,
-  })
-  await grantWorkspacePlan(organizationId, 'pro')
-
-  // The backend reads the entitlement on every check, so the grant applies at once.
-  expect(
-    await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
-  ).toMatchObject({ body: { accepted: true }, status: 202 })
-  expect(
-    (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).status
-  ).toBe(404)
-
-  // The Go maintenance worker removes the stored object when it dispatches
-  // asset.deleted; the web path only has to queue it.
-  const database = createE2EDatabase()
-  try {
+    expect(duplicate.asset.id).not.toBe(signed.asset.id)
+    expect(duplicate.uploadUrl).not.toBe(signed.uploadUrl)
+    expect(getSignedUrlLifetime(signed.uploadUrl)).toBeLessThanOrEqual(120)
     expect(
-      await queryRow(database, 'SELECT status FROM asset WHERE id = $1', [signed.asset.id])
-    ).toEqual({ status: 'DELETED' })
+      (
+        await requestJson(page, `/api/tenant/assets/${interrupted.asset.id}/complete`, {
+          sha256,
+        })
+      ).status
+    ).toBe(400)
+    expect(await uploadSignedAsset(page, signed.uploadUrl, [...png], request.contentType)).toBe(200)
+    const completed = completedAssetSchema.parse(
+      (await requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, { sha256 })).body
+    )
+    expect(completed.asset.status).toBe('UPLOADED')
+
+    const download = downloadSchema.parse(
+      (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).body
+    )
+    await expect(downloadSignedAsset(page, download.downloadUrl)).resolves.toEqual({
+      bytes: png.byteLength,
+      status: 200,
+    })
+
+    await assertCrossTenantIsolation({
+      browser,
+      downloadUrl: download.downloadUrl,
+      identity,
+      request,
+      signed,
+    })
+
+    // There is no free plan: a workspace without a subscription can't touch its
+    // assets. Drop the plan to assert the gate, then restore it the way billing
+    // would so the deletion lifecycle can be exercised. Ownership resolves
+    // before the plan check, so this 403 proves the caller owns the asset.
+    await grantWorkspacePlan(organizationId, 'free')
     expect(
-      await queryRow(
-        database,
+      await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+    ).toMatchObject({
+      body: { code: 'workspace_feature_not_entitled' },
+      status: 403,
+    })
+    await grantWorkspacePlan(organizationId, 'pro')
+
+    // The backend reads the entitlement on every check, so the grant applies at once.
+    expect(
+      await requestJson(page, `/api/tenant/assets/${signed.asset.id}`, {}, 'DELETE')
+    ).toMatchObject({ body: { accepted: true }, status: 202 })
+    expect(
+      (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).status
+    ).toBe(404)
+
+    // The Go maintenance worker removes the stored object when it dispatches
+    // asset.deleted; the web path only has to queue it.
+    expect(await db.row('SELECT status FROM asset WHERE id = $1', [signed.asset.id])).toEqual({
+      status: 'DELETED',
+    })
+    expect(
+      await db.row(
         `SELECT "deliveredAt" FROM outbox_event WHERE "aggregateId" = $1 AND type = 'asset.deleted' LIMIT 1`,
         [signed.asset.id]
       )
     ).toEqual({ deliveredAt: null })
-  } finally {
-    await database.end()
   }
-})
+)
 
-test('a signed asset download URL expires at the authorization boundary', async ({
-  identity,
-  page,
-}) => {
-  test.slow()
-  await signUpAndCreateWorkspace(identity, page)
-  const sha256 = createHash('sha256').update(png).digest('hex')
-  const signed = await signAsset(page, {
-    bytes: png.byteLength,
-    classification: 'input',
-    contentType: 'image/png',
-    fileName: 'expiring-product.png',
-    sha256,
-  })
-  expect(await uploadSignedAsset(page, signed.uploadUrl, [...png], 'image/png')).toBe(200)
-  expect(
-    (
-      await requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {
-        sha256,
-      })
-    ).status
-  ).toBe(200)
-  const downloadUrl = downloadSchema.parse(
-    (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).body
-  ).downloadUrl
+test(
+  'a signed asset download URL expires at the authorization boundary',
+  { tag: '@journey' },
+  async ({ page }) => {
+    const sha256 = createHash('sha256').update(png).digest('hex')
+    const signed = await signAsset(page, {
+      bytes: png.byteLength,
+      classification: 'input',
+      contentType: 'image/png',
+      fileName: 'expiring-product.png',
+      sha256,
+    })
+    expect(await uploadSignedAsset(page, signed.uploadUrl, [...png], 'image/png')).toBe(200)
+    expect(
+      (
+        await requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {
+          sha256,
+        })
+      ).status
+    ).toBe(200)
+    const downloadUrl = downloadSchema.parse(
+      (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).body
+    ).downloadUrl
 
-  await page.waitForTimeout(122_000)
-  expect([400, 401, 403]).toContain((await downloadSignedAsset(page, downloadUrl)).status)
-})
+    // eslint-disable-next-line no-restricted-syntax -- The signed URL expires after 120 s on the object store clock.
+    await page.waitForTimeout(122_000)
+    expect([400, 401, 403]).toContain((await downloadSignedAsset(page, downloadUrl)).status)
+  }
+)

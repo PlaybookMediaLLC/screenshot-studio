@@ -1,23 +1,14 @@
 import { DESIGN_DOCUMENT_VERSION } from '@/lib/design/document'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { signUpViaApi } from './framework/auth'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
-import { trpcMutation } from './framework/trpc'
-
-configureE2EFlow()
+import { db, expect, grantWorkspacePlan, signUpViaApi, test, trpcMutation } from './framework'
 
 test('warm project navigation reuses its list and rename invalidates it', async ({
+  app,
   identity,
   page,
 }) => {
   await signUpViaApi(identity, page)
   // Production builds require email verification; seed it only for this disposable identity.
-  const database = createE2EDatabase()
-  try {
-    await database.query('UPDATE "user" SET "emailVerified"=true WHERE email=$1', [identity.email])
-  } finally {
-    await database.end()
-  }
+  await db.query('UPDATE "user" SET "emailVerified"=true WHERE email=$1', [identity.email])
   const signIn = await page.request.post('/api/auth/sign-in/email', {
     data: { email: identity.email, password: identity.password },
     headers: { origin: new URL(page.url()).origin },
@@ -46,7 +37,7 @@ test('warm project navigation reuses its list and rename invalidates it', async 
     >
     if (Object.values(inputs).some((input) => input.json?.limit === 24)) listRequests++
   })
-  await page.goto('/projects')
+  await app.open('/projects')
   await expect(
     page.getByRole('link', { name: 'Cache navigation project', exact: true })
   ).toBeVisible()
@@ -76,7 +67,7 @@ test('warm project navigation reuses its list and rename invalidates it', async 
   })
   expect(second.status).toBe(200)
   await grantWorkspacePlan((second.body as { organization: { id: string } }).organization.id, 'pro')
-  await page.goto('/projects')
+  await app.open('/projects')
   await expect(page.getByRole('link', { name: 'Renamed cached project', exact: true })).toHaveCount(
     0
   )

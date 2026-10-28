@@ -1,21 +1,19 @@
-import { expect, type Page } from '@playwright/test'
-import { format } from 'date-fns'
 import {
+  apiRequest,
   chooseChannels,
-  createDraftWorkspace,
-  type DraftWorkspace,
+  db,
   draftEditor,
+  expect,
   expectSaved,
   inPreview,
   openNewDraft,
   openSchedule,
+  type Page,
   previewOf,
-} from './framework/content-drafts'
-import { configureE2EFlow, test } from './framework/flow'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
-import { createE2EDatabase, queryRow, queryRows } from './framework/services'
-
-configureE2EFlow()
+  settleSelection,
+  test,
+} from './framework'
+import { format } from 'date-fns'
 
 // RFC 013, round two: the posting surface around the composer. Posts are
 // scheduled for later and live state is set in the database, so nothing is
@@ -34,20 +32,13 @@ type PostRow = {
 }
 
 async function draftPosts(draftId: string): Promise<PostRow[]> {
-  const database = createE2EDatabase()
-  try {
-    return await queryRows<PostRow>(
-      database,
-      // scheduledFor is stored as UTC without a zone: read it as UTC, not local time.
-      `SELECT id, caption, status::text AS status, ("scheduledFor" AT TIME ZONE 'UTC') AS "scheduledFor",
+  return await db.rows<PostRow>(
+    `SELECT id, caption, status::text AS status, ("scheduledFor" AT TIME ZONE 'UTC') AS "scheduledFor",
               "assetIds", replies, "replyTo",
               "autoActions", poll
        FROM scheduled_post WHERE "contentDraftId" = $1 ORDER BY "createdAt"`,
-      [draftId]
-    )
-  } finally {
-    await database.end()
-  }
+    [draftId]
+  )
 }
 
 async function write(page: Page, text: string): Promise<void> {
@@ -75,27 +66,12 @@ async function untilPosted(page: Page, suffix: string, act: () => Promise<void>)
   }).toPass({ timeout: 60_000 })
 }
 
-async function withWorkspace(
-  identity: Parameters<typeof createDraftWorkspace>[0],
-  page: Page,
-  platforms: string[],
-  run: (workspace: DraftWorkspace) => Promise<void>
-): Promise<void> {
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page, platforms)
-    await run(workspace)
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
-  }
-}
+test(
+  'the queue takes the next slot, and the calendar moves a post to another day',
+  { tag: ['@journey', '@smoke'] },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x'] })
 
-test('the queue takes the next slot, and the calendar moves a post to another day', async ({
-  identity,
-  page,
-}) => {
-  await withWorkspace(identity, page, ['x'], async () => {
     // The account shows as its platform names it, not an integration id.
     const draftId = await openNewDraft(page)
     await page.getByRole('button', { name: 'Manage platforms' }).click()
@@ -150,7 +126,7 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 
-    await page.goto(`/write/plan?week=${local.slice(0, 10)}`)
+    await app.open(`/write/plan?week=${local.slice(0, 10)}`)
     const card = page
       .getByTestId('calendar-post')
       .filter({ hasText: 'Moved on the calendar', visible: true })
@@ -167,15 +143,16 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     const posts = await draftPosts(second)
     expect(posts.map((post) => post.status)).toEqual(['CANCELLED', 'SCHEDULED'])
     expect(new Date(posts[1].scheduledFor).getDate()).toBe(target.getDate())
-  })
-})
+  }
+)
 
-test('a draft waits for approval, and an edit after approval needs another', async ({
-  identity,
-  page,
-}) => {
-  await withWorkspace(identity, page, ['x'], async () => {
-    await page.goto('/write')
+test(
+  'a draft waits for approval, and an edit after approval needs another',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x'] })
+
+    await app.open('/write')
     await page
       .getByTestId('write-rail')
       .getByRole('link', { name: 'Settings', exact: true })
@@ -213,15 +190,15 @@ test('a draft waits for approval, and an edit after approval needs another', asy
     await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     expect(await draftPosts(draftId)).toHaveLength(1)
-  })
-})
+  }
+)
 
-test('a share link lets a guest read the draft and leave a comment', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  await withWorkspace(identity, page, ['x'], async () => {
+test(
+  'a share link lets a guest read the draft and leave a comment',
+  { tag: '@journey' },
+  async ({ browser, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x'] })
+
     await openNewDraft(page)
     await write(page, 'What do you think of this launch post?')
     await page.getByRole('button', { name: 'Share', exact: true }).click()
@@ -269,14 +246,15 @@ test('a share link lets a guest read the draft and leave a comment', async ({
     } finally {
       await offline.close()
     }
-  })
-})
+  }
+)
 
-test('writing tools: history, per-post tools, channel text, AI, hashtags and plain-language times', async ({
-  identity,
-  page,
-}) => {
-  await withWorkspace(identity, page, ['x', 'linkedin'], async () => {
+test(
+  'writing tools: history, per-post tools, channel text, AI, hashtags and plain-language times',
+  { tag: ['@dev-server', '@journey'] },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
+
     // A first draft teaches the composer a hashtag.
     await openNewDraft(page)
     await write(page, 'Launch week #shipit')
@@ -285,9 +263,9 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
     await page.getByRole('button', { name: '#shipit' }).click()
     await expect(draftEditor(page)).toContainText('#shipit')
     await page.keyboard.type(' First post')
-    await page.waitForTimeout(300)
+    await settleSelection(page)
     await page.keyboard.press('ControlOrMeta+Enter')
-    await page.waitForTimeout(300)
+    await settleSelection(page)
     await page.keyboard.type('Second post')
     await expectSaved(page)
     await expect(page.getByTestId('post-header')).toHaveCount(2)
@@ -316,7 +294,7 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
       (url) => !url.pathname.endsWith(draftId) && /\/write\/[a-z0-9]+/.test(url.pathname)
     )
     await expect(draftEditor(page)).toContainText('#shipit', { timeout: 60_000 })
-    await page.goto(`/write/${draftId}`)
+    await app.open(`/write/${draftId}`)
     await expect(draftEditor(page)).toContainText('Second post', { timeout: 60_000 })
 
     // Channel text: LinkedIn says something longer, in its own version.
@@ -326,7 +304,7 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
     await expect(page.getByTestId('manual-version-linkedin')).toBeVisible()
     // Over the forked text, past slate's selection sync.
     await draftEditor(page).getByText('Second post', { exact: true }).selectText()
-    await page.waitForTimeout(300)
+    await settleSelection(page)
     await page.keyboard.type('A longer note for LinkedIn readers.')
     await expect(page.getByTestId('platform-tab-linkedin')).toContainText('Own text')
     await inPreview(page, async () => {
@@ -394,88 +372,83 @@ test('writing tools: history, per-post tools, channel text, AI, hashtags and pla
         timeZone: zone,
       }).format(new Date(x?.scheduledFor ?? 0))
     ).toBe('09:00')
-  })
-})
+  }
+)
 
 test('a live post links to itself, shows engagement, and resumes a thread that stopped', async ({
-  identity,
+  app,
   page,
+  startWorkspace,
 }) => {
-  await withWorkspace(identity, page, ['x'], async () => {
-    const draftId = await openNewDraft(page)
-    await write(page, 'One')
-    await page.keyboard.press('ControlOrMeta+Enter')
-    await page.waitForTimeout(300)
-    await page.keyboard.type('Two')
-    await page.keyboard.press('ControlOrMeta+Enter')
-    await page.waitForTimeout(300)
-    await page.keyboard.type('Three')
-    await chooseChannels(page, ['x'])
-    await expectSaved(page)
-    const dialog = await openSchedule(page)
-    await dialog.getByLabel('Open a new draft after scheduling').uncheck()
-    await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
-    await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
+  await startWorkspace({ channels: ['x'] })
 
-    // As the publisher leaves it when the second reply failed.
-    const [post] = await draftPosts(draftId)
-    const database = createE2EDatabase()
-    try {
-      await queryRow(
-        database,
-        `UPDATE scheduled_post SET status = 'PUBLISHED', "remotePostId" = 'tweet-1',
+  const draftId = await openNewDraft(page)
+  await write(page, 'One')
+  await page.keyboard.press('ControlOrMeta+Enter')
+  await settleSelection(page)
+  await page.keyboard.type('Two')
+  await page.keyboard.press('ControlOrMeta+Enter')
+  await settleSelection(page)
+  await page.keyboard.type('Three')
+  await chooseChannels(page, ['x'])
+  await expectSaved(page)
+  const dialog = await openSchedule(page)
+  await dialog.getByLabel('Open a new draft after scheduling').uncheck()
+  await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
+  await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
+
+  // As the publisher leaves it when the second reply failed.
+  const [post] = await draftPosts(draftId)
+  await db.row(
+    `UPDATE scheduled_post SET status = 'PUBLISHED', "remotePostId" = 'tweet-1',
            "threadProgress" = '{"posted":1,"total":2,"lastReplyId":"tweet-2"}'::jsonb,
            metrics = '{"likes":12,"reposts":3}'::jsonb, "metricsAt" = now()
          WHERE id = $1 RETURNING id`,
-        [post.id]
-      )
-    } finally {
-      await database.end()
+    [post.id]
+  )
+  await app.reload()
+  const live = page.getByTestId('draft-post')
+  await expect(live.getByRole('link', { name: 'View post' })).toHaveAttribute(
+    'href',
+    'https://x.com/i/status/tweet-1'
+  )
+  await expect(live.getByTestId('metric-likes')).toContainText('12')
+  await expect(live).toContainText('1 of 2 replies went out.')
+  // The reloaded page renders the button before React attaches its handler, so
+  // an early click is dropped. A handled click disables it until the resume
+  // returns, which a cold dev server compiles first; only an idle button is retried.
+  const resume = live.getByRole('button', { name: 'Post the rest' })
+  await expect(async () => {
+    if ((await page.getByTestId('draft-post').count()) < 2 && (await resume.isEnabled())) {
+      await resume.click()
     }
-    await page.reload()
-    const live = page.getByTestId('draft-post')
-    await expect(live.getByRole('link', { name: 'View post' })).toHaveAttribute(
-      'href',
-      'https://x.com/i/status/tweet-1'
-    )
-    await expect(live.getByTestId('metric-likes')).toContainText('12')
-    await expect(live).toContainText('1 of 2 replies went out.')
-    // The reloaded page renders the button before React attaches its handler, so
-    // an early click is dropped. A handled click disables it until the resume
-    // returns, which a cold dev server compiles first; only an idle button is retried.
-    const resume = live.getByRole('button', { name: 'Post the rest' })
-    await expect(async () => {
-      if ((await page.getByTestId('draft-post').count()) < 2 && (await resume.isEnabled())) {
-        await resume.click()
-      }
-      await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 5_000 })
-    }).toPass({ timeout: 60_000 })
-    const posts = await draftPosts(draftId)
-    // It goes out now: here, with no real account behind the channel, it fails.
-    expect(posts[1]).toMatchObject({ caption: 'Three', replyTo: 'tweet-2' })
-    expect(posts[1].status).not.toBe('CANCELLED')
+    await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 5_000 })
+  }).toPass({ timeout: 60_000 })
+  const posts = await draftPosts(draftId)
+  // It goes out now: here, with no real account behind the channel, it fails.
+  expect(posts[1]).toMatchObject({ caption: 'Three', replyTo: 'tweet-2' })
+  expect(posts[1].status).not.toBe('CANCELLED')
 
-    // The rail's Posted tab lists the draft.
-    await page.getByRole('tab', { name: /Posted/ }).click()
-    await expect(page.getByRole('navigation').getByText('1 live', { exact: false })).toBeVisible()
-    expect((await apiRequest(page, `/api/v1/content-drafts/${draftId}/revisions`)).status).toBe(200)
-  })
+  // The rail's Posted tab lists the draft.
+  await page.getByRole('tab', { name: /Posted/ }).click()
+  await expect(page.getByRole('navigation').getByText('1 live', { exact: false })).toBeVisible()
+  expect((await apiRequest(page, `/api/v1/content-drafts/${draftId}/revisions`)).status).toBe(200)
 })
 
-test('on a phone, a comment opens beside its text', async ({ identity, page }) => {
-  await withWorkspace(identity, page, ['x'], async () => {
-    await page.setViewportSize({ height: 844, width: 390 })
-    await openNewDraft(page)
-    await draftEditor(page).click()
-    await page.keyboard.type('Launch day')
-    await draftEditor(page).getByText('Launch day', { exact: true }).selectText()
-    await page.waitForTimeout(300)
-    // A phone has no selection toolbar: the shortcut starts the comment.
-    await page.keyboard.press('ControlOrMeta+Shift+M')
-    const reply = page.getByText('Reply...')
-    await expect(reply).toBeInViewport()
-    // Not pinned to the window's corner.
-    const box = await reply.boundingBox()
-    expect(box?.y ?? 0).toBeGreaterThan(80)
-  })
+test('on a phone, a comment opens beside its text', async ({ page, startWorkspace }) => {
+  await startWorkspace({ channels: ['x'] })
+
+  await page.setViewportSize({ height: 844, width: 390 })
+  await openNewDraft(page)
+  await draftEditor(page).click()
+  await page.keyboard.type('Launch day')
+  await draftEditor(page).getByText('Launch day', { exact: true }).selectText()
+  await settleSelection(page)
+  // A phone has no selection toolbar: the shortcut starts the comment.
+  await page.keyboard.press('ControlOrMeta+Shift+M')
+  const reply = page.getByText('Reply...')
+  await expect(reply).toBeInViewport()
+  // Not pinned to the window's corner.
+  const box = await reply.boundingBox()
+  expect(box?.y ?? 0).toBeGreaterThan(80)
 })

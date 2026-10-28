@@ -1,0 +1,19 @@
+# The production lane of the browser suite (dev/studio run_e2e): the web app
+# as a production build (`next start`), as Next.js recommends for browser
+# tests. Tests tagged @dev-server need hooks that only `next dev` has
+# (the scripted AI model, screenshot-mock downloads) and run in the dev lane.
+services:
+  app:
+    image: screenshot-studio-web-e2e
+    build:
+      context: ..
+      dockerfile: clients/apps/web/Dockerfile
+    command: ['node', 'clients/apps/web/server.js']
+    working_dir: /app
+    volumes: !reset []
+    environment:
+      NODE_ENV: production
+      # Test users have no inbox. Production verifies email by default.
+      AUTH_REQUIRE_EMAIL_VERIFICATION: 'false'
+      HOSTNAME: 0.0.0.0
+      PORT: '3000'

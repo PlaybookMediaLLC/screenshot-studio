@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Native Stack'
+  short_description: 'Run and screenshot the app without Docker images'
+  default_prompt: 'Use $run-native-stack to run the Shots app and screenshot a page.'

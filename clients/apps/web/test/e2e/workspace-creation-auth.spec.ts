@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { workspaceCreationMemberSchema } from '../../../../packages/screenshot-studio-backend-sdk/src/workspace-creation'
-import { getActiveOrganizationId, signUpViaApi } from './framework/auth'
-import { requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase } from './framework/services'
-import { trpcMutation } from './framework/trpc'
+import {
+  db,
+  expect,
+  getActiveOrganizationId,
+  requestJson,
+  signUpViaApi,
+  test,
+  trpcMutation,
+} from './framework'
 
 const organizationSchema = z.object({
   id: z.string(),
@@ -17,13 +21,12 @@ const organizationSchema = z.object({
   members: z.array(workspaceCreationMemberSchema).length(1),
 })
 
-configureE2EFlow()
-
 test('Better Auth creation uses the atomic service without bypassing session or origin checks', async ({
+  app,
   identity,
   page,
 }) => {
-  await page.goto('/sign-in')
+  await app.open('/sign-in')
   const input = {
     name: `${identity.workspaceName} shared`,
     slug: `atomic-${randomUUID()}`,
@@ -85,35 +88,30 @@ test('Better Auth creation uses the atomic service without bypassing session or 
       })
     ).status
   ).toBe(409)
-  const db = createE2EDatabase()
-  try {
-    const counts = z
-      .object({
-        organizations: z.number(),
-        owners: z.number(),
-        receipts: z.number(),
-        audits: z.number(),
-      })
-      .parse(
-        (
-          await db.query(
-            `SELECT (SELECT count(*)::int FROM organization WHERE slug=$1) organizations,
+  const counts = z
+    .object({
+      organizations: z.number(),
+      owners: z.number(),
+      receipts: z.number(),
+      audits: z.number(),
+    })
+    .parse(
+      (
+        await db.query(
+          `SELECT (SELECT count(*)::int FROM organization WHERE slug=$1) organizations,
         (SELECT count(*)::int FROM member WHERE "organizationId"=$2 AND role='owner') owners,
         (SELECT count(*)::int FROM platform_workspace_creation WHERE "organizationId"=$2) receipts,
         (SELECT count(*)::int FROM audit_log WHERE "organizationId"=$2 AND action='product.workspace_created') audits`,
-            [input.slug, first.id]
-          )
-        ).rows[0]
-      )
-    expect(counts).toEqual({ organizations: 1, owners: 1, receipts: 1, audits: 1 })
-  } finally {
-    await db.end()
-  }
+          [input.slug, first.id]
+        )
+      ).rows[0]
+    )
+  expect(counts).toEqual({ organizations: 1, owners: 1, receipts: 1, audits: 1 })
   // The returned team is a real selectable workspace with a visible owner.
   expect(
     (await trpcMutation(page, 'workspace.setActive', { organizationId: first.id })).status
   ).toBe(200)
-  await page.goto('/workspace/members')
+  await app.open('/workspace/members')
   await expect(page.getByRole('heading', { name: 'Members', exact: true })).toBeVisible()
   await expect(page.getByText('1 member', { exact: true })).toBeVisible()
   await expect(

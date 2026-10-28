@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# Runs the local stack as host processes instead of Compose images: Postgres,
+# Redis, Temporal, the Go product API and `next dev`, on the ports
+# dev/compose.yaml publishes. For cloud sessions, where `make up` cannot pull
+# or build its images. RustFS, collab, the publishing orchestrator and the
+# render browser do not run.
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOCAL_ENV="$ROOT_DIR/.local/dev.env"
+STATE="$ROOT_DIR/.local/native"
+TEMPORAL_VERSION=1.9.1
+APP=http://localhost:3000
+# Postgres refuses to run as root, and the postgres user cannot reach a
+# root-only checkout, so as root its data lives in its own home.
+if [[ $EUID -eq 0 ]]; then PGDATA=/var/lib/postgresql/shots-dev; else PGDATA="$STATE/pg"; fi
+
+pg() {
+  local bin
+  bin="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)/$1"
+  shift
+  if [[ $EUID -eq 0 ]]; then su postgres -c "$(printf '%q ' "$bin" "$@")"; else "$bin" "$@"; fi
+}
+
+psql_super() {
+  psql --host=127.0.0.1 --port=54329 --username=postgres -v ON_ERROR_STOP=1 -qtA "$@"
+}
+
+wait_for() {
+  local label="$1"
+  shift
+  for _ in $(seq 1 120); do
+    if "$@" >/dev/null 2>&1; then return; fi
+    sleep 1
+  done
+  echo "$label did not become ready; see $STATE/*.log" >&2
+  exit 1
+}
+
+# Starts a command in its own process group, so `down` stops its children too.
+start() {
+  local name="$1"
+  shift
+  (exec setsid "$@" >"$STATE/$name.log" 2>&1) &
+  echo $! >"$STATE/$name.pid"
+}
+
+load_env() {
+  "$ROOT_DIR/dev/studio" env
+  set -a
+  # shellcheck source=/dev/null
+  source "$LOCAL_ENV"
+  set +a
+  DB_URL="postgresql://screenshot_studio:$POSTGRES_APP_PASSWORD@127.0.0.1:54329/screenshot_studio?sslmode=disable"
+}
+
+up() {
+  load_env
+  mkdir -p "$STATE"
+
+  if [[ ! -s "$PGDATA/PG_VERSION" ]]; then
+    mkdir -p "$PGDATA"
+    if [[ $EUID -eq 0 ]]; then chown postgres "$PGDATA"; fi
+    chmod 700 "$PGDATA"
+    pg initdb -D "$PGDATA" -U postgres --auth=trust >"$STATE/initdb.log"
+  fi
+  pg pg_ctl -D "$PGDATA" status >/dev/null 2>&1 ||
+    pg pg_ctl -D "$PGDATA" -o "-p 54329 -k /tmp" -l "$PGDATA/server.log" -w start >/dev/null
+  if [[ -z "$(psql_super -c "SELECT 1 FROM pg_roles WHERE rolname = 'screenshot_studio'")" ]]; then
+    psql_super -c "CREATE ROLE screenshot_studio LOGIN PASSWORD '$POSTGRES_APP_PASSWORD'" \
+      -c "CREATE DATABASE screenshot_studio OWNER screenshot_studio"
+  fi
+
+  redis-cli -p 63799 ping >/dev/null 2>&1 ||
+    redis-server --port 63799 --daemonize yes --dir "$STATE" --logfile "$STATE/redis.log"
+
+  if [[ ! -x "$STATE/temporal" ]]; then
+    local arch
+    arch="$(uname -m)"
+    arch="${arch/x86_64/amd64}"
+    curl -fsSL "https://temporal.download/cli/archive/v$TEMPORAL_VERSION?platform=linux&arch=${arch/aarch64/arm64}" |
+      tar -xz -C "$STATE" temporal
+  fi
+  if ! "$STATE/temporal" operator cluster health --address 127.0.0.1:7233 >/dev/null 2>&1; then
+    start temporal "$STATE/temporal" server start-dev --ip 127.0.0.1 --headless --db-filename "$STATE/temporal.db"
+    wait_for Temporal "$STATE/temporal" operator cluster health --address 127.0.0.1:7233
+  fi
+
+  (cd "$ROOT_DIR/server" &&
+    CGO_ENABLED=0 go build -o "$STATE/platform-migrate" ./cmd/platform-migrate &&
+    CGO_ENABLED=0 go build -o "$STATE/publishing-backend" ./cmd/product-api)
+  DATABASE_URL="$DB_URL" "$STATE/platform-migrate"
+
+  # The publishing-backend service in dev/compose.yaml, on host addresses.
+  # PUBLIC_PORT moves its MCP listener off 3000, which `next dev` holds.
+  if ! curl -fsS -o /dev/null http://127.0.0.1:8080/readyz 2>/dev/null; then
+    PORT=8080 PUBLIC_PORT=3100 DATABASE_URL="$DB_URL" \
+      REDIS_URL=redis://127.0.0.1:63799 TEMPORAL_ADDRESS=127.0.0.1:7233 \
+      BETTER_AUTH_URL="$APP" AUTH_REQUIRE_EMAIL_VERIFICATION=false \
+      PLATFORM_CAMPAIGN_WORKFLOW=enabled PLATFORM_CREATIVE_SETS=internal PLATFORM_ACTIVITY_LEGACY_PAUSED=true \
+      SOCIAL_API_URL= JWT_SECRET="$SOCIAL_JWT_SECRET" FRONTEND_URL="$APP" \
+      STORAGE_PROVIDER=local SOCIAL_PRIVATE_MEDIA=false UPLOAD_DIRECTORY=/tmp/social-uploads \
+      PLATFORM_MCP_URL=http://localhost:3100/mcp R2_ENDPOINT=http://127.0.0.1:9003 R2_BROWSER_ENDPOINT=http://localhost:9003 \
+      PLATFORM_ONBOARDING_AGENT=enabled PUBLISHING_RETRY_DELAY=2m \
+      start backend "$STATE/publishing-backend"
+    wait_for "Go backend" curl -fsS -o /dev/null http://127.0.0.1:8080/readyz
+  fi
+
+  [[ -d "$ROOT_DIR/clients/node_modules" ]] ||
+    (cd "$ROOT_DIR/clients" && npm ci --no-audit --no-fund --ignore-scripts)
+  # The app service in dev/compose.yaml: the web holds no database or storage credential.
+  if ! curl -fsS -o /dev/null "$APP/api/health" 2>/dev/null; then
+    (cd "$ROOT_DIR/clients" &&
+      AUDIT_RETENTION_DATABASE_URL= DATABASE_URL= HOST_DATABASE_URL= STORAGE_API_URL= STORAGE_SERVICE_KEY= \
+        R2_ACCESS_KEY_ID= R2_SECRET_ACCESS_KEY= SOCIAL_API_KEY= SOCIAL_API_KEY_E2E= SOCIAL_API_KEY_GATE= SOCIAL_API_URL= \
+        SOCIAL_API_KEY_E2E_W0= SOCIAL_API_KEY_E2E_W1= SOCIAL_API_KEY_E2E_W2= SOCIAL_API_KEY_E2E_W3= \
+        SOCIAL_API_KEY_E2E_W4= SOCIAL_API_KEY_E2E_W5= SOCIAL_API_KEY_E2E_W6= SOCIAL_API_KEY_E2E_W7= \
+        SLACK_CLIENT_ID= SLACK_CLIENT_SECRET= PLATFORM_NOTIFICATION_ENCRYPTION_KEY= PLATFORM_WEBHOOK_ENCRYPTION_KEY= \
+        COLLAB_TOKEN_SECRET= COLLAB_SERVICE_TOKEN= \
+        REDIS_URL=redis://127.0.0.1:63799 R2_ENDPOINT=http://127.0.0.1:9003 \
+        BETTER_AUTH_URL="$APP" BETTER_AUTH_TRUSTED_ORIGINS="$APP" NEXT_PUBLIC_APP_URL="$APP" NODE_ENV=development \
+        PLATFORM_CAMPAIGN_WORKFLOW=enabled PLATFORM_CREATIVE_SETS=internal PLATFORM_CONTENT_DRAFTS=enabled \
+        PLATFORM_COLLAB_URL=ws://localhost:1234 PLATFORM_MCP_URL=http://localhost:3100/mcp \
+        PUBLISHING_API_URL=http://127.0.0.1:8080 SCREENSHOT_API_URL=https://api.microlink.io NEXT_TELEMETRY_DISABLED=1 \
+        start web npm run dev)
+    wait_for "Next dev server" curl -fsS -o /dev/null "$APP/api/health"
+  fi
+  echo "App: $APP  Backend: http://127.0.0.1:8080  Logs: $STATE"
+}
+
+# dev/studio's dev_login, with psql on the host instead of in Compose.
+login() {
+  local email="dev@localhost.test"
+  local jar
+  local password
+  load_env
+  grep -q '^STUDIO_DEV_PASSWORD=' "$LOCAL_ENV" ||
+    printf 'STUDIO_DEV_PASSWORD=dev-%s\n' "$(openssl rand -hex 12)" >>"$LOCAL_ENV"
+  password="$(grep '^STUDIO_DEV_PASSWORD=' "$LOCAL_ENV" | cut -d= -f2-)"
+  jar="$(mktemp)"
+  # Fails harmlessly when the account already exists. The first call compiles the auth route.
+  curl --silent --output /dev/null --max-time 300 --header "content-type: application/json" --header "origin: $APP" \
+    --data "{\"name\":\"Dev\",\"email\":\"$email\",\"password\":\"$password\"}" "$APP/api/auth/sign-up/email" || true
+  curl --fail --silent --output /dev/null --max-time 300 --cookie-jar "$jar" --header "content-type: application/json" \
+    --header "origin: $APP" --data "{\"email\":\"$email\",\"password\":\"$password\"}" "$APP/api/auth/sign-in/email"
+  if ! curl --silent --max-time 300 --cookie "$jar" "$APP/api/trpc/workspace.listMine" | grep -q '"slug"'; then
+    curl --fail --silent --output /dev/null --max-time 300 --cookie "$jar" --header "content-type: application/json" \
+      --header "origin: $APP" --data '{"json":{"name":"Playbook Dev","slug":"playbook-dev"}}' \
+      "$APP/api/trpc/workspace.create"
+  fi
+  rm -f "$jar"
+  # There is no free plan, so the local workspace gets Pro to stay usable.
+  psql_super --dbname=screenshot_studio -c \
+    "INSERT INTO workspace_entitlement (\"organizationId\", plan, status, \"createdAt\", \"updatedAt\")
+     SELECT id, 'pro', 'active', now(), now() FROM organization WHERE slug = 'playbook-dev'
+     ON CONFLICT (\"organizationId\") DO NOTHING" >/dev/null
+  echo "Dev login: $email (password: STUDIO_DEV_PASSWORD in .local/dev.env)"
+}
+
+down() {
+  local pid
+  for name in web backend temporal; do
+    if [[ -f "$STATE/$name.pid" ]]; then
+      pid="$(cat "$STATE/$name.pid")"
+      kill -- "-$pid" 2>/dev/null || kill "$pid" 2>/dev/null || true
+      rm -f "$STATE/$name.pid"
+    fi
+  done
+  redis-cli -p 63799 shutdown >/dev/null 2>&1 || true
+  if [[ -s "$PGDATA/PG_VERSION" ]]; then pg pg_ctl -D "$PGDATA" -m fast stop >/dev/null 2>&1 || true; fi
+}
+
+status() {
+  check() { if "${@:2}" >/dev/null 2>&1; then echo "up    $1"; else echo "down  $1"; fi; }
+  check "Postgres 127.0.0.1:54329" psql_super -c "SELECT 1"
+  check "Redis 127.0.0.1:63799" redis-cli -p 63799 ping
+  check "Temporal 127.0.0.1:7233" "$STATE/temporal" operator cluster health --address 127.0.0.1:7233
+  check "Go backend http://127.0.0.1:8080" curl -fsS http://127.0.0.1:8080/readyz
+  check "Web $APP" curl -fsS "$APP/api/health"
+}
+
+case "${1:-}" in
+  up) up ;;
+  login) login ;;
+  down) down ;;
+  status) status ;;
+  *)
+    echo "Usage: dev/native-stack up|login|status|down" >&2
+    exit 2
+    ;;
+esac

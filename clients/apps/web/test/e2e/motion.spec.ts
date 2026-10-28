@@ -1,11 +1,7 @@
-import { chooseOption } from './framework/browser'
+import { chooseOption, decodeMp4, expect, type Page, readMp4Tracks, test } from './framework'
 import { readFile } from 'node:fs/promises'
-import type { Page } from '@playwright/test'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { decodeMp4, readMp4Tracks } from './framework/mp4'
-import { configureE2EFlow, expect, test } from './framework/flow'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const TONE = 'test/e2e/fixtures/tone.wav'
 
@@ -34,12 +30,12 @@ async function pasteLongScreenshot(page: Page) {
 }
 
 test('an animated product screenshot exports as an MP4 with its audio and captions', async ({
-  identity,
+  app,
   page,
 }) => {
   // Capturing every frame is slow on a loaded machine; the budget allows for it.
   test.setTimeout(900_000)
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await pasteLongScreenshot(page)
   // A plain background keeps each captured frame quick.
   await page.getByRole('button', { exact: true, name: 'BG' }).click()

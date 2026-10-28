@@ -2,30 +2,25 @@ import { ShotsClient } from '../../../../integrations/raycast/src/lib/client'
 import { createRequire } from 'node:module'
 import sharp from 'sharp'
 import { importedBody } from '@/lib/write/import-text'
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
 import {
-  createDraftWorkspace,
+  apiRequest,
+  db,
   draftEditor,
-  expectSaved,
   enableDraftTags,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { apiRequest, unbindTestGoOrganization, trpcMutation } from './framework/publishing'
-import { createE2EDatabase } from './framework/services'
+  expect,
+  expectSaved,
+  test,
+  trpcMutation,
+} from './framework'
 
-configureE2EFlow()
 test.use({ actionTimeout: 30_000 })
 
-test('URL import, paste undo, poll copying, and refresh preserve editable content', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
-    await page.goto(`/?new=${encodeURIComponent('What comes next? 100% + 🚀')}`)
+test(
+  'URL import, paste undo, poll copying, and refresh preserve editable content',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
+    await app.open(`/?new=${encodeURIComponent('What comes next? 100% + 🚀')}`)
     await expect(page.getByLabel('Imported draft text')).toHaveValue('What comes next? 100% + 🚀')
     await page.getByRole('button', { name: 'Create draft', exact: true }).click()
     await page.waitForURL(/\/write\/[a-z0-9]+$/)
@@ -42,7 +37,7 @@ test('URL import, paste undo, poll copying, and refresh preserve editable conten
     await expect(page.getByTestId('post-header')).toHaveCount(1)
     await paste()
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('post-header')).toHaveCount(3)
     await expect(draftEditor(page)).toContainText('Third post')
 
@@ -63,7 +58,7 @@ test('URL import, paste undo, poll copying, and refresh preserve editable conten
     await page.getByRole('button', { name: 'Copy poll', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await page.getByTestId('platform-tab-linkedin').click()
     await page.getByRole('button', { name: 'Edit the poll', exact: true }).click()
     await expect(page.getByLabel('Poll question')).toHaveValue('Which option?')
@@ -79,32 +74,26 @@ test('URL import, paste undo, poll copying, and refresh preserve editable conten
     await page.getByRole('button', { name: 'Open as quote draft' }).click()
     await expect(page.getByText('Quoting', { exact: true })).toBeVisible()
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     const quoteId = new URL(page.url()).pathname.split('/').at(-1)!
     const quote = await apiRequest(page, `/api/v1/content-drafts/${quoteId}`)
     expect((quote.body as { kind: string }).kind).toBe('quote')
     expect((quote.body as { target: { remoteId: string } }).target.remoteId).toBe('123456')
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('25-post threads retain rich paste and remain editable on mobile after refresh', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  '25-post threads retain rich paste and remain editable on mobile after refresh',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     const text = Array.from(
       { length: 25 },
       (_, index) => `Post ${index + 1}: a distinct thought with enough room to edit.`
     ).join('\n---\n')
-    await page.goto(`/write?new=${encodeURIComponent(text)}`)
+    await app.open(`/write?new=${encodeURIComponent(text)}`)
     await page.getByRole('button', { name: 'Create draft', exact: true }).click()
     await page.waitForURL(/\/write\/[a-z0-9]+$/)
     await expect(page.getByTestId('post-header')).toHaveCount(25)
@@ -136,31 +125,25 @@ test('25-post threads retain rich paste and remain editable on mobile after refr
     expect(JSON.stringify(persisted.body)).toContain('"bold":true')
     expect(JSON.stringify(persisted.body)).toContain('"italic":true')
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('post-header')).toHaveCount(25)
     await editor.click()
     await editor.press('ControlOrMeta+End')
     await page.keyboard.insertText(' Mobile revision.')
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(editor).toContainText('Mobile revision.')
     await expect(editor).toContainText('Second source')
     await page.screenshot({ path: '.context/shots/typefully-large-mobile.png' })
     expect(errors).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('calendar slots pick saved drafts and queue board drops open the same scheduling review', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'calendar slots pick saved drafts and queue board drops open the same scheduling review',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
     const created = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {
@@ -190,7 +173,7 @@ test('calendar slots pick saved drafts and queue board drops open the same sched
     await expect(
       page.getByTestId('calendar-post').filter({ hasText: 'Pick this saved draft', visible: true })
     ).toHaveCount(1)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(1)
     const dropped = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
@@ -202,7 +185,7 @@ test('calendar slots pick saved drafts and queue board drops open the same sched
       },
     })
     expect(dropped.status).toBe(201)
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Drafts', exact: true }).first().click()
     const dragSource = page.getByRole('link', { name: /Dropped draft.*Edited/ })
     await expect(dragSource).toHaveAttribute('draggable', 'true')
@@ -220,24 +203,17 @@ test('calendar slots pick saved drafts and queue board drops open the same sched
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.goto(calendarURL)
     await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
     await page.screenshot({ path: '.context/shots/typefully-queue-board.png' })
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('bulk Spread, month filtering, precise rescheduling and stored analytics complete through the UI', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  const database = createE2EDatabase()
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'bulk Spread, month filtering, precise rescheduling and stored analytics complete through the UI',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
     for (const title of ['Batch first', 'Batch second']) {
       const created = await apiRequest(page, '/api/v1/content-drafts', {
         method: 'POST',
@@ -250,7 +226,7 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
       })
       expect(created.status, JSON.stringify(created.body)).toBe(201)
     }
-    await page.goto('/write')
+    await app.open('/write')
     const first = page.getByTestId('draft-row').filter({ hasText: 'Batch first' })
     const second = page.getByTestId('draft-row').filter({ hasText: 'Batch second' })
     await first.getByRole('link').click({ modifiers: ['Shift'] })
@@ -267,7 +243,7 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     await page.getByRole('button', { name: 'Schedule valid drafts' }).click()
     await expect(dialog.getByRole('listitem').filter({ hasText: 'Scheduled' })).toHaveCount(2)
     await page.keyboard.press('Escape')
-    await page.goto('/write/plan?view=month')
+    await app.open('/write/plan?view=month')
     await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
     await page.getByLabel('Calendar view').selectOption('month')
     await page.getByTestId('calendar-post').filter({ visible: true }).first().click()
@@ -276,11 +252,11 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     await when.fill(`${day}T16:35`)
     await page.getByRole('button', { name: 'Move', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(2)
-    const result = await database.query(
+    const result = await db.query(
       `SELECT p.id,p.caption,p."scheduledFor",p."socialSetId",p."channelConnectionId",p."contentDraftId" FROM scheduled_post p WHERE p."organizationId"=$1 AND status='SCHEDULED' ORDER BY p."scheduledFor"`,
-      [workspace.organizationId]
+      [workspace.id]
     )
     expect(result.rows).toHaveLength(2)
     await page
@@ -294,43 +270,37 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
       .poll(
         async () =>
           (
-            await database.query(
+            await db.query(
               `SELECT count(*)::int AS count FROM scheduled_post WHERE id=ANY($1::text[]) AND status='CANCELLED'`,
               [result.rows.map((row) => row.id)]
             )
           ).rows[0].count
       )
       .toBe(2)
-    await page.reload()
-    const swapped = await database.query(
+    await app.reload()
+    const swapped = await db.query(
       `SELECT id,caption,"scheduledFor","socialSetId","channelConnectionId","contentDraftId" FROM scheduled_post WHERE "organizationId"=$1 AND status='SCHEDULED'`,
-      [workspace.organizationId]
+      [workspace.id]
     )
     expect(swapped.rows).toHaveLength(2)
     for (const [index, original] of result.rows.entries()) {
       const replacement = swapped.rows.find((row) => row.caption === original.caption)
-      expect(new Date(replacement.scheduledFor).toISOString()).toBe(
+      expect(new Date(replacement?.scheduledFor).toISOString()).toBe(
         new Date(result.rows[1 - index].scheduledFor).toISOString()
       )
     }
     const post = swapped.rows[0]
     // A deliberate storage fixture tests dashboard attribution; it is not a provider read.
-    await database.query(
+    await db.query(
       `INSERT INTO platform_social_observation (id,"organizationId","socialSetId","connectionId","subjectId",kind,platform,day,"observedAt",metrics,status) VALUES ($1,$2,$3,$4,$5,'post','x',date_trunc('day',now()),now(),'{"likes":12,"impressions":90}','available')`,
-      [
-        `observation-${post.id}`,
-        workspace.organizationId,
-        post.socialSetId,
-        post.channelConnectionId,
-        post.id,
-      ]
+      [`observation-${post.id}`, workspace.id, post.socialSetId, post.channelConnectionId, post.id]
     )
     await page.getByRole('button', { name: 'Show only', exact: true }).first().click()
     await page.getByText('Filters', { exact: true }).click()
     await page.getByRole('checkbox', { name: 'linkedin', exact: true }).check()
     await page.getByText('Filters', { exact: true }).click()
     await expect(page.getByTestId('calendar-post').filter({ visible: true })).toHaveCount(0)
-    await page.reload()
+    await app.reload()
     await page.getByText('Filters', { exact: true }).click()
     await expect(page.getByRole('checkbox', { name: 'linkedin', exact: true })).toBeChecked()
     await page.getByRole('checkbox', { name: 'linkedin', exact: true }).uncheck()
@@ -358,7 +328,7 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
       { method: 'PATCH', body: { addTagIds: [tagId] } }
     )
     expect(taggedDraft.status, JSON.stringify(taggedDraft.body)).toBe(200)
-    await page.reload()
+    await app.reload()
     await page.getByText('Filters', { exact: true }).click()
     await page.getByRole('checkbox', { name: 'Calendar evidence', exact: true }).check()
     await page.getByText('Filters', { exact: true }).click()
@@ -366,7 +336,7 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     await expect(page.getByTestId('calendar-post').filter({ visible: true })).toContainText(
       'Calendar evidence'
     )
-    await page.reload()
+    await app.reload()
     await page.getByText('Filters', { exact: true }).click()
     await expect(
       page.getByRole('checkbox', { name: 'Calendar evidence', exact: true })
@@ -376,11 +346,11 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     // A second explicit storage fixture verifies account series rendering and CSV values.
     const today = new Date().toISOString().slice(0, 10)
     const yesterday = new Date(Date.now() - 9 * 86400_000).toISOString().slice(0, 10)
-    await database.query(
+    await db.query(
       `INSERT INTO platform_social_observation (id,"organizationId","socialSetId","connectionId","subjectId",kind,platform,day,"observedAt",series,status) VALUES ($1,$2,$3,$4,$4,'account','x',date_trunc('day',now()),now(),$5::jsonb,'available') ON CONFLICT ("organizationId",kind,"subjectId",day) DO UPDATE SET series=EXCLUDED.series,status=EXCLUDED.status,"observedAt"=EXCLUDED."observedAt"`,
       [
         `account-${post.id}`,
-        workspace.organizationId,
+        workspace.id,
         post.socialSetId,
         post.channelConnectionId,
         JSON.stringify([
@@ -397,11 +367,11 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     )
     // Controlled published receipts supply a measured timing score, not a live-provider claim.
     for (let index = 0; index < 5; index++)
-      await database.query(
+      await db.query(
         `INSERT INTO scheduled_post (id,"organizationId","channelConnectionId","contentDraftId","socialSetId","scheduledFor","publishedAt",status,caption,"idempotencyKey","remotePostId",metrics,"metricsAt","updatedAt") VALUES ($1,$2,$3,$4,$5,date_trunc('hour',now())-interval '1 hour',date_trunc('hour',now())-interval '1 hour','PUBLISHED','Observed fixture post',$1,$1,'{"likes":8}',now(),now())`,
         [
           `${post.id}best${index}`,
-          workspace.organizationId,
+          workspace.id,
           post.channelConnectionId,
           post.contentDraftId,
           post.socialSetId,
@@ -412,15 +382,18 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
       (
         await apiRequest(page, `/api/v1/social-sets/${post.socialSetId}/queue`, {
           method: 'PATCH',
-          body: { baseVersion: (currentSet.body as { version: number }).version, postingSlots: [] },
+          body: {
+            baseVersion: (currentSet.body as { version: number }).version,
+            postingSlots: [],
+          },
         })
       ).status
     ).toBe(200)
-    await database.query(
+    await db.query(
       `INSERT INTO platform_social_observation (id,"organizationId","socialSetId","connectionId","subjectId",kind,platform,day,"observedAt",metrics,status,"externalPost") VALUES ($1,$2,$3,$4,$1,'post','x',date_trunc('day',now()),now(),'{"likes":4}','available',$5::jsonb)`,
       [
         `external-${post.id}`,
-        workspace.organizationId,
+        workspace.id,
         post.socialSetId,
         post.channelConnectionId,
         JSON.stringify({
@@ -432,7 +405,7 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
         }),
       ]
     )
-    await page.goto('/write/analyze/observations')
+    await app.open('/write/analyze/observations')
     await expect(
       page.getByRole('img', { name: 'Average engagement score 8.0 from 5 posts' }).first()
     ).toBeVisible()
@@ -440,7 +413,7 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     await expect(
       page.getByText('Added to the weekly posting schedule.', { exact: true })
     ).toBeVisible()
-    await page.reload()
+    await app.reload()
     const updatedSet = await apiRequest(page, `/api/v1/social-sets/${post.socialSetId}`)
     expect((updatedSet.body as { postingSlots: unknown[] }).postingSlots).toHaveLength(1)
     await page.getByRole('button', { name: '+ Add weekly slot', exact: true }).first().click()
@@ -456,27 +429,20 @@ test('bulk Spread, month filtering, precise rescheduling and stored analytics co
     const download = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Export CSV' }).click()
     expect((await download).suggestedFilename()).toBe('social-observations.csv')
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('social-analytics')).toContainText('12')
     await page.screenshot({ path: '.context/shots/typefully-analytics.png' })
-  } finally {
-    await database.end()
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('bulk import uploads assets once, resumes after refresh, and media edits persist', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
-    await page.goto('/write')
+test(
+  'bulk import uploads assets once, resumes after refresh, and media edits persist',
+  { tag: ['@dev-server', '@journey'] },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
+    await app.open('/write')
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     const png = await sharp({
       create: { width: 48, height: 48, channels: 4, background: '#2563eb' },
@@ -497,7 +463,7 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
     const urls = await created.evaluateAll((nodes) =>
       nodes.map((node) => node.getAttribute('href')!)
     )
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     await expect(page.getByTestId('bulk-import')).toContainText('Resumed this tab’s import')
     await expect(created).toHaveCount(2)
@@ -536,14 +502,14 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
     })
     expect(combined.status, JSON.stringify(combined.body)).toBe(201)
     const id = (combined.body as { id: string }).id
-    await page.goto(`/write/${id}`)
+    await app.open(`/write/${id}`)
     await expect(page.getByTestId('post-header')).toHaveCount(2)
-    await page.goto(`/write/${id}?panel=properties`)
+    await app.open(`/write/${id}?panel=properties`)
     await page.getByRole('switch', { name: 'Skip Slack publish notice', exact: true }).click()
     await expect(
       page.getByRole('switch', { name: 'Skip Slack publish notice', exact: true })
     ).toBeChecked()
-    await page.reload()
+    await app.reload()
     await expect(
       page.getByRole('switch', { name: 'Skip Slack publish notice', exact: true })
     ).toBeChecked()
@@ -560,7 +526,9 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Describe images', exact: true }).click()
     await page.getByRole('button', { name: 'Suggest with AI', exact: true }).first().click()
-    await expect(page.getByLabel('Description of image 1')).not.toHaveValue('', { timeout: 60_000 })
+    await expect(page.getByLabel('Description of image 1')).not.toHaveValue('', {
+      timeout: 60_000,
+    })
     await page
       .getByLabel('Description of image 1')
       .fill('A small light square, reviewed by the author.')
@@ -588,7 +556,7 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
     await page.getByRole('button', { name: 'Save photo tags', exact: true }).click()
     await page.keyboard.press('Escape')
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Describe images', exact: true }).click()
     await expect(page.getByLabel('Description of image 1')).toHaveValue(
       'A small light square, reviewed by the author.'
@@ -607,6 +575,7 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
       page.getByRole('button', { name: 'Remove Second person', exact: true })
     ).toBeVisible()
     await page.getByRole('button', { name: 'Save photo tags', exact: true }).click()
+    // eslint-disable-next-line no-restricted-syntax -- Sheets finish animating before the report screenshot.
     await page.waitForTimeout(300)
     await page.screenshot({ path: '.context/shots/typefully-media-persisted.png' })
     await page.keyboard.press('Escape')
@@ -630,21 +599,14 @@ test('bulk import uploads assets once, resumes after refresh, and media edits pe
       await guest.close()
     }
     expect(errors).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('published reading links show delivered snapshots and revoke access', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  const database = createE2EDatabase()
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'published reading links show delivered snapshots and revoke access',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
     const created = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {
@@ -665,7 +627,7 @@ test('published reading links show delivered snapshots and revoke access', async
       },
     })
     expect(scheduled.status, JSON.stringify(scheduled.body)).toBe(201)
-    await page.goto(`/write/${draft.id}`)
+    await app.open(`/write/${draft.id}`)
     // The composer can append only once the live session has loaded the draft;
     // until then the reading link has no editor to go into.
     await expect(draftEditor(page)).toContainText('Unsent reply', { timeout: 60_000 })
@@ -678,7 +640,7 @@ test('published reading links show delivered snapshots and revoke access', async
     await expectSaved(page)
     // A confirmed receipt fixture verifies the public reading projection only;
     // no provider publication is represented as having been exercised here.
-    await database.query(
+    await db.query(
       `UPDATE scheduled_post SET status='PUBLISHED',"remotePostId"='123',"publishedAt"=now(),"threadProgress"='{"posted":1,"total":2,"lastReplyId":"456"}' WHERE "contentDraftId"=$1`,
       [draft.id]
     )
@@ -686,37 +648,30 @@ test('published reading links show delivered snapshots and revoke access', async
     await expect(page.getByText('Published thread · reading view', { exact: true })).toBeVisible()
     await expect(page.getByText('Delivered reply', { exact: false }).first()).toBeVisible()
     await expect(page.getByText('Unsent reply', { exact: false })).toHaveCount(0)
-    await page.reload()
+    await app.reload()
     await expect(page.getByText('Delivered root', { exact: false }).first()).toBeVisible()
     await page.screenshot({ path: '.context/shots/typefully-published-reading.png' })
-    await page.goto(`/write/${draft.id}`)
+    await app.open(`/write/${draft.id}`)
     await page.getByRole('button', { name: 'Share', exact: true }).click()
     await page.getByLabel('Public link', { exact: true }).click()
     await expect(page.getByLabel('Public link to share')).toHaveCount(0)
     const response = await page.goto(link)
     expect(response?.status()).toBe(404)
-  } finally {
-    await database.end()
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('external clients create retry-safe drafts and scoped agent comments appear in the composer', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'external clients create retry-safe drafts and scoped agent comments appear in the composer',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     const issued = await trpcMutation(page, 'apiKey.create', {
       name: 'Review assistant',
       scopes: ['artifact:read', 'draft:write', 'draft:comment', 'queue:write'],
     })
     expect(issued.status, JSON.stringify(issued.body)).toBe(200)
     const key = (issued.body as { apiKey: { id: string; key: string } }).apiKey
-    await page.goto('/write')
+    await app.open('/write')
     const origin = new URL(page.url()).origin
     const api = new ShotsClient(origin, key.key)
     const sets = await api.sets()
@@ -773,10 +728,10 @@ test('external clients create retry-safe drafts and scoped agent comments appear
     }
     const zapDraft = await zapier.createDraft(z, zapInput)
     expect((await zapier.createDraft(z, zapInput)).id).toBe(zapDraft.id)
-    await page.goto(`/write/${zapDraft.id}`)
+    await app.open(`/write/${zapDraft.id}`)
     await expect(draftEditor(page)).toContainText('From a source document.')
     await expect(page.getByTestId('post-header')).toHaveCount(2)
-    await page.reload()
+    await app.reload()
     await expect(draftEditor(page)).toContainText('Needs human review.')
     expect(((await api.posts(zapDraft.id)) as { posts: unknown[] }).posts).toHaveLength(0)
     const setDetails = (await api.request(`/api/v1/social-sets/${sets[0].id}`)) as {
@@ -797,11 +752,11 @@ test('external clients create retry-safe drafts and scoped agent comments appear
     await expect(
       api.request(`/api/v1/social-sets/${sets[0].id}/queue`, 'PATCH', queueBody)
     ).rejects.toThrow()
-    await page.goto(`/workspace/social-sets/${sets[0].id}/scheduling`)
+    await app.open(`/workspace/social-sets/${sets[0].id}/scheduling`)
     await expect(
       page.getByRole('switch', { name: 'Natural posting times for new drafts', exact: true })
     ).toBeChecked()
-    await page.reload()
+    await app.reload()
     await expect(
       page.getByRole('switch', { name: 'Natural posting times for new drafts', exact: true })
     ).toBeChecked()
@@ -844,11 +799,11 @@ test('external clients create retry-safe drafts and scoped agent comments appear
       body: JSON.stringify(action),
     })
     expect(replay.status).toBe(409)
-    await page.goto(`/write/${created.id}?panel=comments`)
+    await app.open(`/write/${created.id}?panel=comments`)
     await expect(page.getByTestId('comment-thread')).toContainText('Review assistant (API key)')
     await expect(page.getByTestId('comment-thread')).toContainText('Check the source.')
     await expect(page.getByTestId('orphaned-thread')).toHaveCount(0)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('comment-thread')).toContainText('Evidence matters.')
     await page.screenshot({ path: '.context/shots/typefully-agent-comments.png' })
     const resolve = await fetch(`${origin}/api/v1/content-drafts/${created.id}/comments`, {
@@ -877,8 +832,5 @@ test('external clients create retry-safe drafts and scoped agent comments appear
     }
     expect((await trpcMutation(page, 'apiKey.revoke', { keyId: key.id })).status).toBe(200)
     await expect(api.sets()).rejects.toThrow()
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

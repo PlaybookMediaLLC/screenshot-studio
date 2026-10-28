@@ -1,15 +1,9 @@
 import { readFile } from 'node:fs/promises'
 import JSZip from 'jszip'
-import type { Page } from '@playwright/test'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { grantWorkspacePlan } from './framework/services'
-
-configureE2EFlow()
+import { createWorkspace, type E2EIdentity, expect, type Page, test } from './framework'
 
 async function openStudio(identity: E2EIdentity, page: Page) {
-  const organizationId = await signUpAndCreateWorkspace(identity, page)
-  await grantWorkspacePlan(organizationId, 'pro')
+  await createWorkspace(identity, page)
   await page.goto('/store-screenshots')
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   const canvas = page.locator('[data-store-canvas-slide]')
@@ -32,6 +26,7 @@ function pngSize(bytes: Uint8Array) {
 }
 
 test('edit on the canvas, undo, persist across reloads, and export exact store sizes', async ({
+  app,
   identity,
   page,
 }) => {
@@ -44,7 +39,7 @@ test('edit on the canvas, undo, persist across reloads, and export exact store s
   await expect(canvas).toContainText('Train smarter')
 
   await expect(page.getByText('Saved on this browser', { exact: true })).toBeVisible()
-  await page.reload()
+  await app.reload()
   await expect(page.locator('[data-store-canvas-slide]')).toContainText('Train smarter')
 
   await page.getByRole('button', { name: 'Export', exact: true }).click()
@@ -69,62 +64,62 @@ test('edit on the canvas, undo, persist across reloads, and export exact store s
   ).toBe(true)
 })
 
-test('share a read-only review link, comment through it, resolve, and revoke', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  await openStudio(identity, page)
-  await page.getByRole('button', { name: 'Project', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'Share for review…' }).click()
-  const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Create link' }).click()
-  const linkField = dialog.getByRole('textbox', { name: /^Review link for / }).first()
-  await expect(linkField).toBeVisible({ timeout: 60_000 })
-  const link = await linkField.inputValue()
+test(
+  'share a read-only review link, comment through it, resolve, and revoke',
+  { tag: '@journey' },
+  async ({ browser, identity, page }) => {
+    await openStudio(identity, page)
+    await page.getByRole('button', { name: 'Project', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Share for review…' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('button', { name: 'Create link' }).click()
+    const linkField = dialog.getByRole('textbox', { name: /^Review link for / }).first()
+    await expect(linkField).toBeVisible({ timeout: 60_000 })
+    const link = await linkField.inputValue()
 
-  const reviewer = await browser.newContext()
-  const reviewPage = await reviewer.newPage()
-  await reviewPage.goto(link)
-  await expect(reviewPage.getByText('You can comment; you cannot edit')).toBeVisible()
-  await expect(reviewPage.locator('[data-store-canvas-slide]')).toHaveCount(0)
-  await reviewPage
-    .getByRole('button', { name: 'Click to place a comment pin on this slide' })
-    .click({ position: { x: 40, y: 60 } })
-  await reviewPage.getByLabel('Your name').fill('Riley Reviewer')
-  await reviewPage
-    .getByRole('textbox', { name: 'Comment', exact: true })
-    .fill('Headline is too long on small phones')
-  await reviewPage.getByRole('button', { name: 'Comment', exact: true }).click()
-  await expect(
-    reviewPage.getByRole('article').getByText('Headline is too long on small phones')
-  ).toBeVisible()
+    const reviewer = await browser.newContext()
+    const reviewPage = await reviewer.newPage()
+    await reviewPage.goto(link)
+    await expect(reviewPage.getByText('You can comment; you cannot edit')).toBeVisible()
+    await expect(reviewPage.locator('[data-store-canvas-slide]')).toHaveCount(0)
+    await reviewPage
+      .getByRole('button', { name: 'Click to place a comment pin on this slide' })
+      .click({ position: { x: 40, y: 60 } })
+    await reviewPage.getByLabel('Your name').fill('Riley Reviewer')
+    await reviewPage
+      .getByRole('textbox', { name: 'Comment', exact: true })
+      .fill('Headline is too long on small phones')
+    await reviewPage.getByRole('button', { name: 'Comment', exact: true }).click()
+    await expect(
+      reviewPage.getByRole('article').getByText('Headline is too long on small phones')
+    ).toBeVisible()
 
-  await dialog.getByRole('button', { name: 'Close' }).click()
-  // Reorder: the commented slide moves to position 2, and its comment must follow it.
-  const filmstrip = page.getByRole('listbox', { name: 'Slides' })
-  const first = filmstrip.getByRole('option', { name: /^Slide 1 of / })
-  const slideName = (await first.getAttribute('aria-label'))!.replace(/^Slide 1 of \d+: /, '')
-  await first.focus()
-  await page.keyboard.press('Alt+ArrowRight')
-  await expect(
-    filmstrip.getByRole('option', { name: new RegExp(`^Slide 2 of \\d+: ${slideName}`) })
-  ).toBeVisible()
-  await page.getByRole('button', { name: 'Project', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'Share for review…' }).click()
-  await expect(dialog.getByText('Headline is too long on small phones')).toBeVisible()
-  await expect(dialog.getByRole('button', { name: `Slide 2 · ${slideName}` })).toBeVisible()
-  await dialog.getByRole('checkbox', { name: 'Resolved' }).check()
-  await dialog.getByRole('button', { name: 'Revoke…' }).click()
-  await dialog.getByRole('button', { name: 'Turn off link' }).click()
-  await expect(dialog.getByText(/link turned off/)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close' }).click()
+    // Reorder: the commented slide moves to position 2, and its comment must follow it.
+    const filmstrip = page.getByRole('listbox', { name: 'Slides' })
+    const first = filmstrip.getByRole('option', { name: /^Slide 1 of / })
+    const slideName = (await first.getAttribute('aria-label'))!.replace(/^Slide 1 of \d+: /, '')
+    await first.focus()
+    await page.keyboard.press('Alt+ArrowRight')
+    await expect(
+      filmstrip.getByRole('option', { name: new RegExp(`^Slide 2 of \\d+: ${slideName}`) })
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Project', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Share for review…' }).click()
+    await expect(dialog.getByText('Headline is too long on small phones')).toBeVisible()
+    await expect(dialog.getByRole('button', { name: `Slide 2 · ${slideName}` })).toBeVisible()
+    await dialog.getByRole('checkbox', { name: 'Resolved' }).check()
+    await dialog.getByRole('button', { name: 'Revoke…' }).click()
+    await dialog.getByRole('button', { name: 'Turn off link' }).click()
+    await expect(dialog.getByText(/link turned off/)).toBeVisible()
 
-  await reviewPage.goto(link)
-  await expect(reviewPage.getByText('You can comment; you cannot edit')).toHaveCount(0)
-  await reviewer.close()
-})
+    await reviewPage.goto(link)
+    await expect(reviewPage.getByText('You can comment; you cannot edit')).toHaveCount(0)
+    await reviewer.close()
+  }
+)
 
-test('a forged review link shows nothing', async ({ page }) => {
-  await page.goto('/review/eyJmYWtlIjp0cnVlfQ~forged-signature-value')
+test('a forged review link shows nothing', async ({ app, page }) => {
+  await app.open('/review/eyJmYWtlIjp0cnVlfQ~forged-signature-value')
   await expect(page.getByText('You can comment; you cannot edit')).toHaveCount(0)
 })

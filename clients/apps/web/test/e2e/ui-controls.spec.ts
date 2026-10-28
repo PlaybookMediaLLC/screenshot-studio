@@ -1,7 +1,7 @@
-import { expect, test } from './framework/flow'
+import { expect, test } from './framework'
 
-test('disclosures and the mobile menu work with the keyboard', async ({ page }) => {
-  await page.goto('/landing')
+test('disclosures and the mobile menu work with the keyboard', async ({ app, page }) => {
+  await app.open('/landing')
   const question = page.getByRole('button', { name: 'What is Shots?', exact: true })
   const answer = page.getByText('A launch platform for software teams.', { exact: false })
   await expect(question).toHaveAttribute('aria-expanded', 'false')

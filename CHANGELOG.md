@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.39.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.39.0...v2.39.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **web:** center icons in the compact sidebar; add a native local stack ([#353](https://github.com/PlaybookMediaLLC/shots/issues/353)) ([0b9cb29](https://github.com/PlaybookMediaLLC/shots/commit/0b9cb299de35b5eab74c8eb487e6072407b90368))
+* **write:** load the browser copy before seeding a draft's live document ([#355](https://github.com/PlaybookMediaLLC/shots/issues/355)) ([f3fc199](https://github.com/PlaybookMediaLLC/shots/commit/f3fc199776e4e36c55f640a9c3d76a34e4002ea6))
+
 ## [2.39.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.38.1...v2.39.0) (2026-10-28)
 
 

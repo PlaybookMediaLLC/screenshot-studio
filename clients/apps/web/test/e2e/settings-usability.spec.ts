@@ -1,49 +1,45 @@
-import { openWorkspaceSetting, signUpAndCreateWorkspace } from './framework/auth'
-import { createE2EDatabase } from './framework/services'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { db, expect, openWorkspaceSetting, test } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
-test('General keeps unsaved edits, warns on navigation, and discards to the last save', async ({
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await openWorkspaceSetting(page, 'General')
-  const description = page.getByLabel('Description', { exact: true })
-  await description.fill('Keep this draft')
-  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
-  page.once('dialog', (dialog) => dialog.dismiss())
-  await page.getByRole('link', { name: 'Account', exact: true }).click()
-  await expect(description).toHaveValue('Keep this draft')
+test(
+  'General keeps unsaved edits, warns on navigation, and discards to the last save',
+  { tag: '@smoke' },
+  async ({ app, page }) => {
+    await openWorkspaceSetting(page, 'General')
+    const description = page.getByLabel('Description', { exact: true })
+    await description.fill('Keep this draft')
+    await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
+    page.once('dialog', (dialog) => dialog.dismiss())
+    await page.getByRole('link', { name: 'Account', exact: true }).click()
+    await expect(description).toHaveValue('Keep this draft')
 
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('link', { name: 'Account', exact: true }).click()
-  await expect(page).toHaveURL(/\/workspace\/account/)
-  await openWorkspaceSetting(page, 'General')
-  await expect(description).toHaveValue('Keep this draft')
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.reload()
-  await expect(description).toHaveValue('Keep this draft')
-  await page.getByRole('button', { name: 'Save workspace' }).click()
-  await expect(page.getByText('Workspace details updated.')).toBeVisible()
-  await description.fill('Discard this edit')
-  await page.getByRole('button', { name: 'Discard', exact: true }).click()
-  await expect(description).toHaveValue('Keep this draft')
-  await page.reload()
-  await expect(description).toHaveValue('Keep this draft')
+    page.once('dialog', (dialog) => dialog.accept())
+    await page.getByRole('link', { name: 'Account', exact: true }).click()
+    await expect(page).toHaveURL(/\/workspace\/account/)
+    await openWorkspaceSetting(page, 'General')
+    await expect(description).toHaveValue('Keep this draft')
+    page.once('dialog', (dialog) => dialog.accept())
+    await app.reload()
+    await expect(description).toHaveValue('Keep this draft')
+    await page.getByRole('button', { name: 'Save workspace' }).click()
+    await expect(page.getByText('Workspace details updated.')).toBeVisible()
+    await description.fill('Discard this edit')
+    await page.getByRole('button', { name: 'Discard', exact: true }).click()
+    await expect(description).toHaveValue('Keep this draft')
+    await app.reload()
+    await expect(description).toHaveValue('Keep this draft')
 
-  await page.getByLabel('Workspace slug').fill('INVALID SPACE!')
-  await expect(page.locator('#workspace-slug-error')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Save workspace' })).toBeDisabled()
-  await page.getByRole('button', { name: 'Discard', exact: true }).click()
-})
+    await page.getByLabel('Workspace slug').fill('INVALID SPACE!')
+    await expect(page.locator('#workspace-slug-error')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Save workspace' })).toBeDisabled()
+    await page.getByRole('button', { name: 'Discard', exact: true }).click()
+  }
+)
 
 test('brand colors retain the last valid preview and block publication until corrected', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   await openWorkspaceSetting(page, 'Brand voice & visual kits')
   await page.getByLabel('Visual brand kit name').fill('Validation test')
   await page.getByLabel('Accent', { exact: true }).fill('#123456')
@@ -56,10 +52,8 @@ test('brand colors retain the last valid preview and block publication until cor
 })
 
 test('API keys start read-only and presets grant only their named capabilities', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   await openWorkspaceSetting(page, 'Developer API')
   await expect(page.locator('[id="scope-artifact:read"]')).toBeChecked()
   await expect(page.locator('button[id^="scope-"][data-state="checked"]')).toHaveCount(1)
@@ -75,16 +69,10 @@ test('an expired freshness window offers sign-in recovery back to Account', asyn
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      `UPDATE session SET "createdAt" = now() - interval '20 minutes' WHERE "userId" IN (SELECT id FROM "user" WHERE email = $1)`,
-      [identity.email]
-    )
-  } finally {
-    await database.end()
-  }
+  await db.query(
+    `UPDATE session SET "createdAt" = now() - interval '20 minutes' WHERE "userId" IN (SELECT id FROM "user" WHERE email = $1)`,
+    [identity.email]
+  )
   await openWorkspaceSetting(page, 'Account')
   await page.getByRole('button', { name: 'View signed-in devices' }).click()
   await expect(
@@ -96,10 +84,8 @@ test('an expired freshness window offers sign-in recovery back to Account', asyn
 })
 
 test('SSO prerequisites explain the next steps before credentials are requested', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   await openWorkspaceSetting(page, 'SSO')
   await expect(
     page.getByText('Complete these steps to enter your provider credentials.')
@@ -112,17 +98,11 @@ test('social-only accounts do not get an unusable authenticator password form', 
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  const database = createE2EDatabase()
-  try {
-    // Local fixture: retain the authenticated session but give the account a social sign-in method.
-    await database.query(
-      `UPDATE account SET "providerId" = 'google', password = NULL WHERE "userId" IN (SELECT id FROM "user" WHERE email = $1) AND "providerId" = 'credential'`,
-      [identity.email]
-    )
-  } finally {
-    await database.end()
-  }
+  // Local fixture: retain the authenticated session but give the account a social sign-in method.
+  await db.query(
+    `UPDATE account SET "providerId" = 'google', password = NULL WHERE "userId" IN (SELECT id FROM "user" WHERE email = $1) AND "providerId" = 'credential'`,
+    [identity.email]
+  )
   await openWorkspaceSetting(page, 'Security')
   await expect(
     page.getByText('Your sign-in provider does not give Shots a password.', { exact: false })
@@ -131,10 +111,8 @@ test('social-only accounts do not get an unusable authenticator password form', 
 })
 
 test('settings search groups destinations and workspace creation lives in the workspace menu', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   await openWorkspaceSetting(page, 'General')
   const navigation = page.getByRole('navigation', { name: 'Settings sections', exact: true })
   await expect(navigation.getByText('Brand resources & content', { exact: true })).toBeVisible()
@@ -152,17 +130,16 @@ test('settings search groups destinations and workspace creation lives in the wo
 })
 
 test('a brand draft survives reload and is published only by the publish action', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   await openWorkspaceSetting(page, 'Brand voice & visual kits')
   await page.getByLabel('Visual brand kit name').fill('Reviewable brand')
   await page.getByLabel('Accent', { exact: true }).fill('#123456')
   await page.getByRole('button', { name: 'Save draft', exact: true }).click()
   await expect(page.getByText('v1 · draft', { exact: true })).toBeVisible()
   await expect(page.getByText(/· active$/)).toHaveCount(0)
-  await page.reload()
+  await app.reload()
   await page.getByRole('button', { name: 'Resume draft', exact: true }).click()
   await expect(page.getByLabel('Accent', { exact: true })).toHaveValue('#123456')
   await page.getByLabel('Accent', { exact: true }).fill('invalid')

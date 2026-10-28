@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { browserRequest, expect, requestJson, test } from './framework'
 
 const secretNames = [
   'AUDIT_DRAIN_ENCRYPTION_KEY',
@@ -48,39 +47,38 @@ function getComposeLogs(): string {
   )
 }
 
-configureE2EFlow()
+test(
+  'server secrets never appear in browser data or local dependency logs',
+  { tag: '@smoke' },
+  async ({ app, page }) => {
+    await app.open('/sign-in')
+    const [health, session, screenshot] = await Promise.all([
+      browserRequest(page, '/api/health'),
+      browserRequest(page, '/api/auth/get-session'),
+      requestJson(page, '/api/screenshot', { url: 'not-a-url' }),
+    ])
+    const bundles = await page.locator('script[src]').evaluateAll(async (scripts) => {
+      return Promise.all(
+        [...scripts].map(async (script) => {
+          const source = script.getAttribute('src')
+          return source ? (await fetch(source)).text() : ''
+        })
+      )
+    })
+    const secrets = getSecrets()
 
-test('server secrets never appear in browser data or local dependency logs', async ({
-  app,
-  page,
-}) => {
-  await app.open('/sign-in')
-  const [health, session, screenshot] = await Promise.all([
-    browserRequest(page, '/api/health'),
-    browserRequest(page, '/api/auth/get-session'),
-    requestJson(page, '/api/screenshot', { url: 'not-a-url' }),
-  ])
-  const bundles = await page.locator('script[src]').evaluateAll(async (scripts) => {
-    return Promise.all(
-      [...scripts].map(async (script) => {
-        const source = script.getAttribute('src')
-        return source ? (await fetch(source)).text() : ''
-      })
+    assertNoSecrets(
+      [
+        await page.content(),
+        ...bundles,
+        JSON.stringify(health.body),
+        JSON.stringify(session.body),
+        JSON.stringify(screenshot.body),
+      ].join('\n'),
+      secrets
     )
-  })
-  const secrets = getSecrets()
-
-  assertNoSecrets(
-    [
-      await page.content(),
-      ...bundles,
-      JSON.stringify(health.body),
-      JSON.stringify(session.body),
-      JSON.stringify(screenshot.body),
-    ].join('\n'),
-    secrets
-  )
-  if (process.env.E2E_COMPOSE_LOGS === 'true') {
-    assertNoSecrets(getComposeLogs(), secrets)
+    if (process.env.E2E_COMPOSE_LOGS === 'true') {
+      assertNoSecrets(getComposeLogs(), secrets)
+    }
   }
-})
+)

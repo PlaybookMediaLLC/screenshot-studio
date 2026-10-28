@@ -1,13 +1,18 @@
 import { z } from 'zod'
 import {
   acceptInvitation,
+  browserRequest,
+  createWorkspace,
+  type E2EIdentity,
+  expect,
   getActiveOrganizationId,
+  requestJson,
   signUp,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { trpcMutation } from './framework/trpc'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
+  test,
+  trpcMutation,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const bootstrapSchema = z.object({
   capabilities: z.record(z.string(), z.boolean()),
@@ -38,13 +43,10 @@ async function getBootstrap(page: Parameters<typeof browserRequest>[0]) {
   return { body: bootstrapSchema.parse(response.body), raw: JSON.stringify(response.body) }
 }
 
-configureE2EFlow()
-
 test('a shell bootstraps from the stable API and never receives secrets', async ({
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
   const { body, raw } = await getBootstrap(page)
 
@@ -79,7 +81,6 @@ test('organization switching goes through membership checks', async ({
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const firstId = await getActiveOrganizationId(page)
   const second = workspaceSchema.parse(
     (
@@ -103,7 +104,7 @@ test('organization switching goes through membership checks', async ({
   const outsiderContext = await browser.newContext()
   const outsider = await outsiderContext.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `outsider-${identity.email}`,
@@ -123,66 +124,65 @@ test('organization switching goes through membership checks', async ({
   }
 })
 
-test('a cached permission can show an action, but the server denies it after a role change', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
-  const organizationId = await getActiveOrganizationId(page)
-  const member: E2EIdentity = {
-    ...identity,
-    email: `creator-${identity.email}`,
-    name: 'E2E creator',
-  }
-  const invitation = invitationSchema.parse(
-    (
-      await requestJson(page, '/api/auth/organization/invite-member', {
-        email: member.email,
-        organizationId,
-        role: 'creator',
-      })
-    ).body
-  )
-  const memberContext = await browser.newContext()
-  const memberPage = await memberContext.newPage()
-  try {
-    await signUp(member, memberPage)
-    // Accepting navigates to /workspace; a request sent before that lands is aborted.
-    await acceptInvitation(memberPage, invitation.id)
-    await expect
-      .poll(async () => (await browserRequest(memberPage, '/api/v1/bootstrap')).status)
-      .toBe(200)
-
-    const cached = (await getBootstrap(memberPage)).body
-    expect(cached.organization.id).toBe(organizationId)
-    expect(cached.membership.permissions).toContain('release:create')
-
-    const members = membersSchema.parse(
-      (await browserRequest(page, `/api/v1/organizations/${organizationId}/members`)).body
-    ).members
-    const memberId = members.find((entry) => entry.user.email === member.email)?.id
-    expect(memberId).toBeTruthy()
-    expect(
+test(
+  'a cached permission can show an action, but the server denies it after a role change',
+  { tag: '@smoke' },
+  async ({ browser, identity, page }) => {
+    const organizationId = await getActiveOrganizationId(page)
+    const member: E2EIdentity = {
+      ...identity,
+      email: `creator-${identity.email}`,
+      name: 'E2E creator',
+    }
+    const invitation = invitationSchema.parse(
       (
-        await requestJson(page, '/api/auth/organization/update-member-role', {
-          memberId,
+        await requestJson(page, '/api/auth/organization/invite-member', {
+          email: member.email,
           organizationId,
-          role: 'viewer',
+          role: 'creator',
         })
-      ).status
-    ).toBe(200)
+      ).body
+    )
+    const memberContext = await browser.newContext()
+    const memberPage = await memberContext.newPage()
+    try {
+      await signUp(member, memberPage)
+      // Accepting navigates to /workspace; a request sent before that lands is aborted.
+      await acceptInvitation(memberPage, invitation.id)
+      await expect
+        .poll(async () => (await browserRequest(memberPage, '/api/v1/bootstrap')).status)
+        .toBe(200)
 
-    // The shell still holds the old bootstrap; the server does not care.
-    const denied = await trpcMutation(memberPage, 'release.create', {
-      benefitStatement: 'Should be refused.',
-      title: 'Stale permission release',
-    })
-    expect(denied.status).toBe(403)
-    const refreshed = (await getBootstrap(memberPage)).body
-    expect(refreshed.membership.role).toBe('viewer')
-    expect(refreshed.membership.permissions).not.toContain('release:create')
-  } finally {
-    await memberContext.close()
+      const cached = (await getBootstrap(memberPage)).body
+      expect(cached.organization.id).toBe(organizationId)
+      expect(cached.membership.permissions).toContain('release:create')
+
+      const members = membersSchema.parse(
+        (await browserRequest(page, `/api/v1/organizations/${organizationId}/members`)).body
+      ).members
+      const memberId = members.find((entry) => entry.user.email === member.email)?.id
+      expect(memberId).toBeTruthy()
+      expect(
+        (
+          await requestJson(page, '/api/auth/organization/update-member-role', {
+            memberId,
+            organizationId,
+            role: 'viewer',
+          })
+        ).status
+      ).toBe(200)
+
+      // The shell still holds the old bootstrap; the server does not care.
+      const denied = await trpcMutation(memberPage, 'release.create', {
+        benefitStatement: 'Should be refused.',
+        title: 'Stale permission release',
+      })
+      expect(denied.status).toBe(403)
+      const refreshed = (await getBootstrap(memberPage)).body
+      expect(refreshed.membership.role).toBe('viewer')
+      expect(refreshed.membership.permissions).not.toContain('release:create')
+    } finally {
+      await memberContext.close()
+    }
   }
-})
+)

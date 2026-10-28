@@ -1,9 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import type { Page } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 import { createWorker } from 'tesseract.js'
-import { expect } from './flow'
 
 /**
  * A generated screenshot with test secrets (an email, an AWS key, a card

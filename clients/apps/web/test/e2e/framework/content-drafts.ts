@@ -1,7 +1,8 @@
 import { expect, type Locator, type Page } from '@playwright/test'
-import { createE2EDatabase, grantWorkspacePlan } from './services'
-import type { E2EIdentity } from './flow'
+import { db, grantWorkspacePlan } from './services'
+import { type E2EIdentity, setupStep } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
+import { socialWorkerPort } from './social-mock'
 import {
   apiRequest,
   bindTestGoOrganization,
@@ -19,8 +20,11 @@ import {
  * publishes during a test.
  */
 
-/** The suite's social API mock port; the stack's SOCIAL_API_URL points at it. */
-export const socialMockPort = Number(process.env.E2E_SOCIAL_MOCK_PORT ?? 5679)
+/**
+ * This worker's social API mock port. The router on the stack's SOCIAL_API_URL
+ * forwards this worker's calls here (framework/social-mock.ts).
+ */
+export const socialMockPort = socialWorkerPort(Number(process.env.TEST_PARALLEL_INDEX ?? 0))
 
 /** Credential-free standard X identity supplied only by the local protocol fixture. */
 /** A verified read-write X profile; the backend requires it before saving an X connection. */
@@ -107,7 +111,7 @@ export type DraftWorkspace = {
   provider: HttpMockServer
 }
 
-export async function createDraftWorkspace(
+async function createDraftWorkspaceSteps(
   identity: E2EIdentity,
   page: Page,
   platforms: readonly string[] = ['x', 'linkedin'],
@@ -174,39 +178,34 @@ export async function createDraftWorkspace(
   if (plan === 'free') await grantWorkspacePlan(organizationId, plan)
   // The product checks actual provider credentials in the shared database.
   // The HTTP fixture still owns destination verification; neither path bypasses health.
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      `INSERT INTO "Organization" (id,name,"updatedAt") VALUES ($1,'Draft fixture',now())`,
-      [`go-${organizationId}`]
-    )
-    for (const platform of platforms) {
-      await database.query(
-        `INSERT INTO "Integration" (id,"internalId","organizationId",name,"providerIdentifier",type,token)
+  await db.query(
+    `INSERT INTO "Organization" (id,name,"updatedAt") VALUES ($1,'Draft fixture',now())`,
+    [`go-${organizationId}`]
+  )
+  for (const platform of platforms) {
+    await db.query(
+      `INSERT INTO "Integration" (id,"internalId","organizationId",name,"providerIdentifier",type,token)
          VALUES ($1,$1,$2,$3,$3,'social','fixture-only-credential')`,
-        [`social-${organizationId}-${platform}`, `go-${organizationId}`, platform]
-      )
-      const native = nativeVerification[platform]
-      if (native) {
-        const verification =
-          platform === 'x' ? verifiedX : (native.verification as typeof xVerification)
-        await database.query(
-          `UPDATE "Integration" SET "internalId"=$2, "verifiedAccountKey"=$3,
+      [`social-${organizationId}-${platform}`, `go-${organizationId}`, platform]
+    )
+    const native = nativeVerification[platform]
+    if (native) {
+      const verification =
+        platform === 'x' ? verifiedX : (native.verification as typeof xVerification)
+      await db.query(
+        `UPDATE "Integration" SET "internalId"=$2, "verifiedAccountKey"=$3,
           "verifiedAccountKind"=$4, "verifiedScopes"=$5, "verifiedCapabilities"=$6, "identityVerifiedAt"=now()
           WHERE id=$1`,
-          [
-            `social-${organizationId}-${platform}`,
-            native.nativeId,
-            verification.accountKey,
-            verification.accountKind,
-            JSON.stringify(verification.grantedScopes),
-            JSON.stringify(verification.capabilities),
-          ]
-        )
-      }
+        [
+          `social-${organizationId}-${platform}`,
+          native.nativeId,
+          verification.accountKey,
+          verification.accountKind,
+          JSON.stringify(verification.grantedScopes),
+          JSON.stringify(verification.capabilities),
+        ]
+      )
     }
-  } finally {
-    await database.end()
   }
   const channels: Record<string, string> = {}
   for (const platform of platforms) {
@@ -220,6 +219,10 @@ export async function createDraftWorkspace(
   }
   return { channels, organizationId, provider }
 }
+export const createDraftWorkspace = setupStep(
+  'create a publishing workspace with channels',
+  createDraftWorkspaceSteps
+)
 
 /**
  * Turn on draft tags for the signed-in person: a settings platform
@@ -304,6 +307,14 @@ export async function openSchedule(page: Page): Promise<Locator> {
  * Put the caret at the end of the draft's last text, as after reopening the
  * editor from a dialog. Waits out slate's selection sync like caretAtEndOf.
  */
+/**
+ * Slate copies the DOM selection into its model on a 100 ms timer and fires
+ * no event when it does. Wait it out so the next key lands at the caret.
+ */
+export async function settleSelection(page: Page): Promise<void> {
+  await page.waitForTimeout(300)
+}
+
 export async function caretAtDocumentEnd(page: Page): Promise<void> {
   await draftEditor(page).focus()
   await draftEditor(page).evaluate((editor) => {
@@ -316,5 +327,5 @@ export async function caretAtDocumentEnd(page: Page): Promise<void> {
     window.getSelection()?.removeAllRanges()
     window.getSelection()?.addRange(range)
   })
-  await page.waitForTimeout(300)
+  await settleSelection(page)
 }

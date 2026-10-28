@@ -1,17 +1,21 @@
 import { z } from 'zod'
 import { workspaceCreationAttemptSchema } from '../../lib/workspace/creation-attempt'
-import { getActiveOrganizationId, signUpViaApi } from './framework/auth'
-import { requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
+import {
+  db,
+  expect,
+  getActiveOrganizationId,
+  grantWorkspacePlan,
+  requestJson,
+  signUpViaApi,
+  test,
+} from './framework'
 
 const creationRowsSchema = z.array(
   z.object({ id: z.string(), name: z.string(), role: z.literal('owner'), audits: z.number() })
 )
 
-configureE2EFlow()
-
 test('retrying team creation after a lost committed response keeps one workspace', async ({
+  app,
   identity,
   page,
 }, testInfo) => {
@@ -24,13 +28,13 @@ test('retrying team creation after a lost committed response keeps one workspace
       })
     ).status
   ).toBe(200)
-  await page.goto('/onboarding')
+  await app.open('/onboarding')
   await page.getByRole('textbox', { name: 'Workspace name' }).fill(identity.workspaceName)
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible()
   const originalId = await getActiveOrganizationId(page)
   await grantWorkspacePlan(originalId, 'pro')
-  await page.goto('/workspace/new-team')
+  await app.open('/workspace/new-team')
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click()
   const dialog = page.getByRole('dialog')
   const name = `${identity.workspaceName} retry`
@@ -64,7 +68,7 @@ test('retrying team creation after a lost committed response keeps one workspace
   await page.screenshot({ path: testInfo.outputPath('workspace-creation-retry.png') })
   // Closing and reloading must retain this submitted intent, including its key.
   await dialog.getByRole('button', { name: 'Close', exact: true }).first().click()
-  await page.reload()
+  await app.reload()
   await page.getByRole('button', { name: 'Create workspace', exact: true }).click()
   await expect(dialog.getByRole('textbox', { name: 'Workspace name' })).toHaveValue(name)
   await expect(dialog.getByRole('textbox', { name: 'Workspace name' })).toHaveAttribute(
@@ -88,27 +92,22 @@ test('retrying team creation after a lost committed response keeps one workspace
   expect(requests[1]).toBe(requests[0])
   const committedId = await getActiveOrganizationId(page)
   expect(committedId).not.toBe(originalId)
-  const db = createE2EDatabase()
-  try {
-    const result = await db.query(
-      `SELECT o.id,o.name,m.role,
+  const result = await db.query(
+    `SELECT o.id,o.name,m.role,
         (SELECT count(*)::int FROM audit_log a WHERE a."organizationId"=o.id AND a.action='product.workspace_created') AS audits
        FROM organization o
        JOIN member m ON m."organizationId"=o.id
        JOIN "user" u ON u.id=m."userId"
        WHERE u.email=$1 AND o.name=$2`,
-      [identity.email, name]
-    )
-    expect(creationRowsSchema.parse(result.rows)).toEqual([
-      { id: committedId, name, role: 'owner', audits: 1 },
-    ])
-  } finally {
-    await db.end()
-  }
+    [identity.email, name]
+  )
+  expect(creationRowsSchema.parse(result.rows)).toEqual([
+    { id: committedId, name, role: 'owner', audits: 1 },
+  ])
 
   // Reusing a committed key with a changed name is a real backend conflict.
   // The user must be able to discard that rejected intent without an endless retry loop.
-  await page.goto('/workspace/new-team')
+  await app.open('/workspace/new-team')
   await page.evaluate(({ key, raw }) => sessionStorage.setItem(key, raw), {
     key: saved.key,
     raw: JSON.stringify({
@@ -133,20 +132,15 @@ test('retrying team creation after a lost committed response keeps one workspace
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
   expect(requests).toHaveLength(3)
   expect(await getActiveOrganizationId(page)).toBe(committedId)
-  const verified = createE2EDatabase()
-  try {
-    const counts = z
-      .object({ count: z.number() })
-      .parse(
-        (
-          await verified.query(
-            'SELECT count(*)::int AS count FROM member m JOIN "user" u ON u.id=m."userId" WHERE u.email=$1',
-            [identity.email]
-          )
-        ).rows[0]
-      )
-    expect(counts.count).toBe(2)
-  } finally {
-    await verified.end()
-  }
+  const counts = z
+    .object({ count: z.number() })
+    .parse(
+      (
+        await db.query(
+          'SELECT count(*)::int AS count FROM member m JOIN "user" u ON u.id=m."userId" WHERE u.email=$1',
+          [identity.email]
+        )
+      ).rows[0]
+    )
+  expect(counts.count).toBe(2)
 })

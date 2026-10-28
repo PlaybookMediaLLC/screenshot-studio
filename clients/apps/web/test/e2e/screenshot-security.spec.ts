@@ -1,9 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requestJson } from './framework/browser'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { startHttpMockServer } from './framework/http-server'
-import { createE2EDatabase, queryRow } from './framework/services'
+import { db, expect, requestJson, startHttpMockServer, test } from './framework'
 
 const unsafeUrls = [
   'http://127.0.0.1',
@@ -13,24 +9,13 @@ const unsafeUrls = [
 ]
 
 async function getCacheRecord(url: string) {
-  const database = createE2EDatabase()
-  try {
-    return await queryRow<{ id: string }>(
-      database,
-      'SELECT id FROM screenshot_cache WHERE url = $1 LIMIT 1',
-      [url]
-    )
-  } finally {
-    await database.end()
-  }
+  return await db.row<{ id: string }>('SELECT id FROM screenshot_cache WHERE url = $1 LIMIT 1', [
+    url,
+  ])
 }
 
 // The screenshot API needs a paid workspace; the fixture gives it Pro.
-configureE2EFlow({
-  beforeEach: async ({ identity, page }) => {
-    await signUpAndCreateWorkspace(identity, page)
-  },
-})
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('capture rejects local and private network targets before a remote capture starts', async ({
   app,

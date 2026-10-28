@@ -1,12 +1,15 @@
 import { z } from 'zod'
 import {
   acceptInvitation,
+  browserRequest,
+  createWorkspace,
+  type E2EIdentity,
+  expect,
   findActiveOrganizationId,
-  getE2EUrl,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
+  getActiveOrganizationId,
+  requestJson,
+  test,
+} from './framework'
 
 const invitationSchema = z.object({ id: z.string() })
 const releasesSchema = z.object({ releases: z.array(z.object({ title: z.string() })) })
@@ -46,60 +49,59 @@ async function switchWorkspace(
   ])
 }
 
-configureE2EFlow()
+test(
+  'a member can switch workspaces without crossing tenant data',
+  { tag: '@smoke' },
+  async ({ app, browser, identity, page, workspace }) => {
+    const firstTitle = 'First workspace release'
+    const secondIdentity: E2EIdentity = {
+      ...identity,
+      email: `second-owner-${identity.email}`,
+      workspaceName: `Second ${identity.workspaceName}`,
+    }
+    const firstOrganizationId = workspace.id
+    await createRelease(page, firstTitle)
+    const secondContext = await browser.newContext()
+    const secondPage = await secondContext.newPage()
 
-test('a member can switch workspaces without crossing tenant data', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  const firstTitle = 'First workspace release'
-  const secondIdentity: E2EIdentity = {
-    ...identity,
-    email: `second-owner-${identity.email}`,
-    workspaceName: `Second ${identity.workspaceName}`,
+    try {
+      await createWorkspace(secondIdentity, secondPage)
+      const secondOrganizationId = await getActiveOrganizationId(secondPage)
+      const secondTitle = 'Second workspace release'
+      await createRelease(secondPage, secondTitle)
+      const invitation = invitationSchema.parse(
+        (
+          await requestJson(secondPage, '/api/auth/organization/invite-member', {
+            email: identity.email,
+            organizationId: secondOrganizationId,
+            role: 'viewer',
+          })
+        ).body
+      )
+
+      await acceptInvitation(page, invitation.id)
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
+      await app.open('/')
+      await assertReleaseIsolation(page, secondTitle, firstTitle)
+
+      await switchWorkspace(page, identity.workspaceName)
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
+      await assertReleaseIsolation(page, firstTitle, secondTitle)
+
+      await switchWorkspace(page, secondIdentity.workspaceName)
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
+      await assertReleaseIsolation(page, secondTitle, firstTitle)
+
+      await page.getByRole('button', { name: 'Open account menu' }).click()
+      await page.getByRole('button', { name: 'Sign out' }).click()
+      await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
+      await page.getByLabel('Email', { exact: true }).fill(identity.email)
+      await page.getByLabel('Password').fill(identity.password)
+      await page.getByRole('button', { name: 'Sign in' }).click()
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
+      await assertReleaseIsolation(page, firstTitle, secondTitle)
+    } finally {
+      await secondContext.close()
+    }
   }
-  const firstOrganizationId = await signUpAndCreateWorkspace(identity, page)
-  await createRelease(page, firstTitle)
-  const secondContext = await browser.newContext()
-  const secondPage = await secondContext.newPage()
-
-  try {
-    const secondOrganizationId = await signUpAndCreateWorkspace(secondIdentity, secondPage)
-    const secondTitle = 'Second workspace release'
-    await createRelease(secondPage, secondTitle)
-    const invitation = invitationSchema.parse(
-      (
-        await requestJson(secondPage, '/api/auth/organization/invite-member', {
-          email: identity.email,
-          organizationId: secondOrganizationId,
-          role: 'viewer',
-        })
-      ).body
-    )
-
-    await acceptInvitation(page, invitation.id)
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
-    await page.goto(getE2EUrl('/'))
-    await assertReleaseIsolation(page, secondTitle, firstTitle)
-
-    await switchWorkspace(page, identity.workspaceName)
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
-    await assertReleaseIsolation(page, firstTitle, secondTitle)
-
-    await switchWorkspace(page, secondIdentity.workspaceName)
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
-    await assertReleaseIsolation(page, secondTitle, firstTitle)
-
-    await page.getByRole('button', { name: 'Open account menu' }).click()
-    await page.getByRole('button', { name: 'Sign out' }).click()
-    await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
-    await page.getByLabel('Email', { exact: true }).fill(identity.email)
-    await page.getByLabel('Password').fill(identity.password)
-    await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
-    await assertReleaseIsolation(page, firstTitle, secondTitle)
-  } finally {
-    await secondContext.close()
-  }
-})
+)

@@ -1366,6 +1366,39 @@ var (
 			},
 		},
 	}
+	// GithubDeliveryRecoveryColumns holds the columns for the "github_delivery_recovery" table.
+	GithubDeliveryRecoveryColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "guid", Type: field.TypeString},
+		{Name: "installationId", Type: field.TypeInt64},
+		{Name: "repositoryId", Type: field.TypeString},
+		{Name: "eventName", Type: field.TypeString},
+		{Name: "deliveredAt", Type: field.TypeTime},
+		{Name: "statusCode", Type: field.TypeInt},
+		{Name: "recovery", Type: field.TypeBool, Default: false},
+		{Name: "attempts", Type: field.TypeInt, Default: 0},
+		{Name: "status", Type: field.TypeString, Default: "failed"},
+		{Name: "nextAttemptAt", Type: field.TypeTime, Nullable: true},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// GithubDeliveryRecoveryTable holds the schema information for the "github_delivery_recovery" table.
+	GithubDeliveryRecoveryTable = &schema.Table{
+		Name:       "github_delivery_recovery",
+		Columns:    GithubDeliveryRecoveryColumns,
+		PrimaryKey: []*schema.Column{GithubDeliveryRecoveryColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "githubdeliveryrecovery_guid",
+				Unique:  true,
+				Columns: []*schema.Column{GithubDeliveryRecoveryColumns[1]},
+			},
+			{
+				Name:    "githubdeliveryrecovery_installationId_repositoryId_deliveredAt",
+				Unique:  false,
+				Columns: []*schema.Column{GithubDeliveryRecoveryColumns[2], GithubDeliveryRecoveryColumns[3], GithubDeliveryRecoveryColumns[5]},
+			},
+		},
+	}
 	// GithubInstallStartColumns holds the columns for the "github_install_start" table.
 	GithubInstallStartColumns = []*schema.Column{
 		{Name: "state", Type: field.TypeString},
@@ -1410,6 +1443,100 @@ var (
 				Name:    "githubinstallation_installationId",
 				Unique:  true,
 				Columns: []*schema.Column{GithubInstallationColumns[1]},
+			},
+		},
+	}
+	// GithubObservationColumns holds the columns for the "github_observation" table.
+	GithubObservationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceAppId", Type: field.TypeString},
+		{Name: "semanticKey", Type: field.TypeString},
+		{Name: "objectKey", Type: field.TypeString},
+		{Name: "deliveryId", Type: field.TypeString},
+		{Name: "evidence", Type: field.TypeJSON},
+		{Name: "enrichment", Type: field.TypeJSON, Nullable: true},
+		{Name: "policyId", Type: field.TypeString, Nullable: true},
+		{Name: "workflowVersionId", Type: field.TypeString, Nullable: true},
+		{Name: "origin", Type: field.TypeString, Default: "live"},
+		{Name: "status", Type: field.TypeString, Default: "received"},
+		{Name: "decision", Type: field.TypeJSON},
+		{Name: "eventId", Type: field.TypeString, Nullable: true},
+		{Name: "duplicateCount", Type: field.TypeInt, Default: 0},
+		{Name: "occurredAt", Type: field.TypeTime, Nullable: true},
+		{Name: "receivedAt", Type: field.TypeTime},
+		{Name: "processedAt", Type: field.TypeTime, Nullable: true},
+	}
+	// GithubObservationTable holds the schema information for the "github_observation" table.
+	GithubObservationTable = &schema.Table{
+		Name:       "github_observation",
+		Columns:    GithubObservationColumns,
+		PrimaryKey: []*schema.Column{GithubObservationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "githubobservation_organizationId_sourceAppId_semanticKey",
+				Unique:  true,
+				Columns: []*schema.Column{GithubObservationColumns[1], GithubObservationColumns[2], GithubObservationColumns[3]},
+			},
+			{
+				Name:    "githubobservation_organizationId_sourceAppId_receivedAt",
+				Unique:  false,
+				Columns: []*schema.Column{GithubObservationColumns[1], GithubObservationColumns[2], GithubObservationColumns[16]},
+			},
+			{
+				Name:    "githubobservation_organizationId_sourceAppId_objectKey_occurredAt",
+				Unique:  false,
+				Columns: []*schema.Column{GithubObservationColumns[1], GithubObservationColumns[2], GithubObservationColumns[4], GithubObservationColumns[15]},
+			},
+		},
+	}
+	// GithubProductionPolicyColumns holds the columns for the "github_production_policy" table.
+	GithubProductionPolicyColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceAppId", Type: field.TypeString},
+		{Name: "revision", Type: field.TypeInt},
+		{Name: "policy", Type: field.TypeJSON},
+		{Name: "createdBy", Type: field.TypeString},
+		{Name: "createdAt", Type: field.TypeTime},
+	}
+	// GithubProductionPolicyTable holds the schema information for the "github_production_policy" table.
+	GithubProductionPolicyTable = &schema.Table{
+		Name:       "github_production_policy",
+		Columns:    GithubProductionPolicyColumns,
+		PrimaryKey: []*schema.Column{GithubProductionPolicyColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "githubproductionpolicy_organizationId_sourceAppId_revision",
+				Unique:  true,
+				Columns: []*schema.Column{GithubProductionPolicyColumns[1], GithubProductionPolicyColumns[2], GithubProductionPolicyColumns[3]},
+			},
+		},
+	}
+	// GithubRecoveryScanColumns holds the columns for the "github_recovery_scan" table.
+	GithubRecoveryScanColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceAppId", Type: field.TypeString},
+		{Name: "cursor", Type: field.TypeString, Default: ""},
+		{Name: "status", Type: field.TypeString, Default: "unknown"},
+		{Name: "reason", Type: field.TypeString, Default: "Delivery history has not been inspected."},
+		{Name: "gap", Type: field.TypeBool, Default: true},
+		{Name: "windowStart", Type: field.TypeTime, Nullable: true},
+		{Name: "lastCompleteAt", Type: field.TypeTime, Nullable: true},
+		{Name: "nextAttemptAt", Type: field.TypeTime, Nullable: true},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// GithubRecoveryScanTable holds the schema information for the "github_recovery_scan" table.
+	GithubRecoveryScanTable = &schema.Table{
+		Name:       "github_recovery_scan",
+		Columns:    GithubRecoveryScanColumns,
+		PrimaryKey: []*schema.Column{GithubRecoveryScanColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "githubrecoveryscan_organizationId_sourceAppId",
+				Unique:  true,
+				Columns: []*schema.Column{GithubRecoveryScanColumns[1], GithubRecoveryScanColumns[2]},
 			},
 		},
 	}
@@ -3561,8 +3688,12 @@ var (
 		FrontendActivationTable,
 		FrontendObservationTable,
 		FrontendSourceTable,
+		GithubDeliveryRecoveryTable,
 		GithubInstallStartTable,
 		GithubInstallationTable,
+		GithubObservationTable,
+		GithubProductionPolicyTable,
+		GithubRecoveryScanTable,
 		IdealCustomerProfileTable,
 		IntegrationConnectionTable,
 		InvitationTable,
@@ -3768,11 +3899,23 @@ func init() {
 	FrontendSourceTable.Annotation = &entsql.Annotation{
 		Table: "frontend_source",
 	}
+	GithubDeliveryRecoveryTable.Annotation = &entsql.Annotation{
+		Table: "github_delivery_recovery",
+	}
 	GithubInstallStartTable.Annotation = &entsql.Annotation{
 		Table: "github_install_start",
 	}
 	GithubInstallationTable.Annotation = &entsql.Annotation{
 		Table: "github_installation",
+	}
+	GithubObservationTable.Annotation = &entsql.Annotation{
+		Table: "github_observation",
+	}
+	GithubProductionPolicyTable.Annotation = &entsql.Annotation{
+		Table: "github_production_policy",
+	}
+	GithubRecoveryScanTable.Annotation = &entsql.Annotation{
+		Table: "github_recovery_scan",
 	}
 	IdealCustomerProfileTable.Annotation = &entsql.Annotation{
 		Table: "ideal_customer_profile",

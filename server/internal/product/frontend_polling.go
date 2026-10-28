@@ -279,10 +279,14 @@ func (c *Configuration) recoverFrontendGitHub(ctx context.Context, s *ent.Fronte
 		if err != nil {
 			return err
 		}
+		origin, err := c.githubDeliveryOrigin(ctx, d.DeliveryID)
+		if err != nil {
+			return err
+		}
 		if o.AccountID != s.AccountID || o.ProjectID != s.ProjectID {
 			return fd.ErrPayload
 		}
-		if err := c.acceptFrontendObservation(ctx, s.OrganizationID, s.ID, o, s.LastPollAt == nil); err != nil {
+		if err := c.acceptFrontendObservation(ctx, s.OrganizationID, s.ID, o, s.LastPollAt == nil || origin != "live"); err != nil {
 			return err
 		}
 	}

@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 )
 
 var ErrPayload = errors.New("invalid provider payload")
@@ -16,8 +18,12 @@ var ErrPayload = errors.New("invalid provider payload")
 type object map[string]any
 
 func decode(body []byte) (object, error) {
+	return decodeWithLimit(body, MaxBody)
+}
+
+func decodeWithLimit(body []byte, maxBytes int) (object, error) {
 	var m object
-	if len(body) == 0 || len(body) > MaxBody {
+	if len(body) == 0 || len(body) > maxBytes {
 		return nil, ErrPayload
 	}
 	d := json.NewDecoder(bytes.NewReader(body))
@@ -172,7 +178,7 @@ func NormalizeWebhook(provider string, body []byte) (Observation, error) {
 // NormalizeGitHub keeps Actions and checks as observations, never as production
 // proof. Deployment status IDs identify status occurrences independently of SHA.
 func NormalizeGitHub(name, delivery string, body []byte) (Observation, error) {
-	m, e := decode(body)
+	m, e := decodeWithLimit(body, releaseautomation.MaxGitHubPayloadBytes)
 	if e != nil {
 		return Observation{}, e
 	}

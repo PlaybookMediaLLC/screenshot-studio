@@ -158,6 +158,13 @@ workflow run for that frontend. Separate projects remain separate even at the sa
 SHA. Opting a repository into these policies replaces its legacy deployment
 fan-out with the explicitly selected workflow(s); releases, PRs, tags and milestones
 continue through the existing pipeline. This opt-in change is stated on the form.
+The repository's separate GitHub production-policy history is also retained.
+Once a frontend policy is selected, new GitHub observations explain that the
+frontend is authoritative and do not enqueue a second deployment workflow.
+GitHub observations queued before that selection keep their pinned processing.
+Deliveries marked as recovered by the GitHub recovery UI remain review-only in
+both webhook intake and frontend polling. GitHub uses its existing 25 MiB intake
+budget; hosting-provider bodies and API responses remain limited to 1 MiB.
 
 Unique source/event keys, activation keys, activity/outbox keys and stable workflow
 run IDs survive duplicate deliveries, concurrent acceptance and restarts. The

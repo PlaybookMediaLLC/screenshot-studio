@@ -625,10 +625,14 @@ func (c *Configuration) acceptGitHubFrontend(ctx context.Context, in AcceptGitHu
 			ID json.Number `json:"id"`
 		} `json:"repository"`
 	}
-	if len(in.Body) > fd.MaxBody || json.Unmarshal(in.Body, &header) != nil {
+	if len(in.Body) > ra.MaxGitHubPayloadBytes || json.Unmarshal(in.Body, &header) != nil {
 		return result, ErrInvalidInput
 	}
 	sources, err := c.GitHubSources(ctx, header.Installation.ID, header.Repository.ID.String())
+	if err != nil {
+		return result, err
+	}
+	origin, err := c.githubDeliveryOrigin(ctx, in.DeliveryID)
 	if err != nil {
 		return result, err
 	}
@@ -649,7 +653,7 @@ func (c *Configuration) acceptGitHubFrontend(ctx context.Context, in AcceptGitHu
 			if e != nil {
 				return result, e
 			}
-			if err := c.acceptFrontendObservation(ctx, source.OrganizationID, frontend.ID, o, false); err != nil {
+			if err := c.acceptFrontendObservation(ctx, source.OrganizationID, frontend.ID, o, origin != "live"); err != nil {
 				return result, err
 			}
 			if seen {

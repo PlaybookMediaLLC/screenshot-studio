@@ -15,9 +15,37 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 )
 
 var fixtureTime = time.Date(2026, 10, 28, 12, 0, 0, 0, time.UTC)
+
+func TestGitHubPayloadBudgetPreservesBoundedSnapshots(t *testing.T) {
+	body, err := json.Marshal(map[string]any{
+		"installation": map[string]int{"id": 77}, "repository": map[string]int{"id": 1001},
+		"deployment":        map[string]any{"id": 501, "environment": "production", "sha": "revision1"},
+		"deployment_status": map[string]any{"id": 601, "state": "success", "created_at": fixtureTime.Format(time.RFC3339Nano)},
+		"unused_metadata":   strings.Repeat("x", 2*MaxBody),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	observation, err := NormalizeGitHub("deployment_status", "large-github-delivery", body)
+	if err != nil || observation.Production != "active" {
+		t.Fatalf("valid GitHub payload rejected: %+v %v", observation, err)
+	}
+	snapshot, _ := json.Marshal(observation)
+	if len(snapshot) > 10000 {
+		t.Fatal("unselected GitHub metadata leaked into the stored snapshot")
+	}
+	if _, err := decode(body); !errors.Is(err, ErrPayload) {
+		t.Fatal("hosting-provider response budget was widened")
+	}
+	if _, err := NormalizeGitHub("deployment_status", "too-large", make([]byte, releaseautomation.MaxGitHubPayloadBytes+1)); !errors.Is(err, ErrPayload) {
+		t.Fatal("GitHub payload budget was not enforced")
+	}
+}
 
 func policyFixture() Policy {
 	return Policy{SchemaVersion: 1, Environments: []string{"production"}, Alerts: []string{"matched"}, Checks: []CheckRule{}}

@@ -525,6 +525,18 @@ func (f FrontendSourceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FrontendSourceMutation", m)
 }
 
+// The GitHubDeliveryRecoveryFunc type is an adapter to allow the use of ordinary
+// function as GitHubDeliveryRecovery mutator.
+type GitHubDeliveryRecoveryFunc func(context.Context, *ent.GitHubDeliveryRecoveryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubDeliveryRecoveryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubDeliveryRecoveryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubDeliveryRecoveryMutation", m)
+}
+
 // The GitHubInstallStartFunc type is an adapter to allow the use of ordinary
 // function as GitHubInstallStart mutator.
 type GitHubInstallStartFunc func(context.Context, *ent.GitHubInstallStartMutation) (ent.Value, error)
@@ -547,6 +559,42 @@ func (f GitHubInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubInstallationMutation", m)
+}
+
+// The GitHubObservationFunc type is an adapter to allow the use of ordinary
+// function as GitHubObservation mutator.
+type GitHubObservationFunc func(context.Context, *ent.GitHubObservationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubObservationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubObservationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubObservationMutation", m)
+}
+
+// The GitHubProductionPolicyFunc type is an adapter to allow the use of ordinary
+// function as GitHubProductionPolicy mutator.
+type GitHubProductionPolicyFunc func(context.Context, *ent.GitHubProductionPolicyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubProductionPolicyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubProductionPolicyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubProductionPolicyMutation", m)
+}
+
+// The GitHubRecoveryScanFunc type is an adapter to allow the use of ordinary
+// function as GitHubRecoveryScan mutator.
+type GitHubRecoveryScanFunc func(context.Context, *ent.GitHubRecoveryScanMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubRecoveryScanFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubRecoveryScanMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubRecoveryScanMutation", m)
 }
 
 // The IdealCustomerProfileFunc type is an adapter to allow the use of ordinary

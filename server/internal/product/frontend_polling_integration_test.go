@@ -3,7 +3,6 @@ package product
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	ra "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 	"net/http"
@@ -13,7 +12,9 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
 	fd "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/frontenddeploy"
 )
 
@@ -295,14 +296,14 @@ func TestFrontendOnlySelectedEnvironmentsSupersedeProduction(t *testing.T) {
 			for i, target := range []string{"production", environment} {
 				body, _ := json.Marshal(map[string]any{"installation": map[string]any{"id": f.installation}, "repository": map[string]any{"id": 1001}, "deployment": map[string]any{"id": 501 + i, "sha": "revision" + strconv.Itoa(i), "environment": target}, "deployment_status": map[string]any{"id": 901 + i, "state": "success", "created_at": at.Add(time.Duration(i) * time.Second).Format(time.RFC3339Nano)}})
 				_, err := f.repo.AcceptGitHubEvent(f.ctx, AcceptGitHubEventInput{DeliveryID: "deployment-" + strconv.Itoa(i), EventName: "deployment_status", Body: body})
-				if target == "" {
-					if !errors.Is(err, ErrInvalidInput) {
-						t.Fatalf("missing deployment environment: %v", err)
-					}
-					continue
-				}
 				if err != nil {
 					t.Fatal(err)
+				}
+				if target == "" {
+					row := f.db.Client.FrontendObservation.Query().Where(frontendobservation.SourceID(source.ID), frontendobservation.EventKey("delivery:deployment-1")).OnlyX(f.ctx)
+					if row.Decision.State != "needs_attention" {
+						t.Fatalf("missing environment must remain reviewable and unqualified: %+v", row.Decision)
+					}
 				}
 			}
 			if frontendAlerts(t, f.testWorkspace) != 0 {
@@ -373,5 +374,94 @@ func TestFrontendPollingPagesPastIneligibleSources(t *testing.T) {
 	}
 	if got := w.db.Client.FrontendSource.Query().Where(frontendsource.Enabled(true), frontendsource.LastPollAtNotNil(), frontendsource.Or(frontendsource.OrganizationID(w.org), frontendsource.OrganizationID(blocked.org))).CountX(w.ctx); got != 21 {
 		t.Fatalf("ineligible source checkpoint changed: completed polls=%d", got)
+	}
+}
+
+func TestFrontendAuthorityPreservesGitHubEvidenceAndQueuedWork(t *testing.T) {
+	f, active, _, _ := productionWorkspace(t)
+	frontendFixtureCleanup(t, f.testWorkspace)
+	queued := productionDelivery(t, f, 501, 601, "success", "before-frontend", time.Now().Add(time.Second))
+	if _, err := f.repo.AcceptGitHubEvent(f.ctx, queued); err != nil {
+		t.Fatal(err)
+	}
+	prior := f.db.Client.GitHubObservation.Query().Where(githubobservation.OrganizationID(f.org)).OnlyX(f.ctx)
+	f.repo.WithWebhooks(make([]byte, 32), nil).WithFrontendHTTP(&http.Client{Transport: frontendTransport(func(*http.Request) (*http.Response, error) {
+		return frontendResponse(`{"id":"prj_web","accountId":"team1"}`), nil
+	})})
+	policy := frontendPolicy()
+	policy.WorkflowVersionID = *active.ActiveVersionID
+	source, err := f.repo.SaveFrontendSource(f.ctx, f.owner, FrontendSourceInput{Name: "Host frontend", GitHubSourceID: f.source.ID, Provider: "vercel", AccountID: "team1", ProjectID: "prj_web", Token: "fixture", Secret: "test-only-signing-secret", Enabled: true, Policy: policy})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Work accepted before the authority change retains its pinned GitHub policy.
+	if err := f.repo.processGitHubObservation(f.ctx, f.org, prior.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := f.db.Client.GitHubObservation.GetX(f.ctx, prior.ID); got.Status != "matched" || got.EventID == nil {
+		t.Fatalf("queued GitHub work changed: %+v", got)
+	}
+	input := productionDelivery(t, f, 502, 602, "success", "after-frontend", time.Now().Add(2*time.Second))
+	for i := 0; i < 2; i++ {
+		if _, err := f.repo.AcceptGitHubEvent(f.ctx, input); err != nil {
+			t.Fatal(err)
+		}
+	}
+	observation := f.db.Client.GitHubObservation.Query().Where(githubobservation.OrganizationID(f.org), githubobservation.DeliveryID(input.DeliveryID)).OnlyX(f.ctx)
+	if observation.Status != "not_matched" || observation.PolicyID == nil || observation.DuplicateCount != 1 {
+		t.Fatalf("new GitHub evidence was lost or allowed parallel automation: %+v", observation)
+	}
+	if err := f.repo.processGitHubObservation(f.ctx, f.org, observation.ID); err != nil {
+		t.Fatal(err)
+	}
+	if count := f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventGitHubObservation)).CountX(f.ctx); count != 1 {
+		t.Fatalf("new GitHub processing enqueued after frontend opt-in: %d", count)
+	}
+	body := frontendVercel("deployment.promoted", "host-authority", "host-deployment", time.Now().Add(3*time.Second))
+	for i := 0; i < 2; i++ {
+		if err := f.repo.AcceptFrontendWebhook(f.ctx, source.ID, frontendSignature(body), body); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if frontendAlerts(t, f.testWorkspace) != 1 {
+		t.Fatal("authoritative provider did not emit exactly one frontend alert")
+	}
+	if count := f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx); count != 2 {
+		t.Fatalf("expected one previously queued workflow and one frontend workflow, got %d", count)
+	}
+}
+
+func TestFrontendGitHubRecoveryDeliveryRemainsReviewOnly(t *testing.T) {
+	f := newAutomationFixture(t)
+	frontendFixtureCleanup(t, f.testWorkspace)
+	source, err := f.repo.SaveFrontendSource(f.ctx, f.owner, FrontendSourceInput{ID: f.source.ID, Name: "GitHub frontend", Provider: "github", AccountID: strconv.FormatInt(f.installation, 10), ProjectID: "1001", Enabled: true, Policy: frontendPolicy()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := productionDelivery(t, f, 501, 601, "success", "recovered-"+f.id, time.Now().Add(time.Second))
+	f.exec(t, `INSERT INTO github_delivery_recovery (id,guid,"installationId","repositoryId","eventName","deliveredAt","statusCode",recovery) VALUES ($1,$2,$3,'1001','deployment_status',now(),500,true)`, "recovery-"+f.id, input.DeliveryID, f.installation)
+	t.Cleanup(func() {
+		if _, err := f.db.SQL.ExecContext(f.ctx, `DELETE FROM github_delivery_recovery WHERE "installationId"=$1`, f.installation); err != nil {
+			t.Error(err)
+		}
+	})
+	if _, err := f.repo.AcceptGitHubEvent(f.ctx, input); err != nil {
+		t.Fatal(err)
+	}
+	if frontendAlerts(t, f.testWorkspace) != 0 {
+		t.Fatal("provider redelivery marked for review triggered a live frontend alert")
+	}
+	if count := f.db.Client.FrontendObservation.Query().Where(frontendobservation.SourceID(source.ID), frontendobservation.Historical(true)).CountX(f.ctx); count != 1 {
+		t.Fatalf("recovered frontend evidence was not retained for review: %d", count)
+	}
+	polled := productionDelivery(t, f, 502, 602, "success", "polled-recovery-"+f.id, time.Now().Add(2*time.Second))
+	f.exec(t, `INSERT INTO github_delivery_recovery (id,guid,"installationId","repositoryId","eventName","deliveredAt","statusCode",recovery) VALUES ($1,$2,$3,'1001','deployment_status',now(),500,true)`, "polled-recovery-"+f.id, polled.DeliveryID, f.installation)
+	f.db.Client.FrontendSource.UpdateOneID(source.ID).SetLastPollAt(time.Now().Add(-time.Minute)).ExecX(f.ctx)
+	f.repo.WithGitHubApp(frontendRecoveryReader{fakeReader: f.repo.github.(fakeReader), complete: true, deliveries: []fd.GitHubRecoveredDelivery{{DeliveryID: polled.DeliveryID, EventName: polled.EventName, Body: polled.Body}}})
+	if _, err := f.repo.PollFrontends(f.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if frontendAlerts(t, f.testWorkspace) != 0 || f.db.Client.FrontendObservation.Query().Where(frontendobservation.SourceID(source.ID), frontendobservation.Historical(true)).CountX(f.ctx) != 2 {
+		t.Fatal("API polling bypassed the recovered-delivery review boundary")
 	}
 }

@@ -1,3 +1,5 @@
+import type { z } from 'zod'
+import type { productionQualificationSchema } from './github-production.ts'
 /** The v1/v2 execution language; the Go validator is the execution authority. */
 export type AutomationFamily =
   | 'release.published'
@@ -98,6 +100,7 @@ export type AutomationEventSnapshot = {
   url: string
   defaultBranch?: string
   fields: Record<string, AutomationValue>
+  production?: z.infer<typeof productionQualificationSchema>
 }
 export type AutomationDecision = { status: string; match: boolean; reason: string; score?: number }
 export type AutomationPreview = {

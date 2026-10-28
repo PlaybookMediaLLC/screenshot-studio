@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
 	releaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
@@ -33,9 +32,8 @@ type GitHubEventAcceptance struct {
 }
 
 // AcceptGitHubEvent is facade-only, after raw-body signature verification.
-// Existing release receipts fan out atomically. Opt-in frontend receipts commit
-// per source; the facade acknowledges only after every receipt commits, and
-// redelivery safely resumes a partial frontend fan-out using durable event keys.
+// All tenant receipts and dispatch intents commit atomically: a failed fan-out
+// has no partial effects, and a redelivery can safely retry the whole envelope.
 func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHubEventInput) (result *GitHubEventAcceptance, resultErr error) {
 	started := time.Now()
 	defer func() {
@@ -59,13 +57,23 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 	if input.DeliveryID == "" || len(input.DeliveryID) > 255 {
 		return nil, ErrInvalidInput
 	}
+	evidence, err := automation.NormalizeGitHubEvidence(input.EventName, input.Body)
+	if err != nil {
+		return nil, ErrInvalidInput
+	}
+	installation, event, err := automation.NormalizeGitHub(input.EventName, input.Body)
+	if err != nil && evidence == nil {
+		return nil, ErrInvalidInput
+	}
+	if evidence != nil {
+		installation = evidence.InstallationID
+		if event == nil {
+			event = &automation.Event{RepositoryID: evidence.RepositoryID}
+		}
+	}
 	frontend, err := c.acceptGitHubFrontend(ctx, input)
 	if err != nil {
 		return nil, err
-	}
-	installation, event, err := automation.NormalizeGitHub(input.EventName, input.Body)
-	if err != nil {
-		return nil, ErrInvalidInput
 	}
 	if event == nil {
 		return &frontend, nil
@@ -76,7 +84,7 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 	}
 	slices.SortFunc(sources, func(a, b *WebhookSource) int { return strings.Compare(a.ID, b.ID) })
 	for attempt := 0; attempt < 3; attempt++ {
-		result, err := c.acceptGitHubEvent(ctx, input.DeliveryID, *event, sources)
+		result, err := c.acceptGitHubEvent(ctx, input.DeliveryID, *event, sources, evidence)
 		if ent.IsConstraintError(err) {
 			continue
 		}
@@ -89,24 +97,39 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 	return nil, errors.New("event acceptance contention")
 }
 
-func (c *Configuration) acceptGitHubEvent(ctx context.Context, delivery string, event automation.Event, sources []*WebhookSource) (*GitHubEventAcceptance, error) {
+func (c *Configuration) acceptGitHubEvent(ctx context.Context, delivery string, event automation.Event, sources []*WebhookSource, evidence *automation.GitHubEvidence) (*GitHubEventAcceptance, error) {
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 	result := &GitHubEventAcceptance{}
+	origin, err := c.githubDeliveryOrigin(ctx, delivery)
+	if err != nil {
+		return nil, err
+	}
+	if origin != "live" {
+		event.Origin = "historical"
+	}
 	for _, candidate := range sources {
 		source, err := lockAutomationSource(ctx, tx, candidate.OrganizationID, candidate.ID)
 		if err != nil {
 			return nil, err
 		}
-		if event.Family == automation.Deployed {
-			opted, err := tx.FrontendSource.Query().Where(frontendsource.Or(frontendsource.ID(source.ID), frontendsource.GithubSourceID(source.ID)), frontendsource.OrganizationID(source.OrganizationID)).Exist(ctx)
+		if evidence != nil {
+			if err := automationSourceAccess(ctx, tx.Client(), source); err != nil {
+				return nil, err
+			}
+			legacy, duplicate, err := recordGitHubObservation(ctx, tx, source, delivery, origin, *evidence)
 			if err != nil {
 				return nil, err
 			}
-			if opted {
+			if !legacy || event.Family == "" || origin != "live" {
+				if duplicate {
+					result.Duplicates++
+				} else {
+					result.Handled++
+				}
 				continue
 			}
 		}
@@ -226,6 +249,9 @@ func automationSourceFilter(source *ent.SourceApp, event automation.Event) strin
 }
 
 func productionDeployment(event automation.Event) bool {
+	if event.Production != nil {
+		return true
+	}
 	value := event.Fields["deployment.production"]
 	return value.Boolean != nil && *value.Boolean || strings.EqualFold(eventString(event, "deployment.environment"), "production")
 }

@@ -55,8 +55,12 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubproductionpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubrecoveryscan"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
@@ -231,8 +235,12 @@ func checkColumn(t, c string) error {
 			frontendactivation.Table:              frontendactivation.ValidColumn,
 			frontendobservation.Table:             frontendobservation.ValidColumn,
 			frontendsource.Table:                  frontendsource.ValidColumn,
+			githubdeliveryrecovery.Table:          githubdeliveryrecovery.ValidColumn,
 			githubinstallstart.Table:              githubinstallstart.ValidColumn,
 			githubinstallation.Table:              githubinstallation.ValidColumn,
+			githubobservation.Table:               githubobservation.ValidColumn,
+			githubproductionpolicy.Table:          githubproductionpolicy.ValidColumn,
+			githubrecoveryscan.Table:              githubrecoveryscan.ValidColumn,
 			idealcustomerprofile.Table:            idealcustomerprofile.ValidColumn,
 			integrationconnection.Table:           integrationconnection.ValidColumn,
 			invitation.Table:                      invitation.ValidColumn,

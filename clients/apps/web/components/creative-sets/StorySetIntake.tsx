@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ProjectPreview } from '@/components/projects/ProjectPreview'
 import { useTRPCClient } from '@/lib/trpc/react'
@@ -137,11 +138,11 @@ export function StorySetIntake({
       </div>
       <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
         <div className="space-y-5 rounded-xl border bg-foreground/[0.02] p-5">
-          <label className="grid gap-2 text-sm" hidden={Boolean(onAdd)}>
+          <Label className="grid gap-2 text-sm" hidden={Boolean(onAdd)}>
             Story Set name
             <Input value={name} onChange={(event) => setName(event.target.value)} maxLength={200} />
-          </label>
-          <label className="grid gap-2 text-sm">
+          </Label>
+          <Label className="grid gap-2 text-sm">
             Story headline
             <Textarea
               value={headline}
@@ -149,16 +150,16 @@ export function StorySetIntake({
               maxLength={300}
               placeholder="See what needs your decision"
             />
-          </label>
-          <label className="grid gap-2 text-sm">
+          </Label>
+          <Label className="grid gap-2 text-sm">
             Supporting line (optional)
             <Textarea
               value={supporting}
               onChange={(event) => setSupporting(event.target.value)}
               maxLength={300}
             />
-          </label>
-          <label className="grid gap-2 text-sm">
+          </Label>
+          <Label className="grid gap-2 text-sm">
             Product screenshot
             <Input
               type="file"
@@ -180,7 +181,7 @@ export function StorySetIntake({
                 }
               }}
             />
-          </label>
+          </Label>
           <p className="text-xs text-muted-foreground">
             Start with a neutral style. Add your brand and adjust each format in the editor.
           </p>
@@ -200,8 +201,10 @@ export function StorySetIntake({
           <h2 className="mb-4 text-sm font-medium">Choose a visual treatment</h2>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {previews.map(({ id, document }) => (
-              <button
+              <Button
                 key={id}
+                variant="custom"
+                size={null}
                 type="button"
                 aria-pressed={treatment === id}
                 onClick={() => setTreatment(id)}
@@ -227,7 +230,7 @@ export function StorySetIntake({
                           : 'Let the UI lead. A focused crop on a brand backdrop.'}
                   </p>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         </div>

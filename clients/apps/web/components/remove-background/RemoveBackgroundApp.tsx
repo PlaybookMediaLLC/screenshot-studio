@@ -22,6 +22,7 @@ import {
   type RemovalResult,
 } from '@/lib/background-removal';
 import { Input } from '@/components/ui/input'
+import { Slider } from '@/components/ui/slider'
 
 type EngineStatus =
   | { kind: 'checking' }
@@ -121,15 +122,14 @@ function CompareSlider({ sourceUrl, resultUrl, width, height }: {
       <span className="pointer-events-none absolute top-2.5 right-2.5 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
         After
       </span>
-      <Input
-        type="range"
+      <Slider
         min={0}
         max={100}
         step={0.5}
-        value={position}
-        onChange={(event) => setPosition(Number(event.target.value))}
+        value={[position]}
+        onValueChange={([value]) => setPosition(value)}
         aria-label="Compare before and after"
-        className="absolute inset-0 h-full w-full cursor-ew-resize border-0 p-0 opacity-0"
+        className="absolute inset-0 h-full w-full opacity-0 [&_[data-slot=slider]]:h-full [&_[data-slot=slider]]:cursor-ew-resize [&_[data-slot=slider]]:touch-pan-y"
       />
     </div>
   );

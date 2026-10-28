@@ -9,6 +9,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Slider } from '@/components/ui/slider'
 import { designDocumentSchema, type DesignDocument } from '@/lib/design/document'
 import { designCatalog, type FrameType } from '@/lib/design/catalog'
 import { useDocumentPreview } from '@/lib/render/use-document-preview'
@@ -92,72 +96,76 @@ export function ChartShare({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label>
+          <Label>
             Crop{' '}
-            <select aria-label="Image crop" value={crop} onChange={(e) => setCrop(e.target.value)}>
-              <option value="landscape">Landscape</option>
-              <option value="square">Square</option>
-              <option value="portrait">Portrait</option>
-            </select>
-          </label>
-          <label>
+            <NativeSelect
+              aria-label="Image crop"
+              value={crop}
+              onChange={(e) => setCrop(e.target.value)}
+            >
+              <NativeSelectOption value="landscape">Landscape</NativeSelectOption>
+              <NativeSelectOption value="square">Square</NativeSelectOption>
+              <NativeSelectOption value="portrait">Portrait</NativeSelectOption>
+            </NativeSelect>
+          </Label>
+          <Label>
             Color{' '}
-            <input
+            <Input
               aria-label="Image color"
+              className="w-14 p-1"
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
             />
-          </label>
-          <label>
+          </Label>
+          <Label>
             Frame{' '}
-            <select
+            <NativeSelect
               aria-label="Image frame"
               value={frame}
               onChange={(e) => setFrame(e.target.value as FrameType)}
             >
               {designCatalog.frames.map((f) => (
-                <option value={f} key={f}>
+                <NativeSelectOption value={f} key={f}>
                   {f}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-          </label>
-          <label>
+            </NativeSelect>
+          </Label>
+          <Label>
             Gradient{' '}
-            <select
+            <NativeSelect
               aria-label="Image gradient"
               value={gradient}
               onChange={(e) => setGradient(e.target.value)}
             >
-              <option value="">Solid color</option>
+              <NativeSelectOption value="">Solid color</NativeSelectOption>
               {designCatalog.gradients.map((g) => (
-                <option key={g}>{g}</option>
+                <NativeSelectOption key={g}>{g}</NativeSelectOption>
               ))}
-            </select>
-          </label>
+            </NativeSelect>
+          </Label>
           {[
             { label: 'Inset', value: inset, max: 200, min: 0, set: setInset },
             { label: 'Corner radius', value: radius, max: 100, min: 0, set: setRadius },
             { label: 'Rotation', value: rotation, min: -180, max: 180, set: setRotation },
             { label: 'Crop zoom', value: zoom, min: 10, max: 200, set: setZoom },
           ].map((control) => (
-            <label key={control.label}>
+            <Label key={control.label} className="grid gap-1.5">
               {control.label}: {control.value}
-              <input
+              <Slider
                 className="block w-full"
                 aria-label={control.label}
-                type="range"
                 min={control.min}
                 max={control.max}
-                value={control.value}
-                onChange={(e) => control.set(Number(e.target.value))}
+                value={[control.value]}
+                onValueChange={([value]) => control.set(value)}
               />
-            </label>
+            </Label>
           ))}
-          <label>
+          <Label>
             Shadow{' '}
-            <select
+            <NativeSelect
               aria-label="Image shadow"
               value={shadow?.preset}
               onChange={(e) =>
@@ -165,10 +173,10 @@ export function ChartShare({
               }
             >
               {designCatalog.shadowPresets.map((s) => (
-                <option key={s}>{s}</option>
+                <NativeSelectOption key={s}>{s}</NativeSelectOption>
               ))}
-            </select>
-          </label>
+            </NativeSelect>
+          </Label>
         </div>
         <div className="min-h-48 rounded border bg-muted p-2">
           {preview.url ? (

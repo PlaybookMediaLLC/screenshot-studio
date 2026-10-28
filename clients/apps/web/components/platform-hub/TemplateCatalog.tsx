@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
+import { Button } from '@/components/ui/button'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { useNearViewport } from '@/components/design/DocumentPreview'
 import { ImageTemplatePreview } from '@/components/templates/ImageTemplateGallery'
@@ -119,8 +120,10 @@ export default function TemplateCatalog() {
     <section aria-label="Template previews" className="space-y-5">
       <div className="platform-tabs" role="group" aria-label="Template categories">
         {CATEGORIES.map((item) => (
-          <button
+          <Button
             key={item}
+            variant="custom"
+            size={null}
             aria-current={category === item ? 'page' : undefined}
             aria-pressed={category === item}
             className={
@@ -132,7 +135,7 @@ export default function TemplateCatalog() {
             type="button"
           >
             {item}
-          </button>
+          </Button>
         ))}
       </div>
       <p className="text-sm text-muted-foreground">

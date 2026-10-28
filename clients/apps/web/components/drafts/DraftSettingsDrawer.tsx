@@ -76,7 +76,7 @@ export function DraftSettingsDrawer({
           </SheetHeader>
           <nav aria-label="Settings pages" className="flex flex-wrap gap-1 border-b border-border px-4">
             {PAGES.map((item) => (
-              <button
+              <Button
                 aria-current={item.page === page ? 'page' : undefined}
                 className={cn(
                   '-mb-px border-b-2 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -84,10 +84,12 @@ export function DraftSettingsDrawer({
                 )}
                 key={item.page}
                 onClick={() => go(item.page)}
+                size={null}
                 type="button"
+                variant="custom"
               >
                 {item.title}
-              </button>
+              </Button>
             ))}
           </nav>
           <div className="grid gap-4 p-4">

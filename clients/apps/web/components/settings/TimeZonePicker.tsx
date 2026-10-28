@@ -3,6 +3,7 @@
 import { useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -98,7 +99,7 @@ export function TimeZonePicker({
   return (
     <div className="grid w-full min-w-0 gap-2">
       <div className="flex flex-wrap items-end gap-2">
-        <label className="grid min-w-0 flex-1 basis-48 gap-1 text-sm" htmlFor={`${id}-search`}>
+        <Label className="grid min-w-0 flex-1 basis-48 gap-1 text-sm" htmlFor={`${id}-search`}>
           <span className="text-xs text-muted-foreground">Search {label.toLowerCase()}</span>
           <Input
             disabled={disabled}
@@ -107,7 +108,7 @@ export function TimeZonePicker({
             placeholder="City or region, such as Paris"
             value={query}
           />
-        </label>
+        </Label>
         <Button
           disabled={disabled}
           onClick={() => {
@@ -121,9 +122,9 @@ export function TimeZonePicker({
         </Button>
       </div>
       <div className="grid gap-1 text-sm">
-        <label className="font-medium text-foreground" htmlFor={`${id}-zone`}>
+        <Label className="font-medium text-foreground" htmlFor={`${id}-zone`}>
           {label}
-        </label>
+        </Label>
         <Select
           disabled={disabled}
           onValueChange={(zone) => {

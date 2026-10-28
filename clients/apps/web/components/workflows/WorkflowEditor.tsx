@@ -56,6 +56,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { actionAvailability, savedGraph, WORKFLOW_SCHEMA_VERSION } from '@/lib/workflows/actions'
@@ -760,23 +761,31 @@ export function WorkflowEditor({
                               This trigger is bound to {FAMILY_NAMES[graph.family]}. A different
                               event family needs another definition.
                             </p>
-                            <table aria-label="Event fields" className="w-full text-left text-xs">
-                              <caption className="mb-2 text-left text-xs text-muted-foreground">
+                            <Table
+                              aria-label="Event fields"
+                              className="w-full caption-top text-left text-xs"
+                            >
+                              <TableCaption className="mt-0 mb-2 text-left text-xs text-muted-foreground">
                                 Fields conditions can test.{' '}
                                 {latest
                                   ? `Values from the latest recorded event, “${latest.snapshot.title}”.`
                                   : 'No event has been recorded for this repository yet.'}
-                              </caption>
-                              <tbody>
+                              </TableCaption>
+                              <TableBody>
                                 {Object.entries(fields).map(([field, kind]) => {
                                   const value = latestFields[field]
                                   return (
-                                    <tr key={field} className="border-t border-border">
-                                      <th scope="row" className="py-1 pr-2 font-mono font-normal">
+                                    <TableRow key={field} className="border-t border-border">
+                                      <TableHead
+                                        scope="row"
+                                        className="py-1 pr-2 font-mono font-normal"
+                                      >
                                         {field}
-                                      </th>
-                                      <td className="py-1 pr-2 text-muted-foreground">{kind}</td>
-                                      <td className="max-w-32 truncate py-1 text-muted-foreground">
+                                      </TableHead>
+                                      <TableCell className="py-1 pr-2 text-muted-foreground">
+                                        {kind}
+                                      </TableCell>
+                                      <TableCell className="max-w-32 truncate py-1 text-muted-foreground">
                                         {!value
                                           ? '—'
                                           : value.state !== 'available'
@@ -784,12 +793,12 @@ export function WorkflowEditor({
                                             : value.boolean !== undefined
                                               ? String(value.boolean)
                                               : (value.values ?? []).join(', ') || '(empty)'}
-                                      </td>
-                                    </tr>
+                                      </TableCell>
+                                    </TableRow>
                                   )
                                 })}
-                              </tbody>
-                            </table>
+                              </TableBody>
+                            </Table>
                           </div>
                         ) : null}
                         {selectedNode.type === 'end' ? (

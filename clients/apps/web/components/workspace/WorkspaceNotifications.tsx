@@ -15,6 +15,15 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { PersonalNotificationDeliveries } from '@/components/settings/PersonalNotificationDeliveries'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   Select,
   SelectContent,
@@ -313,7 +322,7 @@ function SettingsForm({
         >
           <Group>
             <div className="space-y-3 p-5">
-              <label className="flex items-center justify-between gap-4 text-sm">
+              <Label className="flex items-center justify-between gap-4 text-sm">
                 <span>Allow personal Slack messages in this workspace</span>
                 <Switch
                   aria-label="Personal Slack messages"
@@ -322,7 +331,7 @@ function SettingsForm({
                     setPreferences((current) => ({ ...current, slackEnabled }))
                   }
                 />
-              </label>
+              </Label>
               <p className="text-xs text-muted-foreground">
                 Save preferences below to apply this switch. Off pauses all activity DMs, including
                 required failure alerts. An explicit test can still send one message.
@@ -460,7 +469,7 @@ function SettingsForm({
                       No Slack workspace is connected.
                     </p>
                   ) : null}
-                  <label className="grid gap-2 text-sm">
+                  <Label className="grid gap-2 text-sm">
                     Slack workspace
                     <Select
                       value={policy.slackConnectionId}
@@ -485,13 +494,13 @@ function SettingsForm({
                         ))}
                       </SelectContent>
                     </Select>
-                  </label>
+                  </Label>
                   {selected ? (
                     <p className="text-xs text-muted-foreground">
                       {selected.health === 'CONNECTED' ? 'Connected' : 'Reconnect required'}
                     </p>
                   ) : null}
-                  <label className="grid gap-2 text-sm">
+                  <Label className="grid gap-2 text-sm">
                     Channel
                     <Select
                       disabled={!policy.slackConnectionId || channels.isPending}
@@ -517,7 +526,7 @@ function SettingsForm({
                         ))}
                       </SelectContent>
                     </Select>
-                  </label>
+                  </Label>
                   {policy.slackConnectionId && channels.isPending ? (
                     <p role="status" className="text-sm text-muted-foreground">
                       Loading Slack channels…
@@ -594,7 +603,7 @@ function SettingsForm({
               <fieldset className="mb-4 flex flex-wrap gap-5" disabled={!!busy}>
                 <legend className="mb-3 text-sm font-medium">Available channels</legend>
                 {(['inApp', 'email', 'slack'] as const).map((channel) => (
-                  <label key={channel} className="flex items-center gap-2 text-sm">
+                  <Label key={channel} className="flex items-center gap-2 text-sm">
                     <Checkbox
                       checked={policy.availability[channel]}
                       onCheckedChange={(checked) =>
@@ -608,7 +617,7 @@ function SettingsForm({
                       }
                     />
                     {channel === 'inApp' ? 'In-app' : channel === 'email' ? 'Email' : 'Slack'}
-                  </label>
+                  </Label>
                 ))}
               </fieldset>
               <Group>
@@ -622,34 +631,41 @@ function SettingsForm({
                       {group}
                     </summary>
                     <div className="overflow-x-auto px-5 pb-4">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr>
-                            <th scope="col" className="pb-3 font-medium">
+                      <Table className="w-full text-left text-sm">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead scope="col" className="pb-3 font-medium">
                               Activity
-                            </th>
+                            </TableHead>
                             {['In-app', 'Email', 'Slack'].map((channel) => (
-                              <th scope="col" className="px-3 pb-3 font-medium" key={channel}>
+                              <TableHead
+                                scope="col"
+                                className="px-3 pb-3 font-medium"
+                                key={channel}
+                              >
                                 {channel}
-                              </th>
+                              </TableHead>
                             ))}
-                          </tr>
-                        </thead>
-                        <tbody>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
                           {settings.catalogue
                             .filter((event) => event.group === group)
                             .map((event) => (
-                              <tr className="border-t border-border" key={event.id}>
-                                <th scope="row" className="py-3 pr-4 font-normal">
+                              <TableRow className="border-t border-border" key={event.id}>
+                                <TableHead
+                                  scope="row"
+                                  className="py-3 pr-4 font-normal whitespace-normal"
+                                >
                                   {event.label}
                                   {event.restricted ? (
                                     <span className="mt-1 block text-xs text-muted-foreground">
                                       Private to recipients
                                     </span>
                                   ) : null}
-                                </th>
+                                </TableHead>
                                 {(['inApp', 'email', 'slack'] as const).map((channel) => (
-                                  <td className="px-3 py-3" key={channel}>
+                                  <TableCell className="px-3 py-3" key={channel}>
                                     <Checkbox
                                       aria-label={`${event.label}: workspace ${channel === 'inApp' ? 'in-app' : channel}`}
                                       disabled={
@@ -671,12 +687,12 @@ function SettingsForm({
                                         }))
                                       }
                                     />
-                                  </td>
+                                  </TableCell>
                                 ))}
-                              </tr>
+                              </TableRow>
                             ))}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </Table>
                     </div>
                   </details>
                 ))}
@@ -830,9 +846,9 @@ function TestDeliveryStatus({
     return (
       <p role="alert">
         Could not check the test.{' '}
-        <button type="button" onClick={() => void status.refetch()}>
+        <Button type="button" variant="outline" size="sm" onClick={() => void status.refetch()}>
           Retry status check
-        </button>
+        </Button>
       </p>
     )
   const result = status.data

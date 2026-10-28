@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -720,7 +721,7 @@ export function PlanWorkspace({
                   ...sets.map((s) => s.timeZone),
                 ]),
               ].map((z) => (
-                <option key={z}>{z}</option>
+                <NativeSelectOption key={z}>{z}</NativeSelectOption>
               ))}
             </datalist>
             <Popover>
@@ -1073,21 +1074,29 @@ function TimeFields({
     <div className="grid gap-2">
       <Label className="grid gap-1.5">
         Date and time{' '}
-        <Input
-          className="w-full"
-          aria-label="Date and time"
-          type="datetime-local"
-          min={wallTime(new Date(), isTimeZone(zone) ? zone : 'UTC')}
-          value={local}
-          onChange={(e) => onLocal(e.target.value)}
-          step="60"
-          list="quarter-hours"
-        />
+        <span className="grid grid-cols-2 gap-2">
+          <DatePicker
+            className="w-full"
+            aria-label="Day"
+            min={wallTime(new Date(), isTimeZone(zone) ? zone : 'UTC').slice(0, 10)}
+            value={local.slice(0, 10)}
+            onChange={(day) => onLocal(`${day}T${local.slice(11)}`)}
+          />
+          <Input
+            className="w-full"
+            aria-label="Time"
+            type="time"
+            value={local.slice(11)}
+            onChange={(e) => onLocal(`${local.slice(0, 10)}T${e.target.value}`)}
+            step="60"
+            list="quarter-hours"
+          />
+        </span>
         <datalist id="quarter-hours">
           {Array.from({ length: 96 }, (_, i) => (
-            <option
+            <NativeSelectOption
               key={i}
-              value={`${local.slice(0, 10)}T${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`}
+              value={`${String(Math.floor(i / 4)).padStart(2, '0')}:${String((i % 4) * 15).padStart(2, '0')}`}
             />
           ))}
         </datalist>

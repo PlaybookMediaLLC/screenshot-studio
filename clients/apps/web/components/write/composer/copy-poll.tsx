@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
   Dialog,
   DialogContent,
@@ -47,21 +49,20 @@ export function CopyPollDialog({
             replacing its first poll. Its post text stays in place.
           </DialogDescription>
         </DialogHeader>
-        <label>
+        <Label>
           Destination{' '}
-          <select
+          <NativeSelect
             aria-label="Poll destination"
-            className="rounded border bg-background p-2"
             disabled={prepared}
             value={target}
             onChange={(event) => setTarget(event.target.value as DraftChannel)}
           >
-            <option value="">Choose a channel</option>
+            <NativeSelectOption value="">Choose a channel</NativeSelectOption>
             {supported.map((item) => (
-              <option key={item.channel}>{item.channel}</option>
+              <NativeSelectOption key={item.channel}>{item.channel}</NativeSelectOption>
             ))}
-          </select>
-        </label>
+          </NativeSelect>
+        </Label>
         {!supported.length && <p>No other connected channel has verified poll support.</p>}
         {target && (
           <>

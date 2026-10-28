@@ -5,7 +5,9 @@ import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
 import type { Value } from '@shots/platejs-editor/platejs'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
 import { splitThread } from '@/lib/write/split-thread'
 import type { DraftChannel, PlateBody, VersionOptions } from '@/lib/write/document'
@@ -68,7 +70,7 @@ export function ThreadTools({
           formatting and links.
         </p>
       ) : null}
-      <label className="flex items-center gap-2">
+      <Label className="flex items-center gap-2">
         Characters per post
         <Input
           aria-label="Characters per post"
@@ -83,15 +85,14 @@ export function ThreadTools({
               onChange({ ...options, splitLimit: value })
           }}
         />
-      </label>
-      <label className="flex items-center gap-1">
-        <input
-          type="checkbox"
+      </Label>
+      <Label className="flex items-center gap-1">
+        <Checkbox
           checked={options.splitOnPaste ?? false}
-          onChange={(event) => onChange({ ...options, splitOnPaste: event.target.checked })}
+          onCheckedChange={(checked) => onChange({ ...options, splitOnPaste: checked === true })}
         />
         Split automatically on paste
-      </label>
+      </Label>
       <Button
         size="sm"
         variant="outline"

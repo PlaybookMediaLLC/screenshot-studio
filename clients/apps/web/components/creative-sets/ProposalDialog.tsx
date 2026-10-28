@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -77,7 +78,7 @@ export function ProposalDialog({
           Selected story: {story.headline}. Only the facts below are sent to the copy service.
           Review meaning before keeping a proposal.
         </DialogDescription>
-        <label className="grid gap-1 text-sm">
+        <Label className="grid gap-1 text-sm">
           Editing scope
           <Select
             disabled={busy}
@@ -96,8 +97,8 @@ export function ProposalDialog({
               <SelectItem value="story">Story · update linked formats</SelectItem>
             </SelectContent>
           </Select>
-        </label>
-        <label className="grid gap-1 text-sm">
+        </Label>
+        <Label className="grid gap-1 text-sm">
           Supplied product facts
           <Textarea
             maxLength={3000}
@@ -105,20 +106,22 @@ export function ProposalDialog({
             onChange={(event) => setFacts(event.target.value)}
             disabled={busy}
           />
-        </label>
+        </Label>
         <Button disabled={busy || facts.trim().length < 20} onClick={() => void propose()}>
           {busy ? 'Proposing…' : 'Request proposals'}
         </Button>
         {proposals.map((proposal, index) => (
-          <button
+          <Button
             key={index}
+            variant="custom"
+            size={null}
             className="rounded border p-3 text-left"
             aria-pressed={selected === index}
             onClick={() => setSelected(index)}
           >
             <strong>{proposal.headline}</strong>
             <p className="text-sm text-muted-foreground">{proposal.reason}</p>
-          </button>
+          </Button>
         ))}
         {selected !== null && before ? (
           <>

@@ -11,6 +11,7 @@ import {
 import { TRPCClientError } from '@trpc/client'
 import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { useEffect, useState } from 'react'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { getErrorMessage } from './settings-client'
@@ -247,7 +248,7 @@ export function WorkspaceActivity({ sections }: { sections?: string[] } = {}) {
   return (
     <div className="space-y-10">
       {!sections ? (
-        <label className="grid max-w-xs gap-2 text-sm">
+        <Label className="grid max-w-xs gap-2 text-sm">
           Activity type
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger
@@ -265,7 +266,7 @@ export function WorkspaceActivity({ sections }: { sections?: string[] } = {}) {
               ))}
             </SelectContent>
           </Select>
-        </label>
+        </Label>
       ) : null}
       {visible.map((section) => (
         <ActivitySection key={section.key} section={section} />

@@ -101,6 +101,32 @@ export default defineConfig([
     },
   },
   {
+    // AGENTS.md "UI primitives": app code renders controls through components/ui.
+    files: ['apps/web/**/*.tsx'],
+    ignores: ['apps/web/components/ui/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'JSXOpeningElement[name.name=/^(button|label|select|option|optgroup|textarea|table|thead|tbody|tfoot|tr|th|td|caption)$/]',
+          message:
+            'Use the components/ui primitive (Button, Label, NativeSelect or Select, Textarea, Table), not the raw element.',
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='input']:not(:has(JSXAttribute[name.name='type'][value.value='hidden']))",
+          message: 'Use Input, Checkbox, Slider or DatePicker from components/ui, not a raw <input>.',
+        },
+        {
+          selector:
+            "JSXOpeningElement[name.name='Input']:has(JSXAttribute[name.name='type'][value.value=/^(date|datetime-local|checkbox|range)$/])",
+          message: 'Use DatePicker for a day, Checkbox for a checkbox and Slider for a range.',
+        },
+      ],
+    },
+  },
+  {
     files: ['apps/web/test/e2e/fixtures/*.mjs'],
     languageOptions: {
       globals: {

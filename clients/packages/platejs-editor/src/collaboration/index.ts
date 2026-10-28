@@ -1,4 +1,6 @@
 import { YjsPlugin } from "@platejs/yjs/react";
+import { IndexeddbPersistence } from "y-indexeddb";
+import type * as Y from "yjs";
 
 import { RemoteCursorOverlay } from "../ui/remote-cursor-overlay";
 
@@ -10,8 +12,8 @@ export interface CollaborationCursor {
 
 export interface CollaborationProviderConfig {
   // Mirrors @oppulence/core CollaborationAccess (this package doesn't depend on
-  // @oppulence/core). "comment" and "read" both keep indexeddb/webrtc off below —
-  // only "write" joins the P2P mesh; comment/read go through the server.
+  // @oppulence/core). "comment" and "read" keep webrtc off below and get no
+  // loadLocalCopy — only "write" does both; comment/read go through the server.
   access: "read" | "comment" | "write";
   documentName: string;
   getToken: () => Promise<string>;
@@ -70,15 +72,9 @@ export const createYjsPlugin = (
           userId: cursor.userId,
         },
       },
+      // A write session's browser copy is loaded with loadLocalCopy before
+      // init, not as a provider here: see loadLocalCopy.
       providers: [
-        ...(config.access === "write"
-          ? [
-              {
-                type: "indexeddb" as const,
-                options: { docName: config.documentName },
-              },
-            ]
-          : []),
         {
           type: "hocuspocus",
           options: {
@@ -109,6 +105,34 @@ export const createYjsPlugin = (
       ],
     },
   });
+};
+
+/**
+ * The browser's copy of a write session's document, loaded into `doc` before
+ * the live session starts. Plate seeds a never-opened document from the stored
+ * draft only when no local copy is still loading, and it never retries. As one
+ * of its providers, an IndexedDB copy that finished loading after the server
+ * sync left a new draft's editor empty. Loaded first, any unsynced local edits
+ * are in the document before Plate decides, and it keeps persisting them.
+ */
+export const loadLocalCopy = (
+  documentName: string,
+  doc: Y.Doc
+): { destroy: () => void; ready: Promise<void> } => {
+  const persistence = new IndexeddbPersistence(documentName, doc);
+  return {
+    destroy: () => {
+      persistence.destroy().catch(() => {});
+    },
+    // Without IndexedDB (some private modes) the session uses the server alone.
+    ready: Promise.race([
+      persistence.whenSynced.then(() => undefined),
+      persistence._db.then(
+        () => new Promise<void>(() => {}),
+        () => undefined
+      ),
+    ]),
+  };
 };
 
 export { YjsPlugin };

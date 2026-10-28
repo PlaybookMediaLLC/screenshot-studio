@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { type SocialSetRecord, useSaveSocialSet } from './api'
 
 type Slot = SocialSetRecord['postingSlots'][number]
@@ -110,47 +111,47 @@ export function SchedulingPage({ canManage, set }: { canManage: boolean; set: So
         >
           <div className="grid w-full min-w-0 gap-3">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[34rem] text-sm">
-                <caption className="sr-only">Posting times by weekday in {set.timeZone}</caption>
-                <thead>
-                  <tr className="text-xs text-muted-foreground">
-                    <th className="py-2 text-left font-medium" scope="col">
+              <Table className="w-full min-w-[34rem] text-sm">
+                <TableCaption className="sr-only">Posting times by weekday in {set.timeZone}</TableCaption>
+                <TableHeader>
+                  <TableRow className="text-xs text-muted-foreground">
+                    <TableHead className="py-2 text-left font-medium text-muted-foreground" scope="col">
                       Time
-                    </th>
+                    </TableHead>
                     {days.map((day) => (
-                      <th className="py-2 text-center font-medium" key={day} scope="col">
+                      <TableHead className="py-2 text-center font-medium text-muted-foreground" key={day} scope="col">
                         <abbr title={DAY_NAMES[day]}>{DAY_NAMES[day]!.slice(0, 3)}</abbr>
-                      </th>
+                      </TableHead>
                     ))}
-                    <th className="sr-only" scope="col">
+                    <TableHead className="sr-only" scope="col">
                       Remove
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {times.length === 0 ? (
-                    <tr>
-                      <td className="py-4 text-muted-foreground" colSpan={9}>
+                    <TableRow>
+                      <TableCell className="py-4 text-muted-foreground whitespace-normal" colSpan={9}>
                         No posting times yet. The queue has nowhere to place drafts until you add one.
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ) : null}
                   {times.map((time) => (
-                    <tr className="border-t border-border" key={time}>
-                      <th className="py-2 text-left font-medium text-foreground" scope="row">
+                    <TableRow className="border-t border-border" key={time}>
+                      <TableHead className="py-2 text-left font-medium text-foreground" scope="row">
                         {readableTime(time)}
-                      </th>
+                      </TableHead>
                       {days.map((day) => (
-                        <td className="py-2 text-center" key={day}>
+                        <TableCell className="py-2 text-center" key={day}>
                           <Checkbox
                             aria-label={`${DAY_NAMES[day]} at ${readableTime(time)}`}
                             checked={enabled(day, time)}
                             disabled={!canManage}
                             onCheckedChange={(checked) => toggle(day, time, checked === true)}
                           />
-                        </td>
+                        </TableCell>
                       ))}
-                      <td className="py-2 text-right">
+                      <TableCell className="py-2 text-right">
                         <Button
                           aria-label={`Remove ${readableTime(time)}`}
                           disabled={!canManage}
@@ -161,11 +162,11 @@ export function SchedulingPage({ canManage, set }: { canManage: boolean; set: So
                         >
                           Remove
                         </Button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <form

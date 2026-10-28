@@ -32,7 +32,7 @@ import {
   usePlateEditor,
   usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
-import { createYjsPlugin, YjsPlugin } from '@shots/platejs-editor/collaboration'
+import { createYjsPlugin, loadLocalCopy, YjsPlugin } from '@shots/platejs-editor/collaboration'
 import {
   BlockPlaceholderKit,
   BlockSelectionKit,
@@ -262,7 +262,8 @@ function CommentColumn({ children }: { children: React.ReactNode }) {
         if (!lines) return editor.tf.insertData(clipboard)
         const data = new DataTransfer()
         for (const type of clipboard.types)
-          if (type !== 'Files') data.setData(type, type === 'text/html' ? lines : clipboard.getData(type))
+          if (type !== 'Files')
+            data.setData(type, type === 'text/html' ? lines : clipboard.getData(type))
         editor.tf.insertData(data)
       }}
     >
@@ -818,30 +819,42 @@ export default function DraftEditor({
     })
     // Deferred a tick: React may mount, unmount and remount at once (Strict
     // Mode), and a session cannot connect twice. The discarded mount never starts.
+    const room = documentName ?? collaborationRoom(collaboration)
+    let local: ReturnType<typeof loadLocalCopy> | null = null
     const start = setTimeout(() => {
       started = true
-      // The stored body seeds the shared document the first time it is opened.
-      void yjs
-        .init({
-          autoSelect: 'end',
-          id: documentName ?? collaborationRoom(collaboration),
-          value:
-            firstValue.current.length > 0
-              ? (normalizePosts(firstValue.current as PlateBody) as Value)
-              : emptyValue(),
-        })
-        .then(() => {
-          initialized = true
-          ready()
-        })
+      // A writer's browser copy loads first: Plate seeds only while no local
+      // copy is loading, and a copy that finished after the server sync left a
+      // newly opened draft (a recovered backup) empty.
+      local = readOnly ? null : loadLocalCopy(room, editor.getOptions(YjsPlugin).ydoc)
+      void (local?.ready ?? Promise.resolve())
+        .then(() =>
+          cancelled
+            ? undefined
+            : // The stored body seeds the shared document the first time it is opened.
+              yjs
+                .init({
+                  autoSelect: 'end',
+                  id: room,
+                  value:
+                    firstValue.current.length > 0
+                      ? (normalizePosts(firstValue.current as PlateBody) as Value)
+                      : emptyValue(),
+                })
+                .then(() => {
+                  initialized = true
+                  ready()
+                })
+        )
         .catch((error: unknown) => console.error('[drafts] live session failed', error))
     }, 0)
     return () => {
       cancelled = true
       clearTimeout(start)
       if (started) yjs.destroy()
+      local?.destroy()
     }
-  }, [collaboration, documentName, draftId, editor])
+  }, [collaboration, documentName, draftId, editor, readOnly])
 
   const [keyboardInset, setKeyboardInset] = React.useState(0)
   React.useEffect(() => {

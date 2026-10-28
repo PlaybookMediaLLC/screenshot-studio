@@ -4,6 +4,8 @@ import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import type { ContentBatch } from '@/lib/api/contracts/content-batches'
 import { call } from '@/lib/content-drafts/client'
 
@@ -37,25 +39,24 @@ export function NewBatchButton({
           })
       }}
     >
-      <label className="grid gap-1 text-sm">
+      <Label className="grid gap-1 font-normal">
         Name
         <Input value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} />
-      </label>
-      <label className="grid gap-1 text-sm">
+      </Label>
+      <Label className="grid gap-1 font-normal">
         Publishing brand
-        <select
+        <NativeSelect
           aria-label="Publishing brand"
-          className="rounded border bg-background p-2"
           value={setId}
           onChange={(event) => setSetId(event.target.value)}
         >
           {sets.map((set) => (
-            <option key={set.id} value={set.id}>
+            <NativeSelectOption key={set.id} value={set.id}>
               {set.name}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
-      </label>
+        </NativeSelect>
+      </Label>
       <Button type="submit" disabled={busy || !title.trim() || !setId}>
         Start a batch
       </Button>

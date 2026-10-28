@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
+import { format } from 'date-fns'
 import { apiRequest, db, enableDraftTags, expect, test } from './framework'
 
 test.use({ actionTimeout: 30000 })
@@ -94,7 +95,7 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     await expect(page.getByLabel('Scheduling timezone', { exact: true })).toHaveValue(
       'America/New_York'
     )
-    await expect(page.getByLabel('Date and time', { exact: true })).toHaveValue(/T09:15$/)
+    await expect(page.getByLabel('Time', { exact: true })).toHaveValue('09:15')
     await page.keyboard.press('Escape')
     await page.getByLabel('Calendar view').selectOption('week')
     await expect(page.getByTestId('available-slot').first()).toBeVisible()
@@ -169,9 +170,10 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
   })
   await test.step('P24 P25 P26 P29 P30 P31 P32 quick composer validates and cancels without creating content', async () => {
     await page.getByRole('button', { name: `Create draft ${day}`, exact: true }).click()
-    await expect(page.getByRole('textbox', { name: 'Date and time', exact: true })).toHaveValue(
-      `${day}T12:00`
+    await expect(page.getByRole('button', { name: 'Day', exact: true })).toContainText(
+      format(new Date(`${day}T12:00`), 'PP')
     )
+    await expect(page.getByRole('textbox', { name: 'Time', exact: true })).toHaveValue('12:00')
     await expect(page.getByRole('checkbox', { name: 'Open in editor' })).toBeChecked()
     await expect(page.getByRole('combobox', { name: 'Post type' })).toContainText('Article')
     await page.getByRole('button', { name: 'Plan draft', exact: true }).click()
@@ -184,7 +186,7 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     .getByRole('textbox', { name: 'Post content' })
     .fill('A planned post from the authenticated calendar')
   await page.getByRole('checkbox', { name: 'Open in editor' }).uncheck()
-  await page.getByRole('textbox', { name: 'Date and time', exact: true }).fill(`${day}T12:07`)
+  await page.getByRole('textbox', { name: 'Time', exact: true }).fill('12:07')
   await page.getByRole('button', { name: 'Plan draft', exact: true }).click()
   const card = page
     .getByTestId('calendar-planned')
@@ -670,7 +672,14 @@ test('Analyze acceptance: scoped reports, chart and post exports, goals, and pub
     await expect(page.getByLabel('Grouping')).toHaveValue('monthly')
     await page.getByLabel('Date preset').selectOption('1 month')
     await expect(page.getByLabel('Grouping')).toHaveValue('daily')
-    await page.getByLabel('From', { exact: true }).fill('2027-01-01')
+    // A From after To: 40 days out is past the preset's end (today).
+    await page.getByLabel('From', { exact: true }).click()
+    const laterDay = page
+      .getByRole('button', { name: format(new Date(Date.now() + 40 * 86_400_000), 'PPPP') })
+      .first()
+    while (!(await laterDay.isVisible()))
+      await page.getByRole('button', { name: 'Go to the Next Month' }).click()
+    await laterDay.click()
     await page.getByRole('button', { name: 'Apply range' }).click()
     await expect(page.getByRole('alert').filter({ hasText: 'Choose valid dates' })).toContainText(
       'valid dates'
@@ -807,11 +816,11 @@ test('Analyze acceptance: scoped reports, chart and post exports, goals, and pub
     await page.getByLabel('Image gradient').selectOption({ index: 1 })
     await page.getByLabel('Image shadow').selectOption('strong')
     for (const label of ['Inset', 'Corner radius', 'Rotation', 'Crop zoom']) {
-      const control = page.getByLabel(label, { exact: true })
-      const before = Number(await control.inputValue())
+      const control = page.getByRole('slider', { name: label, exact: true })
+      const before = Number(await control.getAttribute('aria-valuenow'))
       await control.focus()
       await page.keyboard.press('ArrowRight')
-      await expect(control).toHaveValue(String(before + 1))
+      await expect(control).toHaveAttribute('aria-valuenow', String(before + 1))
     }
     await expect(page.getByRole('img', { name: /image preview/ })).toBeVisible()
     const download = page.waitForEvent('download', { timeout: 90_000 })

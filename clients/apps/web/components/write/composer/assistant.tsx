@@ -4,6 +4,8 @@ import * as React from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { socialSetHref } from '@/components/workspace/settings-sections'
 import { call } from '@/lib/content-drafts/client'
@@ -107,22 +109,21 @@ export function AssistantPanel({
         Workspace defaults → Social-set overrides → Your instructions for this draft. Prohibited
         terms always apply.
       </p>
-      <label className="grid gap-1 text-xs">
+      <Label className="grid gap-1 text-xs">
         Prompt library
-        <select
+        <NativeSelect
           aria-label="Prompt library"
-          className="rounded border bg-background p-2"
           value=""
           onChange={(event) => setMessage(event.target.value)}
         >
-          <option value="">Choose an instruction…</option>
+          <NativeSelectOption value="">Choose an instruction…</NativeSelectOption>
           {STARTERS.map((starter) => (
-            <option key={starter} value={starter}>
+            <NativeSelectOption key={starter} value={starter}>
               {starter}
-            </option>
+            </NativeSelectOption>
           ))}
-        </select>
-      </label>
+        </NativeSelect>
+      </Label>
       <details className="rounded-lg border border-border p-3">
         <summary className="cursor-pointer">Writing prompts and examples</summary>
         <p className="my-2 text-xs text-muted-foreground">Examples show a structure. Use your own facts and experience.</p>

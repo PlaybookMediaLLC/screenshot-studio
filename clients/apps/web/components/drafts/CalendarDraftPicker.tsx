@@ -2,6 +2,8 @@
 
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
   Dialog,
   DialogContent,
@@ -82,17 +84,16 @@ export function CalendarDraftPicker({
             Review the draft and confirm its time before it is scheduled.
           </DialogDescription>
         </DialogHeader>
-        <select
+        <NativeSelect
           aria-label="Content to pick"
           value={view}
           onChange={(event) => setView(event.target.value as typeof view)}
           disabled={busy}
-          className="rounded border bg-background p-2"
         >
-          <option value="drafts">Existing drafts</option>
-          <option value="posted">Repurpose published posts</option>
-        </select>
-        <input
+          <NativeSelectOption value="drafts">Existing drafts</NativeSelectOption>
+          <NativeSelectOption value="posted">Repurpose published posts</NativeSelectOption>
+        </NativeSelect>
+        <Input
           aria-label="Find content for slot"
           value={search}
           onChange={(event) => setSearch(event.target.value)}

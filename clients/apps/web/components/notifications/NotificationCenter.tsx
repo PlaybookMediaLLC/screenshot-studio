@@ -111,7 +111,9 @@ export function NotificationCenter({
     <>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <button
+          <Button
+            variant="custom"
+            size={null}
             data-platform-action
             ref={trigger}
             type="button"
@@ -132,7 +134,7 @@ export function NotificationCenter({
                 {n > 99 ? '99+' : n}
               </span>
             ) : null}
-          </button>
+          </Button>
         </PopoverTrigger>
         <PopoverContent
           onCloseAutoFocus={(event) => {

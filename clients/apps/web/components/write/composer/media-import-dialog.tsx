@@ -5,6 +5,9 @@ import { toast } from 'sonner'
 import type { PlateEditor } from '@shots/platejs-editor/platejs/react'
 import type { EditorUploadFile } from '@shots/platejs-editor/lib'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { postRanges } from '@/components/drafts/thread'
 import { call } from '@/lib/content-drafts/client'
@@ -98,20 +101,20 @@ export function MediaImportDialog({
         <DialogHeader>
           <DialogTitle>Draft media</DialogTitle>
         </DialogHeader>
-        <label className="grid gap-1 text-sm">
+        <Label className="grid gap-1 text-sm">
           Destination post
-          <select
+          <NativeSelect
             aria-label="Media destination post"
             value={post}
             onChange={(event) => setPost(Number(event.target.value))}
           >
             {ranges.map((_, index) => (
-              <option key={index} value={index}>
+              <NativeSelectOption key={index} value={index}>
                 Post {index + 1}
-              </option>
+              </NativeSelectOption>
             ))}
-          </select>
-        </label>
+          </NativeSelect>
+        </Label>
         {returnedAsset && !attached && (
           <div className="grid gap-2">
             <p>Review the framed export before attaching it.</p>
@@ -175,7 +178,9 @@ export function MediaImportDialog({
               }}
               className="flex flex-wrap items-center gap-2 rounded border p-2"
             >
-              <button
+              <Button
+                variant="custom"
+                size={null}
                 type="button"
                 aria-label={`Drag media ${at + 1}`}
                 title="Drag to reorder; use Move earlier or Move later with a keyboard"
@@ -184,7 +189,7 @@ export function MediaImportDialog({
                 className="cursor-grab rounded p-2 text-muted-foreground active:cursor-grabbing"
               >
                 ⠿
-              </button>
+              </Button>
               {item.type === 'img' && (
                 <img
                   src={`${assetContentUrl(item.assetId)}?variant=thumbnail`}
@@ -249,9 +254,9 @@ export function MediaImportDialog({
             })
           }}
         >
-          <label className="grid gap-1">
+          <Label className="grid gap-1">
             Image from a link
-            <input
+            <Input
               aria-label="Page URL for image"
               type="url"
               required
@@ -262,7 +267,7 @@ export function MediaImportDialog({
               }}
               className="rounded border bg-background p-2"
             />
-          </label>
+          </Label>
           <Button disabled={busy} type="submit" variant="outline">
             Find page image
           </Button>
@@ -310,9 +315,9 @@ export function MediaImportDialog({
             })
           }}
         >
-          <label className="grid gap-1">
+          <Label className="grid gap-1">
             GIF search
-            <input
+            <Input
               aria-label="Search GIFs"
               maxLength={50}
               value={query}
@@ -320,7 +325,7 @@ export function MediaImportDialog({
               disabled={busy}
               className="rounded border bg-background p-2"
             />
-          </label>
+          </Label>
           <Button type="submit" disabled={!query.trim() || busy} variant="outline">
             Search GIPHY
           </Button>
@@ -330,7 +335,9 @@ export function MediaImportDialog({
         </form>
         <div className="grid grid-cols-3 gap-2">
           {gifs.map((gif) => (
-            <button
+            <Button
+              variant="custom"
+              size={null}
               type="button"
               key={gif.id}
               disabled={busy}
@@ -346,7 +353,7 @@ export function MediaImportDialog({
               }
             >
               <img src={gif.url} alt={gif.title} loading="lazy" />
-            </button>
+            </Button>
           ))}
         </div>
         {gifs.length > 0 && (

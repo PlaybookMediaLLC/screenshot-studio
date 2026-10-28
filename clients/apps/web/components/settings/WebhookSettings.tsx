@@ -9,7 +9,9 @@ import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { deleteWebhookContract, listWebhookDeliveriesContract, listWebhooksContract, webhookDeliverySchema, webhookEventSchema, webhookSchema, webhookWithSecretSchema } from '@/lib/api/contracts/outbound-webhooks'
 import { SettingsRequestError, settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
 
@@ -119,11 +121,11 @@ function AddWebhook({ onCreated }: { onCreated: (secret: string) => void }) {
       }}
     >
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-1 text-sm">
+        <Label className="grid gap-1 text-sm">
           <span className="font-medium text-foreground">Name</span>
           <Input maxLength={80} onChange={(event) => setName(event.target.value)} placeholder="Zapier" value={name} />
-        </label>
-        <label className="grid gap-1 text-sm">
+        </Label>
+        <Label className="grid gap-1 text-sm">
           <span className="font-medium text-foreground">Webhook URL</span>
           <Input
             aria-describedby="webhook-url-hint"
@@ -136,7 +138,7 @@ function AddWebhook({ onCreated }: { onCreated: (secret: string) => void }) {
           <span className="text-xs text-muted-foreground" id="webhook-url-hint">
             HTTPS only, with no user name or password. Private and internal addresses are refused.
           </span>
-        </label>
+        </Label>
       </div>
       <fieldset className="grid gap-2">
         <legend className="mb-1 flex w-full items-center justify-between text-sm font-medium text-foreground">
@@ -146,7 +148,7 @@ function AddWebhook({ onCreated }: { onCreated: (secret: string) => void }) {
           </Button>
         </legend>
         {all.map((value) => (
-          <label className="flex items-start gap-2 text-sm" key={value}>
+          <Label className="flex items-start gap-2 text-sm" key={value}>
             <Checkbox
               checked={events.includes(value)}
               className="mt-0.5"
@@ -157,7 +159,7 @@ function AddWebhook({ onCreated }: { onCreated: (secret: string) => void }) {
               <code className="text-xs text-muted-foreground">{value}</code>
               <span className="block text-xs text-muted-foreground">{EVENT_LABELS[value].description}</span>
             </span>
-          </label>
+          </Label>
         ))}
       </fieldset>
       <div className="flex gap-2">
@@ -187,37 +189,37 @@ function Deliveries({ webhook }: { webhook: Webhook }) {
       {items.length === 0 && !deliveries.isPending ? <p className="text-sm text-muted-foreground">No deliveries yet.</p> : null}
       {items.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[40rem] text-left text-xs">
-            <caption className="sr-only">Recent deliveries to {webhook.name}</caption>
-            <thead className="text-muted-foreground">
-              <tr>
-                <th className="py-1.5 font-medium" scope="col">Event</th>
-                <th className="py-1.5 font-medium" scope="col">State</th>
-                <th className="py-1.5 font-medium" scope="col">Attempts</th>
-                <th className="py-1.5 font-medium" scope="col">Response</th>
-                <th className="py-1.5 font-medium" scope="col">Last attempt</th>
-                <th className="py-1.5 font-medium" scope="col">Next retry</th>
-                <th className="sr-only" scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full min-w-[40rem] text-left text-xs">
+            <TableCaption className="sr-only">Recent deliveries to {webhook.name}</TableCaption>
+            <TableHeader className="text-muted-foreground">
+              <TableRow>
+                <TableHead className="py-1.5 font-medium text-muted-foreground" scope="col">Event</TableHead>
+                <TableHead className="py-1.5 font-medium text-muted-foreground" scope="col">State</TableHead>
+                <TableHead className="py-1.5 font-medium text-muted-foreground" scope="col">Attempts</TableHead>
+                <TableHead className="py-1.5 font-medium text-muted-foreground" scope="col">Response</TableHead>
+                <TableHead className="py-1.5 font-medium text-muted-foreground" scope="col">Last attempt</TableHead>
+                <TableHead className="py-1.5 font-medium text-muted-foreground" scope="col">Next retry</TableHead>
+                <TableHead className="sr-only" scope="col">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {items.map((delivery) => (
-                <tr className="border-t border-border align-top" key={delivery.id}>
-                  <td className="py-1.5">
+                <TableRow className="border-t border-border align-top" key={delivery.id}>
+                  <TableCell className="py-1.5 align-top">
                     <span className="block text-foreground">{delivery.eventType}</span>
                     <code className="text-muted-foreground">{delivery.eventId}</code>
-                  </td>
-                  <td className="py-1.5">
+                  </TableCell>
+                  <TableCell className="py-1.5 align-top whitespace-normal">
                     <Pill tone={delivery.status === 'SUCCEEDED' ? 'green' : delivery.status === 'DEAD' ? 'red' : 'yellow'}>
                       {delivery.status === 'DEAD' ? 'Stopped retrying' : delivery.status.toLowerCase()}
                     </Pill>
                     {delivery.errorClass ? <span className="mt-1 block text-muted-foreground">{ERROR_LABELS[delivery.errorClass] ?? delivery.errorClass}</span> : null}
-                  </td>
-                  <td className="py-1.5">{delivery.attempts}</td>
-                  <td className="py-1.5">{delivery.responseStatus ?? '—'}</td>
-                  <td className="py-1.5">{delivery.lastAttemptAt ? new Date(delivery.lastAttemptAt).toLocaleString() : '—'}</td>
-                  <td className="py-1.5">{delivery.nextAttemptAt ? new Date(delivery.nextAttemptAt).toLocaleString() : '—'}</td>
-                  <td className="py-1.5 text-right">
+                  </TableCell>
+                  <TableCell className="py-1.5 align-top">{delivery.attempts}</TableCell>
+                  <TableCell className="py-1.5 align-top">{delivery.responseStatus ?? '—'}</TableCell>
+                  <TableCell className="py-1.5 align-top whitespace-normal">{delivery.lastAttemptAt ? new Date(delivery.lastAttemptAt).toLocaleString() : '—'}</TableCell>
+                  <TableCell className="py-1.5 align-top whitespace-normal">{delivery.nextAttemptAt ? new Date(delivery.nextAttemptAt).toLocaleString() : '—'}</TableCell>
+                  <TableCell className="py-1.5 text-right align-top">
                     {delivery.status === 'DEAD' ? (
                       <Button
                         onClick={async () => {
@@ -236,11 +238,11 @@ function Deliveries({ webhook }: { webhook: Webhook }) {
                         Retry
                       </Button>
                     ) : null}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : null}
     </div>
@@ -282,10 +284,10 @@ function WebhookRow({ onSecret, webhook }: { onSecret: (secret: string) => void;
       layout="stacked"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-sm">
+        <Label className="flex items-center gap-2 text-sm">
           <Switch aria-label={`Deliver to ${webhook.name}`} checked={webhook.enabled} onCheckedChange={(enabled) => void update({ enabled })} />
           Deliver events
-        </label>
+        </Label>
         <Button
           onClick={async () => {
             try {

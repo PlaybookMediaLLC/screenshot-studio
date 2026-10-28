@@ -66,6 +66,9 @@ export default defineConfig({
       name: 'dev-server',
       grep: /@dev-server/,
       outputDir: 'test-results/dev-server',
+      // `next dev` compiles and serves dev React; on a 4-vCPU CI runner, 4
+      // workers overloaded it (saves stuck on "Saving…"), so it runs one at a time.
+      workers: 1,
       use: { ...devices['Desktop Chrome'] },
     },
   ],

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { newCreativeSetId, type CreativeSetDocument } from '@/lib/creative-sets/document'
@@ -128,7 +129,7 @@ export function ImportProject({
           Keep the original composition and add three linked formats. The project and all its
           existing versions remain unchanged.
         </DialogDescription>
-        <label className="grid gap-2 text-sm">
+        <Label className="grid gap-2 text-sm">
           Import a design JSON file
           <Input
             type="file"
@@ -140,7 +141,7 @@ export function ImportProject({
               if (file) void copyFile(file)
             }}
           />
-        </label>
+        </Label>
         <div className="max-h-96 space-y-2 overflow-auto">
           {projects.map((project) => (
             <Button

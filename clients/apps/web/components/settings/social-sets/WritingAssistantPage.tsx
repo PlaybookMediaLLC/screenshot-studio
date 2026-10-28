@@ -14,6 +14,7 @@ import { SaveStatus, useSaveState } from '@/components/settings/controls'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -206,9 +207,9 @@ function StyleGuideForm({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
   )
   const field = (key: 'audience' | 'formatting' | 'tone', label: string, placeholder: string) => (
     <div className="grid gap-1 text-sm">
-      <label htmlFor={`style-${set.id}-${key}`} className="font-medium text-foreground">
+      <Label htmlFor={`style-${set.id}-${key}`} className="font-medium text-foreground">
         {label}
-      </label>
+      </Label>
       <Input
         id={`style-${set.id}-${key}`}
         disabled={!canWrite || state === 'saving'}
@@ -228,9 +229,9 @@ function StyleGuideForm({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
     hint: string
   ) => (
     <div className="grid gap-1 text-sm">
-      <label htmlFor={`style-${set.id}-${key}`} className="font-medium text-foreground">
+      <Label htmlFor={`style-${set.id}-${key}`} className="font-medium text-foreground">
         {label}
-      </label>
+      </Label>
       <span className="text-xs text-muted-foreground">{hint}</span>
       <Textarea
         id={`style-${set.id}-${key}`}
@@ -306,12 +307,12 @@ function StyleGuideForm({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
           {(['x', 'linkedin', 'threads', 'bluesky', 'mastodon', 'instagram'] as const).map(
             (platform) => (
               <div className="grid gap-1 text-sm" key={platform}>
-                <label
+                <Label
                   htmlFor={`style-${set.id}-${platform}`}
                   className="text-xs text-muted-foreground"
                 >
                   {platform}
-                </label>
+                </Label>
                 <Input
                   id={`style-${set.id}-${platform}`}
                   disabled={!canWrite}
@@ -480,7 +481,7 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
               </Button>
             </div>
           </form>
-          <label className="grid gap-1 text-sm">
+          <Label className="grid gap-1 text-sm">
             <span className="text-xs text-muted-foreground">
               Import a draft of this publishing brand
             </span>
@@ -505,7 +506,7 @@ function WritingSamples({ canWrite, set }: { canWrite: boolean; set: SocialSetRe
                   ))}
               </SelectContent>
             </Select>
-          </label>
+          </Label>
         </div>
       ) : null}
     </Row>

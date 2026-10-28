@@ -1,6 +1,18 @@
 'use client'
 
 import * as React from 'react'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { AnalyticsReport } from '@/lib/api/contracts/plan-analyze'
 import { formatValue } from '@/lib/analyze/report'
 
@@ -42,29 +54,33 @@ export function Hourly({
         with observations; small samples do not establish a best posting time.
       </p>
       <div className="my-3 flex gap-2">
-        <label>
+        <Label>
           View{' '}
-          <select aria-label="Hourly mode" value={mode} onChange={(e) => setMode(e.target.value)}>
-            <option value="average">Average</option>
-            <option value="days">Days</option>
-            <option value="heatmap">Heatmap</option>
-          </select>
-        </label>
+          <NativeSelect
+            aria-label="Hourly mode"
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+          >
+            <NativeSelectOption value="average">Average</NativeSelectOption>
+            <NativeSelectOption value="days">Days</NativeSelectOption>
+            <NativeSelectOption value="heatmap">Heatmap</NativeSelectOption>
+          </NativeSelect>
+        </Label>
         {mode === 'days' ? (
-          <label>
+          <Label>
             Day{' '}
-            <select
+            <NativeSelect
               aria-label="Weekday"
               value={day}
               onChange={(e) => setDay(Number(e.target.value))}
             >
               {DAYS.map((label, i) => (
-                <option key={label} value={i}>
+                <NativeSelectOption key={label} value={i}>
                   {label}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-          </label>
+            </NativeSelect>
+          </Label>
         ) : null}
       </div>
       {!samples ? (
@@ -74,27 +90,29 @@ export function Hourly({
       ) : null}
       {mode === 'heatmap' ? (
         <div className="overflow-x-auto">
-          <table className="text-xs">
-            <caption className="sr-only">
+          <Table className="w-auto text-xs">
+            <TableCaption className="sr-only">
               Seven weekdays by 24 hours, average engagement and sample counts
-            </caption>
-            <thead>
-              <tr>
-                <th>Day</th>
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Day</TableHead>
                 {Array.from({ length: 24 }, (_, i) => (
-                  <th key={i}>{i}</th>
+                  <TableHead key={i}>{i}</TableHead>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {DAYS.map((label, day) => (
-                <tr key={label}>
-                  <th scope="row">{label}</th>
+                <TableRow key={label}>
+                  <TableHead scope="row">{label}</TableHead>
                   {Array.from({ length: 24 }, (_, hour) => {
                     const c = cells.find((v) => v.day === day && v.hour === hour)
                     return (
-                      <td key={hour}>
-                        <button
+                      <TableCell className="p-0" key={hour}>
+                        <Button
+                          variant="custom"
+                          size={null}
                           disabled={!c?.samples}
                           onClick={() =>
                             onInspect(c!.postIds, `${label} ${hour}:00 · ${report.query.timeZone}`)
@@ -110,19 +128,21 @@ export function Hourly({
                           }}
                         >
                           {c?.samples ? formatValue(c.average, true) : '—'}
-                        </button>
-                      </td>
+                        </Button>
+                      </TableCell>
                     )
                   })}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
           {averages.map((c) => (
-            <button
+            <Button
+              variant="custom"
+              size={null}
               key={c.hour}
               disabled={!c.samples}
               onClick={() =>
@@ -137,7 +157,7 @@ export function Hourly({
               <span className="block">{c.hour}:00</span>
               <strong>{formatValue(c.average, true)}</strong>
               <span className="block text-muted-foreground">n={c.samples}</span>
-            </button>
+            </Button>
           ))}
         </div>
       )}

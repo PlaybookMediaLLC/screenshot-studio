@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -215,7 +216,7 @@ function InsertPanel({
             else toast.error('Use a size from 16 to 8192 pixels.')
           }}
         >
-          <label className="grid gap-1 text-[11px] text-muted-foreground">
+          <Label className="grid gap-1 text-[11px] text-muted-foreground">
             W
             <Input
               aria-label="Custom width"
@@ -224,8 +225,8 @@ function InsertPanel({
               onChange={(event) => setWidth(event.target.value)}
               className="h-8 w-20"
             />
-          </label>
-          <label className="grid gap-1 text-[11px] text-muted-foreground">
+          </Label>
+          <Label className="grid gap-1 text-[11px] text-muted-foreground">
             H
             <Input
               aria-label="Custom height"
@@ -234,7 +235,7 @@ function InsertPanel({
               onChange={(event) => setHeight(event.target.value)}
               className="h-8 w-20"
             />
-          </label>
+          </Label>
           <Button size="sm" type="submit" variant="secondary" disabled={!canEdit}>
             Add
           </Button>
@@ -244,7 +245,9 @@ function InsertPanel({
         <h2 className={heading}>Templates</h2>
         <div className="grid gap-1">
           {canvasRecipeSchema.options.map((recipe) => (
-            <button
+            <Button
+              variant="custom"
+              size={null}
               key={recipe}
               type="button"
               disabled={!canEdit}
@@ -255,9 +258,11 @@ function InsertPanel({
               <span className="block text-[11px] text-muted-foreground">
                 {CANVAS_RECIPES[recipe].artboards}
               </span>
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
+            variant="custom"
+            size={null}
             type="button"
             disabled={!canEdit}
             onClick={() => onDialog('add-store')}
@@ -267,7 +272,7 @@ function InsertPanel({
             <span className="block text-[11px] text-muted-foreground">
               A store screenshot group · every store size and language
             </span>
-          </button>
+          </Button>
           <Link
             href="/store-screenshots"
             className="rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-foreground/[0.05]"
@@ -395,7 +400,9 @@ function ArtboardList({ state, actions, canEdit }: PanelProps) {
         const selected = selection.includes(artboard.id)
         return (
           <li key={artboard.id}>
-            <button
+            <Button
+              variant="custom"
+              size={null}
               type="button"
               aria-current={selected ? 'true' : undefined}
               onClick={(event) => {
@@ -418,7 +425,7 @@ function ArtboardList({ state, actions, canEdit }: PanelProps) {
               <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
                 {size.width}×{size.height}
               </span>
-            </button>
+            </Button>
           </li>
         )
       })}
@@ -608,7 +615,7 @@ function FormatsButton({
         Adapt to sizes (laid out again, not stretched)
       </legend>
       {artboardPresetSchema.options.map((preset) => (
-        <label key={preset} className="flex items-center gap-2 text-xs">
+        <Label key={preset} className="flex items-center gap-2 text-xs">
           <Checkbox
             checked={chosen.includes(preset)}
             onCheckedChange={(checked) =>
@@ -620,7 +627,7 @@ function FormatsButton({
             }
           />
           {ARTBOARD_PRESETS[preset].name}
-        </label>
+        </Label>
       ))}
       <div className="flex gap-1 pt-1">
         <Button
@@ -704,7 +711,7 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
   return (
     <div>
       <section className={section} aria-label="Artboard">
-        <label className="grid gap-1 text-xs text-muted-foreground">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           Name
           <Input
             key={`${artboard.id}:${artboard.name}`}
@@ -722,10 +729,10 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
             }}
             onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
           />
-        </label>
+        </Label>
         <div className="grid grid-cols-2 gap-2">
           {(['x', 'y'] as const).map((axis) => (
-            <label key={axis} className="grid gap-1 text-xs text-muted-foreground">
+            <Label key={axis} className="grid gap-1 text-xs text-muted-foreground">
               {axis.toUpperCase()}
               <Input
                 key={`${artboard.id}:${axis}:${artboard[axis]}`}
@@ -749,7 +756,7 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
                 }}
                 onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
               />
-            </label>
+            </Label>
           ))}
         </div>
       </section>
@@ -793,7 +800,7 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
             else toast.error('Use a size from 16 to 8192 pixels.')
           }}
         >
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             W
             <Input
               aria-label="Artboard width"
@@ -802,8 +809,8 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
               className="h-8 w-20"
               onChange={(event) => setDraft({ ...current, width: event.target.value })}
             />
-          </label>
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          </Label>
+          <Label className="grid gap-1 text-xs text-muted-foreground">
             H
             <Input
               aria-label="Artboard height"
@@ -812,7 +819,7 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
               className="h-8 w-20"
               onChange={(event) => setDraft({ ...current, height: event.target.value })}
             />
-          </label>
+          </Label>
           <Button size="sm" variant="secondary" type="submit" disabled={!canEdit}>
             Resize
           </Button>

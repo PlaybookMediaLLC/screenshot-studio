@@ -128,7 +128,9 @@ function CanvasCover({ item, onManage }: { item: Item; onManage?: () => void }) 
       {artboards.length > 1 || (onManage && artboards.length) ? (
         <span className="studio-pages" role="group" aria-label={`${item.name} artboards`}>
           {artboards.slice(0, tabs).map((artboard, index) => (
-            <button
+            <Button
+              variant="custom"
+              size={null}
               aria-label={`Show artboard ${index + 1} of ${artboards.length}`}
               aria-pressed={page === index}
               key={artboard.id}
@@ -138,20 +140,24 @@ function CanvasCover({ item, onManage }: { item: Item; onManage?: () => void }) 
               type="button"
             >
               {index + 1}
-            </button>
+            </Button>
           ))}
           {artboards.length > tabs ? (
-            <button
+            <Button
+              variant="custom"
+              size={null}
               aria-label={`Show the next of ${artboards.length - tabs} more artboards`}
               aria-pressed={page >= tabs}
               onClick={() => setPage(page >= tabs && page < artboards.length - 1 ? page + 1 : tabs)}
               type="button"
             >
               {page >= tabs ? page + 1 : `+${artboards.length - tabs}`}
-            </button>
+            </Button>
           ) : null}
           {onManage ? (
-            <button
+            <Button
+              variant="custom"
+              size={null}
               aria-label={`Manage the pages of ${item.name}`}
               className="studio-pages-manage"
               onClick={onManage}
@@ -159,7 +165,7 @@ function CanvasCover({ item, onManage }: { item: Item; onManage?: () => void }) 
               type="button"
             >
               <GridIcon size={13} aria-hidden="true" />
-            </button>
+            </Button>
           ) : null}
         </span>
       ) : null}

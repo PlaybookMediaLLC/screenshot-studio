@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -187,7 +188,7 @@ export function ReusableDialog({
               ))}
             </div>
             <div className="grid gap-3 rounded border p-3">
-              <label className="grid gap-1 text-sm">
+              <Label className="grid gap-1 text-sm">
                 Publish from this output
                 <Select
                   value={scope}
@@ -204,8 +205,8 @@ export function ReusableDialog({
                     ))}
                   </SelectContent>
                 </Select>
-              </label>
-              <label className="grid gap-1 text-sm">
+              </Label>
+              <Label className="grid gap-1 text-sm">
                 Published name
                 <Input
                   value={name}
@@ -213,7 +214,7 @@ export function ReusableDialog({
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Feature proof"
                 />
-              </label>
+              </Label>
               <p className="text-xs text-muted-foreground">
                 Use an existing name to publish its next version. Named slots: headline, supporting
                 copy and product proof.

@@ -1,6 +1,15 @@
 'use client'
 
 import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   changePreferences,
   preferenceChannels,
@@ -35,7 +44,7 @@ export function NotificationPreferenceTable({
   const optionalEvents = events.filter((event) => !required(event.id))
   return (
     <div
-      className="overflow-x-auto"
+      className="overflow-x-auto [&>[data-slot=table-container]]:overflow-visible"
       role="region"
       aria-label={`${context ?? group} notification channels`}
       tabIndex={0}
@@ -43,24 +52,24 @@ export function NotificationPreferenceTable({
       <p className="mb-3 text-xs text-muted-foreground sm:hidden">
         Scroll horizontally to see all delivery channels.
       </p>
-      <table className="w-full min-w-[36rem] text-left text-sm">
-        <thead>
-          <tr>
-            <th scope="col" className="pb-3 font-medium">
+      <Table className="w-full min-w-[36rem] text-left text-sm">
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col" className="pb-3 font-medium">
               Activity
-            </th>
+            </TableHead>
             {preferenceChannels.map((channel) => (
-              <th scope="col" className="px-3 pb-3 font-medium" key={channel.id}>
+              <TableHead scope="col" className="px-3 pb-3 font-medium" key={channel.id}>
                 {channel.label}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="border-t border-border bg-muted/30">
-            <th scope="row" className="py-3 pr-4 font-medium">
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow className="border-t border-border bg-muted/30">
+            <TableHead scope="row" className="py-3 pr-4 font-medium whitespace-normal">
               All {group}
-            </th>
+            </TableHead>
             {preferenceChannels.map((channel) => {
               const checked = preferenceGroupState(
                 optionalEvents.map((event) =>
@@ -68,8 +77,8 @@ export function NotificationPreferenceTable({
                 )
               )
               return (
-                <td className="px-3 py-3" key={channel.id}>
-                  <label className="flex items-center gap-2">
+                <TableCell className="px-3 py-3" key={channel.id}>
+                  <Label className="flex items-center gap-2">
                     <Checkbox
                       aria-label={`${context ? `${context}: ` : ''}All ${group}: your ${channel.label.toLowerCase()} preferences`}
                       checked={checked}
@@ -88,24 +97,24 @@ export function NotificationPreferenceTable({
                     <span className="text-xs">
                       {checked === 'indeterminate' ? 'Some' : checked ? 'All' : 'None'}
                     </span>
-                  </label>
-                </td>
+                  </Label>
+                </TableCell>
               )
             })}
-          </tr>
+          </TableRow>
           {events.map((event) => (
-            <tr className="border-t border-border" key={event.id}>
-              <th scope="row" className="py-3 pr-4 font-normal">
+            <TableRow className="border-t border-border" key={event.id}>
+              <TableHead scope="row" className="py-3 pr-4 font-normal whitespace-normal">
                 {event.label}
-              </th>
+              </TableHead>
               {preferenceChannels.map((channel) => {
                 const checked = preferenceSelected(value, event.id, channel.id, setId)
                 return (
-                  <td className="px-3 py-3 align-top" key={channel.id}>
+                  <TableCell className="px-3 py-3 align-top whitespace-normal" key={channel.id}>
                     {required(event.id) ? (
                       <span className="text-xs font-medium">Required alert</span>
                     ) : (
-                      <label className="flex items-center gap-2">
+                      <Label className="flex items-center gap-2">
                         <Checkbox
                           aria-label={`${context ? `${context}: ` : ''}${event.label}: your ${channel.id === 'slack' ? 'Slack DM' : channel.label.toLowerCase()} preference`}
                           checked={checked}
@@ -116,7 +125,7 @@ export function NotificationPreferenceTable({
                           }
                         />
                         <span className="text-xs">Your preference: {checked ? 'On' : 'Off'}</span>
-                      </label>
+                      </Label>
                     )}
                     <p className="mt-1 max-w-44 text-xs text-muted-foreground">
                       Delivery when saved:{' '}
@@ -129,13 +138,13 @@ export function NotificationPreferenceTable({
                         value.slackEnabled !== false
                       )}
                     </p>
-                  </td>
+                  </TableCell>
                 )
               })}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }

@@ -146,10 +146,27 @@ test(
     // counter, so a keystroke the browser dropped under load cannot skew it.
     const counted = async () =>
       Number((await page.getByTestId('counter-x').textContent())?.split(' / ')[0])
+    // The counter trails the keys; a reading taken while it still moves made
+    // the loop delete too much. Read it only once it holds still.
+    const settledCount = async () => {
+      let last = await counted()
+      await expect
+        .poll(
+          async () => {
+            const now = await counted()
+            const still = now === last
+            last = now
+            return still
+          },
+          { intervals: [300] }
+        )
+        .toBe(true)
+      return last
+    }
     await expect(async () => {
-      const extra = (await counted()) - 51
+      const extra = (await settledCount()) - 51
       for (let index = 0; index < extra; index += 1) await page.keyboard.press('Backspace')
-      expect(await counted()).toBe(51)
+      expect(await settledCount()).toBe(51)
     }).toPass({ timeout: 30_000 })
     await expect(page.getByTestId('counter-x')).toHaveText('51 / 280')
     await expectSaved(page)
@@ -288,7 +305,9 @@ test(
     await expectPreview()
 
     // Scheduling renders the table and the equation and attaches them.
-    await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
+    const scheduleDialog = await openSchedule(page)
+    await scheduleDialog.getByLabel('Open a new draft after scheduling').uncheck()
+    await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     const post = await db.row<{ assetIds: string[]; caption: string }>(
       `SELECT "assetIds", caption FROM scheduled_post WHERE "contentDraftId" = $1`,
@@ -329,7 +348,9 @@ test('a thread schedules to X as a post and its replies', async ({ app, page, st
     )
     await expect(await previewOf(page, 'x')).toContainText('Second post')
   })
-  await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
+  const scheduleDialog = await openSchedule(page)
+  await scheduleDialog.getByLabel('Open a new draft after scheduling').uncheck()
+  await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
   await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
 
   const rows = await db.rows<{ caption: string; platform: string; replies: unknown }>(

@@ -20,8 +20,11 @@ The repository separates the backend from its clients, as polar.sh does:
   - `packages/`: shared libraries (backend SDK, typed API client, editor).
   - `integrations/`: native clients (Raycast, Zapier, Shortcuts, Claude Code).
 - `dev/`: local development and repository tooling. `dev/studio` (behind
-  `make`) runs the Compose stack in `dev/compose*.yaml`; `dev/verify-rfcs.py`
-  and `dev/release-flow.cjs` back the RFC and release checks.
+  `make`) runs the Compose stack in `dev/compose*.yaml`; `dev/native-stack`
+  runs it as host processes where images cannot be pulled, as in cloud
+  sessions (the [run-native-stack skill](.agents/skills/run-native-stack/SKILL.md));
+  `dev/verify-rfcs.py` and `dev/release-flow.cjs` back the RFC and release
+  checks.
 - `infra/`: deployment (Helm chart in `infra/charts/`, DigitalOcean, storage).
 - `docs/`: product, architecture and RFC documentation.
 
@@ -140,6 +143,16 @@ add one.
   permission, API-key scope, route, error code, plan or environment variable
   that has an owner. Regenerate the OpenAPI document, `shots-api-client` and
   the Ent clients; never hand-edit generated code.
+- **UI primitives.** Render web controls through `web/components/ui/`. A raw
+  `<input>`, `<textarea>`, `<select>`, `<option>`, `<label>`, `<button>` or
+  `<table>` in app code is an antipattern: it skips the design system's
+  focus, invalid, disabled and dark-mode states and the platform-shell styles
+  keyed to `data-slot`. Use `Input`, `Textarea`, `NativeSelect` (or `Select`),
+  `Label`, `Button` (`variant="custom" size={null}` for a bespoke control) and
+  `Table`; `Checkbox` for a checkbox, `Slider` for a range, and `DatePicker`
+  (a `Calendar` in a popover) for a day, never `<input type="date">`. Only
+  `components/ui/` itself and `<input type="hidden">` use the raw elements;
+  ESLint enforces it in `clients/eslint.config.mjs`.
 - **Compatibility.** Before you change shared code, list its callers and
   keep their behavior or update them in the same change. A public API break
   must be listed in `server/internal/shotsapi/breaking-changes-allowed.txt`.

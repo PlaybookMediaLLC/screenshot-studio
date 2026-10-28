@@ -250,9 +250,11 @@ export function CanvasPages({
                         disabled: pages.length < 2,
                       },
                     ].map(({ label, icon: Icon, run, disabled }) => (
-                      <button
+                      <Button
+                        variant="custom"
+                        size={null}
                         aria-label={label}
-                        className="touch-hitbox grid size-6 place-items-center rounded hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white disabled:opacity-35"
+                        className="touch-hitbox grid size-6 place-items-center rounded hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-white disabled:opacity-35"
                         disabled={disabled || saving}
                         key={label}
                         onClick={run}
@@ -260,7 +262,7 @@ export function CanvasPages({
                         type="button"
                       >
                         <Icon size={14} />
-                      </button>
+                      </Button>
                     ))}
                   </span>
                 </div>
@@ -272,8 +274,10 @@ export function CanvasPages({
             )
           })}
           <li className="w-24">
-            <button
-              className="grid w-full place-items-center gap-1 rounded-md bg-background/70 text-xs text-muted-foreground ring-1 ring-border transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-40"
+            <Button
+              variant="custom"
+              size={null}
+              className="grid w-full place-items-center gap-1 rounded-md bg-background/70 text-xs text-muted-foreground ring-1 ring-border transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring disabled:opacity-40"
               disabled={saving || pages.length >= 200}
               onClick={add}
               style={{ height: TILE }}
@@ -283,7 +287,7 @@ export function CanvasPages({
                 <AddIcon size={20} aria-hidden="true" />
                 Add page
               </span>
-            </button>
+            </Button>
           </li>
         </ol>
         {error ? (

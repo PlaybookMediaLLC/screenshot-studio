@@ -3,7 +3,20 @@
 import * as React from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
 import type {
   BatchItem,
   BatchItemInput,
@@ -55,6 +68,38 @@ function when(at: Date | string, zone: string) {
 
 /** A random retry key for an item and its draft. */
 const importKey = () => `batch-${crypto.randomUUID()}`
+
+/** A local time, YYYY-MM-DDTHH:mm, as a day and a time; a day picked first starts at 09:00. */
+function LocalTimeFields({
+  label,
+  onChange,
+  value,
+}: {
+  label: string
+  onChange: (value: string) => void
+  value: string
+}) {
+  const [day = '', time = ''] = value ? value.split('T') : []
+  const set = (nextDay: string, nextTime: string) => {
+    if (nextDay && nextTime) onChange(`${nextDay}T${nextTime}`)
+  }
+  return (
+    <span className="flex items-center gap-1">
+      <DatePicker
+        aria-label={`${label} day`}
+        value={day}
+        onChange={(next) => set(next, time || '09:00')}
+      />
+      <Input
+        aria-label={`${label} time`}
+        className="w-28"
+        type="time"
+        value={time}
+        onChange={(event) => set(day, event.target.value)}
+      />
+    </span>
+  )
+}
 
 /**
  * Bulk scheduling (RFC 042): many separate posts, each its own draft. The
@@ -606,7 +651,7 @@ export function BatchWorkspace({
             {[...new Set(missingFiles.map((entry) => entry.fileName))].join(', ')}. Select the same
             files again to continue; nothing else is lost.
           </p>
-          <input
+          <Input
             aria-label="Select the files again"
             type="file"
             multiple
@@ -619,21 +664,21 @@ export function BatchWorkspace({
       {items.length < ITEM_LIMIT ? (
         <section className="grid gap-3 rounded-lg border p-4" aria-label="Add items">
           <h2 className="font-medium">Add items</h2>
-          <label className="grid gap-1 text-sm">
+          <Label className="grid gap-1 font-normal">
             Photos, videos and PDFs for LinkedIn (one item each, or matched to CSV rows by file
             name)
-            <input
+            <Input
               aria-label="Batch media files"
               type="file"
               multiple
               accept={ACCEPT}
               onChange={(event) => setChosen(Array.from(event.target.files ?? []))}
             />
-          </label>
-          <label className="grid gap-1 text-sm">
+          </Label>
+          <Label className="grid gap-1 font-normal">
             CSV: caption, asset (file names or workspace asset IDs, separated by semicolons),
             channels, time, timezone
-            <textarea
+            <Textarea
               aria-label="Batch CSV"
               rows={4}
               value={csv}
@@ -641,10 +686,10 @@ export function BatchWorkspace({
                 'caption,asset,channels,time\n"Launch day, finally",hero.png,x;linkedin,2026-11-03 09:30'
               }
               onChange={(event) => setCSV(event.target.value)}
-              className="rounded-lg border bg-background p-2 font-mono text-xs"
+              className="font-mono text-xs"
             />
-          </label>
-          <input
+          </Label>
+          <Input
             aria-label="Batch CSV file"
             type="file"
             accept=".csv,text/csv"
@@ -654,33 +699,31 @@ export function BatchWorkspace({
               else if (file) toast.error('CSV files must be smaller than 1 MB.')
             }}
           />
-          <label className="grid gap-1 text-sm">
+          <Label className="grid gap-1 font-normal">
             Shared caption (used where an item has none)
-            <textarea
+            <Textarea
               aria-label="Shared caption"
               rows={2}
               value={sharedCaption}
               onChange={(event) => setSharedCaption(event.target.value)}
-              className="rounded-lg border bg-background p-2 text-sm"
             />
-          </label>
+          </Label>
           <fieldset className="flex flex-wrap gap-3 text-sm">
             <legend className="mb-1">Shared accounts (where a row names no channels)</legend>
             {accounts.map((account) => (
-              <label key={account.id} className="flex items-center gap-1">
-                <input
-                  type="checkbox"
+              <Label key={account.id} className="font-normal">
+                <Checkbox
                   checked={sharedAccounts.includes(account.id)}
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     setSharedAccounts((current) =>
-                      event.target.checked
+                      checked === true
                         ? [...current, account.id]
                         : current.filter((id) => id !== account.id)
                     )
                   }
                 />
                 {account.name}
-              </label>
+              </Label>
             ))}
           </fieldset>
           <div className="flex flex-wrap gap-2">
@@ -760,29 +803,28 @@ export function BatchWorkspace({
           a preview: a slot taken before you schedule is refused, not moved.
         </p>
         <div className="flex flex-wrap items-end gap-3 text-sm">
-          <label className="grid gap-1">
+          <Label className="grid gap-1 font-normal">
             Plan
-            <select
+            <NativeSelect
               aria-label="Batch time mode"
-              className="rounded border bg-background p-2"
               value={timesMode}
               onChange={(event) => setTimesMode(event.target.value as 'queue' | 'spread')}
             >
-              <option value="queue">Fill the queue</option>
-              <option value="spread">Spread over days</option>
-            </select>
-          </label>
+              <NativeSelectOption value="queue">Fill the queue</NativeSelectOption>
+              <NativeSelectOption value="spread">Spread over days</NativeSelectOption>
+            </NativeSelect>
+          </Label>
           {timesMode === 'spread' ? (
             <>
-              <label className="grid gap-1">
+              <div className="grid gap-1 text-sm">
                 Start ({zone})
-                <Input
-                  type="datetime-local"
+                <LocalTimeFields
+                  label="Spread start"
                   value={spread.start}
-                  onChange={(event) => setSpread({ ...spread, start: event.target.value })}
+                  onChange={(start) => setSpread({ ...spread, start })}
                 />
-              </label>
-              <label className="grid gap-1">
+              </div>
+              <Label className="grid gap-1 font-normal">
                 Posts per day
                 <Input
                   type="number"
@@ -791,8 +833,8 @@ export function BatchWorkspace({
                   value={spread.perDay}
                   onChange={(event) => setSpread({ ...spread, perDay: Number(event.target.value) })}
                 />
-              </label>
-              <label className="grid gap-1">
+              </Label>
+              <Label className="grid gap-1 font-normal">
                 Minutes apart
                 <Input
                   type="number"
@@ -803,8 +845,8 @@ export function BatchWorkspace({
                     setSpread({ ...spread, spacing: Number(event.target.value) })
                   }
                 />
-              </label>
-              <label className="grid gap-1">
+              </Label>
+              <Label className="grid gap-1 font-normal">
                 Random shift (minutes)
                 <Input
                   type="number"
@@ -814,7 +856,7 @@ export function BatchWorkspace({
                   value={spread.shift}
                   onChange={(event) => setSpread({ ...spread, shift: Number(event.target.value) })}
                 />
-              </label>
+              </Label>
             </>
           ) : null}
           <Button
@@ -897,11 +939,10 @@ export function BatchWorkspace({
               {item.draftId ? (
                 <p className="whitespace-pre-wrap text-muted-foreground">{item.draft?.plainText}</p>
               ) : (
-                <textarea
+                <Textarea
                   aria-label={`Caption for item ${index + 1}`}
                   defaultValue={item.caption}
                   rows={3}
-                  className="rounded border bg-background p-2"
                   onBlur={(event) => {
                     if (event.target.value !== item.caption)
                       void updateItem(item, { caption: event.target.value })
@@ -909,25 +950,18 @@ export function BatchWorkspace({
                 />
               )}
               <div className="flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-1">
+                <span className="flex items-center gap-1">
                   Time ({item.timing.timeZone || zone})
-                  <Input
-                    aria-label={`Time for item ${index + 1}`}
-                    type="datetime-local"
+                  <LocalTimeFields
+                    label={`Item ${index + 1}`}
                     value={item.timing.mode === 'time' ? (item.timing.localTime ?? '') : ''}
-                    onChange={(event) =>
+                    onChange={(localTime) =>
                       void updateItem(item, {
-                        timing: event.target.value
-                          ? {
-                              mode: 'time',
-                              localTime: event.target.value,
-                              timeZone: item.timing.timeZone || zone,
-                            }
-                          : {},
+                        timing: { mode: 'time', localTime, timeZone: item.timing.timeZone || zone },
                       })
                     }
                   />
-                </label>
+                </span>
                 {timing.kind === 'problem' && /happens twice/.test(timing.text) ? (
                   <span className="flex gap-1">
                     {(['earlier', 'later'] as const).map((choice) => (
@@ -967,15 +1001,15 @@ export function BatchWorkspace({
                   </Button>
                 ) : null}
               </div>
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr>
-                    <th>Account</th>
-                    <th>Check</th>
-                    <th>Result</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="text-xs">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Check</TableHead>
+                    <TableHead>Result</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {accounts.map((account) => {
                     const on = accountIds.includes(account.id)
                     const key = verdictKey(item.id, account.id)
@@ -983,37 +1017,36 @@ export function BatchWorkspace({
                     const post = postOn(item, account.id)
                     const local = staged.get(account.id)
                     return (
-                      <tr key={account.id}>
-                        <td>
-                          <label className="flex items-center gap-1">
-                            <input
-                              type="checkbox"
+                      <TableRow key={account.id}>
+                        <TableCell>
+                          <Label className="text-xs font-normal">
+                            <Checkbox
                               aria-label={`${account.name} for item ${index + 1}`}
                               disabled={Boolean(item.draftId) || busy !== null}
                               checked={on}
-                              onChange={(event) =>
+                              onCheckedChange={(checked) =>
                                 void updateItem(item, {
-                                  channelConnectionIds: event.target.checked
-                                    ? [...item.channelConnectionIds, account.id]
-                                    : item.channelConnectionIds.filter((id) => id !== account.id),
+                                  channelConnectionIds:
+                                    checked === true
+                                      ? [...item.channelConnectionIds, account.id]
+                                      : item.channelConnectionIds.filter((id) => id !== account.id),
                                 })
                               }
                             />
                             {account.name}
-                          </label>
-                        </td>
-                        <td>
+                          </Label>
+                        </TableCell>
+                        <TableCell className="whitespace-normal">
                           {!on ? null : verdict ? (
-                            <label className="flex items-start gap-1">
-                              <input
-                                type="checkbox"
+                            <Label className="items-start text-xs font-normal">
+                              <Checkbox
                                 aria-label={`Schedule item ${index + 1} on ${account.name}`}
                                 disabled={!verdict.valid}
                                 checked={Boolean(selected[key]) && verdict.valid}
-                                onChange={(event) =>
+                                onCheckedChange={(checked) =>
                                   setSelected((current) => ({
                                     ...current,
-                                    [key]: event.target.checked,
+                                    [key]: checked === true,
                                   }))
                                 }
                               />
@@ -1022,7 +1055,7 @@ export function BatchWorkspace({
                                   ? `Ready · ${verdict.scheduledFor ? when(verdict.scheduledFor, verdict.timeZone) : ''}`
                                   : verdict.error}
                               </span>
-                            </label>
+                            </Label>
                           ) : (
                             <span
                               className={
@@ -1033,8 +1066,8 @@ export function BatchWorkspace({
                                 'Not checked yet'}
                             </span>
                           )}
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           {post ? (
                             <span>
                               {POST_STATUS[post.status] ?? post.status} ·{' '}
@@ -1057,12 +1090,12 @@ export function BatchWorkspace({
                           ) : on ? (
                             'Not scheduled'
                           ) : null}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     )
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
               {outcomes[item.id] ? (
                 <p role={outcomes[item.id] === 'Scheduled' ? 'status' : 'alert'}>
                   {outcomes[item.id]}

@@ -197,7 +197,7 @@ function WorkspaceSwitcher({
       side={collapsed ? 'right' : 'top'}
       triggerClassName={cn(
         'flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl px-2 text-start transition-colors hover:bg-foreground/[0.05]',
-        collapsed && 'size-10 justify-center px-0'
+        collapsed && 'mx-auto size-10 justify-center px-0'
       )}
     >
       <span

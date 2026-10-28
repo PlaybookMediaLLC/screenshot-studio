@@ -39,7 +39,7 @@ export function NavRow({
       aria-label={collapsed || name !== label ? name : undefined}
       className={cn(
         'flex h-8 items-center gap-2.5 px-2.5',
-        collapsed && 'size-9 justify-center px-0'
+        collapsed && 'mx-auto size-9 justify-center px-0'
       )}
       href={href}
       onClick={onNavigate}

@@ -100,7 +100,9 @@ export function LibraryAssetPicker({
               const supported = supportedDraftMedia(item.mediaType)
               return (
                 <li key={item.id}>
-                  <button
+                  <Button
+                    variant="custom"
+                    size={null}
                     type="button"
                     disabled={!supported || busy}
                     aria-pressed={selected === item.id}
@@ -127,7 +129,7 @@ export function LibraryAssetPicker({
                         Export to PNG, JPEG, WebP, GIF, MP4 or WebM first.
                       </span>
                     ) : null}
-                  </button>
+                  </Button>
                 </li>
               )
             })}

@@ -412,7 +412,9 @@ test('a live post links to itself, shows engagement, and resumes a thread that s
     await page.keyboard.type('Three')
     await chooseChannels(page, ['x'])
     await expectSaved(page)
-    await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
+    const dialog = await openSchedule(page)
+    await dialog.getByLabel('Open a new draft after scheduling').uncheck()
+    await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 
     // As the publisher leaves it when the second reply failed.

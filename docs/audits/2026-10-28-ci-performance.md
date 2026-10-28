@@ -79,3 +79,45 @@ Hosted execution requires publishing this branch; no workflow was dispatched or 
 Five required lenses ran: structure, performance, failure modes, QA and lean design. No extra stack specialist was added for this CI/configuration change. Two verified blocking findings were fixed: an upload completing between the artifact and job queries could fail a consumer, and retaining the plain-Node mock could serve old source on later local runs. Regression tests now cover both. Both reviewers independently rechecked the fixes and confirmed their blockers resolved. Final full quality gate passed with Redis enabled: 1,181 tests passed, zero failed or skipped.
 
 Nonblocking follow-ups were left unchanged: gate image export/upload when the browser plan is disabled (main pushes and docs-only PRs currently upload an unused artifact); omit unused backend image loading/tagging in its build-only validation step. Lean review identified two removable lines. No test gates or assertions were weakened.
+
+
+## Cache export follow-up after PR #359
+
+The first revised [PR smoke run, 40764917731](https://github.com/PlaybookMediaLLC/shots/actions/runs/40764917731), completed in 14m 55s, versus 22m 14s for the comparable prior smoke run: 32.9% shorter in this single observation. It had 18 first-attempt passes and one retry success. This is not a sustained average.
+
+The subsequent [develop run, 40778409456](https://github.com/PlaybookMediaLLC/shots/actions/runs/40778409456), shows the next build bottleneck:
+
+| Work | Observed duration |
+| --- | ---: |
+| Web production compilation | 300.4s |
+| Web GitHub cache export | 318.3s |
+| Whole web build action | 712s |
+| Backend GitHub cache export | 155.3s |
+| Whole backend build action | 288s |
+| Stack startup per browser shard | 274–350s |
+| Waiting for the tested web image per shard | 228–332s |
+
+That full run failed two production tests on shard 3: `social-set-scope.spec.ts` could not find the private workspace's Settings link, and `typefully-rich.spec.ts` could not find the article preview. Its other two shards passed. These are baseline failures observed before this follow-up; its overall duration is not a passing-suite benchmark. Concurrent release CI also spent several minutes waiting for initial job runners. This change adds no jobs or workers.
+
+The follow-up keeps the same image definitions, build commands, artifact helper, smoke assertions and test selection:
+
+- The web producer builds and smoke-tests the image, then uploads it before exporting its build cache. Browser shards can start while cache export continues. `CI validation` still requires the complete producer job to succeed.
+- PRs import the shared branch caches. Pushes to the existing develop/main triggers refresh them. A PR cache is confined to that PR's merge ref, so its export does not help other PRs. Repeated full PR reruns may rebuild more layers because this policy no longer saves a PR-specific cache. See [GitHub cache access rules](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching#restrictions-for-accessing-a-cache).
+- Next.js and Go compiler caches use BuildKit cache mounts, keeping compiler scratch data out of exported image layers. These mounts help repeated builds on the same builder; the GitHub cache backend does not persist mount contents across fresh runners. This does not claim cross-run incremental compilation. See [Docker cache mounts](https://docs.docker.com/build/ci/github-actions/cache/#cache-mounts).
+- Backend validation still builds all six binaries and the final image, but omits loading and tagging an image that the job never consumes.
+
+Local validation used the same source revision and a dedicated Linux/arm64 BuildKit builder. Compressed cache-blob totals, including every referenced layer and config:
+
+| Image | Before | After | Reduction |
+| --- | ---: | ---: | ---: |
+| Web | 1,780.3 MiB | 1,398.4 MiB | 21.4% |
+| Backend | 1,183.5 MiB | 900.4 MiB | 23.9% |
+
+All six backend binaries were byte-identical before and after. The revised web image passed production health and exact IndexNow-file checks, plus a compressed image save/load round trip. A separate cache-export invocation reused the completed production compilation (`CACHED`), proving it does not rebuild the web app. The local exporter emitted content-store `locked` diagnostics in both baseline and revised web exports; all commands exited successfully and every referenced cache blob passed its SHA-256 and length checks. Cache-size results are local measurements, not hosted latency predictions.
+
+`npm run quality:check` passed: formatting, lint, typechecks and 1,186 tests with zero failures or skips, using isolated Redis. The 14 focused image-handoff and workspace-manifest tests passed. `make -C server check` passed generation, formatting, package tests, race tests, vet and generated-client checks; database-gated integration tests were not enabled in this local run. Actionlint and `git diff --check` passed. No Gauntlet command is configured.
+
+The follow-up has not yet run in hosted CI. A fresh hosted smoke/full run is needed to measure wall time and queueing; the existing full-suite failures above remain separate from this build change.
+
+
+Follow-up review: all five required lenses (structure, performance, failure modes, QA and lean design) reported no findings. No stack specialist was added for this configuration-only change. Verdict: **Ship for hosted CI validation**; hosted timing and Linux/amd64 image validation remain outstanding.

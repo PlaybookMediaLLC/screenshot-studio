@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.39.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.38.1...v2.39.0) (2026-10-28)
+
+
+### Features
+
+* **settings:** give settings Polar's sidebar, one registry and dashboard tokens ([#336](https://github.com/PlaybookMediaLLC/shots/issues/336)) ([6a98fb9](https://github.com/PlaybookMediaLLC/shots/commit/6a98fb92294c4502174bdddb1f80ca7de4cefc64))
+* **shell:** drop the plan card and docs link from the settings sidebar ([#339](https://github.com/PlaybookMediaLLC/shots/issues/339)) ([6c4bd17](https://github.com/PlaybookMediaLLC/shots/commit/6c4bd1769f60a0e297cc6c5929209483328adefe))
+
+
+### Bug Fixes
+
+* **dev:** start the e2e suite's server from an empty dev cache ([#335](https://github.com/PlaybookMediaLLC/shots/issues/335)) ([3dcb97f](https://github.com/PlaybookMediaLLC/shots/commit/3dcb97f05814079e35045d8f797a76c608020f80))
+* **web:** fix the QA walkthroughs, move Publish to shadcn, and speed up draft saves ([#338](https://github.com/PlaybookMediaLLC/shots/issues/338)) ([be0bf27](https://github.com/PlaybookMediaLLC/shots/commit/be0bf279e453122657d0a5c73cc8efa66a62cbab))
+
 ## [2.38.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.38.0...v2.38.1) (2026-10-27)
 
 

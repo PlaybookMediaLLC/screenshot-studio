@@ -350,7 +350,7 @@ body:has([data-platform-shell]) [data-slot='button']:active {
 
 @media (pointer: coarse) {
   :where([data-platform-sidebar], .platform-mobile-header, .platform-overlay)
-    :where(button, [data-platform-nav], [data-slot='button']):not(
+    :where(button, [data-platform-nav], [data-slot='button'], [role='menuitem']):not(
       [role='switch'],
       [role='slider'],
       [role='checkbox'],

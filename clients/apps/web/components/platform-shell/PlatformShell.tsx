@@ -4,12 +4,12 @@ import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgre
 import { PreferencesProvider } from '@/components/settings/PreferencesProvider'
 import { PendingDraftInput } from '@/components/write/pending-draft'
 import { getPageAccess } from '@/lib/auth/page-access'
-import { hasPermission } from '@/lib/auth/permissions'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { NAVIGATION_COOKIE, parseNavigation } from '@/lib/settings/appearance'
 import { cn } from '@/lib/utils'
 import { platformFont } from './platform-font'
 import { PlatformSidebar } from './PlatformSidebar'
+import { WorkspaceTabGuard } from './WorkspaceTabGuard'
 import { surface } from './shell-config'
 import './platform-shell.css'
 import '../platform-hub/platform-home.css'
@@ -65,7 +65,6 @@ export async function PlatformShell({
         </a>
         <PlatformSidebar
           campaignsEnabled={campaignsEnabled}
-          canWriteDrafts={access ? hasPermission(access.role, 'artifact:edit') : false}
           draftsEnabled={contentDraftsEnabled()}
           initialNavigation={navigation}
           notificationIdentity={
@@ -75,8 +74,15 @@ export async function PlatformShell({
           }
           organizationName={organizationName}
           paidPlan={access?.hasPaidPlan ?? true}
+          role={access?.role ?? 'viewer'}
           variant={variant}
         />
+        {access?.organization ? (
+          <WorkspaceTabGuard
+            workspaceId={access.organization.id}
+            workspaceName={access.organization.name}
+          />
+        ) : null}
         {variant === 'page' ? (
           <div className="min-h-0 min-w-0 flex-1 overflow-hidden md:py-3 md:pe-3">
             <div

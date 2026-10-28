@@ -8,48 +8,12 @@ import { PostIcon as FileText } from '@/components/platform-shell/icons'
 import { ImageIcon as Image } from '@/components/platform-shell/icons'
 import { CanvasIcon as Layers } from '@/components/platform-shell/icons'
 import { useQuery } from '@tanstack/react-query'
-import { z } from 'zod'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
-import { draftHref } from '@/components/write/write-context'
 import { ProjectPreview } from '@/components/projects/ProjectPreview'
 import { Stage, Window } from '@/components/platform-landing/primitives'
-import type { DesignDocument } from '@/lib/design/document'
-
-const draftPage = z.object({
-  items: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      plainText: z.string().catch(''),
-      socialSetId: z.string().nullable(),
-      updatedAt: z.coerce.date(),
-    })
-  ),
-  pinned: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      plainText: z.string().catch(''),
-      socialSetId: z.string().nullable(),
-      updatedAt: z.coerce.date(),
-    })
-  ),
-})
-
-type Item = {
-  id: string
-  href: string
-  title: string
-  type: string
-  scope: string
-  updatedAt: Date
-  /** A visual's first design, drawn as its thumbnail. */
-  document?: DesignDocument | null
-  /** A post's opening text, shown in place of a thumbnail. */
-  excerpt?: string
-}
+import { recentWorkQuery } from './work'
 
 /** Bounded reads from existing tenant-authorized collections; failures stay visible. */
 export function RecentWork({
@@ -64,61 +28,9 @@ export function RecentWork({
 }) {
   const client = useTRPCClient()
   const query = useQuery({
-    queryKey: ['platform', 'recent-work', organizationId, draftsEnabled, paidPlan],
-    staleTime: 30_000,
-    queryFn: async () => {
-      const visuals = () => [
-        client.project.list.query({ limit: 5, sort: 'updated' }).then(({ items }): Item[] =>
-          items.map((item) => ({
-            id: item.id,
-            href: `/?project=${encodeURIComponent(item.id)}`,
-            title: item.name,
-            type: 'Screenshot',
-            scope: 'Workspace',
-            updatedAt: new Date(item.updatedAt),
-            document: item.document,
-          }))
-        ),
-        client.canvas.list.query({ limit: 5, sort: 'updated' }).then(({ items }): Item[] =>
-          items.map((item) => ({
-            id: item.id,
-            href: `/canvas/${item.id}`,
-            title: item.name,
-            type: 'Canvas',
-            scope: 'Workspace',
-            updatedAt: new Date(item.updatedAt),
-            document: item.document?.artboards[0]?.document ?? null,
-          }))
-        ),
-      ]
-      const results = await Promise.allSettled([
-        ...(paidPlan ? visuals() : []),
-        draftsEnabled
-          ? fetch('/api/v1/content-drafts?limit=5&sort=updated_desc').then(
-              async (response): Promise<Item[]> => {
-                if (!response.ok) throw new Error('Drafts could not load.')
-                const page = draftPage.parse(await response.json())
-                return [...page.pinned, ...page.items].slice(0, 5).map((item) => ({
-                  id: item.id,
-                  href: draftHref(item.id, item.socialSetId),
-                  title: item.title || 'Untitled draft',
-                  type: 'Post',
-                  scope: 'Publishing brand',
-                  updatedAt: item.updatedAt,
-                  excerpt: item.plainText,
-                }))
-              }
-            )
-          : Promise.resolve([] as Item[]),
-      ])
-      return {
-        partial: results.some((result) => result.status === 'rejected'),
-        items: results
-          .flatMap((result) => (result.status === 'fulfilled' ? result.value : []))
-          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
-          .slice(0, 8),
-      }
-    },
+    ...recentWorkQuery(client, organizationId, draftsEnabled, paidPlan),
+    // Coming back from an editor shows the last list at once, then adds what was just saved.
+    refetchOnMount: 'always',
   })
   return (
     <section aria-label="Continue working" className="home-recent space-y-4">

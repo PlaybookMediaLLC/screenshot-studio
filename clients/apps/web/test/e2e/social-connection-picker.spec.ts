@@ -121,9 +121,11 @@ test('provider-first creation stays layered, commits once, and preserves its set
     await expect(launch).toBeFocused()
     expect(page.url()).toBe(originalURL)
     expect(await list()).toHaveLength(0)
-    expect(provider.calls.map((call) => [call.method, call.url])).toEqual([
-      ['GET', '/api/public/v1/me'],
-      ['GET', '/api/public/v1/connection-availability'],
+    // Only readiness was read. In development React mounts the dialog twice, and
+    // its first, aborted read can reach the provider too, so calls are compared as a set.
+    expect([...new Set(provider.calls.map((call) => `${call.method} ${call.url}`))]).toEqual([
+      'GET /api/public/v1/me',
+      'GET /api/public/v1/connection-availability',
     ])
 
     // Authorization is a fixture page; no real provider account or credentials are used.

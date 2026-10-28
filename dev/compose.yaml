@@ -179,6 +179,9 @@ services:
       PORT: '8080'
       DATABASE_URL: postgresql://screenshot_studio:${POSTGRES_APP_PASSWORD}@postgres:5432/screenshot_studio?sslmode=disable
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      # The web requires email verification only in production; invitation
+      # responses follow it, or locally signed-up members could not accept.
+      AUTH_REQUIRE_EMAIL_VERIFICATION: ${AUTH_REQUIRE_EMAIL_VERIFICATION:-false}
       PLATFORM_CAMPAIGN_WORKFLOW: ${PLATFORM_CAMPAIGN_WORKFLOW:-enabled}
       PLATFORM_CREATIVE_SETS: ${PLATFORM_CREATIVE_SETS:-internal}
       # Channel connections run in process: the provider apps and their media

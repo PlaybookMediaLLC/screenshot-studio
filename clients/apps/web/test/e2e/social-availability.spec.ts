@@ -38,8 +38,11 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
       return { status: 503, body: { msg: 'Connection unavailable' } }
     return { status: 404 }
   }, socialMockPort)
+  // In development React mounts the dialog twice, and its first, aborted read can
+  // reach the provider too, so each step proves a fresh read rather than an exact count.
   const reads = () =>
     provider.calls.filter((call) => call.url === '/api/public/v1/connection-availability')
+  let readsBefore = 0
   try {
     await createPublishingWorkspace(identity, page)
     await enablePublishingTwoFactor(page, identity.password)
@@ -57,7 +60,8 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
     await expect(dialog.getByRole('button', { name: 'X / Twitter', exact: true })).toBeDisabled()
     await expect(dialog.getByRole('button', { name: 'Bluesky', exact: true })).toBeDisabled()
     await expect(dialog.getByRole('textbox')).toHaveCount(0)
-    expect(reads()).toHaveLength(1)
+    expect(reads().length).toBeGreaterThan(readsBefore)
+    readsBefore = reads().length
     await page.screenshot({
       path: '.context/provider-availability-error.png',
       animations: 'disabled',
@@ -71,7 +75,8 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
     await expect(dialog.getByRole('button', { name: 'LinkedIn', exact: true })).toBeEnabled()
     await expect(dialog.getByRole('button', { name: 'Substack Notes', exact: true })).toBeDisabled()
     await expect(dialog.getByRole('alert')).toHaveCount(0)
-    expect(reads()).toHaveLength(2)
+    expect(reads().length).toBeGreaterThan(readsBefore)
+    readsBefore = reads().length
     await page.screenshot({
       path: '.context/provider-availability-disabled.png',
       animations: 'disabled',
@@ -89,7 +94,7 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
     catalog = connectionAvailabilityFixture()
     await launch.click()
     await expect(x).toBeEnabled()
-    expect(reads()).toHaveLength(3)
+    expect(reads().length).toBeGreaterThan(readsBefore)
     await x.click()
     await expect(dialog.getByRole('link', { name: 'Switch X account' })).toBeVisible()
     // The adapter now refuses the start, simulating configuration disabled after the read.

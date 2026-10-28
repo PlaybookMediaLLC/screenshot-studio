@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { getActiveOrganizationId, signUpAndCreateWorkspace } from './framework/auth'
+import { xVerification } from './framework/content-drafts'
 import { configureE2EFlow, expect, test } from './framework/flow'
 import { startHttpMockServer } from './framework/http-server'
 import {
@@ -85,6 +86,21 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
     }
     if (request.url === '/api/public/v1/integrations') {
       return { body: [{ id: 'launch-x-integration', identifier: 'x', disabled: false }] }
+    }
+    // X connections are saved only after a live identity check.
+    if (request.url === '/api/public/v1/integrations/launch-x-integration/identity') {
+      return {
+        body: {
+          id: 'launch-x-integration',
+          provider: 'x',
+          name: 'Shots on x',
+          handle: 'shots_x',
+          active: true,
+          verifiedAt: new Date().toISOString(),
+          nativeId: '123456789',
+          verification: xVerification,
+        },
+      }
     }
     return { body: { error: 'Not found.' }, status: 404 }
   }, 5679)
@@ -233,7 +249,7 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
     await editor.getByLabel('Copy', { exact: true }).fill(editedCopy)
     await editor.getByRole('button', { name: 'Save changes' }).click()
     const editedCard = page.getByRole('article').filter({ hasText: editedCopy })
-    await expect(editedCard.getByText('Draft', { exact: true })).toBeVisible()
+    await expect(editedCard.getByText('Review: Draft', { exact: true })).toBeVisible()
     await editedCard.getByRole('button', { name: 'Edit', exact: true }).click()
     const postRow = () =>
       queryRow<{ copy: string; status: string }>(
@@ -316,7 +332,8 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
       )
 
     await submitSchedule('Schedule', /^Post scheduled$/)
-    await expect(xCard.getByText(/^Scheduled for .+ · Queued$/)).toBeVisible()
+    // Queued until the worker picks the post up, then Scheduled; both are waiting to publish.
+    await expect(xCard.getByText(/^Scheduled for .+ · (Queued|Scheduled)$/)).toBeVisible()
     const first = await scheduledPost()
     expect(first?.status).toBe('SCHEDULED')
 
@@ -325,7 +342,8 @@ test('a release becomes a cited spec, a plan, a produced campaign, a revised pos
     await expect(xCard.getByText(/· Cancelled$/)).toBeVisible()
 
     await submitSchedule('Reschedule', /^Post rescheduled$/)
-    await expect(xCard.getByText(/^Scheduled for .+ · Queued$/)).toBeVisible()
+    // Queued until the worker picks the post up, then Scheduled; both are waiting to publish.
+    await expect(xCard.getByText(/^Scheduled for .+ · (Queued|Scheduled)$/)).toBeVisible()
     const second = await scheduledPost()
     expect(second?.status).toBe('SCHEDULED')
     expect(second?.scheduledPostId).not.toBe(first?.scheduledPostId)

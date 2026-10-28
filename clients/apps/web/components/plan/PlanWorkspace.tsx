@@ -439,7 +439,7 @@ export function PlanWorkspace({
       onClick={() =>
         item.campaignId ? router.push(`/campaigns/${item.campaignId}`) : setDetail(item)
       }
-      className={`block h-auto w-full rounded-lg border p-2 text-left text-xs font-normal whitespace-normal shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
+      className={`block h-auto w-full min-w-0 rounded-lg border p-2 text-left text-xs font-normal whitespace-normal shadow-sm ${weekly ? 'h-full overflow-hidden' : ''} ${item.status === 'Planned' ? 'border-dashed border-violet-400' : item.status === 'Published' ? 'border-emerald-500' : item.status === 'Failed' ? 'border-red-500' : 'border-sky-500'} bg-background`}
     >
       <span className="block truncate text-muted-foreground">
         {new Date(item.at).toLocaleTimeString(undefined, {

@@ -1,5 +1,6 @@
 import { presets } from '@/lib/constants/presets'
 import { IMAGE_TEMPLATES } from '@/lib/templates/image-templates'
+import { TEMPLATE_DEMO_IMAGE_NAME, TEMPLATE_DEMO_IMAGE_URL } from '@/lib/templates/demo-media'
 import { getMockupDefinition } from '@/lib/constants/mockups'
 import { DESIGN_DOCUMENT_VERSION, type DesignDocument, designDocumentSchema } from './document'
 
@@ -338,6 +339,20 @@ export const designTemplates: DesignTemplate[] = [...layouts, ...editorTemplates
 
 export function getDesignTemplate(id: string): DesignTemplate | undefined {
   return designTemplates.find((template) => template.id === id)
+}
+
+/** Clearly illustrative copy and bundled media that show what a template does. */
+export const TEMPLATE_DEMO_SLOTS: DesignSlots = {
+  screenshot: TEMPLATE_DEMO_IMAGE_URL,
+  headline: 'Your product headline',
+  subheadline: 'Add your own supporting copy',
+}
+
+/** A template as a new design opens it: as previewed, ready for the person's own screenshot and copy. */
+export function templateStarter(id: string): DesignDocument | undefined {
+  const document = getDesignTemplate(id)?.build(TEMPLATE_DEMO_SLOTS)
+  // Named as the editor's sample, so the editor offers to replace it with a real screenshot.
+  return document && { ...document, image: { ...document.image, name: TEMPLATE_DEMO_IMAGE_NAME } }
 }
 
 /** The editor preset (and scene, for image templates) behind a document's `template`. */

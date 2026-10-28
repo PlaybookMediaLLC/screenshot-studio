@@ -176,3 +176,43 @@ test('the library searches, duplicates, and deletes, and other workspaces see no
     await otherContext.close()
   }
 })
+
+test(
+  'New → Screenshot starts a clean canvas, keeps the last project, and asks before replacing local work',
+  { tag: '@journey' },
+  async ({ app, page }) => {
+    await app.openEditor()
+    await addText(page)
+    const projectId = await saveAsProject(page, 'Kept as it was')
+    const newScreenshot = async () => {
+      await page
+        .getByRole('complementary', { name: 'Primary navigation' })
+        .getByRole('button', { name: 'New', exact: true })
+        .click()
+      await page.getByRole('menuitem', { name: 'Screenshot', exact: true }).click()
+    }
+    // Before, this reopened the last project, so new edits saved over it.
+    await newScreenshot()
+    await expect(page.getByRole('button', { name: 'Save as project' })).toBeVisible()
+    await expect(texts(page)).toHaveCount(0)
+    await expect(page).toHaveURL((url) => !url.search)
+    const kept = await trpcQuery(page, 'project.get', { projectId })
+    expect((kept.body as { document: { texts: unknown[] } }).document.texts).toHaveLength(1)
+
+    // A design kept only on this browser is replaced only when the person says so.
+    await addText(page)
+    await newScreenshot()
+    const ask = page.getByRole('alertdialog', { name: 'Start a new screenshot?' })
+    await ask.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(texts(page)).toHaveCount(1)
+    await newScreenshot()
+    await ask.getByRole('button', { name: 'Replace with a new screenshot' }).click()
+    await expect(texts(page)).toHaveCount(0)
+
+    // Use template opens that template, ready for the person's own screenshot.
+    await app.open('/library?view=templates')
+    await page.getByRole('link', { name: 'Use template: Violet Showcase' }).click()
+    await expect(page.getByText('Upload your media')).toBeVisible({ timeout: 60_000 })
+    await expect(page).toHaveURL((url) => url.pathname === '/' && !url.search)
+  }
+)

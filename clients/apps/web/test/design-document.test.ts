@@ -11,7 +11,14 @@ import {
   patchDesignDocument,
   stillDesignChangesSchema,
 } from '@/lib/design/document'
-import { designTemplates, fitFontSize, getDesignTemplate } from '@/lib/design/templates'
+import {
+  designTemplates,
+  fitFontSize,
+  getDesignTemplate,
+  templateStarter,
+  TEMPLATE_DEMO_SLOTS,
+} from '@/lib/design/templates'
+import { isTemplateDemoMedia } from '@/lib/templates/demo-media'
 
 const screenshot = 'asset:11111111-1111-4111-8111-111111111111'
 const mobile = 'asset:22222222-2222-4222-8222-222222222222'
@@ -116,4 +123,16 @@ test('launch agents get a still-image change schema within its size budget', () 
   }
   assert.ok('texts' in schema.properties)
   assert.ok(JSON.stringify(schema).length < 24_000, `${JSON.stringify(schema).length} characters`)
+})
+
+test('Use template opens the template as previewed, with the sample the editor offers to replace', () => {
+  for (const template of designTemplates) {
+    const document = templateStarter(template.id)
+    assert.ok(document, template.id)
+    assert.deepEqual(designDocumentSchema.parse(document), document, template.id)
+    assert.equal(document.image.src, TEMPLATE_DEMO_SLOTS.screenshot, template.id)
+    assert.ok(isTemplateDemoMedia(document.image.src, document.image.name), template.id)
+  }
+  assert.equal(templateStarter('template-violet-showcase')?.template, 'template-violet-showcase')
+  assert.equal(templateStarter('no-such-template'), undefined)
 })

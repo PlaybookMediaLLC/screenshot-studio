@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { type ReactNode, useRef, useState } from 'react'
 import { WorkspaceCreationDialog } from '@/components/workspace/WorkspaceCreationDialog'
 import { UserAvatar } from './UserAvatar'
-import { authClient, useHydratedSession } from '@/lib/auth/client'
+import { announceSessionChange, authClient, useHydratedSession } from '@/lib/auth/client'
 import { resetUser } from '@/lib/analytics'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
@@ -81,6 +81,7 @@ export function AccountMenu({
     try {
       await prepareWorkspaceSwitch()
       await trpcClient.workspace.setActive.mutate({ organizationId })
+      announceSessionChange()
       queryClient.clear()
       window.location.assign(platformHref(pathname, '/home'))
     } catch (error) {

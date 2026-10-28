@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.39.2](https://github.com/PlaybookMediaLLC/shots/compare/v2.39.1...v2.39.2) (2026-10-28)
+
+
+### Bug Fixes
+
+* **web:** keep tabs in their workspace and make starting, finding and reusing work direct ([#362](https://github.com/PlaybookMediaLLC/shots/issues/362)) ([9cb125e](https://github.com/PlaybookMediaLLC/shots/commit/9cb125e82de67e6575d1bc29099a40910ae4d652))
+
+
+### Performance Improvements
+
+* **collab:** read the membership once per collaboration authorization ([#361](https://github.com/PlaybookMediaLLC/shots/issues/361)) ([d07d8ca](https://github.com/PlaybookMediaLLC/shots/commit/d07d8ca3b0905113f93a24512351c23418b3bdca))
+
 ## [2.39.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.39.0...v2.39.1) (2026-10-28)
 
 

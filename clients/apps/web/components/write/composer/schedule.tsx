@@ -159,11 +159,12 @@ export function ScheduleDialog({
         : null
   const past = instant !== null && instant.getTime() <= Date.now()
   const problems = blocking(context)
-  // The backend plans only drafts with connected destinations; say so before a round trip.
+  // The backend plans only drafts whose destinations are still active (not
+  // removed or revoked); say so before a round trip.
   const planBlocked =
     context.items.length === 0
       ? 'To save as planned, choose a connected account for this draft first.'
-      : context.items.some((item) => item.account.health !== 'connected')
+      : context.items.some((item) => ['removed', 'revoked'].includes(item.account.health))
         ? 'To save as planned, reconnect the selected accounts first.'
         : null
   const today = dayIn(now, zone)

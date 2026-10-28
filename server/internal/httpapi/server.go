@@ -428,12 +428,12 @@ func (s *Server) authenticateWithOptions(next http.Handler, organizationRequired
 			writeError(w, http.StatusUnauthorized, "a signed-in session is required")
 			return
 		}
-		r = r.WithContext(publishing.RememberAuthorization(r.Context()))
-		if err := authorize(r.Context(), actor); err != nil {
+		var memo publishing.AuthorizationMemo
+		if err := authorize(publishing.RecordAuthorization(r.Context(), &memo), actor); err != nil {
 			writeStoreError(w, err)
 			return
 		}
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(publishing.ReplayAuthorization(r.Context(), &memo)))
 	})
 }
 

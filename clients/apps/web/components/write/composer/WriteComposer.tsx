@@ -194,6 +194,7 @@ export function WriteComposer({
   const {
     beforeLeaveRef,
     openPreviewRef,
+    archiveRef,
     canEdit,
     canPublish,
     canReview,
@@ -229,7 +230,13 @@ export function WriteComposer({
   // The list follows what is typed, not the save that confirms it seconds later.
   const [opened] = React.useState(document)
   const typed = document === opened ? null : document
-  const excerpt = typed && draftPlainText(typed.value).slice(0, 180)
+  // The opening blocks give the excerpt without serializing a long draft per keystroke.
+  const excerpt =
+    typed &&
+    draftPlainText(Array.isArray(typed.value) ? typed.value.slice(0, 12) : typed.value).slice(
+      0,
+      180
+    )
   const title = typed && (typed.title.trim() || 'Untitled draft')
   React.useEffect(() => {
     if (excerpt === null || title === null) return
@@ -614,6 +621,12 @@ export function WriteComposer({
       toast.error(error instanceof Error ? error.message : 'The draft did not change.')
     }
   }
+  React.useEffect(() => {
+    archiveRef.current = archive
+    return () => {
+      archiveRef.current = null
+    }
+  })
   const postHeader = (number: number) => {
     const account = accounts.find((item) => item.channel === active)
     const post = activePublication.serialized.posts.find((item) => item.group === number)

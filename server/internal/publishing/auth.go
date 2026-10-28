@@ -30,22 +30,33 @@ func (r *Repository) AuthorizeConnections(ctx context.Context, organizationID, u
 	return r.AuthorizeRole(ctx, organizationID, userID, sessionID, "owner", "admin")
 }
 
-type authorizedRoleKey struct{}
+type recordAuthorizationKey struct{}
+type replayAuthorizationKey struct{}
 
-// authorizedRole is the last actor AuthorizeRole admitted in a request, and
-// the client it read with.
+// AuthorizationMemo carries the role a middleware's check read to the
+// handler's first check of its own, so that check skips the session, user,
+// membership and workspace queries it would repeat.
+type AuthorizationMemo struct {
+	last atomic.Pointer[authorizedRole]
+}
+
+// authorizedRole is an actor AuthorizeRole admitted, and the client it read with.
 type authorizedRole struct {
 	client                                  *ent.Client
 	organizationID, userID, sessionID, role string
 }
 
-// RememberAuthorization scopes an AuthorizeRole memo to one request: the
-// handler's own check after the middleware's reuses the role it read instead
-// of querying the session, user, membership and workspace again. A
-// transaction's repository has its own client, so a check made under a row
-// lock always reads again.
-func RememberAuthorization(ctx context.Context) context.Context {
-	return context.WithValue(ctx, authorizedRoleKey{}, &atomic.Pointer[authorizedRole]{})
+// RecordAuthorization keeps what AuthorizeRole admits under ctx in memo.
+func RecordAuthorization(ctx context.Context, memo *AuthorizationMemo) context.Context {
+	return context.WithValue(ctx, recordAuthorizationKey{}, memo)
+}
+
+// ReplayAuthorization lets the first AuthorizeRole under ctx reuse memo for
+// the same actor and client. Every later check reads again, so a change the
+// handler makes is always seen, and a transaction's repository has its own
+// client, so a check under a row lock reads again too.
+func ReplayAuthorization(ctx context.Context, memo *AuthorizationMemo) context.Context {
+	return context.WithValue(ctx, replayAuthorizationKey{}, memo)
 }
 
 // AuthorizeRole rechecks the session, active workspace, membership, and
@@ -60,9 +71,8 @@ func (r *Repository) AuthorizedRole(ctx context.Context, organizationID, userID,
 	if organizationID == "" || userID == "" || sessionID == "" {
 		return "", ErrUnauthorized
 	}
-	memo, _ := ctx.Value(authorizedRoleKey{}).(*atomic.Pointer[authorizedRole])
-	if memo != nil {
-		last := memo.Load()
+	if memo, _ := ctx.Value(replayAuthorizationKey{}).(*AuthorizationMemo); memo != nil {
+		last := memo.last.Swap(nil)
 		if last != nil && last.client == r.client && last.organizationID == organizationID &&
 			last.userID == userID && last.sessionID == sessionID {
 			if !workspaceroles.Allows(last.role, allowedRoles...) {
@@ -94,8 +104,8 @@ func (r *Repository) AuthorizedRole(ctx context.Context, organizationID, userID,
 	if err := r.requireOperational(ctx, organizationID); err != nil {
 		return "", err
 	}
-	if memo != nil {
-		memo.Store(&authorizedRole{r.client, organizationID, userID, sessionID, role})
+	if memo, _ := ctx.Value(recordAuthorizationKey{}).(*AuthorizationMemo); memo != nil {
+		memo.last.Store(&authorizedRole{r.client, organizationID, userID, sessionID, role})
 	}
 	return role, nil
 }

@@ -44,6 +44,8 @@ type WriteContextValue = {
   beforeLeaveRef: React.MutableRefObject<(() => Promise<void>) | null>
   /** Opens the mounted composer's preview without navigation or an editor remount. */
   openPreviewRef: React.MutableRefObject<(() => void) | null>
+  /** Archives or restores the open draft through its composer, which keeps its version. */
+  archiveRef: React.MutableRefObject<((status: 'draft' | 'archived') => Promise<void>) | null>
   saved: Record<string, DraftLine>
   /** The list for the chosen tab or search is still loading. */
   libraryPending: boolean
@@ -86,6 +88,7 @@ export function WriteProvider({
   const params = useSearchParams()
   const beforeLeaveRef = React.useRef<(() => Promise<void>) | null>(null)
   const openPreviewRef = React.useRef<(() => void) | null>(null)
+  const archiveRef = React.useRef<((status: 'draft' | 'archived') => Promise<void>) | null>(null)
   React.useEffect(() => registerNavigationGuard(() => beforeLeaveRef.current?.()), [])
   React.useEffect(() => {
     const guard = (event: MouseEvent) => {
@@ -147,6 +150,22 @@ export function WriteProvider({
     ({ id, ...draft }) => setSaved((current) => ({ ...current, [id]: { ...current[id], ...draft } })),
     []
   )
+  // A pin shows at once, until the server's list arrives; from then on, it is the server's.
+  React.useEffect(
+    () =>
+      setSaved((current) =>
+        Object.values(current).some((line) => line.pinned !== undefined)
+          ? Object.fromEntries(
+              Object.entries(current).map(([id, line]) => {
+                const next = { ...line }
+                delete next.pinned
+                return [id, next]
+              })
+            )
+          : current
+      ),
+    [data]
+  )
   const search = params.get('q') ?? ''
   // Tabs switch in the browser: Drafts and Queue share the loaded list, others load as JSON.
   const tab = TABS.find((item) => item === params.get('tab')) ?? 'drafts'
@@ -171,12 +190,14 @@ export function WriteProvider({
           setResults({ key: searchKey, items: [...page.pinned, ...page.items].map(libraryDraft) })
       })
       .catch(() => {
-        if (!controller.signal.aborted)
-          toast.error(
-            loaded
-              ? 'Search failed. Showing matches from loaded drafts.'
-              : 'This list could not load. Try again.'
-          )
+        if (controller.signal.aborted) return
+        toast.error(
+          loaded
+            ? 'Search failed. Showing matches from loaded drafts.'
+            : 'This list could not load. Try again.'
+        )
+        // A tab with nothing loaded stops showing its loading rows.
+        if (!loaded) setResults({ key: searchKey, items: [] })
       })
     return () => controller.abort()
   }, [data.hasMore, loaded, search, searchKey])
@@ -200,6 +221,7 @@ export function WriteProvider({
     () => ({
       beforeLeaveRef,
       openPreviewRef,
+      archiveRef,
       hideDraft,
       activeId,
       canEdit,

@@ -83,11 +83,14 @@ export function ShellActions({
   // workspace's default brand; the draft page shows that brand's library.
   const newPost = () => {
     onNavigate?.()
-    void createWritingDraft(
-      {},
-      (id) => router.push(platformHref(pathname, `/write/${encodeURIComponent(id)}`)),
-      // Saves an open draft first, as following a link from it would.
-      prepareWorkspaceSwitch
+    // Every open editor saves or asks first; a cancelled leave stays put
+    // instead of stranding the quick-compose box on the guard's error.
+    void prepareWorkspaceSwitch().then(
+      () =>
+        createWritingDraft({}, (id) =>
+          router.push(platformHref(pathname, `/write/${encodeURIComponent(id)}`))
+        ),
+      () => {}
     )
   }
   return (

@@ -759,7 +759,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
 export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelect?: () => void }) {
   const router = useWriteRouter()
   const { mod } = useKeys()
-  const { activeId, beforeLeaveRef, canEdit, data, hideDraft, showSaved } = useWrite()
+  const { activeId, archiveRef, beforeLeaveRef, canEdit, data, hideDraft, showSaved } = useWrite()
   const [confirm, setConfirm] = React.useState<'delete' | 'share' | null>(null)
   const [copyTo, setCopyTo] = React.useState<string | null>(null)
   const act = async (work: () => Promise<unknown>, done: string, refresh = true) => {
@@ -840,20 +840,20 @@ export function DraftRowMenu({ draft, onSelect }: { draft: LibraryDraft; onSelec
                 <DropdownMenuShortcut>{mod}⇧P</DropdownMenuShortcut>
               </DropdownMenuItem>
               <DropdownMenuItem
-                onSelect={() =>
+                onSelect={() => {
+                  const status = draft.status === 'archived' ? 'draft' : 'archived'
+                  // The open draft goes through its composer, which saves first and
+                  // keeps the version its next autosave is based on.
+                  if (draft.id === activeId && archiveRef.current)
+                    return void archiveRef.current(status)
                   void act(
                     async () => {
-                      // The open draft saves first, so archiving never drops an edit.
-                      if (draft.id === activeId) await beforeLeaveRef.current?.()
                       const fresh = await draftsApi.get(draft.id)
-                      return draftsApi.save(draft.id, {
-                        baseVersion: fresh.version,
-                        status: draft.status === 'archived' ? 'draft' : 'archived',
-                      })
+                      return draftsApi.save(draft.id, { baseVersion: fresh.version, status })
                     },
-                    draft.status === 'archived' ? 'Restored from archive.' : 'Archived.'
+                    status === 'draft' ? 'Restored from archive.' : 'Archived.'
                   )
-                }
+                }}
               >
                 {draft.status === 'archived' ? 'Restore from archive' : 'Archive'}
               </DropdownMenuItem>

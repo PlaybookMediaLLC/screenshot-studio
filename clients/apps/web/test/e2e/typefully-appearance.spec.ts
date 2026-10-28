@@ -1,18 +1,14 @@
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { apiRequest } from './framework/publishing'
+import { apiRequest, expect, test } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('personal accent applies with contrast, survives reload and restores after a refused save or reset', async ({
+  app,
   page,
-  identity,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto('/workspace/appearance')
+  await app.open('/workspace/appearance')
   const color = page.getByLabel('Accent color', { exact: true })
   await expect(color).toBeEnabled()
   await color.fill('#ffe500')
@@ -26,7 +22,7 @@ test('personal accent applies with contrast, survives reload and restores after 
           .accentColor
     )
     .toBe('#ffe500')
-  await page.reload()
+  await app.reload()
   await expect(color).toHaveValue('#ffe500')
   await expect.poll(accent).toBe('#ffe500')
   expect(
@@ -45,7 +41,7 @@ test('personal accent applies with contrast, survives reload and restores after 
   await page.getByRole('button', { name: 'Reset accent', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Reset accent', exact: true })).toBeDisabled()
   await expect.poll(accent).toBe('')
-  await page.reload()
+  await app.reload()
   await expect.poll(accent).toBe('')
   expect(
     ((await apiRequest(page, '/api/v1/me/preferences')).body as { accentColor: string }).accentColor

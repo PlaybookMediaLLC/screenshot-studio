@@ -1,21 +1,21 @@
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { signUpAndCreateWorkspace } from './framework/auth'
+import { expect, test } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('a signed-out user cannot open protected routes and can return after sign-in', async ({
+  app,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await page.getByRole('button', { name: 'Open account menu' }).click()
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
 
-  await page.goto('/workspace')
+  await app.open('/workspace')
   await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
 
-  await page.goto('/sign-in?callbackURL=/workspace')
+  await app.open('/sign-in?callbackURL=/workspace')
   await page.getByLabel('Email', { exact: true }).fill(identity.email)
   await page.getByLabel('Password').fill(identity.password)
   await page.getByRole('button', { name: 'Sign in' }).click()

@@ -1,8 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test as base, type Page, type TestInfo } from '@playwright/test'
-import { clearRateLimits } from './services'
-
-export { expect }
+import { test as base, type Page } from '@playwright/test'
 
 export type E2EIdentity = {
   email: string
@@ -11,30 +8,13 @@ export type E2EIdentity = {
   workspaceName: string
 }
 
-export type E2EApp = {
-  expectPath: (path: string) => Promise<void>
-  open: (path: string) => Promise<void>
+/** Waits until React has hydrated the page (components/platform-shell/HydrationMarker.tsx). */
+export async function waitForHydration(page: Page): Promise<void> {
+  await page.waitForFunction(() => document.documentElement.dataset.hydrated === 'true')
 }
 
-export type E2EFlowContext = {
-  app: E2EApp
-  identity: E2EIdentity
-  page: Page
-  testInfo: TestInfo
-}
-
-export type E2EFlowHooks = {
-  afterEach?: (context: E2EFlowContext) => Promise<void>
-  beforeEach?: (context: E2EFlowContext) => Promise<void>
-  onFailure?: (context: E2EFlowContext, error: unknown) => Promise<void>
-}
-
-type E2EFixtures = {
-  app: E2EApp
-  identity: E2EIdentity
-}
-
-function createIdentity(): E2EIdentity {
+/** A unique local user for one test. */
+export function createIdentity(): E2EIdentity {
   const suffix = randomUUID().slice(0, 8)
   return {
     email: `e2e-${suffix}@example.test`,
@@ -44,65 +24,29 @@ function createIdentity(): E2EIdentity {
   }
 }
 
-function createApp(page: Page): E2EApp {
-  return {
-    expectPath: async (path: string): Promise<void> => {
-      await expect.poll(() => new URL(page.url()).pathname).toBe(path)
-    },
-    open: async (path: string): Promise<void> => {
-      await page.goto(path)
-    },
-  }
-}
+/** Setup helpers nest; only the outermost one records its time. */
+let setupDepth = 0
 
-function createContext(
-  app: E2EApp,
-  identity: E2EIdentity,
-  page: Page,
-  testInfo: TestInfo
-): E2EFlowContext {
-  return { app, identity, page, testInfo }
-}
-
-async function attachFailureContext(context: E2EFlowContext): Promise<void> {
-  await context.testInfo.attach('e2e-identity', {
-    body: JSON.stringify({
-      email: context.identity.email,
-      workspaceName: context.identity.workspaceName,
-    }),
-    contentType: 'application/json',
-  })
-}
-
-export const test = base.extend<E2EFixtures>({
-  app: async ({ page }, assignFixture) => {
-    await assignFixture(createApp(page))
-  },
-  identity: async ({ page: _page }, assignFixture) => {
-    await assignFixture(createIdentity())
-  },
-})
-
-export function configureE2EFlow(hooks: E2EFlowHooks = {}): void {
-  test.beforeEach(async ({ app, identity, page }, testInfo) => {
-    // Rate limits are keyed by client IP, so the whole shard shares one
-    // budget and a spec can be rejected for requests made by earlier specs.
-    // Reset before each test so a limit only reflects the test's own work.
-    await clearRateLimits()
-    await hooks.beforeEach?.(createContext(app, identity, page, testInfo))
-  })
-  test.afterEach(async ({ app, identity, page }, testInfo) => {
-    const context = createContext(app, identity, page, testInfo)
-    if (testInfo.status !== testInfo.expectedStatus) {
-      const error = testInfo.errors[testInfo.errors.length - 1]
-      try {
-        await attachFailureContext(context)
-        await hooks.onFailure?.(context, error)
-      } finally {
-        await hooks.afterEach?.(context)
-      }
-      return
+/**
+ * Runs a setup helper as a "setup:" step and records its time as a
+ * `setup-ms` annotation. The JSON report drops steps that run inside
+ * fixtures, but keeps annotations (scripts/e2e-durations.mjs).
+ */
+export function setupStep<Args extends unknown[], Result>(
+  title: string,
+  run: (...args: Args) => Promise<Result>
+): (...args: Args) => Promise<Result> {
+  return async (...args) => {
+    const started = Date.now()
+    setupDepth++
+    try {
+      return await base.step(`setup: ${title}`, () => run(...args))
+    } finally {
+      setupDepth--
+      if (setupDepth === 0)
+        base
+          .info()
+          .annotations.push({ type: 'setup-ms', description: String(Date.now() - started) })
     }
-    await hooks.afterEach?.(context)
-  })
+  }
 }

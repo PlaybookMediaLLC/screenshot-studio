@@ -1,18 +1,15 @@
 import { randomUUID } from 'node:crypto'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { expect, test } from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const requestCount = 25
 const allowedRequests = 20
 
-configureE2EFlow()
-
 test('the Redis rate limit accepts twenty concurrent requests and returns retry metadata', async ({
-  identity,
   page,
 }) => {
   // The screenshot API needs a paid workspace; the fixture gives it Pro.
-  await signUpAndCreateWorkspace(identity, page)
   const identifier = `e2e-rate-limit-${randomUUID()}`
   const responses = await page.evaluate(
     async ({ count, forwardedFor }) => {

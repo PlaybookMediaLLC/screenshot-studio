@@ -1,17 +1,13 @@
 import { randomUUID } from 'node:crypto'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest, chooseOption } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase } from './framework/services'
+import { browserRequest, chooseOption, db, expect, test } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('an owner creates an agent key whose snippets carry it, and the key cannot approve', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await page.goto('/workspace/ai-agents')
+  await app.open('/workspace/ai-agents')
 
   await expect(page.getByRole('heading', { name: 'MCP server' })).toBeVisible()
   await expect(page.getByLabel('Server URL', { exact: true })).toHaveValue(/\/mcp$/)
@@ -49,11 +45,10 @@ test('an owner creates an agent key whose snippets carry it, and the key cannot 
 })
 
 test('the consent page refuses an unregistered client without redirecting', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await page.goto(
+  await app.open(
     '/oauth/authorize?response_type=code&client_id=unregistered&redirect_uri=https%3A%2F%2Fevil.test%2Fcb&state=s1'
   )
   await expect(page.getByRole('heading', { name: /can’t be approved/ })).toBeVisible()
@@ -61,20 +56,18 @@ test('the consent page refuses an unregistered client without redirecting', asyn
 })
 
 test('agent consent serializes selected scopes and supports clearing an expiry', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  const database = createE2EDatabase()
   const clientId = `e2e-consent-${randomUUID()}`
   const redirectUri = 'https://agent.example.test/callback'
   try {
-    await database.query(
+    await db.query(
       `INSERT INTO "OAuthApp" (id, name, "redirectUrl", "clientId", "createdAt", "updatedAt")
        VALUES ($1, 'UI consent fixture', $2, $1, now(), now())`,
       [clientId, redirectUri]
     )
-    await page.goto(
+    await app.open(
       `/oauth/authorize?${new URLSearchParams({
         response_type: 'code',
         client_id: clientId,
@@ -107,7 +100,6 @@ test('agent consent serializes selected scopes and supports clearing an expiry',
       .poll(submittedChoices)
       .toEqual({ expiry: '', scopes: ['artifact:read', 'asset:write'] })
   } finally {
-    await database.query('DELETE FROM "OAuthApp" WHERE id=$1', [clientId])
-    await database.end()
+    await db.query('DELETE FROM "OAuthApp" WHERE id=$1', [clientId])
   }
 })

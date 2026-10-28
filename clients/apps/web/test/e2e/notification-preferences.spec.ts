@@ -1,22 +1,21 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { signUpViaApi } from './framework/auth'
-import { browserJson, browserRequest } from './framework/browser'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
+import {
+  browserJson,
+  browserRequest,
+  db,
+  expect,
+  grantWorkspacePlan,
+  signUpViaApi,
+  test,
+} from './framework'
 import { notificationSettingsSchema } from '../../lib/notifications/schema'
 import { socialSetSchema } from '../../lib/api/contracts/social-sets'
 
-configureE2EFlow()
-
-test('independent channels, mixed groups, duplicate names, and stale saves persist correctly', async ({
-  identity,
-  page,
-  context,
-}) => {
-  test.setTimeout(180_000)
-  const db = createE2EDatabase()
-  try {
+test(
+  'independent channels, mixed groups, duplicate names, and stale saves persist correctly',
+  { tag: '@journey' },
+  async ({ app, context, identity, page }) => {
     await signUpViaApi(identity, page)
     const workspace = z.object({ id: z.string() }).parse(
       await browserJson(page, '/api/auth/organization/create', {
@@ -52,7 +51,7 @@ test('independent channels, mixed groups, duplicate names, and stale saves persi
       }),
     })
     expect(legacy.status).toBe(200)
-    await page.goto('/workspace/notifications')
+    await app.open('/workspace/notifications')
     const firstRow = (event: string, channel: string) =>
       page.getByLabel(`Same brand (${first.id}): ${event}: your ${channel} preference`, {
         exact: true,
@@ -110,7 +109,7 @@ test('independent channels, mixed groups, duplicate names, and stale saves persi
       [workspace.id]
     )
     expect(persisted.rows[0].social_set_channels[first.id]['post.published'].email).toBe(true)
-    await page.reload()
+    await app.reload()
     await expect(firstRow('Post published', 'email')).toBeChecked()
     await expect(master).not.toBeChecked()
     await expect(secondRow('Post published', 'in-app')).toBeChecked()
@@ -160,7 +159,5 @@ test('independent channels, mixed groups, duplicate names, and stale saves persi
     ).toBeVisible()
     await expect(firstRow('Post published', 'email')).toBeEnabled()
     await page.screenshot({ path: '.context/notification-preferences-mobile.png', fullPage: true })
-  } finally {
-    await db.end()
   }
-})
+)

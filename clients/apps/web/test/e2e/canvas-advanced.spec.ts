@@ -3,16 +3,24 @@ import { mkdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import JSZip from 'jszip'
 import sharp from 'sharp'
-import type { Page } from '@playwright/test'
+import {
+  chooseOption,
+  db,
+  type E2EIdentity,
+  expect,
+  getActiveOrganizationId,
+  getE2EUrl,
+  grantWorkspacePlan,
+  type Page,
+  requestJson,
+  signUpViaApi,
+  test,
+  trpcMutation,
+  trpcQuery,
+  uploadSignedAsset,
+} from './framework'
 import type { CanvasDocument } from '@/lib/canvas/document'
-import { getActiveOrganizationId, getE2EUrl, signUpViaApi } from './framework/auth'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
-import { trpcMutation, trpcQuery } from './framework/trpc'
-import { requestJson, uploadSignedAsset } from './framework/browser'
-import { chooseOption } from './framework/controls'
 
-configureE2EFlow()
 test.setTimeout(600_000)
 test.use({ actionTimeout: 30_000, viewport: { width: 1600, height: 1000 } })
 
@@ -90,11 +98,12 @@ async function typeInto(page: Page, value: string, typed: string) {
 }
 
 test('F: layers group, move and take typed text; components keep overrides across artboards', async ({
+  app,
   identity,
   page,
 }) => {
   await setUp(identity, page)
-  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await app.open('/canvas/new?blank=1')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   await expect(page.locator('[data-artboard-id]').first()).toBeVisible({ timeout: 120_000 })
   await openArtboard(page, '16:9')
@@ -239,12 +248,13 @@ test('F: layers group, move and take typed text; components keep overrides acros
 })
 
 test('G: members see who else is on a canvas and which artboard each is editing', async ({
+  app,
+  browser,
   identity,
   page,
-  browser,
 }) => {
   const organizationId = await setUp(identity, page)
-  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await app.open('/canvas/new?blank=1')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   await saved(page)
   const context = await browser.newContext({
@@ -263,21 +273,16 @@ test('G: members see who else is on a canvas and which artboard each is editing'
     const peer = await context.newPage()
     const email = `peer-${identity.email}`
     await signUpViaApi({ ...identity, email, name: 'Canvas colleague' }, peer)
-    const database = createE2EDatabase()
-    try {
-      const user = await database.query('SELECT id FROM "user" WHERE email = $1', [email])
-      await database.query(
-        'INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,$4,now())',
-        [
-          `c${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
-          organizationId,
-          user.rows[0].id,
-          'creator',
-        ]
-      )
-    } finally {
-      await database.end()
-    }
+    const user = await db.query('SELECT id FROM "user" WHERE email = $1', [email])
+    await db.query(
+      'INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,$4,now())',
+      [
+        `c${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
+        organizationId,
+        user.rows[0].id,
+        'creator',
+      ]
+    )
     expect((await trpcMutation(peer, 'workspace.setActive', { organizationId })).status).toBe(200)
     await peer.goto(page.url())
     await saved(peer)
@@ -307,11 +312,12 @@ test('G: members see who else is on a canvas and which artboard each is editing'
 })
 
 test('H: App Store screenshot groups sit on the canvas, edit in the store editor and export store sizes', async ({
+  app,
   identity,
   page,
 }) => {
   await setUp(identity, page)
-  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await app.open('/canvas/new?blank=1')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   await saved(page)
   await page.getByRole('button', { name: /^App Store screenshots/ }).click()
@@ -379,7 +385,7 @@ test('H: App Store screenshot groups sit on the canvas, edit in the store editor
   await page.screenshot({ path: path.join(out, 'h-store-group.png') })
 
   // Reload: the group, its size and both slides come back.
-  await page.reload()
+  await app.reload()
   await expect(page.locator(`[data-store-group-id="${item.group.id}"] .bg-white`)).toHaveCount(2, {
     timeout: 120_000,
   })
@@ -406,6 +412,7 @@ async function uploadImage(page: Page, file: string) {
 }
 
 test('I: release automation lays out a canvas from a release on the server', async ({
+  app,
   identity,
   page,
 }) => {
@@ -470,22 +477,24 @@ test('I: release automation lays out a canvas from a release on the server', asy
       .some((claim) => claim.status === 'verified' && claim.reference?.id === releaseId)
   ).toBe(true)
 
-  await page.goto(getE2EUrl(`/canvas/${canvasId}`))
+  await app.open(`/canvas/${canvasId}`)
   await expect(page.locator('[data-artboard-id]')).toHaveCount(canvas.artboards.length, {
     timeout: 120_000,
   })
   await expect(page.locator('[data-artboard-id] img').first()).toBeVisible({ timeout: 120_000 })
   await page.keyboard.press('Shift+Digit1')
+  // eslint-disable-next-line no-restricted-syntax -- The zoom animation has no end event; the report screenshot waits it out.
   await page.waitForTimeout(1500)
   await page.screenshot({ path: path.join(out, 'i-automation-canvas.png') })
 })
 
 test('J: a canvas exports a PDF whose pages keep real text and vector shapes', async ({
+  app,
   identity,
   page,
 }) => {
   await setUp(identity, page)
-  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await app.open('/canvas/new?blank=1')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   await saved(page)
   await page.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()

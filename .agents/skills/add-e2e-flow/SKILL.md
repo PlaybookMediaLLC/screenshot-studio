@@ -7,7 +7,7 @@ description: Add or change a Screenshot Studio Playwright end-to-end flow. Use f
 
 Paths below are relative to `clients/apps/web/`; run `npm` commands from `clients/`.
 
-Read `test/e2e/README.md`, `test/e2e/framework/flow.ts`, and the changed feature's route,
+Read `test/e2e/README.md`, `test/e2e/framework/index.ts`, and the changed feature's route,
 server boundary, and data contract before writing a test. Read
 `references/downstream-dependencies.md` when the flow crosses a downstream
 boundary.
@@ -16,21 +16,31 @@ boundary.
 
 1. Define one user outcome, its persisted result, and the required negative
    path. Include tenant or permission boundaries when the feature has them.
-2. Add a `*.spec.ts` file under `test/e2e/`. Import `test`, `expect`, and
-   `configureE2EFlow` from `test/e2e/framework/flow`.
-3. Use `configureE2EFlow` for setup, cleanup, and failure hooks. Use the
-   provided unique identity; do not use a shared account or production data.
+2. Add a `*.spec.ts` file under `test/e2e/`. Import everything from
+   `./framework`, the one entry point. Follow the template and the rules in
+   `test/e2e/README.md`.
+3. Declare the start state with `test.use({ workspaceOptions })`, the
+   `workspace` fixture or `startWorkspace(options)`. The framework builds it
+   through the API and cleans it up. Do not sign up through the form unless
+   the test is about sign-up or onboarding.
 4. Assert visible user results and durable effects. Do not assert only a 200
    response or internal implementation detail.
-5. Run `make e2e`. New specs run automatically in Compose CI and the Kind
-   parity workflow. Preserve normal Playwright traces and screenshots on error.
+5. Wait for a state, not a time. Keep a test under 60 seconds, or tag a
+   longer journey `{ tag: '@journey' }`.
+6. The suite runs against a production build. Tag a test `@dev-server` only
+   when it needs the scripted AI model or screenshot-mock downloads, which
+   only `next dev` allows (`test/e2e/README.md`, "Two lanes").
+7. Run the file with `./dev/studio e2e-file <path> --workers=4 --repeat-each=2`
+   to prove that it is parallel-safe, then run `make e2e`. New specs run
+   automatically in Compose CI and the Kind parity workflow. Preserve normal
+   Playwright traces and screenshots on error.
 
 ## Test boundaries
 
 - Use the running Compose services for Postgres, Redis, RustFS, and Storage.
   They are real local dependencies, not mocks.
-- Mock browser-originated third-party calls with
-  `test/e2e/framework/downstream.ts`. Assert the request method, body, and number
+- Mock browser-originated third-party calls with `mockBrowserJson` from
+  `./framework`. Assert the request method, body, and number
   of calls as well as the visible result.
 - For server-originated calls, inject a test-only downstream base URL before
   the app starts. A browser route cannot intercept a server request.

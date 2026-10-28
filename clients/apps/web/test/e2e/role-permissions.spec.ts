@@ -1,15 +1,21 @@
 import { z } from 'zod'
-import type { Browser, Page } from '@playwright/test'
 import {
   acceptInvitation,
+  type Browser,
+  browserRequest,
+  type E2EIdentity,
+  expect,
   getActiveOrganizationId,
-  signUpAndCreateWorkspace,
+  grantWorkspacePlan,
+  type Page,
+  requestJson,
   signUpViaApi,
-} from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { grantWorkspacePlan } from './framework/services'
-import { trpcMutation, trpcQuery } from './framework/trpc'
+  test,
+  trpcMutation,
+  trpcQuery,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const invitedRoles = [
   'admin',
@@ -138,61 +144,61 @@ async function assertRolePermissions(
   ).toBe(isAdmin ? 201 : 403)
 }
 
-configureE2EFlow()
+test(
+  'workspace roles permit only their assigned actions',
+  { tag: '@journey' },
+  async ({ browser, identity, page }) => {
+    // One full sign-up, invitation, and permission sweep per role, in series;
+    // under a loaded suite it ran past the default timeout.
+    const organizationId = await getActiveOrganizationId(page)
+    // The owner, six invited roles, and the admin's own invitation need eight
+    // seats; Pro has five (docs/rfcs/035, Packaging).
+    await grantWorkspacePlan(organizationId, 'business')
 
-test('workspace roles permit only their assigned actions', async ({ browser, identity, page }) => {
-  // One full sign-up, invitation, and permission sweep per role, in series;
-  // under a loaded suite it ran past the default timeout.
-  test.slow()
-  await signUpAndCreateWorkspace(identity, page)
-  const organizationId = await getActiveOrganizationId(page)
-  // The owner, six invited roles, and the admin's own invitation need eight
-  // seats; Pro has five (docs/rfcs/035, Packaging).
-  await grantWorkspacePlan(organizationId, 'business')
-
-  // Roles are independent, so they run in pairs rather than one at a
-  // time. Serially this was five sign-up and invitation round trips inside
-  // a single test budget, which made the spec fail on accumulated latency
-  // rather than on a permission regression. Running all five at once
-  // instead would put five browser contexts on a two-core runner, so the
-  // batch size trades a little wall time for stability.
-  //
-  // The invitations are created first, one at a time. They all run on the
-  // owner's page, and concurrent page.evaluate calls there share a single
-  // execution context, which is how this spec produced the "Execution
-  // context was destroyed" flake. Only the per-role work below, which each
-  // own a separate browser context, still runs in parallel.
-  const invitations = new Map<InvitedRole, string>()
-  for (const role of invitedRoles) {
-    invitations.set(
-      role,
-      await createInvitation({
-        browser,
-        email: `${role}-${identity.email}`,
-        identity,
-        organizationId,
-        ownerPage: page,
+    // Roles are independent, so they run in pairs rather than one at a
+    // time. Serially this was five sign-up and invitation round trips inside
+    // a single test budget, which made the spec fail on accumulated latency
+    // rather than on a permission regression. Running all five at once
+    // instead would put five browser contexts on a two-core runner, so the
+    // batch size trades a little wall time for stability.
+    //
+    // The invitations are created first, one at a time. They all run on the
+    // owner's page, and concurrent page.evaluate calls there share a single
+    // execution context, which is how this spec produced the "Execution
+    // context was destroyed" flake. Only the per-role work below, which each
+    // own a separate browser context, still runs in parallel.
+    const invitations = new Map<InvitedRole, string>()
+    for (const role of invitedRoles) {
+      invitations.set(
         role,
-      })
-    )
-  }
-
-  const concurrency = 2
-  for (let index = 0; index < invitedRoles.length; index += concurrency) {
-    await Promise.all(
-      invitedRoles.slice(index, index + concurrency).map((role) => {
-        const invitationId = invitations.get(role)
-        if (!invitationId) throw new Error(`No invitation was created for the ${role} role.`)
-        return inviteRole({
+        await createInvitation({
           browser,
           email: `${role}-${identity.email}`,
           identity,
-          invitationId,
           organizationId,
           ownerPage: page,
           role,
         })
-      })
-    )
+      )
+    }
+
+    const concurrency = 2
+    for (let index = 0; index < invitedRoles.length; index += concurrency) {
+      await Promise.all(
+        invitedRoles.slice(index, index + concurrency).map((role) => {
+          const invitationId = invitations.get(role)
+          if (!invitationId) throw new Error(`No invitation was created for the ${role} role.`)
+          return inviteRole({
+            browser,
+            email: `${role}-${identity.email}`,
+            identity,
+            invitationId,
+            organizationId,
+            ownerPage: page,
+            role,
+          })
+        })
+      )
+    }
   }
-})
+)

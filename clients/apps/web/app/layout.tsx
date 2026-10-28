@@ -32,6 +32,7 @@ import {
 } from 'next/font/google'
 import './globals.css'
 import { AppToaster } from '@/components/platform-shell/AppToaster'
+import { HydrationMarker } from '@/components/platform-shell/HydrationMarker'
 import { QueryProvider } from '@/lib/query-client'
 import { TRPCReactProvider } from '@/lib/trpc/provider'
 import { GlobalDropZone } from '@/components/GlobalDropZone'
@@ -461,6 +462,7 @@ export default async function RootLayout({
               </GlobalDropZone>
               <AppToaster />
               <ConsentBanner />
+              <HydrationMarker />
             </TRPCReactProvider>
           </QueryProvider>
         </AppThemeProvider>

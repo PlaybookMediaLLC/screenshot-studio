@@ -1,26 +1,27 @@
 import { connectionAvailabilitySchema } from 'screenshot-studio-backend-sdk'
 import { z } from 'zod'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { getE2EUrl } from './framework/auth'
-import { socialMockPort } from './framework/content-drafts'
-import { startHttpMockServer } from './framework/http-server'
-import { connectionAvailabilityFixture } from './framework/social-availability'
 import {
   apiRequest,
   bindTestGoOrganization,
-  createPublishingWorkspace,
-  enablePublishingTwoFactor,
+  connectionAvailabilityFixture,
+  createWorkspace,
+  db,
+  enableTwoFactor,
+  expect,
+  getE2EUrl,
+  grantWorkspacePlan,
+  socialMockPort,
+  startHttpMockServer,
+  test,
   unbindTestGoOrganization,
-} from './framework/publishing'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
+} from './framework'
 import { socialSetListSchema } from '../../lib/api/contracts/social-sets'
 
-configureE2EFlow()
-
 test('provider readiness fails closed, recovers, and rechecks before authorization', async ({
+  app,
+  browser,
   identity,
   page,
-  browser,
 }) => {
   let organizationId: string | null = null
   let status = 503
@@ -44,10 +45,10 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
     provider.calls.filter((call) => call.url === '/api/public/v1/connection-availability')
   let readsBefore = 0
   try {
-    await createPublishingWorkspace(identity, page)
-    await enablePublishingTwoFactor(page, identity.password)
+    await createWorkspace(identity, page)
+    await enableTwoFactor(page, identity.password)
     organizationId = await bindTestGoOrganization(page)
-    await page.goto('/workspace/social-sets?availability=preserve')
+    await app.open('/workspace/social-sets?availability=preserve')
     const originalURL = page.url()
     const launch = page.getByRole('button', {
       name: 'Add publishing brand to your personal workspace',
@@ -109,16 +110,11 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
     const sets = await apiRequest(page, '/api/v1/social-sets')
     expect(sets.status).toBe(200)
     expect(socialSetListSchema.parse(sets.body).items).toHaveLength(0)
-    const database = createE2EDatabase()
-    try {
-      const attempts = await database.query(
-        'SELECT count(*)::int AS count FROM social_oauth_start WHERE "organizationId"=$1',
-        [organizationId]
-      )
-      expect(z.array(z.object({ count: z.number() })).parse(attempts.rows)).toEqual([{ count: 0 }])
-    } finally {
-      await database.end()
-    }
+    const attempts = await db.query(
+      'SELECT count(*)::int AS count FROM social_oauth_start WHERE "organizationId"=$1',
+      [organizationId]
+    )
+    expect(z.array(z.object({ count: z.number() })).parse(attempts.rows)).toEqual([{ count: 0 }])
 
     const response = await page.request.get(getE2EUrl('/api/v1/social-connection-availability'))
     expect(response.status()).toBe(200)

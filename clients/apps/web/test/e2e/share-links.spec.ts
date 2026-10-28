@@ -1,9 +1,7 @@
-import type { Page } from '@playwright/test'
+import { expect, type Page, test } from './framework'
 import sharp from 'sharp'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 async function dropScreenshot(page: Page) {
   await page.evaluate(async () => {
@@ -26,12 +24,12 @@ async function dropScreenshot(page: Page) {
 }
 
 test('a published design opens for anyone, previews, embeds, can be restricted, and revoked', async ({
+  app,
   browser,
-  identity,
   page,
 }) => {
   test.setTimeout(480_000)
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await dropScreenshot(page)
 
   await page.getByRole('button', { exact: true, name: 'Share' }).click()
@@ -74,7 +72,7 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
   await published.getByRole('button', { name: 'Done' }).click()
 
   // Limit it to the workspace: visitors are turned away, members still see it.
-  await page.goto('/workspace/shared-links')
+  await app.open('/workspace/shared-links')
   const row = page
     .getByText('Launch preview')
     .locator('xpath=ancestor::div[contains(@class,"justify-between")][1]')
@@ -89,7 +87,7 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
   await expect(page.getByRole('img', { name: 'A blue dashboard screenshot' })).toBeVisible()
 
   // Revoke it: the link is gone for everyone.
-  await page.goto('/workspace/shared-links')
+  await app.open('/workspace/shared-links')
   await page.getByRole('button', { name: 'Revoke Launch preview' }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Revoke link' }).click()
   await expect(page.getByText('Revoked', { exact: true })).toBeVisible()
@@ -102,11 +100,10 @@ test('a published design opens for anyone, previews, embeds, can be restricted, 
 })
 
 test('integrations say exactly what a server needs before they can connect', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await page.goto('/workspace/integrations')
+  await app.open('/workspace/integrations')
   for (const provider of ['Slack', 'Notion', 'Figma']) {
     await expect(page.getByRole('heading', { name: provider })).toBeVisible()
   }

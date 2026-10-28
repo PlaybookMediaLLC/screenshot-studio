@@ -1,37 +1,30 @@
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import { chooseOption } from './framework/controls'
 import {
-  createDraftWorkspace,
+  apiRequest,
+  chooseOption,
+  db,
   draftEditor,
+  expect,
   expectSaved,
   openNewDraft,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
-import { createE2EDatabase } from './framework/services'
+  test,
+} from './framework'
 
-configureE2EFlow()
 test.skip(
   process.env.TYPEFULLY_E2E_WORKER !== '1',
   'Requires the isolated test database and controlled Temporal provider worker.'
 )
 
-test('reviewed content schedules, publishes once, notifies its brand, gains observations and repurposes', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(300_000)
-  page.setDefaultTimeout(20_000)
-  let workspace: DraftWorkspace | null = null
-  const database = createE2EDatabase()
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'])
+test(
+  'reviewed content schedules, publishes once, notifies its brand, gains observations and repurposes',
+  { tag: '@journey' },
+  async ({ app, identity, page, startWorkspace }) => {
+    page.setDefaultTimeout(20_000)
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    const workspace = await startWorkspace({ channels: ['x'] })
     // Only the HTTP peer is fake; canonical connections and permission checks remain live.
-    await database.query(`UPDATE "Integration" SET token='valid' WHERE id=$1`, [
-      `social-${workspace.organizationId}-x`,
+    await db.query(`UPDATE "Integration" SET token='valid' WHERE id=$1`, [
+      `social-${workspace.id}-x`,
     ])
     expect(
       (
@@ -52,7 +45,7 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
       (await (await fetch(`${notices}/sink`)).json()) as {
         slack: { channel: string; text: string }[]
       }
-    await page.goto('/workspace/notifications')
+    await app.open('/workspace/notifications')
     await page.getByRole('button', { name: 'Delivery & Slack', exact: true }).click()
     await page.getByRole('button', { name: 'Connect Slack', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Local Slack fixture' })).toBeVisible()
@@ -64,7 +57,7 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
       .selectOption('C067890')
     await page.getByRole('button', { name: 'Save workspace policy', exact: true }).click()
     await expect(page.getByText('Workspace policy saved.', { exact: true })).toBeVisible()
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Delivery & Slack', exact: true }).click()
     await expect(
       page.getByLabel(`Slack channel for ${identity.workspaceName}`, { exact: true })
@@ -105,7 +98,7 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
     await schedule.getByRole('checkbox', { name: 'Open a new draft after scheduling' }).uncheck()
     await schedule.getByRole('button', { name: 'Confirm schedule', exact: true }).click()
     await expect(page.getByTestId('draft-post')).toContainText('Scheduled')
-    const queued = await database.query(
+    const queued = await db.query(
       `SELECT id,status,"scheduledFor" FROM scheduled_post WHERE "contentDraftId"=$1`,
       [id]
     )
@@ -113,20 +106,17 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
     expect(new Date(queued.rows[0].scheduledFor).toISOString()).toBe(at.toISOString())
     const before = await (await fetch(`${social}/state`)).json()
     expect(before.posts).toHaveLength(0)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('draft-post')).toContainText('Scheduled')
     await expect
       .poll(
         async () =>
-          (
-            await database.query(`SELECT status FROM scheduled_post WHERE id=$1`, [
-              queued.rows[0].id,
-            ])
-          ).rows[0]?.status,
+          (await db.query(`SELECT status FROM scheduled_post WHERE id=$1`, [queued.rows[0].id]))
+            .rows[0]?.status,
         { timeout: 150_000, intervals: [2000] }
       )
       .toBe('PUBLISHED')
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('draft-post')).toContainText('Published')
     const receipts = await (await fetch(`${social}/state`)).json()
     expect(receipts.posts).toHaveLength(1)
@@ -148,7 +138,7 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
       .poll(
         async () =>
           (
-            await database.query(
+            await db.query(
               `SELECT metrics FROM platform_social_observation WHERE "subjectId"=$1 AND status='available'`,
               [queued.rows[0].id]
             )
@@ -156,7 +146,7 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
         { timeout: 30_000 }
       )
       .toBe(17)
-    await page.goto('/write/analyze/observations')
+    await app.open('/write/analyze/observations')
     await expect(page.getByTestId('social-analytics')).toContainText('17')
     const download = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Export CSV', exact: true }).click()
@@ -171,20 +161,15 @@ test('reviewed content schedules, publishes once, notifies its brand, gains obse
     const reused = new URL(page.url()).pathname.split('/').at(-1)!
     expect(reused).not.toBe(id)
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(draftEditor(page)).toContainText('Edited and reviewed.')
     const reuse = await apiRequest(page, `/api/v1/content-drafts/${reused}`)
     expect((reuse.body as { reviewStatus: string }).reviewStatus).toBe('none')
     expect(
-      (await database.query(`SELECT id FROM scheduled_post WHERE "contentDraftId"=$1`, [reused]))
-        .rows
+      (await db.query(`SELECT id FROM scheduled_post WHERE "contentDraftId"=$1`, [reused])).rows
     ).toHaveLength(0)
     expect((await (await fetch(`${social}/state`)).json()).posts).toHaveLength(1)
     expect(errors).toEqual([])
     await page.screenshot({ path: '.context/shots/typefully-lifecycle-repurposed.png' })
-  } finally {
-    await database.end()
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

@@ -1,6 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3'
 import { Pool, types, type CustomTypesConfig, type QueryResultRow } from 'pg'
-import { createClient, type RedisClientType } from 'redis'
 
 function getRequiredEnvironment(name: string): string {
   const value = process.env[name]
@@ -12,9 +11,9 @@ function getRequiredEnvironment(name: string): string {
 }
 
 /**
- * A direct Postgres pool for seeding and durable assertions. Tables use the
- * Prisma `@@map` names and camelCase columns, so quote every column. Call
- * `end()` when done.
+ * A direct Postgres pool. Tables use the Prisma `@@map` names and camelCase
+ * columns, so quote every column. Specs use `db`, which shares one pool per
+ * worker; a caller that makes its own pool calls `end()` when done.
  */
 export function createE2EDatabase(): Pool {
   // `?schema=public` is a Prisma URL option that pg does not understand.
@@ -49,6 +48,32 @@ export async function queryRow<T extends QueryResultRow>(
   return (await queryRows<T>(database, text, values))[0] ?? null
 }
 
+let sharedPool: Pool | null = null
+
+function sharedDatabase(): Pool {
+  sharedPool ??= createE2EDatabase()
+  return sharedPool
+}
+
+/** Closes the worker's pool. The framework calls it when the worker stops. */
+export async function closeSharedDatabase(): Promise<void> {
+  await sharedPool?.end()
+  sharedPool = null
+}
+
+/**
+ * The worker's database: one pool, opened on first use, for seeding and
+ * durable assertions. Specs never close it.
+ */
+export const db = {
+  query: <T extends QueryResultRow = QueryResultRow>(text: string, values: unknown[] = []) =>
+    sharedDatabase().query<T>(text, values),
+  row: <T extends QueryResultRow>(text: string, values: unknown[] = []) =>
+    queryRow<T>(sharedDatabase(), text, values),
+  rows: <T extends QueryResultRow>(text: string, values: unknown[] = []) =>
+    queryRows<T>(sharedDatabase(), text, values),
+}
+
 export function createE2EObjectStoreClient(): S3Client {
   return new S3Client({
     credentials: {
@@ -77,54 +102,11 @@ export function getE2EObjectStoreBucket(): string {
  * every check, so the grant applies to the next request.
  */
 export async function grantWorkspacePlan(organizationId: string, plan: string): Promise<void> {
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      `INSERT INTO workspace_entitlement ("organizationId", plan, status, "updatedAt")
-       VALUES ($1, $2, 'active', now())
-       ON CONFLICT ("organizationId")
-       DO UPDATE SET plan = EXCLUDED.plan, status = 'active', "updatedAt" = now()`,
-      [organizationId, plan]
-    )
-  } finally {
-    await database.end()
-  }
-}
-
-/**
- * Drop every rate-limit counter.
- *
- * The invitation policy allows 10 requests per hour and is keyed by client
- * IP (`getClientIdentifier`), so every spec in a shard draws on one shared
- * budget from a single browser host. role-permissions alone invites five
- * roles, and workspace-switching and authorization-revocation invite more,
- * so a later spec receives 429 for a request its own logic never
- * rate-limited. That is a property of running the suite on one address, not
- * a defect the spec should assert against.
- *
- * Clearing between tests keeps each spec's rate-limit behaviour its own.
- * `smoke-rate-limit` still covers the limiter itself, so this does not
- * remove coverage of the policy.
- */
-export async function clearRateLimits(): Promise<void> {
-  await withRedis(async (client) => {
-    const keys = await client.keys('screenshot-studio:rate-limit:*')
-    if (keys.length > 0) await client.del(keys)
-  })
-}
-
-async function withRedis(operation: (client: RedisClientType) => Promise<void>): Promise<void> {
-  const url = process.env.E2E_REDIS_URL ?? process.env.REDIS_URL
-  if (!url) return
-
-  const client: RedisClientType = createClient({ url })
-  try {
-    await client.connect()
-    await operation(client)
-  } catch {
-    // Falling back to the TTL is correct: the state still expires on its own,
-    // it just takes the full window.
-  } finally {
-    await client.quit().catch(() => {})
-  }
+  await db.query(
+    `INSERT INTO workspace_entitlement ("organizationId", plan, status, "updatedAt")
+     VALUES ($1, $2, 'active', now())
+     ON CONFLICT ("organizationId")
+     DO UPDATE SET plan = EXCLUDED.plan, status = 'active', "updatedAt" = now()`,
+    [organizationId, plan]
+  )
 }

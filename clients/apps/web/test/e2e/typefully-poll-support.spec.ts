@@ -1,23 +1,11 @@
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import {
-  createDraftWorkspace,
-  draftEditor,
-  expectSaved,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
+import { apiRequest, draftEditor, expect, expectSaved, test } from './framework'
 import { importedBody } from '@/lib/write/import-text'
-configureE2EFlow()
 
-test('Threads keeps its native poll duration while Bluesky and Instagram explain unavailable polls', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['threads', 'bluesky', 'instagram'])
+test(
+  'Threads keeps its native poll duration while Bluesky and Instagram explain unavailable polls',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const workspace = await startWorkspace({ channels: ['threads', 'bluesky', 'instagram'] })
     const result = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {
@@ -29,7 +17,7 @@ test('Threads keeps its native poll duration while Bluesky and Instagram explain
     })
     expect(result.status).toBe(201)
     const id = (result.body as { id: string }).id
-    await page.goto(`/write/${id}`)
+    await app.open(`/write/${id}`)
     await expect(draftEditor(page)).toContainText('Which change helps?')
     await page.getByRole('button', { name: 'Add a poll', exact: true }).click()
     await page.getByRole('button', { name: 'Add poll', exact: true }).click()
@@ -56,11 +44,8 @@ test('Threads keeps its native poll duration while Bluesky and Instagram explain
     await page.getByRole('button', { name: 'Edit the poll', exact: true }).click()
     await expect(page.getByLabel('Poll option 1')).toHaveValue('Faster review')
     await page.keyboard.press('Escape')
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Edit the poll', exact: true }).click()
     await expect(page.getByLabel('Poll option 2')).toHaveValue('Clearer status')
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

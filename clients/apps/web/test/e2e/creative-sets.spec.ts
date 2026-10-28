@@ -2,20 +2,28 @@ import { mkdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import JSZip from 'jszip'
 import sharp from 'sharp'
-import type { Page, Route } from '@playwright/test'
+import {
+  chooseOption,
+  db,
+  type E2EIdentity,
+  expect,
+  getActiveOrganizationId,
+  getE2EUrl,
+  grantWorkspacePlan,
+  type Page,
+  type Route,
+  signUpViaApi,
+  test,
+  trpcMutation,
+  trpcQuery,
+} from './framework'
 import { createScratchDocument, publicAsset } from '@/lib/store-screenshots/document/factory'
 import type { CreativeSetDocument } from '@/lib/creative-sets/document'
-import { getE2EUrl, signUpViaApi, getActiveOrganizationId } from './framework/auth'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { trpcMutation, trpcQuery } from './framework/trpc'
-import { chooseOption } from './framework/controls'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
 
-configureE2EFlow()
 test.setTimeout(600_000)
 test.use({ actionTimeout: 30_000 })
 
-async function signUpAndCreateWorkspace(identity: E2EIdentity, page: Page) {
+async function createStorySetWorkspace(identity: E2EIdentity, page: Page) {
   await signUpViaApi(identity, page)
   expect(
     (
@@ -59,11 +67,12 @@ async function create(page: Page) {
 }
 
 test('create, customize, replace evidence, reopen, restore and deliver three native formats', async ({
+  app,
   identity,
   page,
 }) => {
   await page.setViewportSize({ width: 1680, height: 1050 })
-  await signUpAndCreateWorkspace(identity, page)
+  await createStorySetWorkspace(identity, page)
   const id = await create(page)
   await page.getByRole('button', { name: /^Square card/ }).click()
   await saved(page)
@@ -120,7 +129,7 @@ test('create, customize, replace evidence, reopen, restore and deliver three nat
     await page.getByRole('button', { name: 'Mark format reviewed' }).click()
     await saved(page)
   }
-  await page.reload()
+  await app.reload()
   await saved(page)
   expect(headlines((await record(page, id)).document)).toEqual(headlines(current.document))
   await mkdir('.context', { recursive: true })
@@ -195,17 +204,18 @@ test('create, customize, replace evidence, reopen, restore and deliver three nat
 })
 
 test('interrupted saves recover and a real second writer cannot be overwritten', async ({
+  app,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await createStorySetWorkspace(identity, page)
   const id = await create(page)
   const block = (route: Route) => route.abort('internetdisconnected')
   await page.route('**/api/trpc/**creativeSet.updateDocument**', block)
   await page.getByLabel('Story headline', { exact: true }).fill('Recovered locally')
   await page.getByLabel('Story headline', { exact: true }).press('Tab')
   await expect(page.getByTestId('set-save-status')).toContainText('Offline', { timeout: 30_000 })
-  await page.reload()
+  await app.reload()
   await page.unroute('**/api/trpc/**creativeSet.updateDocument**', block)
   await page.getByRole('button', { name: 'Recover draft', exact: true }).click()
   await saved(page)
@@ -261,7 +271,7 @@ test('another principal cannot read sets, versions or sources; viewer writes are
   identity,
   page,
 }) => {
-  const organizationId = await signUpAndCreateWorkspace(identity, page)
+  const organizationId = await createStorySetWorkspace(identity, page)
   const id = await create(page)
   const own = await record(page, id)
   const versions = (await trpcQuery(page, 'creativeSet.versions', { creativeSetId: id })).body as {
@@ -270,7 +280,7 @@ test('another principal cannot read sets, versions or sources; viewer writes are
   const context = await browser.newContext()
   try {
     const stranger = await context.newPage()
-    await signUpAndCreateWorkspace(
+    await createStorySetWorkspace(
       {
         ...identity,
         email: `other-${identity.email}`,
@@ -307,15 +317,10 @@ test('another principal cannot read sets, versions or sources; viewer writes are
   } finally {
     await context.close()
   }
-  const database = createE2EDatabase()
-  try {
-    await database.query('UPDATE member SET role = $1 WHERE "organizationId" = $2', [
-      'viewer',
-      organizationId,
-    ])
-  } finally {
-    await database.end()
-  }
+  await db.query('UPDATE member SET role = $1 WHERE "organizationId" = $2', [
+    'viewer',
+    organizationId,
+  ])
   expect(
     (
       await trpcMutation(page, 'creativeSet.updateDocument', {
@@ -332,7 +337,7 @@ test('multiple stories, reusable versions and proposals remain editable through 
   page,
 }) => {
   await page.setViewportSize({ width: 1680, height: 1050 })
-  await signUpAndCreateWorkspace(identity, page)
+  await createStorySetWorkspace(identity, page)
   const id = await create(page)
   await page.getByRole('button', { name: 'Add story', exact: true }).click()
   const intake = page.getByRole('dialog', { name: 'Add a product story' })
@@ -440,11 +445,12 @@ test('multiple stories, reusable versions and proposals remain editable through 
 })
 
 test('store migration preserves originals and delivers native edits and motion', async ({
+  app,
   identity,
   page,
 }) => {
   await page.setViewportSize({ width: 1680, height: 1050 })
-  await signUpAndCreateWorkspace(identity, page)
+  await createStorySetWorkspace(identity, page)
   const id = await create(page)
   const native = createScratchDocument()
   native.name = 'Local original'
@@ -509,7 +515,7 @@ test('store migration preserves originals and delivers native edits and motion',
   expect(copied.origin?.revision).toBe(7)
   expect(copied.document.slides).toEqual(native.slides)
   expect(Object.values(copied.assetMap).every((value) => value.startsWith('asset:'))).toBe(true)
-  await page.reload()
+  await app.reload()
   await saved(page)
   await page
     .getByRole('region', { name: 'Store output groups' })
@@ -588,28 +594,23 @@ test('two workspace members see presence and safely merge independent edits', as
   page,
   browser,
 }) => {
-  const organizationId = await signUpAndCreateWorkspace(identity, page)
+  const organizationId = await createStorySetWorkspace(identity, page)
   const id = await create(page)
   const context = await browser.newContext()
   try {
     const peer = await context.newPage()
     const email = `peer-${identity.email}`
     await signUpViaApi({ ...identity, email, name: 'Story colleague' }, peer)
-    const database = createE2EDatabase()
-    try {
-      const user = await database.query('SELECT id FROM "user" WHERE email = $1', [email])
-      await database.query(
-        'INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,$4,now())',
-        [
-          `c${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
-          organizationId,
-          user.rows[0].id,
-          'creator',
-        ]
-      )
-    } finally {
-      await database.end()
-    }
+    const user = await db.query('SELECT id FROM "user" WHERE email = $1', [email])
+    await db.query(
+      'INSERT INTO member (id,"organizationId","userId",role,"createdAt") VALUES ($1,$2,$3,$4,now())',
+      [
+        `c${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`,
+        organizationId,
+        user.rows[0].id,
+        'creator',
+      ]
+    )
     expect((await trpcMutation(peer, 'workspace.setActive', { organizationId })).status).toBe(200)
     await peer.goto(getE2EUrl(`/creative-sets/${id}`))
     await saved(peer)
@@ -642,7 +643,7 @@ test('copying a legacy cloud project preserves the native original and its origi
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await createStorySetWorkspace(identity, page)
   const id = await create(page)
   const native = structuredClone((await record(page, id)).document.outputs[0]!.document)
   native.image.offset = { x: 0.123456, y: -0.025 }
@@ -682,7 +683,7 @@ test('resizing the workspace preserves native geometry, copy and undo history', 
   page,
 }) => {
   await page.setViewportSize({ width: 1680, height: 1100 })
-  await signUpAndCreateWorkspace(identity, page)
+  await createStorySetWorkspace(identity, page)
   const id = await create(page)
   await page.getByLabel('This format headline', { exact: true }).fill('My custom headline')
   await page.getByLabel('This format headline', { exact: true }).press('Tab')

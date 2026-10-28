@@ -58,6 +58,49 @@ export default defineConfig([
     rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
+    // Browser specs are written one way (apps/web/test/e2e/README.md): one
+    // import, state from the framework's fixtures, and waits on state, not time.
+    files: ['apps/web/test/e2e/*.spec.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@playwright/test'],
+              message: 'Import test, expect and Playwright types from ./framework.',
+            },
+            {
+              group: ['./framework/*'],
+              message: 'Import from ./framework, the one entry point.',
+            },
+          ],
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.property.name='waitForTimeout']",
+          message:
+            'Wait for a state, not a time. A deliberate window needs an eslint-disable comment that says why.',
+        },
+        {
+          selector: "Literal[value='networkidle']",
+          message: 'networkidle never settles on a live app. Wait for what the person sees.',
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name=/^(check|click|dblclick|dragTo|fill|hover|press|selectOption|setChecked|tap|uncheck)$/] Property[key.name='force'][value.value=true]",
+          message: 'force skips the checks a real click makes. Wait until the control can be used.',
+        },
+        {
+          selector: "CallExpression[callee.object.name='test'][callee.property.name='slow']",
+          message: "Tag a long test { tag: '@journey' } instead.",
+        },
+      ],
+    },
+  },
+  {
     files: ['apps/web/test/e2e/fixtures/*.mjs'],
     languageOptions: {
       globals: {

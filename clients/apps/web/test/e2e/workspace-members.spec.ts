@@ -1,16 +1,12 @@
-import { getE2EUrl, openWorkspaceSetting, signUp, signUpAndCreateWorkspace } from './framework/auth'
-import { trpcQuery } from './framework/trpc'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, queryRow } from './framework/services'
+import { db, expect, getE2EUrl, openWorkspaceSetting, signUp, test, trpcQuery } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('an owner can invite a viewer and remove their workspace access', async ({
   browser,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const memberIdentity = {
     ...identity,
     email: `member-${identity.email}`,
@@ -26,13 +22,10 @@ test('an owner can invite a viewer and remove their workspace access', async ({
     await page.getByRole('button', { name: 'Invite' }).click()
     await expect(page.getByText('Invitation created.')).toBeVisible()
 
-    const database = createE2EDatabase()
-    const invitation = await queryRow<{ id: string }>(
-      database,
+    const invitation = await db.row<{ id: string }>(
       `SELECT id FROM invitation WHERE email = $1 AND status = 'pending' LIMIT 1`,
       [memberIdentity.email]
     )
-    await database.end()
     if (!invitation) throw new Error('Invitation was not created.')
 
     await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))

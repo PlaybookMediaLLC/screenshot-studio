@@ -1,78 +1,79 @@
-import { getE2EUrl, signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { trpcMutation, trpcQuery } from './framework/trpc'
+import { expect, test, trpcMutation, trpcQuery } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const empty = { version: 2, image: { src: null } }
 
-test('previews settle on first load and opening an empty project reuses a blank canvas', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  await signUpAndCreateWorkspace(identity, page)
-  const created = await trpcMutation(page, 'project.create', {
-    name: 'Empty project',
-    document: empty,
-  })
-  const projectId = (created.body as { id: string }).id
-  for (const name of ['First preview', 'Second preview', 'Third preview']) {
-    await trpcMutation(page, 'project.create', {
-      name,
-      document: { ...empty, image: { src: '/demo/notion-showcase.webp' } },
+test(
+  'previews settle on first load and opening an empty project reuses a blank canvas',
+  { tag: '@journey' },
+  async ({ app, page }) => {
+    const created = await trpcMutation(page, 'project.create', {
+      name: 'Empty project',
+      document: empty,
     })
-  }
-  await page.goto(getE2EUrl('/projects'))
-  const card = page.getByRole('link', { name: 'Open Empty project', exact: true })
-  // The empty preview's label, not the hover overlay that repeats the project's name.
-  await expect(
-    card.locator('..').getByRole('paragraph').filter({ hasText: 'Empty project' })
-  ).toBeVisible()
-  for (const name of ['First preview', 'Second preview', 'Third preview']) {
-    await expect(page.getByRole('img', { name: `Preview of ${name}` })).toBeVisible({
-      timeout: 60_000,
+    const projectId = (created.body as { id: string }).id
+    for (const name of ['First preview', 'Second preview', 'Third preview']) {
+      await trpcMutation(page, 'project.create', {
+        name,
+        document: { ...empty, image: { src: '/demo/notion-showcase.webp' } },
+      })
+    }
+    await app.open('/projects')
+    const card = page.getByRole('link', { name: 'Open Empty project', exact: true })
+    // The empty preview's label, not the hover overlay that repeats the project's name.
+    await expect(
+      card.locator('..').getByRole('paragraph').filter({ hasText: 'Empty project' })
+    ).toBeVisible()
+    for (const name of ['First preview', 'Second preview', 'Third preview']) {
+      await expect(page.getByRole('img', { name: `Preview of ${name}` })).toBeVisible({
+        timeout: 60_000,
+      })
+    }
+    await page.getByRole('button', { name: 'Actions for Empty project' }).click()
+    await page.getByRole('menuitem', { name: 'Create Canvas copy' }).click()
+    await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 60_000 })
+    const canvasId = new URL(page.url()).pathname.split('/').at(-1)!
+    const saved = (await trpcQuery(page, 'canvas.get', { canvasId })).body as {
+      document: { artboards: { document: { image: { src: string | null } } }[] }
+    }
+    expect(saved.document.artboards[0].document.image.src).toBeNull()
+    await app.open('/projects')
+    await page.getByRole('button', { name: 'Actions for Empty project' }).click()
+    await page.getByRole('menuitem', { name: 'Create Canvas copy' }).click()
+    await expect(page).toHaveURL(new RegExp(`/canvas/${canvasId}$`))
+    const reopened = await Promise.all([
+      trpcMutation(page, 'canvas.openProject', { projectId }),
+      trpcMutation(page, 'canvas.openProject', { projectId }),
+    ])
+    expect(reopened.map((result) => (result.body as { id: string }).id)).toEqual([
+      canvasId,
+      canvasId,
+    ])
+    const canvases = (await trpcQuery(page, 'canvas.list', {})).body as { items: unknown[] }
+    expect(canvases.items).toHaveLength(1)
+    const race = await trpcMutation(page, 'project.create', {
+      name: 'Simultaneous opens',
+      document: empty,
     })
+    const raceProject = (race.body as { id: string }).id
+    const firstOpens = await Promise.all([
+      trpcMutation(page, 'canvas.openProject', { projectId: raceProject }),
+      trpcMutation(page, 'canvas.openProject', { projectId: raceProject }),
+    ])
+    expect(firstOpens.map((result) => result.status)).toEqual([200, 200])
+    expect((firstOpens[0].body as { id: string }).id).toBe(
+      (firstOpens[1].body as { id: string }).id
+    )
   }
-  await page.getByRole('button', { name: 'Actions for Empty project' }).click()
-  await page.getByRole('menuitem', { name: 'Create Canvas copy' }).click()
-  await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 60_000 })
-  const canvasId = new URL(page.url()).pathname.split('/').at(-1)!
-  const saved = (await trpcQuery(page, 'canvas.get', { canvasId })).body as {
-    document: { artboards: { document: { image: { src: string | null } } }[] }
-  }
-  expect(saved.document.artboards[0].document.image.src).toBeNull()
-  await page.goto(getE2EUrl('/projects'))
-  await page.getByRole('button', { name: 'Actions for Empty project' }).click()
-  await page.getByRole('menuitem', { name: 'Create Canvas copy' }).click()
-  await expect(page).toHaveURL(new RegExp(`/canvas/${canvasId}$`))
-  const reopened = await Promise.all([
-    trpcMutation(page, 'canvas.openProject', { projectId }),
-    trpcMutation(page, 'canvas.openProject', { projectId }),
-  ])
-  expect(reopened.map((result) => (result.body as { id: string }).id)).toEqual([canvasId, canvasId])
-  const canvases = (await trpcQuery(page, 'canvas.list', {})).body as { items: unknown[] }
-  expect(canvases.items).toHaveLength(1)
-  const race = await trpcMutation(page, 'project.create', {
-    name: 'Simultaneous opens',
-    document: empty,
-  })
-  const raceProject = (race.body as { id: string }).id
-  const firstOpens = await Promise.all([
-    trpcMutation(page, 'canvas.openProject', { projectId: raceProject }),
-    trpcMutation(page, 'canvas.openProject', { projectId: raceProject }),
-  ])
-  expect(firstOpens.map((result) => result.status)).toEqual([200, 200])
-  expect((firstOpens[0].body as { id: string }).id).toBe((firstOpens[1].body as { id: string }).id)
-})
+)
 
 test('rename refreshes filters, duplicate names differ, and keyboard focus returns', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   await trpcMutation(page, 'project.create', { name: 'Pricing banner', document: empty })
-  await page.goto(getE2EUrl('/projects?search=pricing&sort=name'))
+  await app.open('/projects?search=pricing&sort=name')
   const search = page.getByRole('searchbox', { name: 'Search projects' })
   await expect(search).toHaveValue('pricing')
   await expect(page.getByRole('combobox', { name: 'Sort projects' })).toHaveText('Name')
@@ -119,10 +120,9 @@ test('rename refreshes filters, duplicate names differ, and keyboard focus retur
 })
 
 test('gateway errors retry automatically and persistent HTML failures have a useful message', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   let failures = 0
   let failing = true
   await page.route('**/api/trpc/**project.list**', async (route) => {
@@ -135,7 +135,7 @@ test('gateway errors retry automatically and persistent HTML failures have a use
       })
     } else await route.continue()
   })
-  await page.goto(getE2EUrl('/projects'))
+  await app.open('/projects')
   const error = page.getByRole('alert').filter({ hasText: 'temporarily unavailable' })
   await expect(error).toBeVisible()
   expect(failures).toBe(3)

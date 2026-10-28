@@ -1,26 +1,12 @@
-import { expect } from '@playwright/test'
-import {
-  createDraftWorkspace,
-  draftEditor,
-  expectSaved,
-  openNewDraft,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { configureE2EFlow, test } from './framework/flow'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
-import { createE2EDatabase, queryRows } from './framework/services'
-configureE2EFlow()
+import { apiRequest, db, draftEditor, expect, expectSaved, openNewDraft, test } from './framework'
 
-test('finisher templates support create edit search reuse and delete in an independent Bluesky version', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['threads', 'bluesky'])
+test(
+  'finisher templates support create edit search reuse and delete in an independent Bluesky version',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await startWorkspace({ channels: ['threads', 'bluesky'] })
     const id = await openNewDraft(page)
     await draftEditor(page).click()
     await page.keyboard.press('ControlOrMeta+End')
@@ -46,7 +32,7 @@ test('finisher templates support create edit search reuse and delete in an indep
     await dialog.getByRole('button', { name: 'Add to current draft' }).click()
     await expect(draftEditor(page)).toContainText('Follow for the next release')
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await page.getByTestId('platform-tab-bluesky').click()
     await expect(draftEditor(page)).toContainText('Follow for the next release')
     const saved = (await apiRequest(page, `/api/v1/content-drafts/${id}`)).body as {
@@ -65,24 +51,21 @@ test('finisher templates support create edit search reuse and delete in an indep
     await expect(dialog.getByTestId('finisher')).toHaveCount(0)
     await dialog.getByRole('button', { name: 'Close', exact: true }).first().click()
     await expect(draftEditor(page)).toContainText('Follow for the next release')
-    await page.screenshot({ path: '.context/shots/typefully-finisher-library.png', fullPage: true })
+    await page.screenshot({
+      path: '.context/shots/typefully-finisher-library.png',
+      fullPage: true,
+    })
     expect(errors).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('LinkedIn share URLs convert into scheduled native reposts with a previewed first comment', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['linkedin'])
+test(
+  'LinkedIn share URLs convert into scheduled native reposts with a previewed first comment',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await startWorkspace({ channels: ['linkedin'] })
     const url =
       'https://www.linkedin.com/posts/anne_release-notes-activity-7100000000000000000-Ab_c?utm_source=share'
     await page.route('**/api/v1/content-drafts/link-card?*', (route) =>
@@ -112,7 +95,7 @@ test('LinkedIn share URLs convert into scheduled native reposts with a previewed
       .fill('The guide: https://example.com/guide')
     await page.keyboard.press('Escape')
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Preview', exact: true }).first().click()
     await expect(page.getByTestId('preview-linkedin')).toContainText(
       'The guide: https://example.com/guide'
@@ -123,26 +106,18 @@ test('LinkedIn share URLs convert into scheduled native reposts with a previewed
     await dialog.getByLabel('Open a new draft after scheduling').uncheck()
     await dialog.getByRole('button', { name: /^Confirm schedule/ }).click()
     await expect(dialog).toHaveCount(0)
-    const db = createE2EDatabase()
-    try {
-      const rows = await queryRows<{
-        caption: string
-        publishOptions: { quoteRemoteId: string; firstComment: string }
-      }>(db, 'SELECT caption,"publishOptions" FROM scheduled_post WHERE "contentDraftId"=$1', [id])
-      expect(rows).toHaveLength(1)
-      expect(rows[0].caption).toContain('My perspective on this release')
-      expect(rows[0].publishOptions.quoteRemoteId).toBe('urn:li:activity:7100000000000000000')
-      expect(rows[0].publishOptions.firstComment).toBe('The guide: https://example.com/guide')
-    } finally {
-      await db.end()
-    }
+    const rows = await db.rows<{
+      caption: string
+      publishOptions: { quoteRemoteId: string; firstComment: string }
+    }>('SELECT caption,"publishOptions" FROM scheduled_post WHERE "contentDraftId"=$1', [id])
+    expect(rows).toHaveLength(1)
+    expect(rows[0].caption).toContain('My perspective on this release')
+    expect(rows[0].publishOptions.quoteRemoteId).toBe('urn:li:activity:7100000000000000000')
+    expect(rows[0].publishOptions.firstComment).toBe('The guide: https://example.com/guide')
     expect(errors).toEqual([])
     await page.screenshot({
       path: '.context/shots/typefully-linkedin-repost-comment.png',
       fullPage: true,
     })
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

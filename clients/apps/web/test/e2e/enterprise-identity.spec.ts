@@ -1,16 +1,20 @@
-import type { Browser, Page } from '@playwright/test'
-import { z } from 'zod'
 import {
+  type Browser,
+  browserRequest,
+  createWorkspace,
+  db,
   enableTwoFactor,
+  expect,
   findActiveOrganizationId,
   getActiveOrganizationId,
+  grantWorkspacePlan,
+  type HttpMockRequest,
   openWorkspaceSetting,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { startHttpMockServer, type HttpMockRequest } from './framework/http-server'
-import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
+  type Page,
+  startHttpMockServer,
+  test,
+} from './framework'
+import { z } from 'zod'
 
 const scimUserSchema = z.object({
   active: z.boolean(),
@@ -98,32 +102,21 @@ async function registerVerifiedOidcProvider(
     throw new Error(`OIDC registration failed: ${JSON.stringify(response.body)}`)
   }
 
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      'UPDATE "ssoProvider" SET "domainVerified" = true WHERE "providerId" = $1',
-      [providerId]
-    )
-  } finally {
-    await database.end()
-  }
+  await db.query('UPDATE "ssoProvider" SET "domainVerified" = true WHERE "providerId" = $1', [
+    providerId,
+  ])
 }
 
 async function enableEnterpriseIdentity(organizationId: string): Promise<void> {
   await grantWorkspacePlan(organizationId, 'enterprise')
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      `INSERT INTO organization_enterprise_settings
+  await db.query(
+    `INSERT INTO organization_enterprise_settings
          ("organizationId", "scimEnabled", "ssoEnabled", "updatedAt")
        VALUES ($1, true, true, now())
        ON CONFLICT ("organizationId")
        DO UPDATE SET "scimEnabled" = true, "ssoEnabled" = true, "updatedAt" = now()`,
-      [organizationId]
-    )
-  } finally {
-    await database.end()
-  }
+    [organizationId]
+  )
 }
 
 async function createScimProviderToken(page: Page, providerId: string): Promise<string> {
@@ -147,110 +140,106 @@ function scimHeaders(token: string, hasBody = true): Record<string, string> {
   }
 }
 
-configureE2EFlow()
+test(
+  'enterprise identity controls enforce the plan and create an audited SCIM connection',
+  { tag: '@journey' },
+  async ({ app, identity, page }) => {
+    await createWorkspace(identity, page)
+    const organizationId = await getActiveOrganizationId(page)
+    const providerId = `e2e-scim-${organizationId}`
+    await enableTwoFactor(page, identity.password)
+    await openWorkspaceSetting(page, 'SSO')
 
-test('enterprise identity controls enforce the plan and create an audited SCIM connection', async ({
-  identity,
-  page,
-}) => {
-  test.slow()
-  await signUpAndCreateWorkspace(identity, page)
-  const organizationId = await getActiveOrganizationId(page)
-  const providerId = `e2e-scim-${organizationId}`
-  await enableTwoFactor(page, identity.password)
-  await openWorkspaceSetting(page, 'SSO')
+    await expect(
+      page.getByText('Complete these steps to enter your provider credentials.')
+    ).toBeVisible()
+    await expect(page.getByPlaceholder('acme-scim')).toHaveCount(0)
+    const denied = await browserRequest(page, '/api/auth/scim/generate-token', {
+      body: JSON.stringify({ organizationId, providerId }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    })
+    expect(denied.status).toBe(403)
+    expect(JSON.stringify(denied.body)).toContain(
+      'This organization does not have this enterprise feature.'
+    )
 
-  await expect(
-    page.getByText('Complete these steps to enter your provider credentials.')
-  ).toBeVisible()
-  await expect(page.getByPlaceholder('acme-scim')).toHaveCount(0)
-  const denied = await browserRequest(page, '/api/auth/scim/generate-token', {
-    body: JSON.stringify({ organizationId, providerId }),
-    headers: { 'content-type': 'application/json' },
-    method: 'POST',
-  })
-  expect(denied.status).toBe(403)
-  expect(JSON.stringify(denied.body)).toContain(
-    'This organization does not have this enterprise feature.'
-  )
+    await enableEnterpriseIdentity(organizationId)
+    await app.reload()
+    await openWorkspaceSetting(page, 'SSO')
+    await page.getByPlaceholder('acme-scim').fill(providerId)
+    await page.getByRole('button', { name: 'Generate token' }).click()
+    await expect(
+      page.getByText('Copy this SCIM token now. It cannot be shown again.')
+    ).toBeVisible()
+    await expect(page.getByText(providerId)).toBeVisible()
 
-  await enableEnterpriseIdentity(organizationId)
-  await page.reload()
-  await openWorkspaceSetting(page, 'SSO')
-  await page.getByPlaceholder('acme-scim').fill(providerId)
-  await page.getByRole('button', { name: 'Generate token' }).click()
-  await expect(page.getByText('Copy this SCIM token now. It cannot be shown again.')).toBeVisible()
-  await expect(page.getByText(providerId)).toBeVisible()
+    const audit = await browserRequest(
+      page,
+      `/api/audit-logs?organizationId=${organizationId}&search=identity.scim_token_created`
+    )
+    expect(audit.status).toBe(200)
+    expect(JSON.stringify(audit.body)).toContain('identity.scim_token_created')
+  }
+)
 
-  const audit = await browserRequest(
-    page,
-    `/api/audit-logs?organizationId=${organizationId}&search=identity.scim_token_created`
-  )
-  expect(audit.status).toBe(200)
-  expect(JSON.stringify(audit.body)).toContain('identity.scim_token_created')
-})
+test(
+  'a SCIM directory can provision, update, deactivate, list, and deprovision members',
+  { tag: '@journey' },
+  async ({ identity, page }) => {
+    await createWorkspace(identity, page)
+    const organizationId = await getActiveOrganizationId(page)
+    const providerId = `e2e-scim-${organizationId}`
+    await enableEnterpriseIdentity(organizationId)
+    await enableTwoFactor(page, identity.password)
 
-test('a SCIM directory can provision, update, deactivate, list, and deprovision members', async ({
-  identity,
-  page,
-}) => {
-  test.slow()
-  await signUpAndCreateWorkspace(identity, page)
-  const organizationId = await getActiveOrganizationId(page)
-  const providerId = `e2e-scim-${organizationId}`
-  await enableEnterpriseIdentity(organizationId)
-  await enableTwoFactor(page, identity.password)
+    const token = await createScimProviderToken(page, providerId)
+    const userName = `directory-${identity.email}`
+    const created = await browserRequest(page, '/api/auth/scim/v2/Users', {
+      body: JSON.stringify({
+        emails: [{ primary: true, value: userName }],
+        externalId: `directory-${organizationId}`,
+        name: { formatted: 'Directory User' },
+        userName,
+      }),
+      headers: scimHeaders(token),
+      method: 'POST',
+    })
 
-  const token = await createScimProviderToken(page, providerId)
-  const userName = `directory-${identity.email}`
-  const created = await browserRequest(page, '/api/auth/scim/v2/Users', {
-    body: JSON.stringify({
-      emails: [{ primary: true, value: userName }],
-      externalId: `directory-${organizationId}`,
-      name: { formatted: 'Directory User' },
-      userName,
-    }),
-    headers: scimHeaders(token),
-    method: 'POST',
-  })
+    expect(created.status).toBe(201)
+    const provisioned = scimUserSchema.parse(created.body)
+    expect(provisioned.userName).toBe(userName)
+    expect(provisioned.active).toBe(true)
 
-  expect(created.status).toBe(201)
-  const provisioned = scimUserSchema.parse(created.body)
-  expect(provisioned.userName).toBe(userName)
-  expect(provisioned.active).toBe(true)
+    const listed = await browserRequest(page, '/api/auth/scim/v2/Users', {
+      headers: scimHeaders(token),
+    })
+    expect(listed.status).toBe(200)
+    expect(scimListSchema.parse(listed.body).totalResults).toBe(1)
 
-  const listed = await browserRequest(page, '/api/auth/scim/v2/Users', {
-    headers: scimHeaders(token),
-  })
-  expect(listed.status).toBe(200)
-  expect(scimListSchema.parse(listed.body).totalResults).toBe(1)
+    const renamed = await browserRequest(page, `/api/auth/scim/v2/Users/${provisioned.id}`, {
+      body: JSON.stringify({
+        Operations: [{ op: 'replace', path: 'name.formatted', value: 'Directory User Renamed' }],
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+      }),
+      headers: scimHeaders(token),
+      method: 'PATCH',
+    })
+    expect(renamed.status).toBe(204)
 
-  const renamed = await browserRequest(page, `/api/auth/scim/v2/Users/${provisioned.id}`, {
-    body: JSON.stringify({
-      Operations: [{ op: 'replace', path: 'name.formatted', value: 'Directory User Renamed' }],
-      schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
-    }),
-    headers: scimHeaders(token),
-    method: 'PATCH',
-  })
-  expect(renamed.status).toBe(204)
+    const deactivated = await browserRequest(page, `/api/auth/scim/v2/Users/${provisioned.id}`, {
+      body: JSON.stringify({
+        Operations: [{ op: 'replace', path: 'active', value: false }],
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+      }),
+      headers: scimHeaders(token),
+      method: 'PATCH',
+    })
+    expect(deactivated.status).toBe(204)
 
-  const deactivated = await browserRequest(page, `/api/auth/scim/v2/Users/${provisioned.id}`, {
-    body: JSON.stringify({
-      Operations: [{ op: 'replace', path: 'active', value: false }],
-      schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
-    }),
-    headers: scimHeaders(token),
-    method: 'PATCH',
-  })
-  expect(deactivated.status).toBe(204)
-
-  const database = createE2EDatabase()
-  try {
     await expect
       .poll(async () => {
-        const user = await queryRow<{ banned: boolean | null; name: string }>(
-          database,
+        const user = await db.row<{ banned: boolean | null; name: string }>(
           'SELECT banned, name FROM "user" WHERE id = $1',
           [provisioned.id]
         )
@@ -267,76 +256,68 @@ test('a SCIM directory can provision, update, deactivate, list, and deprovision 
     await expect
       .poll(async () => {
         const [account, membership] = await Promise.all([
-          queryRow(database, 'SELECT id FROM account WHERE "providerId" = $1 AND "userId" = $2', [
+          db.row('SELECT id FROM account WHERE "providerId" = $1 AND "userId" = $2', [
             providerId,
             provisioned.id,
           ]),
-          queryRow(
-            database,
-            'SELECT id FROM member WHERE "organizationId" = $1 AND "userId" = $2',
-            [organizationId, provisioned.id]
-          ),
+          db.row('SELECT id FROM member WHERE "organizationId" = $1 AND "userId" = $2', [
+            organizationId,
+            provisioned.id,
+          ]),
         ])
         return { account: Boolean(account), membership: Boolean(membership) }
       })
       .toEqual({ account: false, membership: false })
-  } finally {
-    await database.end()
   }
-})
+)
 
-test('a verified OIDC provider signs a user in and provisions the workspace membership', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  test.slow()
-  const ssoDomain = `e2e-sso-${identity.email.split('@')[0]}.test`
-  const ssoEmail = `member@${ssoDomain}`
-  const provider = await startHttpMockServer(createOidcHandler(ssoEmail), 5680)
-  try {
-    await signUpAndCreateWorkspace(identity, page)
-    const organizationId = await getActiveOrganizationId(page)
-    const providerId = `e2e-oidc-${organizationId}`
-    await enableEnterpriseIdentity(organizationId)
-    await enableTwoFactor(page, identity.password)
-    await registerVerifiedOidcProvider(
-      page,
-      organizationId,
-      providerId,
-      provider.containerUrl,
-      ssoDomain
-    )
-
-    const ssoPage = await signInWithSso(browser, ssoEmail)
-    await expect.poll(() => findActiveOrganizationId(ssoPage)).toBe(organizationId)
-    const database = createE2EDatabase()
+test(
+  'a verified OIDC provider signs a user in and provisions the workspace membership',
+  { tag: '@journey' },
+  async ({ browser, identity, page }) => {
+    const ssoDomain = `e2e-sso-${identity.email.split('@')[0]}.test`
+    const ssoEmail = `member@${ssoDomain}`
+    const provider = await startHttpMockServer(createOidcHandler(ssoEmail), 5680)
     try {
-      await expect
-        .poll(async () => {
-          const user = await queryRow<{ email: string; id: string }>(
-            database,
-            'SELECT id, email FROM "user" WHERE email = $1',
-            [ssoEmail]
-          )
-          const member = user
-            ? await queryRow<{ role: string }>(
-                database,
-                'SELECT role FROM member WHERE "organizationId" = $1 AND "userId" = $2',
-                [organizationId, user.id]
-              )
-            : null
-          return { email: user?.email, role: member?.role }
-        })
-        .toEqual({ email: ssoEmail, role: 'member' })
+      await createWorkspace(identity, page)
+      const organizationId = await getActiveOrganizationId(page)
+      const providerId = `e2e-oidc-${organizationId}`
+      await enableEnterpriseIdentity(organizationId)
+      await enableTwoFactor(page, identity.password)
+      await registerVerifiedOidcProvider(
+        page,
+        organizationId,
+        providerId,
+        provider.containerUrl,
+        ssoDomain
+      )
+
+      const ssoPage = await signInWithSso(browser, ssoEmail)
+      await expect.poll(() => findActiveOrganizationId(ssoPage)).toBe(organizationId)
+      try {
+        await expect
+          .poll(async () => {
+            const user = await db.row<{ email: string; id: string }>(
+              'SELECT id, email FROM "user" WHERE email = $1',
+              [ssoEmail]
+            )
+            const member = user
+              ? await db.row<{ role: string }>(
+                  'SELECT role FROM member WHERE "organizationId" = $1 AND "userId" = $2',
+                  [organizationId, user.id]
+                )
+              : null
+            return { email: user?.email, role: member?.role }
+          })
+          .toEqual({ email: ssoEmail, role: 'member' })
+      } finally {
+        await ssoPage.context().close()
+      }
+      expect(provider.calls.map(oidcPath)).toEqual(
+        expect.arrayContaining(['/authorize', '/token', '/userinfo'])
+      )
     } finally {
-      await database.end()
-      await ssoPage.context().close()
+      await provider.close()
     }
-    expect(provider.calls.map(oidcPath)).toEqual(
-      expect.arrayContaining(['/authorize', '/token', '/userinfo'])
-    )
-  } finally {
-    await provider.close()
   }
-})
+)

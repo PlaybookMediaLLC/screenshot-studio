@@ -1,14 +1,19 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { getActiveOrganizationId, signUpViaApi } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
-import { trpcMutation } from './framework/trpc'
-
-configureE2EFlow()
+import {
+  browserRequest,
+  db,
+  expect,
+  getActiveOrganizationId,
+  grantWorkspacePlan,
+  requestJson,
+  signUpViaApi,
+  test,
+  trpcMutation,
+} from './framework'
 
 test('team dialog preserves the page, cancels safely, and validates mobile creation', async ({
+  app,
   identity,
   page,
 }, testInfo) => {
@@ -32,7 +37,7 @@ test('team dialog preserves the page, cancels safely, and validates mobile creat
   ).toBe(200)
   const originalId = await getActiveOrganizationId(page)
   await grantWorkspacePlan(originalId, 'pro')
-  await page.goto('/workspace')
+  await app.open('/workspace')
   const originalField = page.getByRole('textbox', { name: 'Workspace name', exact: true })
   await originalField.fill('Unsaved current workspace name')
   const originalURL = page.url()
@@ -76,7 +81,7 @@ test('team dialog preserves the page, cancels safely, and validates mobile creat
 
   // The settings launcher exposes the same dialog on a small screen.
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/workspace/new-team')
+  await app.open('/workspace/new-team')
   const launcher = page
     .getByRole('main')
     .getByRole('button', { name: 'Create workspace', exact: true })
@@ -144,23 +149,18 @@ test('team dialog preserves the page, cancels safely, and validates mobile creat
   await expect(submit).toBeEnabled()
   await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
   expect(creationRequests).toBe(1)
-  const db = createE2EDatabase()
-  try {
-    const rows = z
-      .array(z.object({ name: z.string(), role: z.string() }))
-      .parse(
-        (
-          await db.query(
-            `SELECT o.name,m.role FROM organization o JOIN member m ON m."organizationId"=o.id JOIN "user" u ON u.id=m."userId" WHERE u.email=$1 ORDER BY o.name`,
-            [identity.email]
-          )
-        ).rows
-      )
-    expect(rows).toEqual([
-      { name: 'Café 東京', role: 'owner' },
-      { name: identity.workspaceName, role: 'owner' },
-    ])
-  } finally {
-    await db.end()
-  }
+  const rows = z
+    .array(z.object({ name: z.string(), role: z.string() }))
+    .parse(
+      (
+        await db.query(
+          `SELECT o.name,m.role FROM organization o JOIN member m ON m."organizationId"=o.id JOIN "user" u ON u.id=m."userId" WHERE u.email=$1 ORDER BY o.name`,
+          [identity.email]
+        )
+      ).rows
+    )
+  expect(rows).toEqual([
+    { name: 'Café 東京', role: 'owner' },
+    { name: identity.workspaceName, role: 'owner' },
+  ])
 })

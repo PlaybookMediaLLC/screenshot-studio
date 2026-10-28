@@ -440,9 +440,16 @@ test('a live post links to itself, shows engagement, and resumes a thread that s
     )
     await expect(live.getByTestId('metric-likes')).toContainText('12')
     await expect(live).toContainText('1 of 2 replies went out.')
-    await live.getByRole('button', { name: 'Post the rest' }).click()
-    // A cold dev server compiles the resume route first.
-    await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 60_000 })
+    // The reloaded page renders the button before React attaches its handler, so
+    // an early click is dropped. A handled click disables it until the resume
+    // returns, which a cold dev server compiles first; only an idle button is retried.
+    const resume = live.getByRole('button', { name: 'Post the rest' })
+    await expect(async () => {
+      if ((await page.getByTestId('draft-post').count()) < 2 && (await resume.isEnabled())) {
+        await resume.click()
+      }
+      await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 5_000 })
+    }).toPass({ timeout: 60_000 })
     const posts = await draftPosts(draftId)
     // It goes out now: here, with no real account behind the channel, it fails.
     expect(posts[1]).toMatchObject({ caption: 'Three', replyTo: 'tweet-2' })

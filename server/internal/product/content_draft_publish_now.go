@@ -65,7 +65,13 @@ func (c *Configuration) PublishQueuedContentDraftPost(ctx context.Context, actor
 	approval := *draft
 	approval.Version = version
 	if draft.ApprovedVersion != nil && *draft.ApprovedVersion > version {
-		approval.Version = *draft.ApprovedVersion
+		carried, err := scheduledThrough(ctx, tx, draft.ID, version, *draft.ApprovedVersion)
+		if err != nil {
+			return nil, err
+		}
+		if carried {
+			approval.Version = *draft.ApprovedVersion
+		}
 	}
 	if err := c.requireDraftApproval(ctx, &approval); err != nil {
 		return nil, err
@@ -104,4 +110,33 @@ func (c *Configuration) PublishQueuedContentDraftPost(ctx context.Context, actor
 		return nil, err
 	}
 	return result, nil
+}
+
+// scheduledThrough reports whether every version bump of a draft from
+// version `from` to `to` was a scheduling, which changes no content: each
+// leaves posts keyed to the version it started from. An edit in between
+// means a later approval approved other content than the queued snapshot.
+func scheduledThrough(ctx context.Context, tx *ent.Tx, draftID string, from, to int) (bool, error) {
+	prefix := "content-draft:" + draftID + ":"
+	keys, err := tx.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draftID),
+		scheduledpost.IdempotencyKeyHasPrefix(prefix)).Select(scheduledpost.FieldIdempotencyKey).Strings(ctx)
+	if err != nil {
+		return false, err
+	}
+	scheduled := map[int]bool{}
+	for _, key := range keys {
+		// content-draft:<draft>:<connection>:v<version>
+		parts := strings.Split(strings.TrimPrefix(key, prefix), ":")
+		if len(parts) > 1 && strings.HasPrefix(parts[1], "v") {
+			if version, err := strconv.Atoi(parts[1][1:]); err == nil {
+				scheduled[version] = true
+			}
+		}
+	}
+	for version := from; version < to; version++ {
+		if !scheduled[version] {
+			return false, nil
+		}
+	}
+	return true, nil
 }

@@ -320,7 +320,7 @@ jobs:
             echo "DEBUG cleared .next"
           fi
           ./dev/studio e2e --shard=${{ matrix.shard }} --max-failures=1 --retries=0 || true
-          echo "DEBUG load count: $(docker compose --env-file .local/dev.env --file dev/compose.yaml logs app --no-color 2>/dev/null | grep -c 'GET /sign-up')"
+          echo "DEBUG sign-up GETs: $(grep -c 'GET /sign-up' clients/apps/web/test-results/app.log) compiles: $(grep -c 'Compiled in' clients/apps/web/test-results/app.log)"
           exit 1
       - name: Smoke test the API reference, OpenAPI document, and agent endpoints
         if: matrix.shard_index == 1

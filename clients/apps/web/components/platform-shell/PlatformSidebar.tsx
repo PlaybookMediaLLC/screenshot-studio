@@ -232,6 +232,8 @@ function SidebarFooter({
   paidPlan: boolean
 }) {
   const t = useTranslations('platformNavigation')
+  // As in Polar, the settings sidebar drops the plan card and the docs link.
+  const settings = platformArea(usePathname()) === 'settings'
   return (
     <div
       className={cn(
@@ -241,9 +243,15 @@ function SidebarFooter({
         process.env.NODE_ENV === 'development' && 'mb-12'
       )}
     >
-      {!collapsed && !paidPlan ? <PlanCard /> : null}
-      <div className={cn('flex items-center gap-0.5', collapsed ? 'flex-col' : 'ps-2.5')}>
-        {collapsed ? null : (
+      {!collapsed && !paidPlan && !settings ? <PlanCard /> : null}
+      <div
+        className={cn(
+          'flex items-center gap-0.5',
+          collapsed ? 'flex-col' : 'ps-2.5',
+          settings && 'justify-end'
+        )}
+      >
+        {collapsed || settings ? null : (
           <SidebarLink
             className="me-auto flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
             href="/docs"

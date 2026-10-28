@@ -393,7 +393,9 @@ func (c *Configuration) frontendObservationTx(ctx context.Context, org, id strin
 		eventTime = *o.ActivationObservedAt
 	}
 	historical = historical || !s.Enabled || !eventTime.After(s.EffectiveAt) || eventTime.After(now.Add(5*time.Minute))
-	if !eventTime.After(now.Add(5*time.Minute)) && o.Provider == s.Provider && (o.Production == "active" || s.Provider == "cloudflare_workers" && o.Production == "pending" && o.ActivationID != "") {
+	// A successful staging/preview activation does not supersede production,
+	// including when production is still waiting on its required checks.
+	if !eventTime.After(now.Add(5*time.Minute)) && o.Provider == s.Provider && o.Environment != "" && slices.Contains(s.Policy.Environments, o.Environment) && (o.Production == "active" || s.Provider == "cloudflare_workers" && o.Production == "pending" && o.ActivationID != "") {
 		previous, _ := time.Parse(time.RFC3339Nano, s.Checkpoint["latestActivationAt"])
 		if eventTime.After(previous) {
 			s.Checkpoint["latestActivationAt"] = eventTime.Format(time.RFC3339Nano)

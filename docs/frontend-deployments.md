@@ -162,13 +162,16 @@ continue through the existing pipeline. This opt-in change is stated on the form
 Unique source/event keys, activation keys, activity/outbox keys and stable workflow
 run IDs survive duplicate deliveries, concurrent acceptance and restarts. The
 source's persisted latest activation timestamp suppresses delayed success alerts
-for superseded activations. Check results arriving before or after activation are
+for superseded activations in the selected production environments. Staging and
+preview activations cannot suppress a pending production success. Check results arriving before or after activation are
 evaluated against the pinned policy. Configuration changes do not replay history.
 Already accepted pending activations retain their original rules. Evidence first
 received while paused stays historical after enabling.
 
-Polling processes up to 20 sources per maintenance invocation, with a ten-minute
-overlap. Netlify, Pages and Workers lists are bounded to four pages of 50 items.
+Polling processes up to 20 eligible sources per maintenance invocation, with a ten-minute
+overlap. Source selection pages past backoff and unavailable workspaces in batches
+of 100, ordered by last update and ID; a fixed cutoff prevents polling the same
+source again while traversing a batch. Netlify, Pages and Workers lists are bounded to four pages of 50 items.
 Incomplete coverage does not advance the successful poll checkpoint. HTTP 401/403,
 429 (Retry-After), timeouts and malformed responses become visible source health;
 failed reads leave checkpoints unchanged. Changed failure health can emit a
@@ -286,6 +289,11 @@ project ownership, exact Vercel check identity/time, explicit pagination limits,
 and isolation from process-level Cloudflare credentials. Provider fixtures were
 updated to include their real JSON content-type headers and occurrence timestamps.
 These are fixture results; live-provider verification remains outstanding.
+
+Pre-merge review added database regressions for late production checks after a
+staging/preview activation and for eligible sources behind more than 200 sources
+in backoff or unavailable workspaces. They verify alert/workflow delivery,
+production-alias supersession, stable pagination and the 20-source polling budget.
 
 Earlier local test failures were resolved: Node 24 was replaced by the pinned
 Node 22 runtime, and integration fixture cleanup was corrected so retained test

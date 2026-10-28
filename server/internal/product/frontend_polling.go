@@ -31,42 +31,62 @@ type frontendGitHubReader interface {
 // Network reads happen outside acceptance transactions. Each observation commits
 // independently, then the checkpoint advances; a crash safely repeats the overlap.
 func (c *Configuration) PollFrontends(ctx context.Context) (int, error) {
-	rows, err := c.client.FrontendSource.Query().Where(frontendsource.Enabled(true)).Order(ent.Asc(frontendsource.FieldUpdatedAt)).Limit(100).All(ctx)
-	if err != nil {
-		return 0, err
-	}
+	started := time.Now().UTC()
+	var cursorTime time.Time
+	cursorID := ""
 	count := 0
-	for _, s := range rows {
-		if count >= 20 {
+	for count < 20 {
+		// Page past ineligible sources without consuming the provider budget.
+		// The fixed cutoff excludes sources updated by this invocation; the ID
+		// tie-breaker keeps equal timestamps from hiding rows across pages.
+		query := c.client.FrontendSource.Query().Where(frontendsource.Enabled(true), frontendsource.UpdatedAtLTE(started))
+		if cursorID != "" {
+			query.Where(frontendsource.Or(frontendsource.UpdatedAtGT(cursorTime), frontendsource.And(frontendsource.UpdatedAtEQ(cursorTime), frontendsource.IDGT(cursorID))))
+		}
+		rows, err := query.Order(ent.Asc(frontendsource.FieldUpdatedAt), ent.Asc(frontendsource.FieldID)).Limit(100).All(ctx)
+		if err != nil {
+			return count, err
+		}
+		if len(rows) == 0 {
 			break
 		}
-		if until, e := time.Parse(time.RFC3339Nano, s.Checkpoint["retryAfter"]); e == nil && time.Now().Before(until) {
-			continue
-		}
-		if err := c.authorizeRoles(ctx, Actor{OrganizationID: s.OrganizationID, Kind: "service"}); err != nil {
-			continue
-		}
-		err := c.pollFrontend(ctx, s)
-		if ctx.Err() != nil {
-			return count, ctx.Err()
-		}
-		if err != nil {
-			health := "provider_unavailable"
-			delay := time.Minute
-			var api *fd.APIError
-			if errors.As(err, &api) {
-				health = api.Code
-				if api.RetryAfter > delay {
-					delay = api.RetryAfter
+		last := rows[len(rows)-1]
+		cursorTime, cursorID = last.UpdatedAt, last.ID
+		for _, s := range rows {
+			if count >= 20 {
+				break
+			}
+			if until, e := time.Parse(time.RFC3339Nano, s.Checkpoint["retryAfter"]); e == nil && time.Now().Before(until) {
+				continue
+			}
+			if err := c.authorizeRoles(ctx, Actor{OrganizationID: s.OrganizationID, Kind: "service"}); err != nil {
+				continue
+			}
+			err := c.pollFrontend(ctx, s)
+			if ctx.Err() != nil {
+				return count, ctx.Err()
+			}
+			if err != nil {
+				health := "provider_unavailable"
+				delay := time.Minute
+				var api *fd.APIError
+				if errors.As(err, &api) {
+					health = api.Code
+					if api.RetryAfter > delay {
+						delay = api.RetryAfter
+					}
+				}
+				checkpoint := s.Checkpoint
+				checkpoint["retryAfter"] = time.Now().Add(min(delay, 24*time.Hour)).Format(time.RFC3339Nano)
+				if e := c.saveFrontendPollState(ctx, s, health, checkpoint, time.Now(), false); e != nil {
+					return count, e
 				}
 			}
-			checkpoint := s.Checkpoint
-			checkpoint["retryAfter"] = time.Now().Add(min(delay, 24*time.Hour)).Format(time.RFC3339Nano)
-			if e := c.saveFrontendPollState(ctx, s, health, checkpoint, time.Now(), false); e != nil {
-				return count, e
-			}
+			count++
 		}
-		count++
+		if len(rows) < 100 {
+			break
+		}
 	}
 	return count, nil
 }

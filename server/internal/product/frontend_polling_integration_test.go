@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	ra "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 	"net/http"
@@ -270,4 +271,107 @@ func TestFrontendGitHubDeliveryRecoveryPinsWorkflow(t *testing.T) {
 		t.Fatal("a later successful read erased the unrecovered gap")
 	}
 
+}
+
+func TestFrontendOnlySelectedEnvironmentsSupersedeProduction(t *testing.T) {
+	for _, environment := range []string{"staging", "preview", "", "production", "live"} {
+		t.Run(environment, func(t *testing.T) {
+			f := newAutomationFixture(t)
+			frontendFixtureCleanup(t, f.testWorkspace)
+			f.graph.Family = ra.Deployed
+			f.graph.Qualification = ra.Condition{Field: "deployment.environment", Operator: "eq", Values: []string{"production"}}
+			f.graph.Nodes[1].Condition = &ra.Condition{Field: "deployment.state", Operator: "eq", Values: []string{"success"}}
+			active := f.activate(t)
+			policy := frontendPolicy()
+			policy.Environments = []string{"production", "live"}
+			policy.WorkflowVersionID = *active.ActiveVersionID
+			policy.Checks = []fd.CheckRule{{Source: "github_check", Name: "ci", AppID: "44", Scope: "commit", Passing: []string{"success"}, MaxAgeSeconds: 3600}}
+			source, err := f.repo.SaveFrontendSource(f.ctx, f.owner, FrontendSourceInput{ID: f.source.ID, Name: "GitHub frontend", Provider: "github", AccountID: strconv.FormatInt(f.installation, 10), ProjectID: "1001", Enabled: true, Policy: policy})
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.exec(t, `UPDATE frontend_source SET "effectiveAt"=now()-interval '1 hour' WHERE id=$1`, source.ID)
+			at := time.Now().UTC().Add(-time.Minute)
+			for i, target := range []string{"production", environment} {
+				body, _ := json.Marshal(map[string]any{"installation": map[string]any{"id": f.installation}, "repository": map[string]any{"id": 1001}, "deployment": map[string]any{"id": 501 + i, "sha": "revision" + strconv.Itoa(i), "environment": target}, "deployment_status": map[string]any{"id": 901 + i, "state": "success", "created_at": at.Add(time.Duration(i) * time.Second).Format(time.RFC3339Nano)}})
+				_, err := f.repo.AcceptGitHubEvent(f.ctx, AcceptGitHubEventInput{DeliveryID: "deployment-" + strconv.Itoa(i), EventName: "deployment_status", Body: body})
+				if target == "" {
+					if !errors.Is(err, ErrInvalidInput) {
+						t.Fatalf("missing deployment environment: %v", err)
+					}
+					continue
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if frontendAlerts(t, f.testWorkspace) != 0 {
+				t.Fatal("deployment alerted before its required check")
+			}
+			body, _ := json.Marshal(map[string]any{"installation": map[string]any{"id": f.installation}, "repository": map[string]any{"id": 1001}, "check_run": map[string]any{"id": 10, "name": "ci", "head_sha": "revision0", "status": "completed", "conclusion": "success", "completed_at": at.Add(2 * time.Second).Format(time.RFC3339Nano), "app": map[string]any{"id": 44}}})
+			if _, err := f.repo.AcceptGitHubEvent(f.ctx, AcceptGitHubEventInput{DeliveryID: "late-check", EventName: "check_run", Body: body}); err != nil {
+				t.Fatal(err)
+			}
+			want := 1
+			if environment == "production" || environment == "live" {
+				want = 0
+			}
+			if got := frontendAlerts(t, f.testWorkspace); got != want {
+				t.Fatalf("late production check after %q activation: alerts=%d, want %d", environment, got, want)
+			}
+			if got := f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx); got != want {
+				t.Fatalf("late production check after %q activation: workflow dispatches=%d, want %d", environment, got, want)
+			}
+		})
+	}
+}
+
+func TestFrontendPollingPagesPastIneligibleSources(t *testing.T) {
+	w, template := frontendTestSource(t)
+	blocked := newTestWorkspace(t)
+	frontendFixtureCleanup(t, blocked)
+	w.db.Client.FrontendSource.UpdateOneID(template.ID).SetEnabled(false).ExecX(w.ctx)
+	token := w.db.Client.FrontendSource.GetX(w.ctx, template.ID).EncryptedToken
+	at := time.Now().UTC().Add(-time.Hour)
+	policy, _ := json.Marshal(frontendPolicy())
+	seed := func(prefix, org string, count int, checkpoint map[string]string) {
+		t.Helper()
+		w.exec(t, `INSERT INTO source_app (id,"organizationId",name,provider,"externalId","allowedHosts",status,"updatedAt")
+			SELECT $1||n,$2,$1||n,'vercel',$1||n,'[]','ACTIVE',$4 FROM generate_series(1,$3::int) n`, prefix, org, count, at)
+		encoded, _ := json.Marshal(checkpoint)
+		w.exec(t, `INSERT INTO frontend_source (id,"organizationId",provider,"accountId","projectId",policy,enabled,"encryptedToken",checkpoint,"updatedAt")
+			SELECT $1||n,$2,'vercel','team1',$1||n,$4::jsonb,true,$5,$6::jsonb,$7 FROM generate_series(1,$3::int) n`, prefix, org, count, string(policy), token, string(encoded), at)
+	}
+	seed("a-backoff-"+w.id, w.org, 101, map[string]string{"retryAfter": time.Now().Add(time.Hour).Format(time.RFC3339Nano)})
+	seed("b-unavailable-"+blocked.id, blocked.org, 101, map[string]string{})
+	seed("c-healthy-"+w.id, w.org, 21, map[string]string{})
+	blocked.exec(t, `INSERT INTO workspace_deletion (id,"organizationId","requestedByUserId","scheduledFor","updatedAt") VALUES ($1,$2,$3,now()+interval '7 days',now())`, "deletion-"+blocked.id, blocked.org, blocked.owner.UserID)
+	requests := map[string]int{}
+	w.repo.WithFrontendHTTP(&http.Client{Transport: frontendTransport(func(r *http.Request) (*http.Response, error) {
+		project := strings.TrimPrefix(r.URL.Path, "/v9/projects/")
+		if !strings.HasPrefix(project, "c-healthy-") {
+			t.Errorf("ineligible source contacted provider: %s", project)
+		}
+		requests[project]++
+		return frontendResponse(`{"id":"` + project + `","accountId":"team1"}`), nil
+	})})
+	for run := 0; run < 2; run++ {
+		count, err := w.repo.PollFrontends(w.ctx)
+		if err != nil || count != 20 {
+			t.Fatalf("poll %d: count=%d, err=%v", run, count, err)
+		}
+		total := 0
+		for _, n := range requests {
+			total += n
+		}
+		if total != 20*(run+1) {
+			t.Fatalf("provider request budget: %d", total)
+		}
+	}
+	if len(requests) != 21 {
+		t.Fatalf("eligible sources starved across batches: %d/21 polled", len(requests))
+	}
+	if got := w.db.Client.FrontendSource.Query().Where(frontendsource.Enabled(true), frontendsource.LastPollAtNotNil(), frontendsource.Or(frontendsource.OrganizationID(w.org), frontendsource.OrganizationID(blocked.org))).CountX(w.ctx); got != 21 {
+		t.Fatalf("ineligible source checkpoint changed: completed polls=%d", got)
+	}
 }

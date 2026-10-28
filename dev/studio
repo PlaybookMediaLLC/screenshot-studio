@@ -39,6 +39,15 @@ ensure_env_value() {
   fi
 }
 
+# One social API secret per parallel e2e worker. Its token routes the backend's
+# social calls to that worker's mock (test/e2e/framework/social-mock.ts).
+ensure_e2e_social_secrets() {
+  local slot
+  for slot in 0 1 2 3 4 5 6 7; do
+    ensure_env_value "SOCIAL_API_KEY_E2E_W$slot" "e2e-social-w$slot"
+  done
+}
+
 ensure_env() {
   if [[ -f "$LOCAL_ENV" ]]; then
     local database_url
@@ -65,6 +74,7 @@ NODE
     ensure_env_value SOCIAL_API_URL "http://host.docker.internal:5679/api/public/v1"
     ensure_env_value SOCIAL_API_KEY "e2e-social-token"
     ensure_env_value SOCIAL_API_KEY_E2E "e2e-social-token"
+    ensure_e2e_social_secrets
     ensure_env_value PLATFORM_SOCIAL_ENCRYPTION_KEY "$(random_base64 32)"
     ensure_env_value SOCIAL_JWT_SECRET "$(random_hex 32)"
     ensure_env_value PUBLISHING_SERVICE_TOKEN "$(random_hex 32)"
@@ -134,6 +144,7 @@ R2_SECRET_ACCESS_KEY=$rustfs_secret_key
 R2_BUCKET_NAME=tenant-assets
 REDIS_URL=redis://redis:6379
 EOF
+  ensure_e2e_social_secrets
   chmod 600 "$LOCAL_ENV"
   echo "Created $LOCAL_ENV"
 }
@@ -335,49 +346,53 @@ warm_recovery_route() {
   exit 1
 }
 
-run_e2e() {
-  local test_script="$1"
-  shift
-  local app_url="${E2E_BASE_URL:-http://localhost:3000}"
-  local e2e_trusted_origins
-  local manage_screenshot_mock="${E2E_MANAGE_SCREENSHOT_MOCK:-true}"
-  local test_result=0
-
-  load_env
-  if [[ "$manage_screenshot_mock" == "true" ]]; then
-    sync_dependencies
+# Starts the e2e services with the app of one lane: `production` runs the
+# production build (dev/compose.e2e.yaml), `dev-server` runs `next dev`.
+start_e2e_app() {
+  local lane="$1" app_url="$2" trusted_origins="$3"
+  local lane_files=()
+  if [[ "$lane" == production ]]; then
+    lane_files=(--file "$ROOT_DIR/dev/compose.e2e.yaml")
   fi
-  e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,${app_url%/},http://localhost:5680,http://host.docker.internal:5680"
-  if [[ "$manage_screenshot_mock" == "true" ]]; then
-    # Recreating app would strand the renderer, which shares app's network;
-    # end-to-end flows do not render designs, so it is simply stopped.
-    compose --profile renderer stop render-browser >/dev/null 2>&1 || true
-    # Start the suite's server from an empty dev cache. On Linux, a Turbopack
+  # Recreating app would strand the renderer, which shares app's network;
+  # end-to-end flows do not render designs, so it is simply stopped.
+  compose --profile renderer stop render-browser >/dev/null 2>&1 || true
+  compose stop app >/dev/null 2>&1 || true
+  if [[ "$lane" == production ]]; then
+    # CI builds the image once, with a layer cache, and sets E2E_APP_IMAGE_READY.
+    if [[ "${E2E_APP_IMAGE_READY:-}" != "true" ]]; then
+      compose "${lane_files[@]}" build app
+    fi
+  else
+    # Start the dev server from an empty dev cache. On Linux, a Turbopack
     # cache written by the previous server (verify:agents, tenant-isolation)
     # made the recreated one answer every HMR connection with "HMR hash
     # mismatch", reloading each page in a loop so sign-up never hydrated.
-    compose stop app >/dev/null 2>&1 || true
     compose run --rm --no-deps app sh -c 'rm -rf apps/web/.next/* apps/web/.next/.[!.]*'
-    BETTER_AUTH_URL="${app_url%/}" \
-      BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" \
-      NEXT_PUBLIC_APP_URL="${app_url%/}" \
-      SOCIAL_API_URL="${E2E_SOCIAL_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
-      PLATFORM_SOCIAL_BLUESKY_ENABLED=true \
-      PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED=true \
-      SCREENSHOT_API_URL="http://screenshot-mock:5678" \
-      SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" \
-      OPENROUTER_API_KEY="e2e-openrouter" \
-      OPENROUTER_BASE_URL="http://screenshot-mock:5678/openrouter/api/v1" \
-      PLATFORM_ENRICHMENT_DISABLED="github,appstore" \
-      PLATFORM_ENRICHMENT_EXA_API_KEY="" \
-      PLATFORM_CREATIVE_SETS="enabled" \
-      PLATFORM_AI_SCRIPTED=1 compose --profile e2e up --detach --force-recreate screenshot-mock publishing-backend publishing-orchestrator app
-    wait_for_screenshot_mock
-    # Publishing runs in the backend, so it is the service that must reach the
-    # suite's social API mock.
-    wait_for_http "http://127.0.0.1:8080/readyz" "Publishing backend"
   fi
-  wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
+  BETTER_AUTH_URL="${app_url%/}" \
+    BETTER_AUTH_TRUSTED_ORIGINS="$trusted_origins" \
+    NEXT_PUBLIC_APP_URL="${app_url%/}" \
+    SOCIAL_API_URL="${E2E_SOCIAL_API_URL:-http://host.docker.internal:5679/api/public/v1}" \
+    PLATFORM_SOCIAL_BLUESKY_ENABLED=true \
+    PLATFORM_SOCIAL_CUSTOM_MASTODON_ENABLED=true \
+    SCREENSHOT_API_URL="http://screenshot-mock:5678" \
+    SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="screenshot-mock" \
+    OPENROUTER_API_KEY="e2e-openrouter" \
+    OPENROUTER_BASE_URL="http://screenshot-mock:5678/openrouter/api/v1" \
+    PLATFORM_ENRICHMENT_DISABLED="github,appstore" \
+    PLATFORM_ENRICHMENT_EXA_API_KEY="" \
+    PLATFORM_CREATIVE_SETS="enabled" \
+    PLATFORM_AI_SCRIPTED=1 compose ${lane_files[@]+"${lane_files[@]}"} --profile e2e up --detach --force-recreate screenshot-mock publishing-backend publishing-orchestrator app
+  wait_for_screenshot_mock
+  # Publishing runs in the backend, so it is the service that must reach the
+  # suite's social API mock.
+  wait_for_http "http://127.0.0.1:8080/readyz" "Publishing backend"
+}
+
+# `next dev` compiles each route on its first request.
+warm_e2e_routes() {
+  local app_url="$1" manage_screenshot_mock="$2"
   # Every spec signs up first; a cold Better Auth route compiles during that
   # first POST and the dev server reloads the page under it, emptying the form.
   wait_for_http "${app_url%/}/api/auth/ok" "Better Auth"
@@ -419,7 +434,13 @@ run_e2e() {
   warm_route "${app_url%/}/api/v1/organizations/warm-up" "Shell organizations API"
   warm_recovery_route "${app_url%/}/api/v1/content-drafts/warm-up/revisions/warm-up/recover" "$manage_screenshot_mock"
   wait_for_http "$app_url" "Screenshot Studio editor route"
-  if ! E2E_BASE_URL="$app_url" \
+}
+
+# Runs npm in the web app with the variables the browser suite reads.
+e2e_npm() {
+  local app_url="$1"
+  shift
+  E2E_BASE_URL="$app_url" \
     E2E_DATABASE_URL="${E2E_DATABASE_URL:-$HOST_DATABASE_URL}" \
     E2E_COMPOSE_LOGS="$manage_screenshot_mock" \
     E2E_MAINTENANCE_SECRET="$CLEANUP_SECRET" \
@@ -431,17 +452,56 @@ run_e2e() {
     E2E_REDIS_URL="${E2E_REDIS_URL:-redis://127.0.0.1:63799}" \
     E2E_WEBHOOK_SECRET="$CLEANUP_SECRET" \
     E2E_WORKFLOW_RENDER_KEY="${PLATFORM_WORKFLOW_RENDER_KEY:-}" \
-    npm --prefix "$WEB_DIR" run "$test_script" -- "$@"; then
-    test_result=1
-  fi
+    npm --prefix "$WEB_DIR" "$@"
+}
+
+run_e2e() {
+  local test_script="$1"
+  shift
+  local app_url="${E2E_BASE_URL:-http://localhost:3000}"
+  local e2e_trusted_origins
+  local manage_screenshot_mock="${E2E_MANAGE_SCREENSHOT_MOCK:-true}"
+  local test_result=0
+  local lane listing ran_lane=false
+
+  load_env
   if [[ "$manage_screenshot_mock" == "true" ]]; then
-    # Recreating app discards the logs of the server that ran the suite; keep
+    sync_dependencies
+  fi
+  e2e_trusted_origins="$BETTER_AUTH_TRUSTED_ORIGINS,${app_url%/},http://localhost:5680,http://host.docker.internal:5680"
+  if [[ "$manage_screenshot_mock" != "true" ]]; then
+    # A deployed stack (Kind) runs the production build: only that lane applies.
+    wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
+    E2E_LANE=production e2e_npm "$app_url" run "$test_script" -- --project=production "$@" || test_result=1
+    return "$test_result"
+  fi
+  # Two lanes, as Next.js recommends: the production build for every test it
+  # can serve, then `next dev` for the tests tagged @dev-server, which need
+  # its hooks (the scripted AI model, screenshot-mock downloads).
+  for lane in production dev-server; do
+    if ! listing="$(e2e_npm "$app_url" run --silent "$test_script" -- "$@" --list --pass-with-no-tests --project="$lane" --reporter=list 2>&1)"; then
+      echo "$listing" >&2
+      return 1
+    fi
+    grep -qE 'Total: [1-9]' <<<"$listing" || continue
+    ran_lane=true
+    start_e2e_app "$lane" "$app_url" "$e2e_trusted_origins"
+    wait_for_http "${app_url%/}/api/health" "Screenshot Studio"
+    if [[ "$lane" == dev-server ]]; then
+      warm_e2e_routes "$app_url" "$manage_screenshot_mock"
+    fi
+    E2E_LANE="$lane" e2e_npm "$app_url" run "$test_script" -- --project="$lane" "$@" || test_result=1
+    # Recreating app discards the logs of the server that ran the lane; keep
     # them beside the Playwright results, which CI uploads on failure.
     mkdir -p "$WEB_DIR/test-results"
-    compose logs --no-color app >"$WEB_DIR/test-results/app.log" 2>&1 || true
-    SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" OPENROUTER_BASE_URL="" \
-      compose up --detach --force-recreate publishing-backend publishing-orchestrator app
+    compose logs --no-color app >"$WEB_DIR/test-results/app-$lane.log" 2>&1 || true
+  done
+  if [[ "$ran_lane" != true ]]; then
+    echo "No end-to-end tests match: $*" >&2
+    return 1
   fi
+  SCREENSHOT_API_URL="" SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS="" OPENROUTER_BASE_URL="" \
+    compose up --detach --force-recreate publishing-backend publishing-orchestrator app
   return "$test_result"
 }
 

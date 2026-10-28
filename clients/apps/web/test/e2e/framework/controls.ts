@@ -7,10 +7,8 @@ import { expect, type Locator } from '@playwright/test'
  */
 export async function chooseOption(select: Locator, name: string | RegExp): Promise<void> {
   await select.click()
-  await select
-    .page()
-    .getByRole('option', { exact: typeof name === 'string', name })
-    .click()
+  const option = select.page().getByRole('option', { exact: typeof name === 'string', name })
+  await option.click()
   // Closed again: other listboxes on the page are not this select's.
-  await expect(select).toHaveAttribute('aria-expanded', 'false')
+  await expect(option).toBeHidden()
 }

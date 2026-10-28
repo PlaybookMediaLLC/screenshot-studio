@@ -49,6 +49,7 @@ next-env.d.ts
 /clients/apps/web/public/backgrounds
 /clients/apps/web/scripts/*
 !/clients/apps/web/scripts/e2e-screenshot-mock.mjs
+!/clients/apps/web/scripts/e2e-durations.mjs
 !/clients/apps/web/scripts/e2e-release-automation-mock.mjs
 !/clients/apps/web/scripts/smoke-rate-limit.mjs
 !/clients/apps/web/scripts/verify-tenant-isolation.ts

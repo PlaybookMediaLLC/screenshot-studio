@@ -1,11 +1,17 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { openWorkspaceSetting, getActiveOrganizationId, signUpViaApi } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
+import {
+  browserRequest,
+  db,
+  expect,
+  getActiveOrganizationId,
+  grantWorkspacePlan,
+  openWorkspaceSetting,
+  requestJson,
+  signUpViaApi,
+  test,
+} from './framework'
 
-configureE2EFlow()
 const membership = z.object({
   id: z.string(),
   organizationId: z.string(),
@@ -15,6 +21,7 @@ const membership = z.object({
 const acceptance = z.object({ member: membership })
 
 test('Better Auth role, remove and leave commands persist audit and revoke old sessions', async ({
+  app,
   browser,
   identity,
   page,
@@ -123,42 +130,37 @@ test('Better Auth role, remove and leave commands persist audit and revoke old s
     ).toBe(401)
     for (const member of members)
       expect((await browserRequest(member.page, '/api/auth/get-session')).body).toBeNull()
-    await page.reload()
+    await app.reload()
     await expect(page.getByText('1 member', { exact: true })).toBeVisible()
     await expect(page.getByText('No invitations are pending.', { exact: true })).toBeVisible()
     for (const member of members)
       await expect(page.getByText(member.email, { exact: true })).toHaveCount(0)
     await page.screenshot({ path: '.context/membership-after-removal.png' })
-    const db = createE2EDatabase()
-    try {
-      const audits = z
-        .array(z.object({ action: z.string(), total: z.number() }))
-        .parse(
-          (
-            await db.query(
-              'SELECT action, count(*)::int AS total FROM audit_log WHERE "organizationId"=$1 AND action IN ($2,$3,$4) GROUP BY action ORDER BY action',
-              [org, 'product.member_role_changed', 'product.member_removed', 'product.member_left']
-            )
-          ).rows
-        )
-      expect(audits).toEqual([
-        { action: 'product.member_left', total: 1 },
-        { action: 'product.member_removed', total: 1 },
-        { action: 'product.member_role_changed', total: 1 },
-      ])
-      const remaining = z
-        .object({ total: z.number() })
-        .parse(
-          (
-            await db.query('SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1', [
-              org,
-            ])
-          ).rows[0]
-        )
-      expect(remaining.total).toBe(1)
-    } finally {
-      await db.end()
-    }
+    const audits = z
+      .array(z.object({ action: z.string(), total: z.number() }))
+      .parse(
+        (
+          await db.query(
+            'SELECT action, count(*)::int AS total FROM audit_log WHERE "organizationId"=$1 AND action IN ($2,$3,$4) GROUP BY action ORDER BY action',
+            [org, 'product.member_role_changed', 'product.member_removed', 'product.member_left']
+          )
+        ).rows
+      )
+    expect(audits).toEqual([
+      { action: 'product.member_left', total: 1 },
+      { action: 'product.member_removed', total: 1 },
+      { action: 'product.member_role_changed', total: 1 },
+    ])
+    const remaining = z
+      .object({ total: z.number() })
+      .parse(
+        (
+          await db.query('SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1', [
+            org,
+          ])
+        ).rows[0]
+      )
+    expect(remaining.total).toBe(1)
   } finally {
     for (const context of contexts) await context.close()
   }

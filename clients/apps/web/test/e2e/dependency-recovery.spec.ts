@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { browserRequest, expect, requestJson, test } from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const composeArguments = ['compose', '--env-file', '.local/dev.env', '--file', 'dev/compose.yaml']
 if (process.env.E2E_DOCKER_HOST_GATEWAY === 'true') {
@@ -56,13 +56,9 @@ async function verifyServiceRecovery(
   await waitForStatus(request, recoveredStatus)
 }
 
-configureE2EFlow()
-
 test('required dependencies return a safe failure or recover without data loss', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const identifier = `e2e-recovery-${randomUUID()}`
   const screenshotRequest = () =>
     requestJson(

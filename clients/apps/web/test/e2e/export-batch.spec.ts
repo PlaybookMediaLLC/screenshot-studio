@@ -1,10 +1,8 @@
 import { readFile } from 'node:fs/promises'
-import type { Download, Page } from '@playwright/test'
+import { type Download, expect, type Page, test } from './framework'
 import JSZip from 'jszip'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 /** The editor's default canvas (4:3). */
 const CANVAS = { height: 1440, width: 1920 }
@@ -193,11 +191,11 @@ async function dropIntoBatch(page: Page, sizes: readonly Size[]) {
 }
 
 test('batch mode applies the design to several screenshots and exports every size as a ZIP', async ({
-  identity,
+  app,
   page,
 }) => {
   test.setTimeout(360_000)
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await dropScreenshot(page, { height: 900, width: 1400 })
 
   await openSave(page)
@@ -279,11 +277,11 @@ test('batch mode applies the design to several screenshots and exports every siz
 })
 
 test('the editor exports PNG, JPEG, WebP, SVG, PDF, and a multi-size ZIP with exact bytes', async ({
-  identity,
+  app,
   page,
 }) => {
   test.setTimeout(360_000)
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await dropScreenshot(page, { height: 900, width: 1400 })
 
   await openSave(page)
@@ -372,9 +370,9 @@ test('the editor exports PNG, JPEG, WebP, SVG, PDF, and a multi-size ZIP with ex
   })
 })
 
-test('GIF and MP4 render the real timeline', async ({ identity, page }) => {
+test('GIF and MP4 render the real timeline', async ({ app, page }) => {
   test.setTimeout(480_000)
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await dropScreenshot(page, { height: 900, width: 1400 })
 
   // Add one motion preset from the Motion tab.

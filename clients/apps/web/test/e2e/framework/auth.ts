@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { expect, type Page, type Response } from '@playwright/test'
-import type { E2EIdentity } from './flow'
+import { type E2EIdentity, setupStep, waitForHydration } from './flow'
 import { browserJson, browserRequest, type BrowserRequest } from './browser'
-import { createE2EDatabase, grantWorkspacePlan } from './services'
+import { db } from './services'
 import { getTotpCode } from './totp'
 import { SETTINGS_SECTIONS, settingsHref } from '../../../components/workspace/settings-sections'
 
@@ -49,21 +49,6 @@ async function authJson(page: Page, path: string, input: BrowserRequest): Promis
   }
 }
 
-export async function signUpAndCreateWorkspace(identity: E2EIdentity, page: Page): Promise<string> {
-  await signUp(identity, page)
-  await page.getByLabel('Workspace name').fill(identity.workspaceName)
-  await page.getByRole('button', { name: 'Create workspace' }).click()
-  // This fixture selects Pro for the screenshot editor after the plan-choice screen.
-  await expectPath(page, '/onboarding/plan')
-  const organizationId = await getActiveOrganizationId(page)
-  await grantWorkspacePlan(organizationId, 'pro')
-  await page.goto(getE2EUrl('/'))
-  await expectPath(page, '/')
-  await waitForEditorHydration(page)
-  await expect(page.getByRole('button', { exact: true, name: 'Export' })).toBeVisible()
-  return organizationId
-}
-
 export async function signUp(identity: E2EIdentity, page: Page): Promise<void> {
   await page.goto(getE2EUrl('/sign-up'))
   await page.getByLabel('Name').fill(identity.name)
@@ -97,7 +82,7 @@ export async function signUp(identity: E2EIdentity, page: Page): Promise<void> {
  * Sign-up through the form stays covered by the specs that exist to
  * exercise it.
  */
-export async function signUpViaApi(identity: E2EIdentity, page: Page): Promise<void> {
+async function signUpViaApiSteps(identity: E2EIdentity, page: Page): Promise<void> {
   // Establish the origin without a sign-up screen redirect racing the next navigation.
   await page.goto(getE2EUrl('/api/health'))
   const registration = await authJson(page, '/api/auth/sign-up/email', {
@@ -117,21 +102,17 @@ export async function signUpViaApi(identity: E2EIdentity, page: Page): Promise<v
     })
   }
 }
+export const signUpViaApi = setupStep('sign up through the API', signUpViaApiSteps)
 
 export async function acceptInvitation(page: Page, invitationId: string): Promise<void> {
   // The recipient fixture needs verified email; production acceptance always enforces it.
   const session = await page.request.get(getE2EUrl('/api/auth/get-session'))
   const { user } = z.object({ user: z.object({ id: z.string() }) }).parse(await session.json())
-  const database = createE2EDatabase()
-  try {
-    const verified = await database.query(
-      'UPDATE "user" SET "emailVerified"=true WHERE id=$1 AND email LIKE $2',
-      [user.id, '%@example.test']
-    )
-    expect(verified.rowCount).toBe(1)
-  } finally {
-    await database.end()
-  }
+  const verified = await db.query(
+    'UPDATE "user" SET "emailVerified"=true WHERE id=$1 AND email LIKE $2',
+    [user.id, '%@example.test']
+  )
+  expect(verified.rowCount).toBe(1)
 
   await page.goto(getE2EUrl(`/accept-invitation?invitationId=${invitationId}`))
   await Promise.all([
@@ -155,29 +136,6 @@ async function expectPath(page: Page, path: string): Promise<void> {
   // it stays above the 20s default because warming is a mitigation, not a
   // guarantee, and a bare URL timeout is an expensive thing to debug.
   await expect.poll(() => new URL(page.url()).pathname, { timeout: 60_000 }).toBe(path)
-}
-
-async function waitForEditorHydration(page: Page): Promise<void> {
-  const templates = page.getByRole('button', { exact: true, name: 'Templates' })
-  // The button is present in the server-rendered markup with
-  // `aria-expanded="false"`, so it is clickable before React attaches its
-  // handler and an early click is silently dropped. Waiting for the element
-  // first keeps the retry loop about hydration rather than about rendering,
-  // which matters on a cold Next.js route that compiles on first request.
-  await expect(templates).toBeVisible({ timeout: 60_000 })
-  // Templates opens a modal sheet, which marks the rest of the page
-  // aria-hidden. The button then leaves the accessibility tree, so the proof
-  // of a hydrated click is the open dialog, not the button's aria-expanded.
-  const library = page.getByRole('dialog', { name: 'Templates' })
-  await expect(async () => {
-    if (!(await library.isVisible())) {
-      await templates.click({ timeout: 5_000 })
-    }
-    await expect(library).toBeVisible({ timeout: 2_000 })
-  }).toPass({ timeout: 60_000 })
-  await library.getByRole('button', { name: 'Close templates' }).click()
-  await expect(library).toBeHidden()
-  await expect(templates).toHaveAttribute('aria-expanded', 'false')
 }
 
 export async function getActiveOrganizationId(page: Page): Promise<string> {
@@ -206,7 +164,7 @@ export async function findActiveOrganizationId(page: Page): Promise<string | nul
   return parsed.data.session.activeOrganizationId
 }
 
-export async function enableTwoFactor(page: Page, password: string): Promise<TwoFactorSetup> {
+async function enableTwoFactorSteps(page: Page, password: string): Promise<TwoFactorSetup> {
   await openWorkspaceSetting(page, 'Security')
   await page.getByLabel('Current password').fill(password)
   await page.getByRole('button', { name: 'Set up authenticator' }).click()
@@ -224,6 +182,10 @@ export async function enableTwoFactor(page: Page, password: string): Promise<Two
   ).toBeVisible()
   return { backupCodes: codes.slice(1), totpURI: uri }
 }
+export const enableTwoFactor = setupStep(
+  'enable two-factor in Security settings',
+  enableTwoFactorSteps
+)
 
 export async function openWorkspaceSetting(page: Page, name: string): Promise<void> {
   // Go to the section's own route; the compact rail names its links only in
@@ -231,5 +193,6 @@ export async function openWorkspaceSetting(page: Page, name: string): Promise<vo
   const section = SETTINGS_SECTIONS.find((candidate) => candidate.title === name)
   if (!section) throw new Error(`No workspace settings section is titled ${name}.`)
   await page.goto(settingsHref(section), { timeout: 45_000, waitUntil: 'load' })
+  await waitForHydration(page)
   await expect(page.getByRole('heading', { exact: true, level: 1, name })).toBeVisible()
 }

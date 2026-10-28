@@ -1,10 +1,15 @@
 import { randomUUID } from 'node:crypto'
-import { getActiveOrganizationId, getE2EUrl, signUpAndCreateWorkspace } from './framework/auth'
-import { trpcQuery } from './framework/trpc'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase } from './framework/services'
+import {
+  createWorkspace,
+  db,
+  expect,
+  getActiveOrganizationId,
+  getE2EUrl,
+  test,
+  trpcQuery,
+} from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 async function createDesign(organizationId: string) {
   // cuid-shaped: design routes accept lowercase alphanumeric ids only.
@@ -16,24 +21,18 @@ async function createDesign(organizationId: string) {
     texts: [{ fontSize: 0.04, position: { x: 50, y: 8 }, text: 'Opened from a design' }],
     version: 1,
   }
-  const database = createE2EDatabase()
-  try {
-    await database.query(
-      `INSERT INTO design (id, "organizationId", name, document, "updatedAt")
+  await db.query(
+    `INSERT INTO design (id, "organizationId", name, document, "updatedAt")
        VALUES ($1, $2, 'E2E design', $3::jsonb, now())`,
-      [id, organizationId, JSON.stringify(document)]
-    )
-    return { id }
-  } finally {
-    await database.end()
-  }
+    [id, organizationId, JSON.stringify(document)]
+  )
+  return { id }
 }
 
-test('a stored design opens in the editor with its layers editable', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('a stored design opens in the editor with its layers editable', async ({ app, page }) => {
   const design = await createDesign(await getActiveOrganizationId(page))
 
-  await page.goto(getE2EUrl(`/?design=${design.id}`))
+  await app.open(`/?design=${design.id}`)
   await expect(page.getByText('Opened “E2E design”')).toBeVisible({ timeout: 60_000 })
   const canvas = page.locator('[data-html-canvas="true"]')
   await expect(canvas.getByText('Opened from a design')).toBeVisible()
@@ -47,7 +46,6 @@ test('designs stay inside their workspace and the render page needs a token', as
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const design = await createDesign(await getActiveOrganizationId(page))
 
   expect((await page.goto(getE2EUrl(`/render/${design.id}`)))?.status()).toBe(404)
@@ -58,7 +56,7 @@ test('designs stay inside their workspace and the render page needs a token', as
   const otherContext = await browser.newContext()
   const otherPage = await otherContext.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `other-${identity.email}`,

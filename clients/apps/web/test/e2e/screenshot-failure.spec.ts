@@ -1,8 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { requestJson } from './framework/browser'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, queryRow } from './framework/services'
+import { db, expect, requestJson, test } from './framework'
 
 type FailureCase = {
   path: 'timeout' | 'unavailable' | 'invalid-image'
@@ -16,24 +13,13 @@ const failures: readonly FailureCase[] = [
 ]
 
 async function getCacheRecord(url: string) {
-  const database = createE2EDatabase()
-  try {
-    return await queryRow<{ id: string }>(
-      database,
-      'SELECT id FROM screenshot_cache WHERE url = $1 LIMIT 1',
-      [url]
-    )
-  } finally {
-    await database.end()
-  }
+  return await db.row<{ id: string }>('SELECT id FROM screenshot_cache WHERE url = $1 LIMIT 1', [
+    url,
+  ])
 }
 
 // The screenshot API needs a paid workspace; the fixture gives it Pro.
-configureE2EFlow({
-  beforeEach: async ({ identity, page }) => {
-    await signUpAndCreateWorkspace(identity, page)
-  },
-})
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('failed screenshot captures return safe errors and never leave cache records', async ({
   app,

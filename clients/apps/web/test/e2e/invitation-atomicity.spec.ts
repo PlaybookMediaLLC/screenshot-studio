@@ -1,10 +1,16 @@
 import { z } from 'zod'
-import { signUpAndCreateWorkspace, signUpViaApi } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
+import {
+  browserRequest,
+  db,
+  expect,
+  grantWorkspacePlan,
+  requestJson,
+  signUpViaApi,
+  test,
+} from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
+
 const invitationSchema = z.object({ id: z.string() })
 const invitationState = z.object({ status: z.string() })
 const sessionSchema = z.object({
@@ -15,8 +21,9 @@ test('a recipient declines explicitly, reloads the result, and cannot reuse the 
   browser,
   identity,
   page,
+  workspace,
 }, testInfo) => {
-  const org = await signUpAndCreateWorkspace(identity, page)
+  const org = workspace.id
   const context = await browser.newContext()
   try {
     const recipient = await context.newPage()
@@ -82,16 +89,11 @@ test('a recipient declines explicitly, reloads the result, and cannot reuse the 
     ).toBeNull()
     await recipient.setViewportSize({ width: 390, height: 844 })
     await recipient.screenshot({ path: testInfo.outputPath('invitation-declined-mobile.png') })
-    const db = createE2EDatabase()
-    try {
-      const result = await db.query(
-        'SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1 AND "userId"=(SELECT id FROM "user" WHERE email=$2)',
-        [org, email]
-      )
-      expect(result.rows[0].total).toBe(0)
-    } finally {
-      await db.end()
-    }
+    const result = await db.query(
+      'SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1 AND "userId"=(SELECT id FROM "user" WHERE email=$2)',
+      [org, email]
+    )
+    expect(result.rows[0].total).toBe(0)
   } finally {
     await context.close()
   }
@@ -101,8 +103,9 @@ test('a lost acceptance response is reconciled without resubmitting or duplicati
   browser,
   identity,
   page,
+  workspace,
 }) => {
-  const org = await signUpAndCreateWorkspace(identity, page)
+  const org = workspace.id
   const context = await browser.newContext()
   try {
     const recipient = await context.newPage()
@@ -139,87 +142,76 @@ test('a lost acceptance response is reconciled without resubmitting or duplicati
     expect(sends).toBe(1)
     await recipient.getByRole('button', { name: 'Open workspace' }).click()
     await expect.poll(() => new URL(recipient.url()).pathname).toBe('/workspace')
-    const db = createE2EDatabase()
-    try {
-      const result = await db.query(
-        'SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1 AND "userId"=(SELECT id FROM "user" WHERE email=$2)',
-        [org, email]
-      )
-      expect(result.rows[0].total).toBe(1)
-      const audit = await db.query(
-        'SELECT count(*)::int AS total FROM audit_log WHERE "organizationId"=$1 AND action=$2',
-        [org, 'product.member_invitation_accepted']
-      )
-      expect(audit.rows[0].total).toBe(1)
-    } finally {
-      await db.end()
-    }
+    const result = await db.query(
+      'SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1 AND "userId"=(SELECT id FROM "user" WHERE email=$2)',
+      [org, email]
+    )
+    expect(result.rows[0].total).toBe(1)
+    const audit = await db.query(
+      'SELECT count(*)::int AS total FROM audit_log WHERE "organizationId"=$1 AND action=$2',
+      [org, 'product.member_invitation_accepted']
+    )
+    expect(audit.rows[0].total).toBe(1)
   } finally {
     await context.close()
   }
 })
 
-test('two real recipient sessions cannot both accept the final paid seat', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  test.slow()
-  const org = await signUpAndCreateWorkspace(identity, page)
-  await grantWorkspacePlan(org, 'business')
-  const contexts = []
-  const pending = []
-  try {
-    for (let index = 0; index < 5; index++) {
-      const context = await browser.newContext()
-      contexts.push(context)
-      const recipient = await context.newPage()
-      const email = `seat${index}-${identity.email}`
-      const invited = await requestJson(page, '/api/auth/organization/invite-member', {
-        email,
-        role: 'viewer',
-        organizationId: org,
-      })
-      expect(invited.status).toBe(200)
-      const { id } = invitationSchema.parse(invited.body)
-      await signUpViaApi({ ...identity, email }, recipient)
-      if (index < 3)
-        expect(
-          (
-            await requestJson(recipient, '/api/auth/organization/accept-invitation', {
-              invitationId: id,
-            })
-          ).status
-        ).toBe(200)
-      else pending.push({ recipient, id })
-    }
-    await grantWorkspacePlan(org, 'pro')
-    const responses = await Promise.all(
-      pending.map(({ recipient, id }) =>
-        requestJson(recipient, '/api/auth/organization/accept-invitation', { invitationId: id })
-      )
-    )
-    expect(responses.map((response) => response.status).sort()).toEqual([200, 403])
-    for (const [index, entry] of pending.entries()) {
-      const result = await browserRequest(
-        entry.recipient,
-        `/api/auth/organization/get-invitation?id=${entry.id}`
-      )
-      expect(invitationState.parse(result.body).status).toBe(
-        responses[index].status === 200 ? 'accepted' : 'pending'
-      )
-    }
-    const db = createE2EDatabase()
+test(
+  'two real recipient sessions cannot both accept the final paid seat',
+  { tag: '@journey' },
+  async ({ browser, identity, page, workspace }) => {
+    const org = workspace.id
+    await grantWorkspacePlan(org, 'business')
+    const contexts = []
+    const pending = []
     try {
+      for (let index = 0; index < 5; index++) {
+        const context = await browser.newContext()
+        contexts.push(context)
+        const recipient = await context.newPage()
+        const email = `seat${index}-${identity.email}`
+        const invited = await requestJson(page, '/api/auth/organization/invite-member', {
+          email,
+          role: 'viewer',
+          organizationId: org,
+        })
+        expect(invited.status).toBe(200)
+        const { id } = invitationSchema.parse(invited.body)
+        await signUpViaApi({ ...identity, email }, recipient)
+        if (index < 3)
+          expect(
+            (
+              await requestJson(recipient, '/api/auth/organization/accept-invitation', {
+                invitationId: id,
+              })
+            ).status
+          ).toBe(200)
+        else pending.push({ recipient, id })
+      }
+      await grantWorkspacePlan(org, 'pro')
+      const responses = await Promise.all(
+        pending.map(({ recipient, id }) =>
+          requestJson(recipient, '/api/auth/organization/accept-invitation', { invitationId: id })
+        )
+      )
+      expect(responses.map((response) => response.status).sort()).toEqual([200, 403])
+      for (const [index, entry] of pending.entries()) {
+        const result = await browserRequest(
+          entry.recipient,
+          `/api/auth/organization/get-invitation?id=${entry.id}`
+        )
+        expect(invitationState.parse(result.body).status).toBe(
+          responses[index].status === 200 ? 'accepted' : 'pending'
+        )
+      }
       const result = await db.query(
         'SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1',
         [org]
       )
       expect(result.rows[0].total).toBe(5)
     } finally {
-      await db.end()
+      await Promise.all(contexts.map((context) => context.close()))
     }
-  } finally {
-    await Promise.all(contexts.map((context) => context.close()))
   }
-})
+)

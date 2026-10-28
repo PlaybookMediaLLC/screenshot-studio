@@ -1,19 +1,11 @@
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import { createDraftWorkspace, type DraftWorkspace } from './framework/content-drafts'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
+import { apiRequest, expect, test } from './framework'
 
-configureE2EFlow()
-
-test('bulk imports recover rejected rows and reconcile a lost response after reload', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
-    await page.goto('/write')
+test(
+  'bulk imports recover rejected rows and reconcile a lost response after reload',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
+    await app.open('/write')
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     await page
       .getByLabel('Batch CSV', { exact: true })
@@ -63,7 +55,7 @@ test('bulk imports recover rejected rows and reconcile a lost response after rel
     await expect(page.getByLabel('Caption for import row 1')).toBeDisabled()
     expect(acceptedId).not.toBe('')
     const savedRequest = requests.at(-1)
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     await expect(page.getByTestId('bulk-import')).toContainText('Resumed this tab’s import')
     await page.getByRole('button', { name: 'Create remaining drafts' }).click()
@@ -78,28 +70,22 @@ test('bulk imports recover rejected rows and reconcile a lost response after rel
     expect((persisted.body as { plainText: string }).plainText).toBe('Response lost')
     const first = await apiRequest(page, `/api/v1/content-drafts/${firstURL!.split('/').at(-1)}`)
     expect((first.body as { plainText: string }).plainText).toBe('Corrected draft')
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     await expect(page.getByRole('link', { name: 'Draft created' })).toHaveAttribute(
       'href',
       `/write/${acceptedId}`
     )
     await expect(page.getByRole('button', { name: 'Create remaining drafts' })).toBeDisabled()
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('bulk import refuses to send when its durable browser receipt cannot be saved', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(120_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
-    await page.goto('/write')
+test(
+  'bulk import refuses to send when its durable browser receipt cannot be saved',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
+    await app.open('/write')
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     let creates = 0
     page.on('request', (request) => {
@@ -125,8 +111,5 @@ test('bulk import refuses to send when its durable browser receipt cannot be sav
     await expect(page.getByLabel('Batch CSV', { exact: true })).toContainText('Keep this text')
     await expect(page.getByRole('button', { name: 'Create remaining drafts' })).toHaveCount(0)
     expect(creates).toBe(0)
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

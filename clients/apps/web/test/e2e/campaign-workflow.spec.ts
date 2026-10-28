@@ -1,8 +1,16 @@
-import { chooseOption } from './framework/browser'
+import {
+  chooseOption,
+  createWorkspace,
+  type E2EIdentity,
+  expect,
+  getE2EUrl,
+  test,
+  trpcMutation,
+  trpcQuery,
+} from './framework'
 import { z } from 'zod'
-import { getE2EUrl, signUpAndCreateWorkspace } from './framework/auth'
-import { trpcMutation, trpcQuery } from './framework/trpc'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const surfaceSchema = z.object({ productSurface: z.object({ id: z.string() }) })
 const releaseSchema = z.object({ release: z.object({ id: z.string().uuid() }) })
@@ -16,15 +24,13 @@ const campaignSchema = z.object({
 })
 const campaignListSchema = z.object({ campaigns: z.array(z.object({ id: z.string() })) })
 
-configureE2EFlow()
-
 test('a founder connects a product, describes a release, and returns to the same draft', async ({
+  app,
   browser,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await page.goto(getE2EUrl('/campaigns'))
+  await app.open('/campaigns')
   await page.getByRole('link', { name: 'New campaign' }).click()
 
   await page.getByLabel('Product name').fill('Ledgerly')
@@ -54,7 +60,7 @@ test('a founder connects a product, describes a release, and returns to the same
   }
   await assertDraft()
 
-  await page.reload()
+  await app.reload()
   await assertDraft()
   expect(new URL(page.url()).pathname).toBe(campaignPath)
 
@@ -90,7 +96,6 @@ test('campaign context stays inside its workspace and survives surface deletion'
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const surface = surfaceSchema.parse(
     (
       await trpcMutation(page, 'productSurface.create', {
@@ -152,7 +157,7 @@ test('campaign context stays inside its workspace and survives surface deletion'
   const otherContext = await browser.newContext()
   const otherPage = await otherContext.newPage()
   try {
-    await signUpAndCreateWorkspace(other, otherPage)
+    await createWorkspace(other, otherPage)
     const foreign = [
       await trpcQuery(otherPage, 'campaign.get', { campaignId: campaign.id }),
       await trpcQuery(otherPage, 'release.get', { releaseId: release.id }),

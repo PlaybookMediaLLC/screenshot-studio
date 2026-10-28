@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { browserRequest, expect, requestJson, test } from './framework'
 
 const secretNames = [
   'AUDIT_DRAIN_ENCRYPTION_KEY',
@@ -47,8 +46,6 @@ function getComposeLogs(): string {
     { cwd: '../../..', encoding: 'utf8' }
   )
 }
-
-configureE2EFlow()
 
 test('server secrets never appear in browser data or local dependency logs', async ({
   app,

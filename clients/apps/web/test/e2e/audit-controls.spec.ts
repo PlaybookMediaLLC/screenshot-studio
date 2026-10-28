@@ -1,19 +1,18 @@
 import {
+  browserRequest,
   enableTwoFactor,
+  expect,
   getActiveOrganizationId,
   openWorkspaceSetting,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
+  test,
+} from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('an owner can manage and search audited retention and SIEM controls', async ({
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
   await enableTwoFactor(page, identity.password)
   await openWorkspaceSetting(page, 'Audit log')

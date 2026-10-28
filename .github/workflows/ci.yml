@@ -243,33 +243,24 @@ jobs:
   integration:
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-    # Stack start, route warm-up, a sixth of the suite with retries, and on
-    # the last shard the recovery check. A third of the suite outgrew 45
-    # minutes, so every shard was cancelled before it reported.
+    # Stack start, route warm-up, a third of the suite on 4 workers, and on
+    # the last shard the recovery check.
     timeout-minutes: 45
     env:
       E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:
       fail-fast: false
-      # Six full-suite shards plus an independent Plan/Analyze acceptance run.
-      # The focused run ensures these long workflows execute even when unrelated
-      # browser regressions exhaust a full-suite shard's time budget.
+      # Each shard runs its third of the suite on 4 Playwright workers
+      # (playwright.config.ts). The framework isolates every test, so the
+      # Plan/Analyze journeys run in the suite, not in a separate job.
       matrix:
         include:
-          - shard: '1/6'
+          - shard: '1/3'
             shard_index: 1
-          - shard: '2/6'
+          - shard: '2/3'
             shard_index: 2
-          - shard: '3/6'
+          - shard: '3/3'
             shard_index: 3
-          - shard: '4/6'
-            shard_index: 4
-          - shard: '5/6'
-            shard_index: 5
-          - shard: '6/6'
-            shard_index: 6
-          - shard: 'plan-analyze'
-            shard_index: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -324,12 +315,34 @@ jobs:
         run: VERIFY_BASE_URL=http://127.0.0.1:3000 npm run verify:agents
       - name: Verify tenant isolation
         run: ./dev/studio tenant-isolation
+      # The production lane's web image (dev/compose.e2e.yaml), built once
+      # with the layer cache the validation job fills from the same Dockerfile.
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the production web image for the browser flows
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: clients/apps/web/Dockerfile
+          tags: screenshot-studio-web-e2e
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Verify browser end-to-end flows
-        if: matrix.shard_index <= 6
+        env:
+          E2E_APP_IMAGE_READY: 'true'
         run: ./dev/studio e2e --shard=${{ matrix.shard }}
-      - name: Verify Plan and Analyze acceptance flows
-        if: matrix.shard_index == 7
-        run: ./dev/studio e2e test/e2e/plan-analyze.spec.ts
+      # The suite's time baseline: per-test and setup durations. Before the
+      # recovery check, which runs Playwright again and rewrites the report.
+      - if: always() && hashFiles('clients/apps/web/playwright-report/results-*.json') != ''
+        name: Summarize end-to-end durations
+        working-directory: clients/apps/web
+        run: node scripts/e2e-durations.mjs playwright-report/results-*.json >> "$GITHUB_STEP_SUMMARY"
+      - if: always() && hashFiles('clients/apps/web/playwright-report/results-*.json') != ''
+        name: Upload end-to-end durations
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-durations-${{ github.run_id }}-${{ matrix.shard_index }}
+          path: clients/apps/web/playwright-report/results-*.json
       # Collected before the recovery check, which calls `compose up
       # --force-recreate app` and so destroys the container that served the
       # failing tests. Collecting only at the end left every failure on the
@@ -338,8 +351,11 @@ jobs:
       - if: always() && hashFiles('.local/dev.env') != ''
         name: Collect end-to-end stack logs
         run: docker compose --env-file .local/dev.env --file dev/compose.yaml --profile e2e logs --no-color
+      # On the shard with the most time to spare (alphabetical shards by test count).
       - name: Verify dependency failure and recovery
-        if: matrix.shard_index == 6
+        if: matrix.shard_index == 2
+        env:
+          E2E_APP_IMAGE_READY: 'true'
         run: make e2e-recovery
       - if: failure() || cancelled()
         name: Upload Playwright artifacts

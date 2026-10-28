@@ -3,17 +3,26 @@ import { mkdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import JSZip from 'jszip'
 import sharp from 'sharp'
-import type { Browser, Page } from '@playwright/test'
+import {
+  type Browser,
+  chooseOption,
+  db,
+  type E2EIdentity,
+  expect,
+  getActiveOrganizationId,
+  getE2EUrl,
+  grantWorkspacePlan,
+  type Page,
+  requestJson,
+  signUpViaApi,
+  test,
+  trpcMutation,
+  trpcQuery,
+  uploadSignedAsset,
+} from './framework'
 import { z } from 'zod'
 import type { CanvasDocument } from '@/lib/canvas/document'
-import { getActiveOrganizationId, getE2EUrl, signUpViaApi } from './framework/auth'
-import { requestJson, uploadSignedAsset } from './framework/browser'
-import { chooseOption } from './framework/controls'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
-import { trpcMutation, trpcQuery } from './framework/trpc'
 
-configureE2EFlow()
 test.setTimeout(600_000)
 test.use({ actionTimeout: 30_000, viewport: { width: 1600, height: 1000 } })
 
@@ -149,11 +158,12 @@ async function uploadWorkspaceImage(page: Page, file: string) {
 }
 
 test('A: a manual product announcement survives reload and exports what was composed', async ({
+  app,
   identity,
   page,
 }) => {
   await setUp(identity, page)
-  await page.goto(getE2EUrl('/projects'))
+  await app.open('/projects')
   await page
     .getByRole('complementary', { name: 'Primary navigation' })
     .getByRole('link', { name: 'Library', exact: true })
@@ -219,7 +229,7 @@ test('A: a manual product announcement survives reload and exports what was comp
   await saved(page)
 
   const before = await stored(page, canvasId)
-  await page.reload()
+  await app.reload()
   await previewsReady(page)
   const after = await stored(page, canvasId)
   expect(after).toEqual(before)
@@ -241,11 +251,12 @@ test('A: a manual product announcement survives reload and exports what was comp
 })
 
 test('B: a multi-artboard campaign adapts formats, persists and exports a ZIP', async ({
+  app,
   identity,
   page,
 }) => {
   await setUp(identity, page)
-  await page.goto(getE2EUrl('/canvas/new?start=template'))
+  await app.open('/canvas/new?start=template')
   await page.getByRole('button', { name: /^Feature announcement/ }).click()
   await page.getByLabel('Headline', { exact: true }).fill('Bulk approvals')
   await page.getByLabel('Supporting line').fill('Approve ten launches at once.')
@@ -274,7 +285,7 @@ test('B: a multi-artboard campaign adapts formats, persists and exports a ZIP', 
   await page.keyboard.press('Shift+Digit1')
   await page.screenshot({ path: path.join(out, 'b-campaign-board.png') })
 
-  await page.reload()
+  await app.reload()
   await previewsReady(page)
   const document = (await stored(page, canvasId)).document
   expect(document.artboards.map((artboard) => [artboard.name, size(artboard.document)])).toEqual([
@@ -312,6 +323,7 @@ test('B: a multi-artboard campaign adapts formats, persists and exports a ZIP', 
 })
 
 test('C: a generated campaign design is refined on a canvas without touching its approval', async ({
+  app,
   identity,
   page,
 }) => {
@@ -349,116 +361,104 @@ test('C: a generated campaign design is refined on a canvas without touching its
       },
     ],
   }
-  const database = createE2EDatabase()
-  try {
-    const organizationId = await getActiveOrganizationId(page)
-    await database.query(
-      `INSERT INTO design (id, "organizationId", "campaignId", name, document, "renderedAssetId", "planAssetKey", "updatedAt")
+  const organizationId = await getActiveOrganizationId(page)
+  await db.query(
+    `INSERT INTO design (id, "organizationId", "campaignId", name, document, "renderedAssetId", "planAssetKey", "updatedAt")
        VALUES ($1, $2, $3, 'Launch hero', $4, $5, 'A1', now())`,
-      [designId, organizationId, campaignId, JSON.stringify(original), assetId]
-    )
-    // Production records a render's size when it renders; this seeded render needs it too.
-    const { width, height } = await sharp(await readFile(SCREENSHOT)).metadata()
-    await database.query('UPDATE asset SET width = $2, height = $3 WHERE id = $1', [
-      assetId,
-      width,
-      height,
-    ])
-    const approval = await trpcMutation(page, 'campaign.approveDesign', { campaignId, designId })
-    expect(approval.status, JSON.stringify(approval.body)).toBe(200)
-    const approvedBefore = await queryRow<{ id: string; sourceAssetId: string }>(
-      database,
-      `SELECT id, "sourceAssetId" FROM creative_variant WHERE "designId" = $1`,
-      [designId]
-    )
-    expect(approvedBefore).not.toBeNull()
+    [designId, organizationId, campaignId, JSON.stringify(original), assetId]
+  )
+  // Production records a render's size when it renders; this seeded render needs it too.
+  const { width, height } = await sharp(await readFile(SCREENSHOT)).metadata()
+  await db.query('UPDATE asset SET width = $2, height = $3 WHERE id = $1', [assetId, width, height])
+  const approval = await trpcMutation(page, 'campaign.approveDesign', { campaignId, designId })
+  expect(approval.status, JSON.stringify(approval.body)).toBe(200)
+  const approvedBefore = await db.row<{ id: string; sourceAssetId: string }>(
+    `SELECT id, "sourceAssetId" FROM creative_variant WHERE "designId" = $1`,
+    [designId]
+  )
+  expect(approvedBefore).not.toBeNull()
 
-    await page.goto(getE2EUrl(`/campaigns/${campaignId}/assets`))
-    await page.getByRole('link', { name: 'Edit in Canvas' }).first().click()
-    await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
-    const canvasId = canvasIdOf(page)
-    await previewsReady(page)
-    await selectArtboard(page, 'Launch hero')
-    await expect(page.getByTestId('artboard-lineage')).toContainText('campaign design')
+  await app.open(`/campaigns/${campaignId}/assets`)
+  await page.getByRole('link', { name: 'Edit in Canvas' }).first().click()
+  await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
+  const canvasId = canvasIdOf(page)
+  await previewsReady(page)
+  await selectArtboard(page, 'Launch hero')
+  await expect(page.getByTestId('artboard-lineage')).toContainText('campaign design')
 
-    await openArtboard(page, 'Launch hero')
-    await page.locator('#image-render-card [data-text-overlay-id]').first().click()
-    await page.getByLabel('Text content').fill('Approve every launch in one queue')
-    const chooser = page.waitForEvent('filechooser')
-    await page.getByRole('button', { name: 'Replace screenshot' }).click()
-    await (await chooser).setFiles(OTHER_SCREENSHOT)
-    await saved(page)
-    await clickEmptyBoard(page)
-    await selectArtboard(page, 'Launch hero')
-    await chooseOption(page.getByLabel('Size preset'), '1:1 · 1080 × 1080')
-    await saved(page)
-    await page.getByRole('button', { name: 'History', exact: true }).click()
-    await page.getByLabel('Version name').fill('Refined by hand')
-    await page.getByRole('button', { name: 'Save version' }).click()
-    await expect(page.getByRole('list', { name: 'Versions' })).toContainText('Refined by hand')
-    await page.keyboard.press('Escape')
+  await openArtboard(page, 'Launch hero')
+  await page.locator('#image-render-card [data-text-overlay-id]').first().click()
+  await page.getByLabel('Text content').fill('Approve every launch in one queue')
+  const chooser = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Replace screenshot' }).click()
+  await (await chooser).setFiles(OTHER_SCREENSHOT)
+  await saved(page)
+  await clickEmptyBoard(page)
+  await selectArtboard(page, 'Launch hero')
+  await chooseOption(page.getByLabel('Size preset'), '1:1 · 1080 × 1080')
+  await saved(page)
+  await page.getByRole('button', { name: 'History', exact: true }).click()
+  await page.getByLabel('Version name').fill('Refined by hand')
+  await page.getByRole('button', { name: 'Save version' }).click()
+  await expect(page.getByRole('list', { name: 'Versions' })).toContainText('Refined by hand')
+  await page.keyboard.press('Escape')
 
-    const canvas = (await stored(page, canvasId)).document
-    const artboard = canvas.artboards[0]!
-    expect(artboard.origin).toMatchObject({ kind: 'design', id: designId, campaignId })
-    expect(artboard.document.texts[0]!.text).toBe('Approve every launch in one queue')
-    expect(artboard.document.image.src).not.toBe(`asset:${assetId}`)
-    const untouched = await trpcQuery(page, 'design.get', { designId })
-    expect(
-      (
-        untouched.body as {
-          design: { document: { texts: { text: string }[]; image: { src: string } } }
-        }
-      ).design.document
-    ).toMatchObject({ texts: [{ text: 'Generated headline' }], image: { src: `asset:${assetId}` } })
+  const canvas = (await stored(page, canvasId)).document
+  const artboard = canvas.artboards[0]!
+  expect(artboard.origin).toMatchObject({ kind: 'design', id: designId, campaignId })
+  expect(artboard.document.texts[0]!.text).toBe('Approve every launch in one queue')
+  expect(artboard.document.image.src).not.toBe(`asset:${assetId}`)
+  const untouched = await trpcQuery(page, 'design.get', { designId })
+  expect(
+    (
+      untouched.body as {
+        design: { document: { texts: { text: string }[]; image: { src: string } } }
+      }
+    ).design.document
+  ).toMatchObject({ texts: [{ text: 'Generated headline' }], image: { src: `asset:${assetId}` } })
 
-    const { dialog } = await exportFiles(page)
-    await dialog.getByRole('button', { name: 'Save to workspace' }).click()
-    await expect(dialog.getByRole('button', { name: 'Saved to workspace' })).toBeVisible({
-      timeout: 90_000,
-    })
-    await page.keyboard.press('Escape')
-    await page.getByRole('button', { name: 'Campaign', exact: true }).click()
-    const handoff = page.getByRole('dialog', { name: 'Send to a campaign for review' })
-    await chooseOption(handoff.getByLabel('Campaign'), 'Approvals launch')
-    await handoff.getByLabel('Post copy').fill('Approve every launch in one queue.')
-    await handoff.getByRole('button', { name: 'Attach for review' }).click()
-    await expect(handoff.getByText('Attached as a draft for review.')).toBeVisible({
-      timeout: 60_000,
-    })
-    await page.screenshot({ path: path.join(out, 'c-handoff.png') })
+  const { dialog } = await exportFiles(page)
+  await dialog.getByRole('button', { name: 'Save to workspace' }).click()
+  await expect(dialog.getByRole('button', { name: 'Saved to workspace' })).toBeVisible({
+    timeout: 90_000,
+  })
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Campaign', exact: true }).click()
+  const handoff = page.getByRole('dialog', { name: 'Send to a campaign for review' })
+  await chooseOption(handoff.getByLabel('Campaign'), 'Approvals launch')
+  await handoff.getByLabel('Post copy').fill('Approve every launch in one queue.')
+  await handoff.getByRole('button', { name: 'Attach for review' }).click()
+  await expect(handoff.getByText('Attached as a draft for review.')).toBeVisible({
+    timeout: 60_000,
+  })
+  await page.screenshot({ path: path.join(out, 'c-handoff.png') })
 
-    const candidate = await queryRow<{
-      name: string
-      critique: { storyHandoff: { setId: string } }
-    }>(database, `SELECT name, critique FROM design WHERE "campaignId" = $1 AND id <> $2`, [
-      campaignId,
-      designId,
-    ])
-    expect(candidate?.name).toBe(`${(await stored(page, canvasId)).name} · canvas artboard`)
-    expect(candidate?.critique.storyHandoff.setId).toBe(canvasId)
-    expect(
-      await queryRow(database, `SELECT status FROM campaign_post WHERE "campaignId" = $1`, [
-        campaignId,
-      ])
-    ).toEqual({ status: 'DRAFT' })
-    const approvedAfter = await queryRow<{ id: string; sourceAssetId: string }>(
-      database,
-      `SELECT id, "sourceAssetId" FROM creative_variant WHERE "designId" = $1`,
-      [designId]
-    )
-    expect(approvedAfter).toEqual(approvedBefore)
-  } finally {
-    await database.end()
-  }
+  const candidate = await db.row<{
+    name: string
+    critique: { storyHandoff: { setId: string } }
+  }>(`SELECT name, critique FROM design WHERE "campaignId" = $1 AND id <> $2`, [
+    campaignId,
+    designId,
+  ])
+  expect(candidate?.name).toBe(`${(await stored(page, canvasId)).name} · canvas artboard`)
+  expect(candidate?.critique.storyHandoff.setId).toBe(canvasId)
+  expect(
+    await db.row(`SELECT status FROM campaign_post WHERE "campaignId" = $1`, [campaignId])
+  ).toEqual({ status: 'DRAFT' })
+  const approvedAfter = await db.row<{ id: string; sourceAssetId: string }>(
+    `SELECT id, "sourceAssetId" FROM creative_variant WHERE "designId" = $1`,
+    [designId]
+  )
+  expect(approvedAfter).toEqual(approvedBefore)
 })
 
 test('D: an interrupted save is recovered and a conflicting edit is kept as a copy', async ({
+  app,
   identity,
   page,
 }) => {
   await setUp(identity, page)
-  await page.goto(getE2EUrl('/canvas/new?blank=1'))
+  await app.open('/canvas/new?blank=1')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   const canvasId = canvasIdOf(page)
   await previewsReady(page)
@@ -482,7 +482,7 @@ test('D: an interrupted save is recovered and a conflicting edit is kept as a co
     .toBe('Saved name')
   // Leaving with unsaved work asks first; the reload goes ahead and the draft stays on the device.
   page.once('dialog', (dialog) => void dialog.accept())
-  await page.reload()
+  await app.reload()
   const recovery = page.getByRole('dialog', { name: 'Recover unsaved work' })
   await expect(recovery).toBeVisible({ timeout: 60_000 })
   await page.unroute(updates, block)
@@ -611,17 +611,18 @@ async function otherWorkspace(browser: Browser, identity: E2EIdentity) {
 }
 
 test('F: the Library page manager reorders, duplicates, deletes and adds pages in one save', async ({
+  app,
   identity,
   page,
 }) => {
   await setUp(identity, page)
-  await page.goto(getE2EUrl('/canvas/new?recipe=product-launch'))
+  await app.open('/canvas/new?recipe=product-launch')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   const canvasId = canvasIdOf(page)
   const before = (await stored(page, canvasId)).document.artboards.map((board) => board.name)
   expect(before).toHaveLength(5)
 
-  await page.goto(getE2EUrl('/library?type=canvas'))
+  await app.open('/library?type=canvas')
   await page.getByRole('button', { name: /^Manage the pages of / }).click()
   const dialog = page.getByRole('dialog')
   const pages = dialog.getByRole('list', { name: 'Pages' }).locator(':scope > li[draggable]')

@@ -1,10 +1,17 @@
 import { createHmac, randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { openWorkspaceSetting, signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { trpcMutation } from './framework/trpc'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, queryRows } from './framework/services'
+import {
+  browserRequest,
+  createWorkspace,
+  db,
+  expect,
+  openWorkspaceSetting,
+  requestJson,
+  test,
+  trpcMutation,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const sourceSchema = z.object({ sourceApp: z.object({ id: z.string().min(1) }) })
 const apiKeySchema = z.object({ apiKey: z.object({ key: z.string().min(1) }) })
@@ -29,37 +36,20 @@ function getWebhookSecret(): string {
 
 // Dispatch is the Go maintenance worker's job; ingestion only queues the event.
 async function getIngestOutboxEvent(releaseId: string) {
-  const database = createE2EDatabase()
-  try {
-    return await queryRows(
-      database,
-      `SELECT * FROM outbox_event WHERE "aggregateId" = $1 AND type = 'release.ingested'`,
-      [releaseId]
-    )
-  } finally {
-    await database.end()
-  }
+  return await db.rows(
+    `SELECT * FROM outbox_event WHERE "aggregateId" = $1 AND type = 'release.ingested'`,
+    [releaseId]
+  )
 }
 
 async function setSourceStatus(sourceAppId: string, status: 'DRAFT'): Promise<void> {
-  const database = createE2EDatabase()
-  try {
-    await database.query('UPDATE source_app SET status = $1, "updatedAt" = now() WHERE id = $2', [
-      status,
-      sourceAppId,
-    ])
-  } finally {
-    await database.end()
-  }
+  await db.query('UPDATE source_app SET status = $1, "updatedAt" = now() WHERE id = $2', [
+    status,
+    sourceAppId,
+  ])
 }
 
-configureE2EFlow()
-
-test('a signed webhook creates one release and rejects invalid replays', async ({
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('a signed webhook creates one release and rejects invalid replays', async ({ page }) => {
   const source = sourceSchema.parse(
     (
       await requestJson(page, '/api/tenant/source-apps', {
@@ -122,10 +112,8 @@ test('a signed webhook creates one release and rejects invalid replays', async (
 })
 
 test('a GitHub source holds merges into its branch for the next release and ignores the rest', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const fullRef = await requestJson(page, '/api/tenant/source-apps', {
     allowedHosts: ['https://api.github.com'],
     branch: 'refs/heads/release',
@@ -223,20 +211,14 @@ test('a GitHub source holds merges into its branch for the next release and igno
   // The next release takes every held merge as a feature; the ignored author's is absent.
   const first = await deliver('release', release(1, true))
   expect(first.status).toBe(201)
-  const database = createE2EDatabase()
-  try {
-    const [stored] = await queryRows<{ features: Array<{ number?: number; title: string }> }>(
-      database,
-      'SELECT features FROM release WHERE id = $1',
-      [webhookResultSchema.parse(first.body).releaseId]
-    )
-    expect(stored.features.map((feature) => feature.number).sort()).toEqual([452, 453, 455])
-    expect(stored.features).toContainEqual(
-      expect.objectContaining({ number: 452, title: 'Add recurring invoices' })
-    )
-  } finally {
-    await database.end()
-  }
+  const [stored] = await db.rows<{ features: Array<{ number?: number; title: string }> }>(
+    'SELECT features FROM release WHERE id = $1',
+    [webhookResultSchema.parse(first.body).releaseId]
+  )
+  expect(stored.features.map((feature) => feature.number).sort()).toEqual([452, 453, 455])
+  expect(stored.features).toContainEqual(
+    expect.objectContaining({ number: 452, title: 'Add recurring invoices' })
+  )
   // Pre-releases are kept until the source skips them.
   await updateRules({ skipPrereleases: true })
   expect((await deliver('release', release(2, true))).status).toBe(202)
@@ -258,7 +240,6 @@ test('only the owning workspace, with source:write, can change a source’s rule
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const source = sourceSchema.parse(
     (
       await requestJson(page, '/api/tenant/source-apps', {
@@ -296,7 +277,7 @@ test('only the owning workspace, with source:write, can change a source’s rule
   const otherContext = await browser.newContext()
   const otherPage = await otherContext.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `other-${identity.email}`,
@@ -314,10 +295,8 @@ test('only the owning workspace, with source:write, can change a source’s rule
 })
 
 test('a GitHub source set up in Developer API settings shows a working URL and secret once', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   await openWorkspaceSetting(page, 'Developer API')
   await page.getByLabel('Source name').fill('UI GitHub source')
   await page.getByLabel('Branch', { exact: true }).fill('release')
@@ -389,10 +368,8 @@ test('a GitHub source set up in Developer API settings shows a working URL and s
 })
 
 test('a generic source rejects stale events and stops ingesting when disabled', async ({
-  identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const source = sourceSchema.parse(
     (
       await requestJson(page, '/api/tenant/source-apps', {

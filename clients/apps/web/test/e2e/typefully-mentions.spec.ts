@@ -1,26 +1,12 @@
-import { expect } from '@playwright/test'
-import {
-  createDraftWorkspace,
-  draftEditor,
-  expectSaved,
-  openNewDraft,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { configureE2EFlow, test } from './framework/flow'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
-import { createE2EDatabase, queryRows } from './framework/services'
-configureE2EFlow()
+import { apiRequest, db, draftEditor, expect, expectSaved, openNewDraft, test } from './framework'
 
-test('LinkedIn recent people and companies preserve native identities from picker through scheduled snapshot', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  const pageErrors: string[] = []
-  page.on('pageerror', (error) => pageErrors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['linkedin'])
+test(
+  'LinkedIn recent people and companies preserve native identities from picker through scheduled snapshot',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const pageErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
+    await startWorkspace({ channels: ['linkedin'] })
     const oldId = await openNewDraft(page)
     const old = (await apiRequest(page, `/api/v1/content-drafts/${oldId}`)).body as {
       version: number
@@ -53,7 +39,9 @@ test('LinkedIn recent people and companies preserve native identities from picke
       },
     })
     expect(seeded.status, JSON.stringify(seeded.body)).toBe(200)
-    const removed = await apiRequest(page, `/api/v1/content-drafts/${oldId}`, { method: 'DELETE' })
+    const removed = await apiRequest(page, `/api/v1/content-drafts/${oldId}`, {
+      method: 'DELETE',
+    })
     expect(removed.status).toBe(200)
     const id = await openNewDraft(page)
     await draftEditor(page).click()
@@ -71,7 +59,7 @@ test('LinkedIn recent people and companies preserve native identities from picke
     await picker.getByRole('button', { name: 'Recently mentioned companies', exact: true }).click()
     await picker.getByTestId('mention-result').filter({ hasText: 'Acme [Labs]' }).click()
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(draftEditor(page).getByTestId('social-mention')).toHaveCount(2)
     await page.getByRole('button', { name: 'Preview', exact: true }).first().click()
     const preview = page.getByTestId('preview-linkedin')
@@ -88,26 +76,17 @@ test('LinkedIn recent people and companies preserve native identities from picke
     await dialog.getByLabel('Open a new draft after scheduling').uncheck()
     await dialog.getByRole('button', { name: /^Confirm schedule/ }).click()
     await expect(dialog).toHaveCount(0)
-    const db = createE2EDatabase()
-    try {
-      const rows = await queryRows<{ caption: string }>(
-        db,
-        'SELECT caption FROM scheduled_post WHERE "contentDraftId"=$1',
-        [id]
-      )
-      expect(rows).toHaveLength(1)
-      expect(rows[0].caption).toContain(String.raw`@[Anne \(AJ\) Doe](urn:li:person:Abc_123)`)
-      expect(rows[0].caption).toContain(String.raw`@[Acme \[Labs\]](urn:li:organization:42)`)
-    } finally {
-      await db.end()
-    }
+    const rows = await db.rows<{ caption: string }>(
+      'SELECT caption FROM scheduled_post WHERE "contentDraftId"=$1',
+      [id]
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0].caption).toContain(String.raw`@[Anne \(AJ\) Doe](urn:li:person:Abc_123)`)
+    expect(rows[0].caption).toContain(String.raw`@[Acme \[Labs\]](urn:li:organization:42)`)
     expect(pageErrors).toEqual([])
     await page.screenshot({
       path: '.context/shots/typefully-linkedin-mentions.png',
       fullPage: true,
     })
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

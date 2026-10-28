@@ -1,23 +1,23 @@
-import { connectionAvailabilityFixture } from './framework/social-availability'
-import { randomUUID } from 'node:crypto'
-import { socialOAuthBeginRequestSchema } from 'screenshot-studio-backend-sdk'
-import { socialSetListSchema } from '../../lib/api/contracts/social-sets'
-import { socialMockPort } from './framework/content-drafts'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { chooseOption } from './framework/controls'
-import { getE2EUrl } from './framework/auth'
-import { startHttpMockServer } from './framework/http-server'
 import {
   apiRequest,
   bindTestGoOrganization,
-  createPublishingWorkspace,
-  enablePublishingTwoFactor,
+  chooseOption,
+  connectionAvailabilityFixture,
+  createWorkspace,
+  enableTwoFactor,
+  expect,
+  getE2EUrl,
+  socialMockPort,
+  startHttpMockServer,
+  test,
   unbindTestGoOrganization,
-} from './framework/publishing'
-
-configureE2EFlow()
+} from './framework'
+import { randomUUID } from 'node:crypto'
+import { socialOAuthBeginRequestSchema } from 'screenshot-studio-backend-sdk'
+import { socialSetListSchema } from '../../lib/api/contracts/social-sets'
 
 test('custom Mastodon authorization keeps the selected origin and commits one private set', async ({
+  app,
   identity,
   page,
 }) => {
@@ -45,8 +45,8 @@ test('custom Mastodon authorization keeps the selected origin and commits one pr
     return { status: 404 }
   }, socialMockPort)
   try {
-    await createPublishingWorkspace(identity, page)
-    await enablePublishingTwoFactor(page, identity.password)
+    await createWorkspace(identity, page)
+    await enableTwoFactor(page, identity.password)
     organizationId = await bindTestGoOrganization(page)
     // Only the remote metadata and provider protocol are fixtures. Ownership commits in Go/Postgres.
     await page.route('**/api/v1/social-instances/mastodon?*', (route) => {
@@ -64,7 +64,7 @@ test('custom Mastodon authorization keeps the selected origin and commits one pr
     await page.route('https://social.example/oauth/authorize**', (route) =>
       route.fulfill({ contentType: 'text/html', body: '<h1>Fixture Mastodon authorization</h1>' })
     )
-    await page.goto('/workspace/social-sets')
+    await app.open('/workspace/social-sets')
     await page
       .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
       .click()
@@ -105,7 +105,7 @@ test('custom Mastodon authorization keeps the selected origin and commits one pr
       primaryPlatform: 'mastodon',
       accounts: [{ platform: 'mastodon-custom' }],
     })
-    await page.reload()
+    await app.reload()
     await page.goto(callback)
     const repeated = socialSetListSchema.parse(
       (await apiRequest(page, '/api/v1/social-sets')).body

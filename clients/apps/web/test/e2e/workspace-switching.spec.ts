@@ -1,12 +1,15 @@
 import { z } from 'zod'
 import {
   acceptInvitation,
+  browserRequest,
+  createWorkspace,
+  type E2EIdentity,
+  expect,
   findActiveOrganizationId,
-  getE2EUrl,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
+  getActiveOrganizationId,
+  requestJson,
+  test,
+} from './framework'
 
 const invitationSchema = z.object({ id: z.string() })
 const releasesSchema = z.object({ releases: z.array(z.object({ title: z.string() })) })
@@ -46,12 +49,12 @@ async function switchWorkspace(
   ])
 }
 
-configureE2EFlow()
-
 test('a member can switch workspaces without crossing tenant data', async ({
+  app,
   browser,
   identity,
   page,
+  workspace,
 }) => {
   const firstTitle = 'First workspace release'
   const secondIdentity: E2EIdentity = {
@@ -59,13 +62,14 @@ test('a member can switch workspaces without crossing tenant data', async ({
     email: `second-owner-${identity.email}`,
     workspaceName: `Second ${identity.workspaceName}`,
   }
-  const firstOrganizationId = await signUpAndCreateWorkspace(identity, page)
+  const firstOrganizationId = workspace.id
   await createRelease(page, firstTitle)
   const secondContext = await browser.newContext()
   const secondPage = await secondContext.newPage()
 
   try {
-    const secondOrganizationId = await signUpAndCreateWorkspace(secondIdentity, secondPage)
+    await createWorkspace(secondIdentity, secondPage)
+    const secondOrganizationId = await getActiveOrganizationId(secondPage)
     const secondTitle = 'Second workspace release'
     await createRelease(secondPage, secondTitle)
     const invitation = invitationSchema.parse(
@@ -80,7 +84,7 @@ test('a member can switch workspaces without crossing tenant data', async ({
 
     await acceptInvitation(page, invitation.id)
     await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
-    await page.goto(getE2EUrl('/'))
+    await app.open('/')
     await assertReleaseIsolation(page, secondTitle, firstTitle)
 
     await switchWorkspace(page, identity.workspaceName)

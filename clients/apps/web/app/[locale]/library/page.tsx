@@ -11,6 +11,7 @@ import { StorySetLibrary } from '@/components/creative-sets/StorySetLibrary'
 import { WorkspaceAssets } from '@/components/workspace/WorkspaceAssets'
 import { requirePaidPageAccess } from '@/lib/auth/page-access'
 import { hasPermission } from '@/lib/auth/permissions'
+import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 
 export const metadata = { title: 'Library' }
 export default async function LibraryPage({
@@ -32,7 +33,7 @@ export default async function LibraryPage({
       <Page title="Library" description="Everything your team has made.">
         <AreaNavigation label="Library" items={LIBRARY_LINKS} />
         {view === 'assets' ? (
-          <WorkspaceAssets />
+          <WorkspaceAssets canStartPost={canEdit && contentDraftsEnabled()} />
         ) : view === 'templates' ? (
           <TemplateBrowser />
         ) : view === 'brand' ? (

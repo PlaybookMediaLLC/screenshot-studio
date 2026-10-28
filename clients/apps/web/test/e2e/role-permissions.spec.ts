@@ -142,6 +142,36 @@ async function assertRolePermissions(
   expect(
     (await requestJson(page, '/api/v1/social-sets', { name: `Role ${role} set` })).status
   ).toBe(isAdmin ? 201 : 403)
+
+  // New offers what the role may create and names who can grant the rest;
+  // the server checks above still refuse those creations.
+  const canEdit = isAdmin || role === 'creator' || role === 'writer_publisher'
+  await page.goto('/home')
+  await page
+    .getByRole('complementary', { name: 'Primary navigation' })
+    .getByRole('button', { name: 'New', exact: true })
+    .click()
+  const menu = page.getByRole('menu')
+  for (const [item, allowed] of [
+    ['Screenshot', canEdit],
+    ['Canvas', canEdit],
+    ['Post', canEdit],
+    ['Campaign', canCreateRelease || isAdmin],
+    ['Workflow', canManageWorkspace],
+  ] as const) {
+    const entry = menu.getByRole('menuitem', { name: item, exact: true })
+    if (allowed) await expect(entry, `${role}: ${item}`).not.toHaveAttribute('aria-disabled')
+    else await expect(entry, `${role}: ${item}`).toHaveAttribute('aria-disabled', 'true')
+  }
+  if (isAdmin) await expect(menu).not.toContainText('Not available to your')
+  else await expect(menu).toContainText('Ask a workspace owner or admin for access.')
+  await page.keyboard.press('Escape')
+  // Home leaves out the starters the role cannot use instead of leading to a refusal.
+  const starters = page.getByRole('region', { name: 'Start something new' })
+  await expect(starters.getByRole('button', { name: /Write a post/ })).toHaveCount(canEdit ? 1 : 0)
+  await expect(starters.getByText('Ask a workspace owner or admin for more access.')).toHaveCount(
+    isAdmin ? 0 : 1
+  )
 }
 
 test(

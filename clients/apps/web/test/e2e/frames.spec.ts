@@ -87,7 +87,9 @@ async function nextThumbnail(button: Locator, previous: string): Promise<string>
           last = src ?? ''
           stableSince = Date.now()
         }
-        return last !== previous && last.startsWith('data:image/') && Date.now() - stableSince > 2_500
+        return (
+          last !== previous && last.startsWith('data:image/') && Date.now() - stableSince > 2_500
+        )
       },
       { intervals: [500], timeout: 90_000 }
     )

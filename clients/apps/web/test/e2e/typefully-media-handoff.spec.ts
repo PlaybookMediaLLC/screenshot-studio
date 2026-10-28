@@ -129,6 +129,15 @@ test('dragging a thread post preserves its contents and ordering after refresh',
     await page.keyboard.press('ArrowLeft')
     await page.keyboard.press('ArrowLeft')
     await expect(resize).toHaveAttribute('aria-valuenow', String(initialWidth + 64))
+    // The wider sidebar reflows the page and a scrollbar can shift the handle
+    // a moment later; measure it only once it has stopped moving.
+    await expect
+      .poll(async () => {
+        const before = JSON.stringify(await resize.boundingBox())
+        await page.waitForTimeout(200)
+        return before === JSON.stringify(await resize.boundingBox())
+      })
+      .toBe(true)
     const handle = await resize.boundingBox()
     expect(handle).not.toBeNull()
     await page.mouse.move(handle!.x + 2, handle!.y + 80)

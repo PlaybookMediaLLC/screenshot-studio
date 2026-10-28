@@ -181,6 +181,48 @@ test("an open editor becomes read-only before its next live edit", async () => {
   }
 });
 
+test("an update's echo and acknowledgement share one outgoing decision", async () => {
+  const { backend } = fakeBackend();
+  const authorize = backend.authorize;
+  let calls = 0;
+  backend.authorize = async (token, documentName) => {
+    calls += 1;
+    return authorize(token, documentName);
+  };
+  const server = new Server({
+    port: 0,
+    quiet: true,
+    ...collabHooks(backend, () => {}),
+  });
+  await server.listen();
+  const owner = connect(server.address.port, "editor-token");
+  try {
+    await until(() => owner.events.synced, "sync");
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const before = calls;
+    for (let index = 0; index < 10; index += 1) {
+      owner.doc.getText("t").insert(index, "x");
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    await until(
+      () =>
+        server.hocuspocus.documents.get(DOCUMENT)?.getText("t").length === 10,
+      "ten updates"
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    // One decision admits each update; one more releases its echo together with
+    // the sync acknowledgement Hocuspocus sends in the same turn (was two).
+    assert.ok(
+      calls - before <= 20,
+      `${calls - before} decisions for ten updates`
+    );
+  } finally {
+    owner.provider.destroy();
+    owner.doc.destroy();
+    await server.destroy();
+  }
+});
+
 test("a removed idle recipient gets no later document updates or awareness", async () => {
   const { backend, grants } = fakeBackend();
   const server = new Server({

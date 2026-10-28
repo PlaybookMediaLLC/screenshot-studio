@@ -666,6 +666,9 @@ test('published reading links show delivered snapshots and revoke access', async
     })
     expect(scheduled.status, JSON.stringify(scheduled.body)).toBe(201)
     await page.goto(`/write/${draft.id}`)
+    // The composer can append only once the live session has loaded the draft;
+    // until then the reading link has no editor to go into.
+    await expect(draftEditor(page)).toContainText('Unsent reply', { timeout: 60_000 })
     await page.getByRole('button', { name: 'Share', exact: true }).click()
     await page.getByLabel('Public link', { exact: true }).click()
     const link = await page.getByLabel('Public link to share').inputValue()

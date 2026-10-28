@@ -216,6 +216,22 @@ test('interrupted saves recover and a real second writer cannot be overwritten',
   for (const output of other.outputs)
     output.document.texts.find((text) => text.id === output.bindings.headline)!.text =
       'Another writer'
+  // The page's save waits until the other writer has committed, so it carries the
+  // older revision. Written the other way round, the page's 1.5s poll can adopt the
+  // other write first, and the edit then saves on top of it with no conflict.
+  const pageSave = (url: URL) =>
+    url.pathname.endsWith('/creativeSet.updateDocument') && url.searchParams.has('batch')
+  let release = () => {}
+  const held = new Promise<void>((resolve) => (release = resolve))
+  const hold = async (route: Route) => {
+    await held
+    await route.continue()
+  }
+  await page.route(pageSave, hold)
+  const saving = page.waitForRequest((request) => pageSave(new URL(request.url())))
+  await page.getByLabel('Story headline', { exact: true }).fill('Keep my work')
+  await page.getByLabel('Story headline', { exact: true }).press('Tab')
+  await saving
   expect(
     (
       await trpcMutation(page, 'creativeSet.updateDocument', {
@@ -225,8 +241,8 @@ test('interrupted saves recover and a real second writer cannot be overwritten',
       })
     ).status
   ).toBe(200)
-  await page.getByLabel('Story headline', { exact: true }).fill('Keep my work')
-  await page.getByLabel('Story headline', { exact: true }).press('Tab')
+  release()
+  await page.unroute(pageSave, hold)
   await expect(
     page.getByText('This set changed elsewhere. Your local work is preserved.')
   ).toBeVisible()

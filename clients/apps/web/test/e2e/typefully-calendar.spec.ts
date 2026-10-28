@@ -85,8 +85,16 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
     const queued = page
       .getByTestId('draft-post')
       .filter({ has: page.getByRole('button', { name: 'Publish now', exact: true }) })
-    await queued.getByRole('button', { name: 'Publish now', exact: true }).click()
-    await expect(page.getByRole('alertdialog')).toContainText('Later draft edits are not included')
+    // The page renders the trigger before React attaches its handler, so an early
+    // click is dropped; the proof of a handled click is the open dialog.
+    const confirm = page.getByRole('alertdialog')
+    await expect(async () => {
+      if (!(await confirm.isVisible())) {
+        await queued.getByRole('button', { name: 'Publish now', exact: true }).click()
+      }
+      await expect(confirm).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 60_000 })
+    await expect(confirm).toContainText('Later draft edits are not included')
     await page.getByRole('button', { name: 'Keep scheduled' }).click()
     await queued.getByRole('button', { name: 'Publish now', exact: true }).click()
     const publishing = page.waitForResponse(
@@ -117,7 +125,8 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
       // A confirmed provider receipt is seeded; no real network is published to.
       await db.query(
         'UPDATE scheduled_post SET status=\'PUBLISHED\', "remotePostId"=\'123456789\', "scheduledFor"=$2, metrics=$3, "metricsAt"=now() WHERE "contentDraftId"=$1 AND status=\'SCHEDULED\'',
-        [two, past, { likes: 12, replies: 3 }]
+        // ISO, not a Date: node-postgres writes Dates in the host's time zone.
+        [two, past.toISOString(), { likes: 12, replies: 3 }]
       )
       await page.goto(`/write/plan?view=month&week=${anchor.toISOString().slice(0, 10)}`)
       await page

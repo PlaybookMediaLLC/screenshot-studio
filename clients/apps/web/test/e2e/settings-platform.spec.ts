@@ -69,7 +69,8 @@ test('personal settings are addressable, saved on the server and survive a reloa
       ? route.fulfill({ body: '{"error":"Refused for the test."}', status: 500 })
       : route.continue()
   )
-  await page.getByRole('radio', { name: /^Dark/ }).check()
+  // click, not check: the refusal can put the choice back before check() reads it.
+  await page.getByRole('radio', { name: /^Dark/ }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Not saved' }).first()).toBeVisible()
   await expect(page.getByRole('radio', { name: /^Light/ })).toBeChecked()
   await expect(page.locator('html')).toHaveClass(/\blight\b/)
@@ -153,7 +154,7 @@ test('publishing brands keep their own names, schedules and settings beside the 
   await withDraftWorkspace(identity, page, async () => {
     await page.goto('/workspace/social-sets')
     await expect(
-      page.getByRole('heading', { exact: true, level: 2, name: 'Publishing brands' })
+      page.getByRole('heading', { exact: true, level: 1, name: 'Publishing brands' })
     ).toBeVisible()
 
     // Two sets may share a name; each is its own by ID.

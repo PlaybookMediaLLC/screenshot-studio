@@ -122,7 +122,11 @@ test('unknown and malformed links stop loading and provide a way back', async ({
 })
 
 test('failed list requests hide the empty state and can be retried', async ({ page }) => {
-  const fail = (route: Route) => route.abort('internetdisconnected')
+  let searchFailures = 0
+  const fail = (route: Route) => {
+    if (route.request().url().includes('launch')) searchFailures += 1
+    return route.abort('internetdisconnected')
+  }
   await page.route(listRoute, fail)
   await page.goto(getE2EUrl('/creative-sets'))
   await expect(page.getByRole('main').getByRole('alert')).toContainText(
@@ -130,6 +134,9 @@ test('failed list requests hide the empty state and can be retried', async ({ pa
   )
   await expect(page.getByRole('heading', { name: 'No Story Sets yet' })).toHaveCount(0)
   await page.getByRole('searchbox', { name: 'Search Story Sets' }).fill('launch')
+  // The transport retries a failed read twice. Unblocking before the search's
+  // last attempt lets that retry succeed on its own, and Retry never shows.
+  await expect.poll(() => searchFailures).toBeGreaterThanOrEqual(3)
   await expect(page.getByRole('main').getByRole('alert')).toContainText(
     'We couldn’t load your Story Sets.'
   )

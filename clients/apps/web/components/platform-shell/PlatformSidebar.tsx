@@ -16,12 +16,18 @@ import {
   SettingsIcon,
   SidebarIcon,
 } from './icons'
-import { PLATFORM_DESTINATIONS, platformArea, withPublishAccess } from '@/lib/platform/navigation'
+import {
+  PLATFORM_DESTINATIONS,
+  platformArea,
+  publishLinks,
+  withPublishAccess,
+} from '@/lib/platform/navigation'
+import { AREA_LINKS, type AreaLink, AreaSubNav } from '@/components/platform-hub/AreaNavigation'
 import { SearchButton, ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { type ComponentType, useCallback, useState, useSyncExternalStore } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import { NotificationCenter } from '@/components/notifications/NotificationCenter'
 import { AccountMenu } from '@/components/auth/AccountMenu'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -35,13 +41,14 @@ import type { navigationLayoutSchema } from '@/lib/api/contracts/settings-platfo
 import type { z } from 'zod'
 import { surface } from './shell-config'
 import { Button } from '@/components/ui/button'
+import { NavRow, type NavIcon } from './NavRow'
 import { SidebarLink } from './SidebarLink'
+import { SettingsNav } from '@/components/settings/SettingsNav'
 import { ThemeToggle } from './ThemeToggle'
 
-type IconComponent = ComponentType<{ className?: string; size?: number }>
 type NavItem = {
   href: string
-  icon: IconComponent
+  icon: NavIcon
   label: string
   key: (typeof PLATFORM_DESTINATIONS)[number]['key']
 }
@@ -69,71 +76,74 @@ const PAID_AREAS = new Set(['create', 'campaigns', 'library', 'automate', 'activ
 
 function NavLink({
   collapsed,
-  item: { href, icon: Icon, key },
+  item: { href, icon, key },
   onNavigate,
   paidPlan,
+  subs,
 }: {
   collapsed: boolean
   item: NavItem
   onNavigate?: () => void
   paidPlan: boolean
+  /** The area's pages, listed under the row while the area is open (Polar's NavList). */
+  subs?: AreaLink[]
 }) {
   const t = useTranslations('platformNavigation')
   const locked = !paidPlan && PAID_AREAS.has(key)
-  const label = locked ? `${t(key)} (Pro)` : t(key)
   const pathname = usePathname()
   const active = platformArea(pathname) === platformArea(href)
-  const rowClassName = cn(
-    'flex h-8 items-center gap-2.5 px-2.5',
-    collapsed && 'size-9 justify-center px-0'
-  )
-  const link = (
-    <SidebarLink
-      data-platform-nav
-      aria-current={active ? 'page' : undefined}
-      aria-label={collapsed || locked ? label : undefined}
-      className={rowClassName}
-      href={href}
-      onClick={onNavigate}
-    >
-      <Icon aria-hidden="true" className="shrink-0" size={17} />
-      {collapsed ? null : <span className="truncate">{t(key)}</span>}
-      {locked && !collapsed ? (
-        <span aria-hidden="true" className="platform-pro-badge ms-auto">
-          Pro
-        </span>
+  return (
+    <>
+      <NavRow
+        active={active}
+        badge={
+          locked ? (
+            <span aria-hidden="true" className="platform-pro-badge ms-auto">
+              Pro
+            </span>
+          ) : null
+        }
+        collapsed={collapsed}
+        // Locked areas open the plan page directly instead of bouncing off a server redirect.
+        href={locked ? `/upgrade?from=${encodeURIComponent(href)}` : href}
+        icon={icon}
+        label={t(key)}
+        name={locked ? `${t(key)} (Pro)` : undefined}
+        onNavigate={onNavigate}
+      />
+      {active && subs && !collapsed && !locked ? (
+        <AreaSubNav items={subs} label={t(key)} onNavigate={onNavigate} />
       ) : null}
-    </SidebarLink>
-  )
-  return collapsed ? (
-    <Tooltip>
-      <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
-    </Tooltip>
-  ) : (
-    link
+    </>
   )
 }
 
 function Navigation({
   campaignsEnabled,
+  canWriteDrafts,
   collapsed,
   draftsEnabled,
   onNavigate,
   paidPlan,
 }: {
   campaignsEnabled: boolean
+  canWriteDrafts: boolean
   collapsed: boolean
   draftsEnabled: boolean
   onNavigate?: () => void
   paidPlan: boolean
 }) {
   const t = useTranslations('platformNavigation')
+  // As in Polar, settings swap the destinations for their own sections.
+  if (platformArea(usePathname()) === 'settings') {
+    return <SettingsNav collapsed={collapsed} onNavigate={onNavigate} />
+  }
   return (
     <nav aria-label={t('workspace')} className="flex min-h-full flex-col gap-4">
       <ShellActions
         collapsed={collapsed}
         campaignsEnabled={campaignsEnabled}
+        canWriteDrafts={canWriteDrafts}
         draftsEnabled={draftsEnabled}
         onNavigate={onNavigate}
         paidPlan={paidPlan}
@@ -153,6 +163,13 @@ function Navigation({
                 key={item.href}
                 onNavigate={onNavigate}
                 paidPlan={paidPlan}
+                subs={
+                  item.key === 'publish'
+                    ? draftsEnabled
+                      ? publishLinks('', undefined, campaignsEnabled)
+                      : undefined
+                    : AREA_LINKS[item.key]
+                }
               />
             ))}
         </div>
@@ -241,6 +258,8 @@ function SidebarFooter({
   paidPlan: boolean
 }) {
   const t = useTranslations('platformNavigation')
+  // As in Polar, the settings sidebar drops the plan card and the docs link.
+  const settings = platformArea(usePathname()) === 'settings'
   return (
     <div
       className={cn(
@@ -250,9 +269,15 @@ function SidebarFooter({
         process.env.NODE_ENV === 'development' && 'mb-12'
       )}
     >
-      {!collapsed && !paidPlan ? <PlanCard /> : null}
-      <div className={cn('flex items-center gap-0.5', collapsed ? 'flex-col' : 'ps-2.5')}>
-        {collapsed ? null : (
+      {!collapsed && !paidPlan && !settings ? <PlanCard /> : null}
+      <div
+        className={cn(
+          'flex items-center gap-0.5',
+          collapsed ? 'flex-col' : 'ps-2.5',
+          settings && 'justify-end'
+        )}
+      >
+        {collapsed || settings ? null : (
           <SidebarLink
             className="me-auto flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
             href="/docs"
@@ -314,9 +339,13 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 export interface PlatformSidebarProps {
   campaignsEnabled: boolean
   /** Show Drafts; content drafts are behind PLATFORM_CONTENT_DRAFTS. */
+  /** The member may write drafts, so New → Post creates one at once. */
+  canWriteDrafts?: boolean
   draftsEnabled?: boolean
   /** The layout the navigation cookie names, for the first paint. */
   initialNavigation?: z.infer<typeof navigationLayoutSchema>
+  /** Who is signed in where, from the server, for the notification count. */
+  notificationIdentity?: { userId: string; workspaceId: string }
   organizationName?: string
   /** False on free basic scheduling, which marks the paid areas before they are opened. */
   paidPlan?: boolean
@@ -380,8 +409,10 @@ function useNavigationExpanded(
  */
 export function PlatformSidebar({
   campaignsEnabled,
+  canWriteDrafts = false,
   draftsEnabled = false,
   initialNavigation = 'expanded',
+  notificationIdentity,
   organizationName = 'Workspace',
   paidPlan = true,
   variant,
@@ -415,7 +446,7 @@ export function PlatformSidebar({
         >
           <Brand collapsed={collapsed} />
           <div className={cn('flex items-center gap-0.5', collapsed && 'flex-col')}>
-            <NotificationCenter />
+            <NotificationCenter initialIdentity={notificationIdentity} />
             <SearchButton />
           </div>
         </div>
@@ -423,6 +454,7 @@ export function PlatformSidebar({
         <div className="mt-5 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-0.5 py-1">
           <Navigation
             campaignsEnabled={campaignsEnabled}
+            canWriteDrafts={canWriteDrafts}
             collapsed={collapsed}
             draftsEnabled={draftsEnabled}
             paidPlan={paidPlan}
@@ -446,7 +478,7 @@ export function PlatformSidebar({
         <Brand collapsed={false} />
         <div className="ms-auto flex items-center gap-1">
           <ThemeToggle />
-          <NotificationCenter />
+          <NotificationCenter initialIdentity={notificationIdentity} />
           <Sheet onOpenChange={setMobileOpen} open={mobileOpen}>
             <SheetTrigger asChild>
               <Button
@@ -472,6 +504,7 @@ export function PlatformSidebar({
               <div className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1">
                 <Navigation
                   campaignsEnabled={campaignsEnabled}
+                  canWriteDrafts={canWriteDrafts}
                   collapsed={false}
                   draftsEnabled={draftsEnabled}
                   paidPlan={paidPlan}

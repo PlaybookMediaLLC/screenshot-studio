@@ -7,7 +7,7 @@
   --platform-nav-compact: 4.75rem;
   --platform-header-height: 3.5rem;
   --platform-form-width: 55rem;
-  --platform-control-radius: 0.5rem;
+  --platform-control-radius: 0.75rem;
   --platform-ease: cubic-bezier(0.2, 0, 0, 1);
   --platform-duration: 160ms;
   --nav-cta-bg: var(--primary);
@@ -18,6 +18,30 @@
   font-size: 0.875rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Polar's dashboard palette (orbit tokens): settings groups sit one step
+   below the panel, and controls one step above it. */
+.platform-shell,
+.platform-overlay {
+  --platform-group: oklch(0.985 0.002 247.839); /* gray-50 */
+  --platform-control: #ffffff;
+}
+
+/* Dark pages use Polar's neutral greys instead of pure black. The editor
+   keeps its own surfaces. Muted text stays at polar-400 for 4.5:1 contrast. */
+.dark :is(.platform-shell[data-platform-variant='page'], .platform-overlay) {
+  --background: hsl(0 0% 3.5%); /* polar-950: sidebar and page */
+  --sidebar: hsl(0 0% 3.5%);
+  --card: hsl(0 0% 6.5%); /* polar-900: the content panel */
+  --popover: hsl(0 0% 6.5%);
+  --muted: hsl(0 0% 9.5%); /* polar-800 */
+  --secondary: hsl(0 0% 9.5%);
+  --accent: hsl(0 0% 9.5%);
+  --border: hsl(0 0% 13%); /* polar-700 */
+  --muted-foreground: hsl(0 0% 52%); /* polar-400 */
+  --platform-group: hsl(0 0% 6.5%); /* polar-900 */
+  --platform-control: hsl(0 0% 9.5%); /* polar-800 */
 }
 
 .platform-shell [data-platform-scroll] {
@@ -53,14 +77,31 @@
     color var(--platform-duration) var(--platform-ease);
 }
 
-/* Like the landing navigation: muted until hovered, the current page lit. */
+/* Polar's navigation rows: muted until hovered, the current page raised as
+   a card above the sidebar (NavList's active item). */
 [data-platform-sidebar] [data-platform-nav] {
   border: 1px solid transparent;
+  border-radius: 0.5rem;
   color: var(--muted-foreground);
 }
 
 [data-platform-sidebar] [data-platform-nav][aria-current='page'] {
-  background: color-mix(in srgb, var(--foreground) 7%, transparent);
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  color: var(--foreground);
+}
+
+/* The expanded sidebar lists the open area's pages (Polar's NavList), so the
+   page's own tabs for them leave. The compact rail and phones keep the tabs. */
+@media (min-width: 768px) {
+  .platform-shell:has([data-platform-sidebar][data-navigation='expanded']) [data-area-tabs] {
+    display: none;
+  }
+}
+
+/* Polar's way out of settings reads as the sidebar's title. */
+[data-platform-sidebar] [data-platform-back] [data-platform-nav] {
   color: var(--foreground);
 }
 
@@ -151,16 +192,16 @@ body:has([data-platform-shell]) [data-slot='button']:active {
 
 /* Page controls share states without changing editor tools or rendered artwork. */
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
-    [type='radio'],
-    [type='checkbox'],
-    [type='range'],
-    [type='color']
-  ) {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):not([type='radio'], [type='checkbox'], [type='range'], [type='color']) {
   border-color: var(--input);
   border-radius: var(--platform-control-radius);
-  background-color: var(--card);
-  box-shadow: none;
+  background-color: var(--platform-control);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
   transition:
     border-color var(--platform-duration) var(--platform-ease),
     box-shadow var(--platform-duration) var(--platform-ease),
@@ -168,7 +209,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):focus-visible {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):focus-visible {
   border-color: var(--ring);
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 18%, transparent);
@@ -178,7 +224,8 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   :where(
     [data-slot='input'],
     [data-slot='textarea'],
-    [data-slot='select-trigger']
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
   )[aria-invalid='true'] {
   border-color: var(--destructive);
 }
@@ -187,13 +234,19 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   :where(
     [data-slot='input'],
     [data-slot='textarea'],
-    [data-slot='select-trigger']
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
   )[aria-invalid='true']:focus-visible {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 18%, transparent);
 }
 
 :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-  :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):disabled {
+  :where(
+    [data-slot='input'],
+    [data-slot='textarea'],
+    [data-slot='select-trigger'],
+    [data-slot='native-select']
+  ):disabled {
   background-color: var(--muted);
   cursor: not-allowed;
 }
@@ -249,7 +302,8 @@ body:has([data-platform-shell]) [data-slot='button']:active {
     :where(
       [data-slot='input'],
       [data-slot='textarea'],
-      [data-slot='select-trigger']
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
     ):focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 2px;
@@ -267,7 +321,12 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   }
 
   :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+    :where(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ):not(
       :disabled,
       :focus-visible,
       [aria-invalid='true'],
@@ -302,19 +361,24 @@ body:has([data-platform-shell]) [data-slot='button']:active {
   }
 
   .platform-shell[data-platform-variant='page']
-    :where([data-slot='button'], [data-slot='input'], [data-slot='select-trigger']):not(
-      [type='radio'],
-      [type='checkbox'],
-      [type='range'],
-      [type='color']
-    ) {
+    :where(
+      [data-slot='button'],
+      [data-slot='input'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ):not([type='radio'], [type='checkbox'], [type='range'], [type='color']) {
     min-height: 2.75rem;
   }
 }
 
 @media (max-width: 767px) {
   :where(.platform-shell[data-platform-variant='page'], .platform-overlay)
-    :where([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']) {
+    :where(
+      [data-slot='input'],
+      [data-slot='textarea'],
+      [data-slot='select-trigger'],
+      [data-slot='native-select']
+    ) {
     font-size: 1rem;
   }
 }
@@ -387,4 +451,60 @@ body:has([data-platform-shell]) input:-webkit-autofill {
 :where(.platform-shell [data-platform-scroll] *) {
   scrollbar-color: var(--hairline-strong) transparent;
   scrollbar-width: thin;
+}
+
+/* SidebarLink's pending bar: instant feedback while the next page loads. */
+.platform-nav-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 200;
+  height: 2px;
+  pointer-events: none;
+  background: var(--primary);
+  transform-origin: left;
+  animation: platform-nav-progress 1.2s var(--platform-ease, ease-out) forwards;
+}
+
+@keyframes platform-nav-progress {
+  from {
+    transform: scaleX(0.05);
+  }
+  to {
+    transform: scaleX(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .platform-nav-progress {
+    animation: none;
+    transform: scaleX(0.6);
+  }
+}
+
+/* An open composer panel (preview, comments) takes the drafts rail's room on
+   screens too narrow for both, so the editor keeps a readable column. */
+@media (max-width: 1535px) {
+  [data-testid='write-frame']:has([data-composer-panel]) [data-write-rail-column] {
+    display: none;
+  }
+}
+
+/* While a settings save bar is up, scrolling to a field (focus, Tab) keeps it
+   clear of the bar instead of underneath it. */
+.platform-shell [data-platform-scroll]:has([data-settings-save-bar]) {
+  scroll-padding-bottom: 6rem;
+}
+
+/* Menus and dialogs arrive opaque and keep their short scale-in: fading in
+   from transparent left the page's text showing through them as they opened. */
+body:has([data-platform-shell])
+  :is(
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='select-content']
+  ) {
+  --tw-enter-opacity: 1;
 }

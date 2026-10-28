@@ -1,6 +1,7 @@
 package product
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -111,5 +112,45 @@ func TestTeamCollaborationRoles(t *testing.T) {
 	foreign.OrganizationID = "other-workspace"
 	if _, err = repo.GetContentDraft(ctx, foreign, draft.ID); !errors.Is(err, publishing.ErrForbidden) {
 		t.Fatalf("cross-workspace read: %v", err)
+	}
+}
+
+// A handler's first check reuses the middleware's, still gating by role;
+// every later check, and any check under a transaction's lock, reads again.
+func TestRequestAuthorizationMemo(t *testing.T) {
+	w := newTestWorkspace(t)
+	for _, name := range []string{"reader", "leaver", "viewer"} {
+		w.addMember(t, name, "viewer")
+	}
+	middleware := func(actor Actor) context.Context {
+		t.Helper()
+		var memo publishing.AuthorizationMemo
+		if err := w.repo.AuthorizeRead(publishing.RecordAuthorization(w.ctx, &memo), actor); err != nil {
+			t.Fatal(err)
+		}
+		return publishing.ReplayAuthorization(w.ctx, &memo)
+	}
+
+	reader := w.actor("reader")
+	handler := middleware(reader)
+	w.exec(t, `DELETE FROM member WHERE id=$1`, "member_reader_"+w.id)
+	if err := w.repo.AuthorizeRead(handler, reader); err != nil {
+		t.Fatalf("handler's first check read again: %v", err)
+	}
+	if err := w.repo.AuthorizeRead(handler, reader); !errors.Is(err, publishing.ErrForbidden) {
+		t.Fatalf("a later check reused the middleware's: %v", err)
+	}
+
+	leaver := w.actor("leaver")
+	handler = middleware(leaver)
+	w.exec(t, `DELETE FROM member WHERE id=$1`, "member_leaver_"+w.id)
+	// The locked recheck refuses before LeaveWorkspace's own lookup would.
+	if _, err := w.repo.LeaveWorkspace(handler, leaver); err != publishing.ErrForbidden {
+		t.Fatalf("locked recheck reused the middleware's check: %v", err)
+	}
+
+	viewer := w.actor("viewer")
+	if err := w.repo.auth.AuthorizePublishing(middleware(viewer), w.org, viewer.UserID, viewer.SessionID); !errors.Is(err, publishing.ErrForbidden) {
+		t.Fatalf("reused viewer published: %v", err)
 	}
 }

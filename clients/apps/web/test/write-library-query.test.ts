@@ -23,3 +23,15 @@ test('FILTER-01: a search typed while a filter removal is in flight does not res
     search: 'set=brand',
   })
 })
+
+test('a lifecycle tab alone switches without a navigation', () => {
+  const query = libraryQuery(() => '?set=brand')
+  assert.deepEqual(query.change({ tab: 'queue' }), {
+    navigate: false,
+    search: 'set=brand&tab=queue',
+  })
+  assert.deepEqual(query.change({ kind: 'thread' }), {
+    navigate: true,
+    search: 'set=brand&kind=thread',
+  })
+})

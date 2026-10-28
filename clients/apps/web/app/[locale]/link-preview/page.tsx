@@ -1,6 +1,6 @@
 import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
-import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
-import { publishLinks, safeReturnPath } from '@/lib/platform/navigation'
+import { WorkspaceNav } from '@/components/plan/WorkspaceNav'
+import { safeReturnPath } from '@/lib/platform/navigation'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -38,13 +38,18 @@ export default async function LinkPreviewPage({ params, searchParams }: LinkPrev
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization.name}
     >
+      {contentDraftsEnabled() ? (
+        <WorkspaceNav
+          active="links"
+          campaigns={access.campaignWorkflowEnabled && access.hasPaidPlan}
+          returnTo={returnTo}
+          scope={scope}
+        />
+      ) : null}
       <Page
         description="See how a link unfurls on 13 platforms, fix what breaks it, make its preview image, and share it with tracked links."
         title="Link checks"
       >
-        {contentDraftsEnabled() ? (
-          <AreaNavigation items={publishLinks(scope, returnTo)} label="Publish" />
-        ) : null}
         <ReturnToWork />
         <LinkPreviewApp />
       </Page>

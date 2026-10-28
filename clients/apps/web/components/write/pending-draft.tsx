@@ -83,7 +83,23 @@ export function PendingDraftInput() {
             if (pending) update({ ...pending, text: event.target.value })
           }}
         />
-        {value.error ? <Button onClick={() => void retry?.()}>Retry</Button> : null}
+        {value.error ? (
+          <div className="flex gap-2">
+            <Button onClick={() => void retry?.()}>Retry</Button>
+            {value.id ? null : (
+              // Nothing was created: a refusal (such as no permission to write) must not trap the page.
+              <Button
+                onClick={() => {
+                  retry = null
+                  update(null)
+                }}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   )

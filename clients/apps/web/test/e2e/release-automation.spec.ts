@@ -11,9 +11,37 @@ import {
   createUploadedAsset,
   unbindTestGoOrganization,
 } from './framework/publishing'
-import { startHttpMockServer } from './framework/http-server'
+import { xVerification } from './framework/content-drafts'
+import { type HttpMockRequest, startHttpMockServer } from './framework/http-server'
 
 configureE2EFlow()
+
+/**
+ * The local social API: the bound organization, one X destination, and the
+ * verified X identity the backend checks before it saves an X connection.
+ */
+function socialFixture(organizationId: string, destinationId: string) {
+  return (request: HttpMockRequest) => {
+    if (request.url === '/api/public/v1/me')
+      return { body: { organization: { id: `go-${organizationId}` } } }
+    if (request.url === '/api/public/v1/integrations')
+      return { body: [{ id: destinationId, identifier: 'x', disabled: false }] }
+    if (request.url === `/api/public/v1/integrations/${destinationId}/identity`)
+      return {
+        body: {
+          id: destinationId,
+          provider: 'x',
+          nativeId: '123456789',
+          name: 'Release fixture',
+          handle: 'release_fixture',
+          active: true,
+          verifiedAt: new Date().toISOString(),
+          verification: xVerification,
+        },
+      }
+    return { status: 404, body: { error: 'No publishing operations in this fixture.' } }
+  }
+}
 
 const FIXTURE_COPY = 'Fixture AI copy for x: exports now finish faster and more reliably.'
 
@@ -45,13 +73,7 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
   const database = createE2EDatabase()
   const destinationId = `automation-fixture-${randomUUID()}`
   const provider = await startHttpMockServer(
-    (request) => {
-      if (request.url === '/api/public/v1/me')
-        return { body: { organization: { id: `go-${organizationId}` } } }
-      if (request.url === '/api/public/v1/integrations')
-        return { body: [{ id: destinationId, identifier: 'x', disabled: false }] }
-      return { status: 404, body: { error: 'No publishing operations in this fixture.' } }
-    },
+    socialFixture(organizationId, destinationId),
     Number(process.env.E2E_SOCIAL_PORT ?? 8049)
   )
   const count = async (table: string) =>
@@ -81,13 +103,16 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     })
     expect(destination.status, JSON.stringify(destination.body)).toBe(200)
 
-    // 1–3. Workflows is a top-level destination in the workspace sidebar.
+    // 1–3. Workflows is a top-level destination in the workspace sidebar. Two-factor
+    // setup left the page in Settings, whose sidebar lists settings, so go back first.
+    await page.getByRole('link', { name: 'Settings, back to Home', exact: true }).click()
+    await expect(page).toHaveURL(/\/home$/)
     await page
       .getByRole('navigation', { name: 'Workspace' })
       .getByRole('link', { name: 'Automate', exact: true })
       .click()
     await expect(page).toHaveURL(/\/workflows$/)
-    await expect(page.getByRole('heading', { name: 'Workflows', level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Automate', level: 1 })).toBeVisible()
     await expect(page.getByText('No workflows yet')).toBeVisible()
 
     await page
@@ -395,7 +420,7 @@ test('runs a GitHub release through a templated workflow into a reviewable AI-dr
     await page.getByRole('button', { name: 'Open navigation' }).click()
     await page.getByRole('dialog').getByRole('link', { name: 'Automate', exact: true }).click()
     await expect(page).toHaveURL(/\/workflows$/)
-    await expect(page.getByRole('heading', { name: 'Workflows', level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Automate', level: 1 })).toBeVisible()
     await expect(
       page.getByRole('link', { name: 'Stable releases to review', exact: true })
     ).toBeVisible()
@@ -493,13 +518,7 @@ test('turns a version tag into an AI-judged release with rendered creatives', as
   const database = createE2EDatabase()
   const destinationId = `automation-fixture-${randomUUID()}`
   const provider = await startHttpMockServer(
-    (request) => {
-      if (request.url === '/api/public/v1/me')
-        return { body: { organization: { id: `go-${organizationId}` } } }
-      if (request.url === '/api/public/v1/integrations')
-        return { body: [{ id: destinationId, identifier: 'x', disabled: false }] }
-      return { status: 404, body: { error: 'No publishing operations in this fixture.' } }
-    },
+    socialFixture(organizationId, destinationId),
     Number(process.env.E2E_SOCIAL_PORT ?? 8049)
   )
   const rows = (query: string) => queryRows(database, query, [organizationId])

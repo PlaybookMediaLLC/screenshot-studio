@@ -47,37 +47,60 @@ export type WriteQuery = z.infer<typeof writeQuerySchema>
  */
 export const writeExperimentSchema = z.enum(['draft-tags'])
 
-/** Load the library for a Write page. */
-export async function loadWrite(tenant: OrganizationAccess, rawQuery: Record<string, unknown>) {
-  const query = writeQuerySchema.parse(rawQuery)
-  const [sets, experimentList, advanced] = await Promise.all([
+/**
+ * Load the library for a Write page. The query may still be resolving (a draft
+ * page learns its set from the draft), so the first reads start without it.
+ */
+export async function loadWrite(
+  tenant: OrganizationAccess,
+  rawQuery: Record<string, unknown> | Promise<Record<string, unknown>>
+) {
+  const remembered = (await cookies()).get(SOCIAL_SET_COOKIE)?.value
+  const queried = Promise.resolve(rawQuery).then((raw) => writeQuerySchema.parse(raw))
+  const now = new Date()
+  const horizon = new Date(now.getTime() + 60 * 86_400_000)
+  const readLibrary = (query: WriteQuery, setId: string | undefined, tags: boolean) =>
+    Promise.all([
+      listContentDrafts(tenant, {
+        kind: query.kind,
+        limit: 100,
+        socialSetId: setId,
+        sort: query.sort,
+        tagId: tags ? query.tag : undefined,
+        view: query.tab === 'queue' || !query.tab ? 'drafts' : query.tab,
+      }),
+      listContentDraftPostsBetween(tenant, now, horizon, setId),
+      listPlannedContentDrafts(tenant, now, horizon, setId),
+    ])
+  // The set is nearly always the URL's or the remembered one, so its library is
+  // read alongside the set list rather than after it. A wrong guess (or a tag
+  // filter, which waits for the experiment flag) is read again below.
+  const guessed = queried.then(async (query) => {
+    const setId = query.set ?? remembered
+    if (!setId || query.tag) return null
+    const library = await readLibrary(query, setId, false).catch(() => null)
+    return library && { library, setId }
+  })
+  const [sets, experimentList, advanced, query, early] = await Promise.all([
     listSocialSets(tenant),
     orNull(backendSDK(tenant).listExperiments()),
     backendSDK(tenant).getFeatureDecision('content:scheduling-advanced'),
+    queried,
+    guessed,
   ])
   const enabled = (id: z.infer<typeof writeExperimentSchema>) =>
     experimentList?.items.some((item) => item.id === id && item.enabled) ?? false
   const experiments = { tags: enabled('draft-tags') }
-  const remembered = (await cookies()).get(SOCIAL_SET_COOKIE)?.value
   const activeSet =
     sets.find((set) => set.id === query.set) ??
     sets.find((set) => set.id === remembered) ??
     sets.find((set) => set.visibility === 'WORKSPACE') ??
     sets[0]
   const tab: WriteTab = query.tab ?? 'drafts'
-  const now = new Date()
-  const horizon = new Date(now.getTime() + 60 * 86_400_000)
-  const [page, posts, planned, tags] = await Promise.all([
-    listContentDrafts(tenant, {
-      kind: query.kind,
-      limit: 100,
-      socialSetId: activeSet?.id,
-      sort: query.sort,
-      tagId: experiments.tags ? query.tag : undefined,
-      view: tab === 'queue' ? 'drafts' : tab,
-    }),
-    listContentDraftPostsBetween(tenant, now, horizon, activeSet?.id),
-    listPlannedContentDrafts(tenant, now, horizon, activeSet?.id),
+  const [[page, posts, planned], tags] = await Promise.all([
+    early && early.setId === activeSet?.id
+      ? early.library
+      : readLibrary(query, activeSet?.id, experiments.tags),
     activeSet && experiments.tags ? listDraftTags(tenant, activeSet.id) : Promise.resolve([]),
   ])
   const library = [...page.pinned, ...page.items].map((draft) =>

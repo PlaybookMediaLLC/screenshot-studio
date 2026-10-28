@@ -31,9 +31,13 @@ export function invalidateListsLink(queryClient: QueryClient): TRPCLink<AppRoute
                 'attachCampaign',
               ].includes(action)) ||
             (resource === 'asset' && ['completeUpload', 'delete'].includes(action)))
+        // The shell caches the latest onboarding run; starting or stopping one changes it.
+        const changesRun = op.type === 'mutation' && resource === 'onboarding'
         return next(op).subscribe({
           next(value) {
             if (changesList) void queryClient.invalidateQueries({ queryKey: [[resource, 'list']] })
+            if (changesRun)
+              void queryClient.invalidateQueries({ queryKey: [['onboarding', 'latest']] })
             observer.next(value)
           },
           error: (error) => observer.error(error),

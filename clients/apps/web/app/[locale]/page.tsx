@@ -96,15 +96,17 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
   const query = await searchParams
   if (typeof query.new === 'string') redirect(getLocalizedPath(locale, `/write?${new URLSearchParams({new: query.new})}`))
   const access = await getPageAccess(requestHeaders)
-  if (!access) redirect(getLocalizedPath(locale, '/sign-in'))
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(query))
+    for (const item of [value].flat()) if (item !== undefined) search.append(key, item)
+  // Signed out, the bare address opens sign-in. Its query goes along, so
+  // campaign (UTM) tags on shared links survive the redirect.
+  if (!access) redirect(getLocalizedPath(locale, `/sign-in${search.size ? `?${search}` : ''}`))
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
   if (!access.hasPaidPlan) {
     // Opening a project or the store studio names the editor on the plan page;
     // the bare address is just the way into the app.
-    const search = new URLSearchParams()
-    for (const [key, value] of Object.entries(query))
-      for (const item of [value].flat()) if (item !== undefined) search.append(key, item)
     if (!access.hasBasicScheduling || search.size === 0) redirect(unpaidLandingPath(locale, access))
     redirect(upgradePath(locale, `/?${search}`))
   }

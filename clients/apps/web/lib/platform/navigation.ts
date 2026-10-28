@@ -38,13 +38,16 @@ export function matchesDestination(key: PlatformArea, label: string, query: stri
   )
 }
 
-/** One Publish vocabulary for every page in the area; `scope` keeps the publishing brand. */
-export function publishLinks(scope = '', returnTo = `/write${scope}`) {
+/**
+ * One Publish vocabulary for every page in the area; `scope` keeps the publishing brand.
+ * Campaign deliveries only shows where campaigns can be used (a paid plan in the rollout).
+ */
+export function publishLinks(scope = '', returnTo = `/write${scope}`, campaigns = true) {
   return [
     { href: `/write${scope}`, label: 'Drafts' },
     { href: `/write/plan${scope}`, label: 'Calendar' },
     { href: `/write/analyze${scope}`, label: 'Analyze' },
-    { href: `/write/deliveries${scope}`, label: 'Campaign deliveries' },
+    ...(campaigns ? [{ href: `/write/deliveries${scope}`, label: 'Campaign deliveries' }] : []),
     { href: `/link-preview?returnTo=${encodeURIComponent(returnTo)}`, label: 'Link checks' },
   ]
 }
@@ -129,6 +132,7 @@ export function paidCapability(from: string | null | undefined): string | null {
     ['/tweet', 'Post images'],
     ['/projects', 'Library'],
     ['/assets', 'Library'],
+    ['/write/deliveries', 'Campaign deliveries'],
   ]
   const tool = tools.find(([route]) => path === route || path.startsWith(`${route}/`))
   if (tool) return tool[1]

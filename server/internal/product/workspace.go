@@ -51,15 +51,10 @@ func (c *Configuration) GetActiveAccess(ctx context.Context, actor Actor) (*Acti
 			return nil, err
 		}
 	}
-	actor.OrganizationID = organizationID
-	if err := c.AuthorizeRead(ctx, actor); err != nil {
-		return nil, err
-	}
-	membership, err := c.client.Member.Query().Where(member.OrganizationID(organizationID), member.UserID(actor.UserID)).Only(ctx)
+	role, err := c.auth.AuthorizedRole(ctx, organizationID, actor.UserID, actor.SessionID, readRoles...)
 	if err != nil {
 		return nil, err
 	}
-	role := membership.Role
 	if role == "member" {
 		role = "viewer"
 	}

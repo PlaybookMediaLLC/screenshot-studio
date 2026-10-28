@@ -4,14 +4,14 @@ import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
 import { usePathname } from 'next/navigation'
 import { platformHref } from '@/lib/platform/navigation'
 import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
-import { useQueryClient } from '@tanstack/react-query'
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { type ReactNode, useRef, useState } from 'react'
 import { WorkspaceCreationDialog } from '@/components/workspace/WorkspaceCreationDialog'
 import { UserAvatar } from './UserAvatar'
 import { authClient, useHydratedSession } from '@/lib/auth/client'
 import { resetUser } from '@/lib/analytics'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
 import { Button } from '@/components/ui/button'
 
 type Workspace = { id: string; isScheduledForDeletion: boolean; name: string; slug: string }
@@ -37,35 +37,23 @@ export function AccountMenu({
   const queryClient = useQueryClient()
   const pathname = usePathname()
   const trpcClient = useTRPCClient()
+  const trpc = useTRPC()
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false)
   const [workspaceError, setWorkspaceError] = useState<string | null>(null)
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [menuOpen, setMenuOpen] = useState(false)
   const [creationOpen, setCreationOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   const { data: session, isPending } = useHydratedSession()
 
-  useEffect(() => {
-    if (!session || scope === 'account') {
-      setWorkspaces([])
-      return
-    }
-
-    let active = true
-    void trpcClient.workspace.listMine
-      .query()
-      .then((result) => {
-        if (active) {
-          setWorkspaces(result.workspaces)
-        }
-      })
-      .catch(() => active && setWorkspaces([]))
-
-    return () => {
-      active = false
-    }
-  }, [session, trpcClient, menuOpen, scope])
+  // Only the open menu lists workspaces; the shell remounts on every page, so read it on demand and cache it.
+  const listsWorkspaces = Boolean(session) && scope !== 'account'
+  const workspaceList = trpc.workspace.listMine.queryOptions(undefined, { staleTime: 5 * 60_000 })
+  const workspaces: Workspace[] =
+    useQuery({ ...workspaceList, enabled: listsWorkspaces && menuOpen }).data?.workspaces ?? []
+  const prefetchWorkspaces = () => {
+    if (listsWorkspaces) void queryClient.prefetchQuery(workspaceList)
+  }
 
   async function handleSignOut() {
     setIsSigningOut(true)
@@ -134,6 +122,8 @@ export function AccountMenu({
                 : 'Open account menu'
             }
             ref={trigger}
+            onFocus={prefetchWorkspaces}
+            onPointerEnter={prefetchWorkspaces}
             className={
               triggerClassName ??
               'flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-opacity hover:opacity-80'
@@ -246,13 +236,7 @@ export function AccountMenu({
           userId={session.user.id}
           onClose={() => setCreationOpen(false)}
           returnFocusRef={trigger}
-          onCreated={(organization) =>
-            setWorkspaces((current) =>
-              current.some((item) => item.id === organization.id)
-                ? current
-                : [...current, { ...organization, isScheduledForDeletion: false }]
-            )
-          }
+          onCreated={() => void queryClient.invalidateQueries({ queryKey: workspaceList.queryKey })}
         />
       ) : null}
     </>

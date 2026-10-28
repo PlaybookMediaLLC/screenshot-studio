@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -40,7 +41,9 @@ func (s *Server) registerWorkspace(mux *http.ServeMux) {
 	mux.Handle("GET /v1/bootstrap", s.authenticateProduct(http.HandlerFunc(s.bootstrap)))
 	mux.Handle("GET /v1/me", s.authenticateSession(http.HandlerFunc(s.currentUser)))
 	mux.Handle("GET /v1/page-access", s.authenticateSession(http.HandlerFunc(s.pageAccess)))
-	mux.Handle("GET /v1/access", s.authenticateSession(http.HandlerFunc(s.activeAccess)))
+	// GetActiveAccess authorizes the session itself before anything else.
+	mux.Handle("GET /v1/access", s.authenticateWithOptions(http.HandlerFunc(s.activeAccess), false, true,
+		func(context.Context, product.Actor) error { return nil }))
 	mux.Handle("GET /v1/support-grants/verify", s.authenticateSession(http.HandlerFunc(s.verifySupportGrant)))
 	mux.Handle("GET /v1/enterprise-features/{feature}", s.authenticateProduct(http.HandlerFunc(s.enterpriseFeature)))
 	mux.Handle("GET /v1/assets", s.authenticateProduct(http.HandlerFunc(s.listAssets)))

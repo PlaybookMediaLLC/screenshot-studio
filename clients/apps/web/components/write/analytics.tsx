@@ -2,7 +2,25 @@
 
 import { useMemo, useState } from 'react'
 import type { SocialObservation, BackendBestTime } from 'screenshot-studio-backend-sdk'
+import Link from 'next/link'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { AccountMetricCharts } from './account-metric-charts'
 import { BestPostingTimes } from './best-posting-times'
 import {
@@ -78,73 +96,68 @@ export function SocialAnalytics({
       )}
       <form className="flex flex-wrap items-end gap-3" method="get">
         {socialSetId ? <input type="hidden" name="set" value={socialSetId} /> : null}
-        <label>
+        <Label className="grid gap-1.5">
           From{' '}
-          <input
+          <Input
             aria-label="Analytics from"
             name="from"
             type="date"
             defaultValue={range.start}
             required
-            className="rounded border bg-background p-2"
           />
-        </label>
-        <label>
+        </Label>
+        <Label className="grid gap-1.5">
           Through{' '}
-          <input
+          <Input
             aria-label="Analytics through"
             name="to"
             type="date"
             defaultValue={range.end}
             required
-            className="rounded border bg-background p-2"
           />
-        </label>
+        </Label>
         <Button variant="outline" type="submit">
           Apply dates
         </Button>
       </form>
       {rangeError ? <p role="alert">{rangeError}</p> : null}
-      <div className="flex flex-wrap gap-3">
-        <label>
+      <div className="flex flex-wrap items-end gap-3">
+        <Label className="grid gap-1.5">
           Channel{' '}
-          <select
+          <NativeSelect
             aria-label="Channel"
-            className="rounded border bg-background p-2"
             value={channel}
             onChange={(event) => setChannel(event.target.value)}
           >
-            <option value="all">All channels</option>
+            <NativeSelectOption value="all">All channels</NativeSelectOption>
             {[...new Set(observations.map((row) => row.platform))].map((platform) => (
-              <option key={platform}>{platform}</option>
+              <NativeSelectOption key={platform}>{platform}</NativeSelectOption>
             ))}
-          </select>
-        </label>
-        <label>
+          </NativeSelect>
+        </Label>
+        <Label className="grid gap-1.5">
           Period{' '}
-          <select
+          <NativeSelect
             aria-label="Period"
-            className="rounded border bg-background p-2"
             value={period}
             onChange={(event) => setPeriod(event.target.value as 'week' | 'month')}
           >
-            <option value="week">Weekly</option>
-            <option value="month">Monthly</option>
-          </select>
-        </label>
-        <label>
+            <NativeSelectOption value="week">Weekly</NativeSelectOption>
+            <NativeSelectOption value="month">Monthly</NativeSelectOption>
+          </NativeSelect>
+        </Label>
+        <Label className="grid gap-1.5">
           Metric{' '}
-          <select
+          <NativeSelect
             aria-label="Metric"
-            className="rounded border bg-background p-2"
             value={metric}
             onChange={(event) => setMetric(event.target.value)}
           >
             {metrics.map((name) => (
-              <option key={name}>{name}</option>
+              <NativeSelectOption key={name}>{name}</NativeSelectOption>
             ))}
-          </select>
-        </label>
+          </NativeSelect>
+        </Label>
         <Button variant="outline" disabled={!rows.length} onClick={exportCSV}>
           Export CSV
         </Button>
@@ -203,73 +216,74 @@ export function SocialAnalytics({
                   )
                 )}
               </svg>
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr>
-                    <th>Period starts</th>
-                    <th>{metric}</th>
-                    <th>Reporting posts</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="w-full text-left text-sm">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Period starts</TableHead>
+                    <TableHead>{metric}</TableHead>
+                    <TableHead>Reporting posts</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {buckets.map((bucket) => (
-                    <tr key={bucket.date}>
-                      <td>{bucket.date}</td>
-                      <td>{bucket.value ?? 'Unavailable'}</td>
-                      <td>{bucket.posts}</td>
-                    </tr>
+                    <TableRow key={bucket.date}>
+                      <TableCell>{bucket.date}</TableCell>
+                      <TableCell>{bucket.value ?? 'Unavailable'}</TableCell>
+                      <TableCell>{bucket.posts}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </figure>
           )}
           <div className="overflow-x-auto">
             <h2 className="mb-2 font-medium">Posts by {metric}</h2>
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr>
-                  <th>Post</th>
-                  <th>Channel</th>
-                  <th>{metric}</th>
-                  <th>Observed</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
+            <Table className="w-full text-left text-sm">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Post</TableHead>
+                  <TableHead>Channel</TableHead>
+                  <TableHead>{metric}</TableHead>
+                  <TableHead>Observed</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {posts.map((row) => (
-                  <tr className="border-t" key={row.id}>
-                    <td className="max-w-40 truncate py-2">
+                  <TableRow key={row.id}>
+                    <TableCell className="max-w-40 truncate py-2">
                       {row.draftId ? (
-                        <a className="underline" href={`/write/${row.draftId}`}>
-                          {row.title || row.caption || row.subjectId}
-                        </a>
+                        <Button asChild className="h-auto p-0" size={null} variant="link">
+                          <Link href={`/write/${row.draftId}`}>
+                            {row.title || row.caption || row.subjectId}
+                          </Link>
+                        </Button>
                       ) : row.url ? (
-                        <a
-                          className="underline"
-                          href={row.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {row.caption || row.title || row.subjectId}
-                        </a>
+                        <Button asChild className="h-auto p-0" size={null} variant="link">
+                          <a href={row.url} target="_blank" rel="noopener noreferrer">
+                            {row.caption || row.title || row.subjectId}
+                          </a>
+                        </Button>
                       ) : (
                         row.subjectId
                       )}
-                    </td>
-                    <td>{row.platform}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>{row.platform}</TableCell>
+                    <TableCell>
                       {row.status === 'available'
                         ? (row.metrics[metric] ?? 'Unavailable')
                         : 'Unavailable'}
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
                       {new Date(row.observedAt).toISOString().slice(0, 16).replace('T', ' ')} UTC
-                    </td>
-                    <td>{row.status === 'failed' ? 'Read failed; retry pending' : row.status}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>
+                      {row.status === 'failed' ? 'Read failed; retry pending' : row.status}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
           <div>
             <h2 className="font-medium">Account metrics</h2>
@@ -283,68 +297,72 @@ export function SocialAnalytics({
             </p>
             <AccountMetricCharts buckets={accountBuckets} />
             {accountBuckets.length ? (
-              <table className="mt-3 w-full text-left text-sm">
-                <thead>
-                  <tr>
-                    <th>Channel</th>
-                    <th>Account</th>
-                    <th>Metric</th>
-                    <th>Period</th>
-                    <th>As of</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="mt-3 w-full text-left text-sm">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Channel</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Metric</TableHead>
+                    <TableHead>Period</TableHead>
+                    <TableHead>As of</TableHead>
+                    <TableHead>Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {accountBuckets.map((bucket) => (
-                    <tr key={`${bucket.connection}:${bucket.metric}:${bucket.period}`}>
-                      <td>{bucket.platform}</td>
-                      <td className="max-w-40 break-words">{bucket.connection}</td>
-                      <td>{bucket.metric}</td>
-                      <td>{bucket.period}</td>
-                      <td>{bucket.date}</td>
-                      <td>{bucket.value.toLocaleString()}</td>
-                    </tr>
+                    <TableRow key={`${bucket.connection}:${bucket.metric}:${bucket.period}`}>
+                      <TableCell>{bucket.platform}</TableCell>
+                      <TableCell className="max-w-40 break-words">{bucket.connection}</TableCell>
+                      <TableCell>{bucket.metric}</TableCell>
+                      <TableCell>{bucket.period}</TableCell>
+                      <TableCell>{bucket.date}</TableCell>
+                      <TableCell>{bucket.value.toLocaleString()}</TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             ) : null}
-            {latest
-              .filter((row) => row.kind === 'account' || row.kind === 'feed')
-              .map((row) => (
-                <details className="mt-3 rounded border p-3" key={row.id}>
-                  <summary>
-                    {row.platform} · {row.connectionId} ·{' '}
-                    {row.kind === 'feed'
-                      ? 'Recent provider posts (up to 100 originals, 30 days)'
-                      : 'Account metrics'}{' '}
-                    · {row.status}
-                  </summary>
-                  {row.series.map((series) => (
-                    <div key={series.label}>
-                      <h3 className="mt-2 font-medium">
-                        {series.label}
-                        {series.average ? ' (provider average)' : ''}
-                      </h3>
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Value</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {series.data.map((point, index) => (
-                            <tr key={index}>
-                              <td>{point.date}</td>
-                              <td>{point.total}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ))}
-                </details>
-              ))}
+            <Accordion className="mt-3" type="multiple">
+              {latest
+                .filter((row) => row.kind === 'account' || row.kind === 'feed')
+                .map((row) => (
+                  <AccordionItem key={row.id} value={row.id}>
+                    <AccordionTrigger>
+                      {row.platform} · {row.connectionId} ·{' '}
+                      {row.kind === 'feed'
+                        ? 'Recent provider posts (up to 100 originals, 30 days)'
+                        : 'Account metrics'}{' '}
+                      · {row.status}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {row.series.map((series) => (
+                        <div key={series.label}>
+                          <h3 className="mt-2 font-medium">
+                            {series.label}
+                            {series.average ? ' (provider average)' : ''}
+                          </h3>
+                          <Table className="w-full text-left text-sm">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Value</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {series.data.map((point, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>{point.date}</TableCell>
+                                  <TableCell>{point.total}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ))}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+            </Accordion>
           </div>
         </>
       )}

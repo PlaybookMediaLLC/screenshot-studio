@@ -70,7 +70,7 @@ async function exportPng(page: Page): Promise<Buffer> {
 async function thumbnail(button: Locator): Promise<string> {
   await button.scrollIntoViewIfNeeded()
   const image = button.locator('img')
-  await expect(image).toHaveAttribute('src', /^blob:/, { timeout: 60_000 })
+  await expect(image).toHaveAttribute('src', /^data:image\//, { timeout: 60_000 })
   return (await image.getAttribute('src'))!
 }
 
@@ -87,7 +87,9 @@ async function nextThumbnail(button: Locator, previous: string): Promise<string>
           last = src ?? ''
           stableSince = Date.now()
         }
-        return last !== previous && last.startsWith('blob:') && Date.now() - stableSince > 2_500
+        return (
+          last !== previous && last.startsWith('data:image/') && Date.now() - stableSince > 2_500
+        )
       },
       { intervals: [500], timeout: 90_000 }
     )
@@ -163,7 +165,9 @@ test('framed screenshots compose, preview, and export the same everywhere (Workf
   await deselect()
   await expect(framePanel.getByText('all 3 screens')).toBeVisible()
   const before = await thumbnail(bento)
+  // Choosing a frame kind browses its options; applying it frames the screens.
   await framePanel.getByRole('button', { name: 'Browser frame' }).click()
+  await framePanel.getByRole('button', { exact: true, name: 'Apply browser frame' }).click()
   await expect(stage.locator('[data-frame-box="browser"]')).toHaveCount(3)
   await framePanel.getByRole('button', { exact: true, name: 'Light' }).click()
   await expect(stage.locator('[data-frame-box="browser"][data-tone="light"]')).toHaveCount(3)

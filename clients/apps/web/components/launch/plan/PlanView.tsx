@@ -1,7 +1,6 @@
 'use client'
 
 import { ChecklistIcon as CheckListIcon } from '@/components/platform-shell/icons'
-import { CampaignsScene } from '@/components/platform-ui/empty-scenes'
 import { LaptopIcon as LaptopIcon } from '@/components/platform-shell/icons'
 import { StoreIcon as SmartPhone01Icon } from '@/components/platform-shell/icons'
 import Link from 'next/link'
@@ -196,7 +195,6 @@ export function PlanView({
   if (!plan) {
     return (
       <EmptyState
-        scene={<CampaignsScene />}
         action={
           runButton ? (
             <div className="flex flex-col items-center gap-2">

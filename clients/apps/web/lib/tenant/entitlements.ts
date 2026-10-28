@@ -51,6 +51,20 @@ export async function requireWorkspaceFeature(
 }
 
 /**
+ * Check several gates in one round trip. The first gate in `features` that
+ * fails is the error, as if they had been checked one after another.
+ */
+export async function requireWorkspaceFeatures(
+  context: TenantContext,
+  features: WorkspaceFeature[]
+): Promise<void> {
+  const results = await Promise.allSettled(
+    features.map((feature) => requireWorkspaceFeature(context, feature))
+  )
+  for (const result of results) if (result.status === 'rejected') throw result.reason
+}
+
+/**
  * Metered quotas count in the backend's shared counter and fail closed when
  * it is unavailable. Returns what is left; an amount of 0 only reads it.
  */

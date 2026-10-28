@@ -47,6 +47,9 @@ export function protectConnection(
     if (draining || stopped) return;
     draining = true;
     try {
+      // Frames sent in one turn (an update's echo and its sync acknowledgement)
+      // share one decision, which begins only once they are all queued.
+      await Promise.resolve();
       while (pending.length && !stopped) {
         // A decision may only release frames that existed when it began.
         // New frames need their own check, even while this one is in flight.

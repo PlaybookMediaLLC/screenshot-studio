@@ -29,7 +29,7 @@ export default async function LibraryPage({
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization?.name}
     >
-      <Page title="Library" tagline="Everything your team has made.">
+      <Page title="Library" description="Everything your team has made.">
         <AreaNavigation label="Library" items={LIBRARY_LINKS} />
         {view === 'assets' ? (
           <WorkspaceAssets />

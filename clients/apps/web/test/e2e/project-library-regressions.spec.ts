@@ -25,7 +25,10 @@ test('previews settle on first load and opening an empty project reuses a blank 
   }
   await page.goto(getE2EUrl('/projects'))
   const card = page.getByRole('link', { name: 'Open Empty project', exact: true })
-  await expect(card.locator('..').getByText('Empty project')).toBeVisible()
+  // The empty preview's label, not the hover overlay that repeats the project's name.
+  await expect(
+    card.locator('..').getByRole('paragraph').filter({ hasText: 'Empty project' })
+  ).toBeVisible()
   for (const name of ['First preview', 'Second preview', 'Third preview']) {
     await expect(page.getByRole('img', { name: `Preview of ${name}` })).toBeVisible({
       timeout: 60_000,

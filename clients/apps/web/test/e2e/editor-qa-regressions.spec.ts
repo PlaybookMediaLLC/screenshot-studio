@@ -119,8 +119,16 @@ test('Remove keeps other slides and text, and screenshot upload remains availabl
   await page.getByRole('button', { name: 'Add Text', exact: true }).first().click()
   const content = page.getByLabel('Text content', { exact: true })
   await content.click()
-  await content.press('ControlOrMeta+a')
-  await content.pressSequentially('One typing burst', { delay: 25 })
+  // One input event per character, all in one task. Real keystrokes on CI's dev
+  // build took ~200ms each, and the burst split wherever the page stalled for
+  // more than the 750ms typing window, so the test measured the runner, not grouping.
+  await content.evaluate((node: HTMLTextAreaElement, text) => {
+    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!
+    for (let length = 1; length <= text.length; length += 1) {
+      setValue.call(node, text.slice(0, length))
+      node.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+  }, 'One typing burst')
   await page.getByRole('button', { name: 'Undo (⌘Z)', exact: true }).click()
   await expect(canvasText(page)).toHaveText('Text')
   await page.getByRole('button', { name: 'Redo (⌘⇧Z)', exact: true }).click()

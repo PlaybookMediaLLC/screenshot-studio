@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -29,32 +30,84 @@ func (r *Repository) AuthorizeConnections(ctx context.Context, organizationID, u
 	return r.AuthorizeRole(ctx, organizationID, userID, sessionID, "owner", "admin")
 }
 
+type recordAuthorizationKey struct{}
+type replayAuthorizationKey struct{}
+
+// AuthorizationMemo carries the role a middleware's check read to the
+// handler's first check of its own, so that check skips the session, user,
+// membership and workspace queries it would repeat.
+type AuthorizationMemo struct {
+	last atomic.Pointer[authorizedRole]
+}
+
+// authorizedRole is an actor AuthorizeRole admitted, and the client it read with.
+type authorizedRole struct {
+	client                                  *ent.Client
+	organizationID, userID, sessionID, role string
+}
+
+// RecordAuthorization keeps what AuthorizeRole admits under ctx in memo.
+func RecordAuthorization(ctx context.Context, memo *AuthorizationMemo) context.Context {
+	return context.WithValue(ctx, recordAuthorizationKey{}, memo)
+}
+
+// ReplayAuthorization lets the first AuthorizeRole under ctx reuse memo for
+// the same actor and client. Every later check reads again, so a change the
+// handler makes is always seen, and a transaction's repository has its own
+// client, so a check under a row lock reads again too.
+func ReplayAuthorization(ctx context.Context, memo *AuthorizationMemo) context.Context {
+	return context.WithValue(ctx, replayAuthorizationKey{}, memo)
+}
+
 // AuthorizeRole rechecks the session, active workspace, membership, and
 // deletion state in the backend. A forwarded role header is never trusted.
 func (r *Repository) AuthorizeRole(ctx context.Context, organizationID, userID, sessionID string, allowedRoles ...string) error {
+	_, err := r.AuthorizedRole(ctx, organizationID, userID, sessionID, allowedRoles...)
+	return err
+}
+
+// AuthorizedRole is AuthorizeRole, returning the member's stored role.
+func (r *Repository) AuthorizedRole(ctx context.Context, organizationID, userID, sessionID string, allowedRoles ...string) (string, error) {
 	if organizationID == "" || userID == "" || sessionID == "" {
-		return ErrUnauthorized
+		return "", ErrUnauthorized
+	}
+	if memo, _ := ctx.Value(replayAuthorizationKey{}).(*AuthorizationMemo); memo != nil {
+		last := memo.last.Swap(nil)
+		if last != nil && last.client == r.client && last.organizationID == organizationID &&
+			last.userID == userID && last.sessionID == sessionID {
+			if !workspaceroles.Allows(last.role, allowedRoles...) {
+				return "", ErrForbidden
+			}
+			return last.role, nil
+		}
 	}
 	current, err := r.AuthorizeSession(ctx, userID, sessionID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if current.ActiveOrganizationID != nil && *current.ActiveOrganizationID != organizationID {
-		return ErrForbidden
+		return "", ErrForbidden
 	}
 	participants, err := r.client.Member.Query().Where(
 		member.OrganizationID(organizationID), member.UserID(userID),
 	).All(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if len(participants) != 1 {
-		return ErrForbidden
+		return "", ErrForbidden
 	}
-	if !workspaceroles.Allows(participants[0].Role, allowedRoles...) {
-		return ErrForbidden
+	role := participants[0].Role
+	if !workspaceroles.Allows(role, allowedRoles...) {
+		return "", ErrForbidden
 	}
-	return r.requireOperational(ctx, organizationID)
+	if err := r.requireOperational(ctx, organizationID); err != nil {
+		return "", err
+	}
+	if memo, _ := ctx.Value(recordAuthorizationKey{}).(*AuthorizationMemo); memo != nil {
+		memo.last.Store(&authorizedRole{r.client, organizationID, userID, sessionID, role})
+	}
+	return role, nil
 }
 
 // requireOperational rejects a workspace that is scheduled for deletion.

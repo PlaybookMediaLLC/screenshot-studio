@@ -421,12 +421,15 @@ test('TF-078 TF-100: preview toggles preserve the caret and scroll while rapid e
     await expect(panel).not.toContainText('Rapid-edit-marker')
     await expectSaved(page)
     // Navigate through the actual draft rail, so the pending-save guard runs.
+    // An open preview hides the rail below 1536px wide, so it closes first.
+    if (await panel.isVisible()) await toggle.click()
     await page.locator(`a[href^="/write/${first}"]`).first().click()
     await expect(editor).toContainText('Rapid-edit-marker-0123456789')
     if (!(await panel.isVisible())) await toggle.click()
     await expect(panel).not.toContainText('Second draft must stay isolated.')
     await panel.getByRole('button', { name: 'Show more', exact: true }).click()
     await expect(panel).toContainText('Rapid-edit-marker-0123456789')
+    await toggle.click()
     await page.locator(`a[href^="/write/${second}"]`).first().click()
     await expect(editor).toContainText('Second draft must stay isolated.')
     await expect(editor).not.toContainText('Alpha one two')
@@ -633,6 +636,12 @@ test('TF-057 TF-074 TF-078 TF-085 TF-100: live preview, expansion and scaled mob
       animations: 'disabled',
       maxDiffPixelRatio: 0.01,
     })
+    // The picked platform and device survive the panel moving between layouts.
+    await expect(panel.getByRole('button', { name: 'Threads', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await expect(panel.getByRole('combobox', { name: 'Preview device' })).toContainText('iPhone SE')
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await expectSaved(page)
     await page.keyboard.press('ControlOrMeta+k')

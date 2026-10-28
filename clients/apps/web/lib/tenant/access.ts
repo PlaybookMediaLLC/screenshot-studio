@@ -1,28 +1,31 @@
 import 'server-only'
 
-import {
-  requireActiveOrganizationPermission,
-  requireSensitiveActiveOrganizationPermission,
-  type TenantContext,
-} from '@/lib/auth/access'
+import { requireActiveOrganizationAccess, type TenantContext } from '@/lib/auth/access'
 import { requireOrganizationApiKeyScope } from '@/lib/auth/api-keys'
 import type { TenantAccessRequirement } from '@/lib/api/access-requirements'
-import { consumeWorkspaceQuota, requireWorkspaceFeature } from '@/lib/tenant/entitlements'
+import { consumeWorkspaceQuota, requireWorkspaceFeatures } from '@/lib/tenant/entitlements'
 
 export async function requireTenantAccess(
   headers: Headers,
   requirement: TenantAccessRequirement
 ): Promise<TenantContext> {
-  const context = headers.has('x-api-key')
-    ? await requireOrganizationApiKeyScope(headers, requirement.apiKeyScope)
-    : requirement.sensitive
-      ? await requireSensitiveActiveOrganizationPermission(headers, requirement.permission)
-      : await requireActiveOrganizationPermission(headers, requirement.permission)
-
   // Basic workspace access precedes the operation-specific feature gate.
-  await requireWorkspaceFeature(context, 'workspace:use')
-  if (requirement.feature) {
-    await requireWorkspaceFeature(context, requirement.feature)
+  const gates = (context: TenantContext) =>
+    requireWorkspaceFeatures(
+      context,
+      requirement.feature ? ['workspace:use', requirement.feature] : ['workspace:use']
+    )
+  let context: TenantContext
+  if (headers.has('x-api-key')) {
+    context = await requireOrganizationApiKeyScope(headers, requirement.apiKeyScope)
+    await gates(context)
+  } else {
+    context = await requireActiveOrganizationAccess(
+      headers,
+      requirement.permission,
+      Boolean(requirement.sensitive),
+      gates
+    )
   }
   if (requirement.quota) {
     await consumeWorkspaceQuota(context, requirement.quota)

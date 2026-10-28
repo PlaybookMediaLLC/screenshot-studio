@@ -4,10 +4,10 @@ import { draftPlainText } from '@/lib/content-drafts/serialize'
 /**
  * The library's URL query as last asked for. Each change merges into the
  * newest intended query rather than the address bar, which still shows the
- * old query while a router navigation is in flight. A search alone skips the
- * server, but not while a navigation is pending: replacing history then would
- * discard it and keep a filter the person just removed. `settle` once the
- * router commits a URL.
+ * old query while a router navigation is in flight. A search or a lifecycle
+ * tab alone skips the server (the browser loads that list itself), but not
+ * while a navigation is pending: replacing history then would discard it and
+ * keep a filter the person just removed. `settle` once the router commits a URL.
  */
 export function libraryQuery(location: () => string) {
   let pending: string | null = null
@@ -18,7 +18,8 @@ export function libraryQuery(location: () => string) {
         if (value) query.set(key, value)
         else query.delete(key)
       }
-      const navigate = pending !== null || Object.keys(next).some((key) => key !== 'q')
+      const navigate =
+        pending !== null || Object.keys(next).some((key) => key !== 'q' && key !== 'tab')
       if (navigate) pending = query.toString()
       return { navigate, search: query.toString() }
     },

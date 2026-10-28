@@ -4,6 +4,19 @@ import * as React from 'react'
 import Link from 'next/link'
 import { domToPng } from 'modern-screenshot'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -11,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { WorkspaceNav } from '@/components/plan/WorkspaceNav'
+import { AnalyzeNav, WorkspaceNav } from '@/components/plan/WorkspaceNav'
 import {
   analyticsQuerySchema,
   analyticsSettingsSchema,
@@ -40,17 +53,19 @@ import { ChartBoundary, MetricChart } from './MetricChart'
 import { Hourly } from './Hourly'
 import { ChartShare } from './ChartShare'
 
-const field = 'rounded border bg-background px-2 py-1.5 text-sm'
 type Row = AnalyticsReport['posts'][number]
 
 /** All views derive from one account/query key; stale responses never cross that boundary. */
 export function AnalyzeWorkspace({
   sets = [],
+  campaignsEnabled = false,
   canManage = false,
   initial = {},
   publicToken,
 }: {
   sets?: SocialSetWire[]
+  /** Campaigns are usable here, so Publish lists Campaign deliveries. */
+  campaignsEnabled?: boolean
   canManage?: boolean
   initial?: Record<string, string | undefined>
   publicToken?: string
@@ -223,18 +238,26 @@ export function AnalyzeWorkspace({
   if (!publicToken && !accounts.length)
     return (
       <div>
-        <WorkspaceNav active="analyze" />
-        <main className="p-8">
-          <h1>Analyze</h1>
-          <p>Connect a social account to collect analytics.</p>
-          <Link href="/workspace/social-sets">Social accounts</Link>
+        <WorkspaceNav active="analyze" campaigns={campaignsEnabled} />
+        <AnalyzeNav active="Overview" />
+        <main className="mx-auto max-w-7xl space-y-2 p-4 sm:p-6">
+          <h1 className="text-2xl font-semibold">Analyze</h1>
+          <p className="text-sm text-muted-foreground">
+            Connect a social account to collect analytics.
+          </p>
+          <Button asChild variant="outline">
+            <Link href="/workspace/social-sets">Connect a social account</Link>
+          </Button>
         </main>
       </div>
     )
   return (
     <div className="h-full min-h-0 overflow-y-auto">
       {!publicToken ? (
-        <WorkspaceNav active="analyze" />
+        <>
+          <WorkspaceNav active="analyze" campaigns={campaignsEnabled} />
+          <AnalyzeNav active="Overview" />
+        </>
       ) : (
         <header className="border-b px-6 py-4 font-semibold">Shots · Shared analytics</header>
       )}
@@ -242,10 +265,9 @@ export function AnalyzeWorkspace({
         <header className="flex flex-wrap items-center gap-3">
           <h1 className="mr-auto text-2xl font-semibold">Analyze</h1>
           {!publicToken ? (
-            <label>
+            <Label className="grid gap-1.5">
               Account{' '}
-              <select
-                className={field}
+              <NativeSelect
                 aria-label="Analytics account"
                 value={accountId}
                 onChange={(e) => {
@@ -258,22 +280,19 @@ export function AnalyzeWorkspace({
                 }}
               >
                 {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
+                  <NativeSelectOption key={a.id} value={a.id}>
                     {a.setName} · {a.platform} · {a.handle ?? a.displayName ?? a.id}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-              </select>
-            </label>
+              </NativeSelect>
+            </Label>
           ) : null}
           {report?.profileUrl ? (
-            <a
-              className="text-sm underline"
-              href={report.profileUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View {report.name} on {report.platform}
-            </a>
+            <Button asChild className="h-auto p-0" size={null} variant="link">
+              <a href={report.profileUrl} target="_blank" rel="noreferrer">
+                View {report.name} on {report.platform}
+              </a>
+            </Button>
           ) : null}
           {!publicToken ? (
             <Button
@@ -305,10 +324,9 @@ export function AnalyzeWorkspace({
             applyDates()
           }}
         >
-          <label className="text-sm">
+          <Label className="grid gap-1.5">
             Period
-            <select
-              className={`${field} block`}
+            <NativeSelect
               aria-label="Date preset"
               value={preset}
               onChange={(e) => {
@@ -321,57 +339,53 @@ export function AnalyzeWorkspace({
               }}
             >
               {PRESETS.map((p) => (
-                <option key={p}>{p}</option>
+                <NativeSelectOption key={p}>{p}</NativeSelectOption>
               ))}
-            </select>
-          </label>
-          <label className="text-sm">
+            </NativeSelect>
+          </Label>
+          <Label className="grid gap-1.5">
             From
-            <input
-              className={`${field} block`}
+            <Input
               type="date"
               aria-label="From"
               value={form.from}
               onChange={(e) => setForm((f) => ({ ...f, from: e.target.value }))}
               required
             />
-          </label>
-          <label className="text-sm">
+          </Label>
+          <Label className="grid gap-1.5">
             To
-            <input
-              className={`${field} block`}
+            <Input
               type="date"
               aria-label="To"
               value={form.to}
               onChange={(e) => setForm((f) => ({ ...f, to: e.target.value }))}
               required
             />
-          </label>
-          <label className="text-sm">
+          </Label>
+          <Label className="grid gap-1.5">
             Timezone
-            <input
-              className={`${field} block`}
+            <Input
               aria-label="Analytics timezone"
               value={form.timeZone}
               onChange={(e) => setForm((f) => ({ ...f, timeZone: e.target.value }))}
             />
-          </label>
+          </Label>
           <Button variant="outline" type="submit">
             Apply range
           </Button>
-          <label className="text-sm">
+          <Label className="grid gap-1.5">
             Grouping
-            <select
-              className={`${field} block`}
+            <NativeSelect
               aria-label="Grouping"
               value={query.grouping}
               onChange={(e) => update({ grouping: e.target.value as AnalyticsQuery['grouping'] })}
             >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </label>
+              <NativeSelectOption value="daily">Daily</NativeSelectOption>
+              <NativeSelectOption value="weekly">Weekly</NativeSelectOption>
+              <NativeSelectOption value="monthly">Monthly</NativeSelectOption>
+            </NativeSelect>
+          </Label>
         </form>
         {formError ? <p role="alert">{formError}</p> : null}
         {error ? (
@@ -421,14 +435,13 @@ export function AnalyzeWorkspace({
                   </Button>
                   <h2 className="mr-auto text-lg font-semibold">{METRICS[metric]}</h2>
                   {metric === 'followers' ? (
-                    <label>
-                      <input
-                        type="checkbox"
+                    <Label>
+                      <Checkbox
                         checked={growth}
-                        onChange={(e) => setGrowth(e.target.checked)}
-                      />{' '}
+                        onCheckedChange={(checked) => setGrowth(checked === true)}
+                      />
                       Interval growth
-                    </label>
+                    </Label>
                   ) : null}
                   <Button
                     variant="outline"
@@ -501,7 +514,9 @@ export function AnalyzeWorkspace({
                 ) : (
                   <p role="status">
                     This metric is unavailable.{' '}
-                    <button onClick={() => setRefresh((n) => n + 1)}>Retry</button>
+                    <Button onClick={() => setRefresh((n) => n + 1)} size="sm" variant="link">
+                      Retry
+                    </Button>
                   </p>
                 )}
               </section>
@@ -511,7 +526,12 @@ export function AnalyzeWorkspace({
                   const m = report.metrics[id]
                   return (
                     <section key={id} className="rounded-xl border p-4">
-                      <button className="w-full text-left" onClick={() => setMetric(id)}>
+                      <Button
+                        className="h-auto w-full flex-col items-start gap-0 p-0 text-left font-normal whitespace-normal"
+                        onClick={() => setMetric(id)}
+                        size={null}
+                        variant="ghost"
+                      >
                         <h2 className="font-medium">{name}</h2>
                         <p
                           className="my-3 text-3xl"
@@ -526,29 +546,32 @@ export function AnalyzeWorkspace({
                             ? ` · ${formatValue(m.change)}% vs previous equal-length period`
                             : ' · No comparable percentage'}
                         </p>
-                      </button>
+                      </Button>
                       <p className="mt-2 text-xs">
                         {m?.samples ?? 0} observations · {m?.missing ?? 0} missing
                       </p>
-                      <a
-                        className="text-xs underline"
-                        href={`#definition-${id}`}
-                        onClick={() => {
-                          const details = document
-                            .getElementById(`definition-${id}`)
-                            ?.closest('details')
-                          if (details) details.open = true
-                        }}
-                      >
-                        Metric definition
-                      </a>
+                      <Button asChild className="h-auto p-0 text-xs" size={null} variant="link">
+                        <a
+                          href={`#definition-${id}`}
+                          onClick={() => {
+                            const details = document
+                              .getElementById(`definition-${id}`)
+                              ?.closest('details')
+                            if (details) details.open = true
+                          }}
+                        >
+                          Metric definition
+                        </a>
+                      </Button>
                       {m?.status === 'failed' ? (
-                        <button
-                          className="ml-2 text-xs underline"
+                        <Button
+                          className="ml-2 h-auto p-0 text-xs"
                           onClick={() => setRefresh((n) => n + 1)}
+                          size={null}
+                          variant="link"
                         >
                           Retry metric
-                        </button>
+                        </Button>
                       ) : null}
                     </section>
                   )
@@ -595,45 +618,42 @@ export function AnalyzeWorkspace({
             <section className="rounded-xl border p-4">
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <h2 className="mr-auto font-semibold">Post performance · {report.totalPosts}</h2>
-                <label>
+                <Label className="grid gap-1.5">
                   Scope
-                  <select
-                    className={field}
+                  <NativeSelect
                     aria-label="Post scope"
                     value={query.scope}
                     onChange={(e) => update({ scope: e.target.value as AnalyticsQuery['scope'] })}
                   >
-                    <option value="all">All</option>
-                    <option value="replies">Replies</option>
-                  </select>
-                </label>
-                <label>
+                    <NativeSelectOption value="all">All</NativeSelectOption>
+                    <NativeSelectOption value="replies">Replies</NativeSelectOption>
+                  </NativeSelect>
+                </Label>
+                <Label className="grid gap-1.5">
                   Sort
-                  <select
-                    className={field}
+                  <NativeSelect
                     aria-label="Sort posts"
                     value={query.sort}
                     onChange={(e) => update({ sort: e.target.value as AnalyticsQuery['sort'] })}
                   >
                     {Object.entries(SORTS).map(([id, label]) => (
-                      <option key={id} value={id}>
+                      <NativeSelectOption key={id} value={id}>
                         {label}
-                      </option>
+                      </NativeSelectOption>
                     ))}
-                  </select>
-                </label>
-                <label>
+                  </NativeSelect>
+                </Label>
+                <Label className="grid gap-1.5">
                   Order
-                  <select
+                  <NativeSelect
                     aria-label="Sort direction"
-                    className={field}
                     value={query.direction}
                     onChange={(e) => update({ direction: e.target.value as 'asc' | 'desc' })}
                   >
-                    <option value="desc">Descending</option>
-                    <option value="asc">Ascending</option>
-                  </select>
-                </label>
+                    <NativeSelectOption value="desc">Descending</NativeSelectOption>
+                    <NativeSelectOption value="asc">Ascending</NativeSelectOption>
+                  </NativeSelect>
+                </Label>
                 <Button
                   variant="outline"
                   disabled={working || report.totalPosts === 0}
@@ -722,9 +742,11 @@ export function AnalyzeWorkspace({
               </DialogHeader>
               <p className="whitespace-pre-wrap">{row.excerpt}</p>
               {row.url ? (
-                <a href={row.url} target="_blank" rel="noreferrer" className="underline">
-                  View this post
-                </a>
+                <Button asChild className="h-auto justify-start p-0" size={null} variant="link">
+                  <a href={row.url} target="_blank" rel="noreferrer">
+                    View this post
+                  </a>
+                </Button>
               ) : null}
               <dl className="grid grid-cols-2 gap-2">
                 {Object.entries(SORTS)
@@ -795,22 +817,23 @@ export function AnalyzeWorkspace({
               </DialogHeader>
               {report.settings.publicToken ? (
                 <>
-                  <label>
+                  <Label className="grid gap-1.5">
                     Public link
-                    <input
-                      className={`${field} w-full`}
+                    <Input
+                      className="w-full"
                       readOnly
                       value={`${window.location.origin}/analytics/public/${report.settings.publicToken}`}
                     />
-                  </label>
-                  <a
-                    className="underline"
-                    href={`/analytics/public/${report.settings.publicToken}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open public page
-                  </a>
+                  </Label>
+                  <Button asChild className="h-auto justify-start p-0" size={null} variant="link">
+                    <a
+                      href={`/analytics/public/${report.settings.publicToken}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open public page
+                    </a>
+                  </Button>
                   <Button
                     disabled={working}
                     onClick={() => void action(() => saveSettings({ action: 'revoke' }))}
@@ -871,38 +894,44 @@ function PostTable({
   ] as const
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
-        <caption className="sr-only">Individual provider posts, latest observed counters</caption>
-        <thead>
-          <tr>
-            <th scope="col" className="min-w-56 p-2">
+      <Table className="w-full text-left text-sm">
+        <TableCaption className="sr-only">
+          Individual provider posts, latest observed counters
+        </TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col" className="min-w-56 p-2">
               Post
-            </th>
-            <th
+            </TableHead>
+            <TableHead
               scope="col"
               aria-sort={
                 sort === 'latest' ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'
               }
             >
-              <button onClick={() => onSort?.('latest')}>Published</button>
-            </th>
+              <Button onClick={() => onSort?.('latest')} size="sm" variant="ghost">
+                Published
+              </Button>
+            </TableHead>
             {columns.map((k) => (
-              <th
+              <TableHead
                 scope="col"
                 key={k}
                 className="p-2"
                 aria-sort={sort === k ? (direction === 'asc' ? 'ascending' : 'descending') : 'none'}
               >
-                <button onClick={() => onSort?.(k)}>{SORTS[k]}</button>
-              </th>
+                <Button onClick={() => onSort?.(k)} size="sm" variant="ghost">
+                  {SORTS[k]}
+                </Button>
+              </TableHead>
             ))}
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+            <TableHead scope="col">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row) => (
-            <tr key={row.id} className="border-t">
-              <td className="max-w-80 p-2">
+            <TableRow key={row.id}>
+              <TableCell className="max-w-80 p-2">
                 <p className="line-clamp-3">{row.excerpt || 'Media post'}</p>
                 <small className="text-muted-foreground">
                   {row.threadPosition !== 0
@@ -921,8 +950,8 @@ function PostTable({
                       : (STATES[row.status] ?? 'Metrics unavailable')}
                   </small>
                 ) : null}
-              </td>
-              <td className="whitespace-nowrap p-2">
+              </TableCell>
+              <TableCell className="whitespace-nowrap p-2">
                 <time dateTime={row.publishedAt} title={row.publishedAt}>
                   {new Date(row.publishedAt).toLocaleString(undefined, {
                     timeZone: zone,
@@ -933,9 +962,9 @@ function PostTable({
                 <small className="block text-muted-foreground">
                   {relativeTime(row.publishedAt)}
                 </small>
-              </td>
+              </TableCell>
               {columns.map((k) => (
-                <td
+                <TableCell
                   className="p-2"
                   key={k}
                   title={
@@ -945,22 +974,29 @@ function PostTable({
                   {k === 'engagementRate' && row.metrics[k] !== undefined
                     ? `${formatValue(row.metrics[k] * 100)}%`
                     : formatValue(row.metrics[k], true)}
-                </td>
+                </TableCell>
               ))}
-              <td className="p-2">
-                <button className="underline" onClick={() => onInspect(row)}>
+              <TableCell className="p-2">
+                <Button
+                  className="h-auto p-0"
+                  onClick={() => onInspect(row)}
+                  size={null}
+                  variant="link"
+                >
                   Statistics
-                </button>
+                </Button>
                 {row.url ? (
-                  <a className="ml-2 underline" href={row.url} target="_blank" rel="noreferrer">
-                    Open
-                  </a>
+                  <Button asChild className="ml-2 h-auto p-0" size={null} variant="link">
+                    <a href={row.url} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  </Button>
                 ) : null}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }
@@ -1005,35 +1041,32 @@ function GoalDialog({
             history is excluded. Saving a changed goal starts a new streak.
           </DialogDescription>
         </DialogHeader>
-        <label>
+        <Label className="grid gap-1.5">
           Cadence
-          <select
-            className={field}
+          <NativeSelect
             aria-label="Goal cadence"
             value={cadence}
             onChange={(e) => setCadence(e.target.value as 'daily' | 'weekly')}
           >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-          </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
+            <NativeSelectOption value="daily">Daily</NativeSelectOption>
+            <NativeSelectOption value="weekly">Weekly</NativeSelectOption>
+          </NativeSelect>
+        </Label>
+        <Label>
+          <Checkbox
             checked={excludeWeekends}
-            onChange={(e) => setExclude(e.target.checked)}
+            onCheckedChange={(checked) => setExclude(checked === true)}
           />
           Exclude weekend publications
-        </label>
-        <label>
+        </Label>
+        <Label className="grid gap-1.5">
           Goal timezone
-          <input
-            className={field}
+          <Input
             aria-label="Goal timezone"
             value={zone}
             onChange={(e) => setZone(e.target.value)}
           />
-        </label>
+        </Label>
         <p className="text-xs">
           Weeks begin Monday. A period in progress does not break the streak. Failed, scheduled, and
           planned content never qualifies.

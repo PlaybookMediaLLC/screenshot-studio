@@ -2,7 +2,6 @@
 
 import { OutwardIcon as ArrowUpRight } from '@/components/platform-shell/icons'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
-import { HomeScene } from '@/components/platform-ui/empty-scenes'
 import { EmptyState } from '@/components/platform-ui'
 import { RecentIcon as Clock3 } from '@/components/platform-shell/icons'
 import { PostIcon as FileText } from '@/components/platform-shell/icons'
@@ -218,7 +217,6 @@ export function RecentWork({
         </ul>
       ) : query.data && !query.data.partial ? (
         <EmptyState
-          scene={<HomeScene />}
           icon={Clock3}
           title="Your work will appear here"
           description={

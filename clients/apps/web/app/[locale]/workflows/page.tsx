@@ -28,7 +28,7 @@ export default async function WorkflowsPage({ params }: WorkflowsPageProps) {
             {access.canManage ? <ButtonLink href="/workflows/new">New workflow</ButtonLink> : null}
           </>
         }
-        tagline="Shipped changes become reviewable campaigns."
+        description="Shipped changes become reviewable campaigns."
         title="Automate"
       >
         <ReturnToWork />

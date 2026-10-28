@@ -28,6 +28,12 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     expect(all.status, JSON.stringify(all.body)).toBe(200)
     const sets = (all.body as { items: { id: string; version: number; name: string }[] }).items
     const first = sets[0]
+    // The planned day: three days out, so it is never past, but never a month's last day.
+    // Later steps move it a day or show it in Tokyo time, and the month view opened on
+    // this day must still contain it.
+    const daysAhead = (count: number) =>
+      new Date(Date.now() + count * 86400000).toISOString().slice(0, 10)
+    const day = daysAhead(3).slice(0, 7) === daysAhead(4).slice(0, 7) ? daysAhead(3) : daysAhead(4)
     expect(
       (
         await apiRequest(page, `/api/v1/social-sets/${first.id}`, {
@@ -36,10 +42,8 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
             baseVersion: first.version,
             name: 'Same name',
             timeZone: 'America/New_York',
-            // The slot falls on the planned day, three days out, so it is never already past.
-            postingSlots: [
-              { weekday: new Date(Date.now() + 3 * 86400000).getUTCDay(), time: '09:15' },
-            ],
+            // The slot falls on the planned day, so it is never already past.
+            postingSlots: [{ weekday: new Date(`${day}T00:00:00Z`).getUTCDay(), time: '09:15' }],
           },
         })
       ).status
@@ -59,7 +63,6 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     } finally {
       await db.end()
     }
-    const day = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10)
     const sourceDraft = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {
@@ -87,7 +90,7 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       const all = page.getByRole('checkbox', { name: 'All publishing brands' })
       await expect(all).toBeChecked()
       await page.getByRole('checkbox', { name: 'Show Same name linkedin', exact: true }).uncheck()
-      expect(await all.evaluate((node: HTMLInputElement) => node.indeterminate)).toBe(true)
+      await expect(all).toBeChecked({ indeterminate: true })
       await page.getByRole('checkbox', { name: 'Show Same name x', exact: true }).uncheck()
       await expect(all).not.toBeChecked()
       await all.check()
@@ -310,7 +313,17 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       await page.getByText('Filters', { exact: true }).click()
     })
     await test.step('P34 browser drag swap and Undo persist both placements', async () => {
-      const targetTime = new Date(Date.parse(plannedFor) + 86400000).toISOString()
+      // A neighbouring day in the same calendar week, so both cards stay in view:
+      // the day after would land in the next month when the post is on a
+      // month's last Saturday.
+      const saturday =
+        new Date(plannedFor).toLocaleDateString('en-US', {
+          weekday: 'short',
+          timeZone: 'America/New_York',
+        }) === 'Sat'
+      const targetTime = new Date(
+        Date.parse(plannedFor) + (saturday ? -1 : 1) * 86400000
+      ).toISOString()
       const other = await apiRequest(page, '/api/v1/calendar/mutations', {
         method: 'POST',
         body: {
@@ -379,6 +392,10 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       } finally {
         await db.end()
       }
+      // Restore the display zone: in Tokyo a post late on a month's last day
+      // shows in the next month, outside the calendar the later steps read.
+      await page.getByLabel('Display timezone', { exact: true }).fill('America/New_York')
+      await page.getByLabel('Display timezone', { exact: true }).blur()
     })
     await test.step('P34 P36 a move has a durable inverse and stale replay cannot overwrite it', async () => {
       const target = new Date(Date.parse(plannedFor) + 86400000).toISOString()
@@ -510,7 +527,8 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       await page.getByLabel('Display timezone', { exact: true }).focus()
       await page.keyboard.press('w')
       await expect(page.getByLabel('Calendar view')).toHaveValue('month')
-      await page.getByLabel('Display timezone', { exact: true }).fill('Asia/Tokyo')
+      // West of New York, so the planned post keeps its day (and month) on screen.
+      await page.getByLabel('Display timezone', { exact: true }).fill('America/Los_Angeles')
       await page.getByLabel('Display timezone', { exact: true }).blur()
       await page.locator('body').click({ position: { x: 1270, y: 10 } })
       await page.keyboard.press('v')

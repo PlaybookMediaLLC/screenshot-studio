@@ -14,9 +14,15 @@ export async function assertStageReady(): Promise<void> {
   if (!stage) throw new Error('The output canvas is missing.')
   await Promise.all(
     Array.from(stage.querySelectorAll('img')).map(async (image) => {
-      try {
-        await image.decode()
-      } catch {
+      // decode() also rejects when the element's source changes mid-decode, as a
+      // re-render can do; a loaded image still counts, and one more decode waits
+      // for the new source. A broken image completes with no width both times.
+      const decoded = () =>
+        image.decode().then(
+          () => true,
+          () => image.complete && image.naturalWidth > 0
+        )
+      if (!(await decoded()) && !(await decoded())) {
         throw new Error('An image could not be loaded. Replace or reconnect it before exporting.')
       }
       if (!image.naturalWidth) throw new Error('An image is empty.')

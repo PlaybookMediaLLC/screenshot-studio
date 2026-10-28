@@ -85,6 +85,14 @@ export const test = base.extend<E2EFixtures>({
 
 export function configureE2EFlow(hooks: E2EFlowHooks = {}): void {
   test.beforeEach(async ({ app, identity, page }, testInfo) => {
+    // DEBUG (do not merge): log the dev server's HMR traffic.
+    let logged = 0
+    page.on('load', () => console.log('DEBUG load', page.url()))
+    page.on('websocket', (ws) => {
+      ws.on('framereceived', (frame) => {
+        if (logged++ < 40) console.log('DEBUG hmr<-', String(frame.payload).slice(0, 300))
+      })
+    })
     // Rate limits are keyed by client IP, so the whole shard shares one
     // budget and a spec can be rejected for requests made by earlier specs.
     // Reset before each test so a limit only reflects the test's own work.

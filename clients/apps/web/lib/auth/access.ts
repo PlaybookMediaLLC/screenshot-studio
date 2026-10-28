@@ -112,16 +112,23 @@ async function getApiKeyPrincipal(headers: Headers): Promise<Principal | null> {
   }
 }
 
-async function getBackendActiveOrganization(
-  session: { session: AuthSession; user: { email: string; id: string } },
-  requestId: string
-): Promise<OrganizationAccess> {
-  const principal: SessionPrincipal = {
+function sessionPrincipalOf(session: {
+  session: AuthSession
+  user: { email: string; id: string }
+}): SessionPrincipal {
+  return {
     display: session.user.email,
     kind: 'session',
     sessionId: session.session.id,
     userId: session.user.id,
   }
+}
+
+async function getBackendActiveOrganization(
+  session: { session: AuthSession; user: { email: string; id: string } },
+  requestId: string
+): Promise<OrganizationAccess> {
+  const principal = sessionPrincipalOf(session)
   const access = await backendSDK({
     organizationId: session.session.activeOrganizationId ?? '',
     principal,
@@ -273,6 +280,36 @@ export async function requireSensitiveActiveOrganizationPermission(
   const access = await requireActiveSessionOrganization(headers, session)
   assertPermission(access, permission)
   assertFreshTwoFactorSession(session)
+  return access
+}
+
+/**
+ * {@link requireActiveOrganizationPermission} (or the sensitive variant), then
+ * `check` for that workspace. `check` starts for the workspace the session
+ * last recorded while the backend confirms it, so both cost one round trip;
+ * it runs again if the backend settles on another workspace.
+ */
+export async function requireActiveOrganizationAccess(
+  headers: Headers,
+  permission: Permission,
+  sensitive: boolean,
+  check: (context: TenantContext) => Promise<void>
+): Promise<OrganizationAccess> {
+  const session = await requireAuthSession(headers)
+  const recorded = session.session.activeOrganizationId
+  const early = recorded
+    ? check({
+        organizationId: recorded,
+        principal: sessionPrincipalOf(session),
+        requestId: getRequestId(headers),
+      })
+    : null
+  // A refused access check wins over the early check's outcome.
+  early?.catch(() => {})
+  const access = await requireActiveSessionOrganization(headers, session)
+  assertPermission(access, permission)
+  if (sensitive) assertFreshTwoFactorSession(session)
+  await (early && access.organizationId === recorded ? early : check(access))
   return access
 }
 

@@ -15,6 +15,7 @@ import type { Authenticate, RawRequest } from '@/lib/api/route'
 import {
   AuthorizationError,
   type OrganizationAccess,
+  requireActiveOrganizationAccess,
   requireActiveOrganizationPermission,
   requireOrganizationPermission,
   requireSensitiveActiveOrganizationPermission,
@@ -109,11 +110,14 @@ export function memberAccess(
         403
       )
     }
-    const access = sensitive
-      ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
-      : await requireActiveOrganizationPermission(request.headers, permission)
     // Basic workspace access precedes the operation-specific feature gate.
-    await requireWorkspaceFeatures(access, feature ? ['workspace:use', feature] : ['workspace:use'])
+    const access = await requireActiveOrganizationAccess(
+      request.headers,
+      permission,
+      Boolean(sensitive),
+      (context) =>
+        requireWorkspaceFeatures(context, feature ? ['workspace:use', feature] : ['workspace:use'])
+    )
     if (quota) await consumeWorkspaceQuota(access, quota)
     return access
   }
@@ -129,10 +133,11 @@ export function paidSessionAccess(
   options: { sensitive?: boolean } = {}
 ): Authenticate<OrganizationAccess> {
   return async ({ request }) => {
-    const access = options.sensitive
-      ? await requireSensitiveActiveOrganizationPermission(request.headers, permission)
-      : await requireActiveOrganizationPermission(request.headers, permission)
-    await requireWorkspaceFeature(access, 'workspace:paid')
-    return access
+    return requireActiveOrganizationAccess(
+      request.headers,
+      permission,
+      Boolean(options.sensitive),
+      (context) => requireWorkspaceFeature(context, 'workspace:paid')
+    )
   }
 }

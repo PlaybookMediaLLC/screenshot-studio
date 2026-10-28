@@ -428,6 +428,7 @@ func (s *Server) authenticateWithOptions(next http.Handler, organizationRequired
 			writeError(w, http.StatusUnauthorized, "a signed-in session is required")
 			return
 		}
+		r = r.WithContext(publishing.RememberAuthorization(r.Context()))
 		if err := authorize(r.Context(), actor); err != nil {
 			writeStoreError(w, err)
 			return

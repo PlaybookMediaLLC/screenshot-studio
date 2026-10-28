@@ -113,3 +113,29 @@ func TestTeamCollaborationRoles(t *testing.T) {
 		t.Fatalf("cross-workspace read: %v", err)
 	}
 }
+
+// One request reuses its first role check, still gating each operation by
+// role, while a check made under a transaction's lock reads again.
+func TestRequestAuthorizationMemo(t *testing.T) {
+	w := newTestWorkspace(t)
+	w.addMember(t, "viewer", "viewer")
+	viewer := w.actor("viewer")
+	ctx := publishing.RememberAuthorization(w.ctx)
+	if err := w.repo.AuthorizeRead(ctx, viewer); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.repo.auth.AuthorizePublishing(ctx, w.org, viewer.UserID, viewer.SessionID); !errors.Is(err, publishing.ErrForbidden) {
+		t.Fatalf("remembered viewer published: %v", err)
+	}
+	w.exec(t, `DELETE FROM member WHERE id=$1`, "member_viewer_"+w.id)
+	if err := w.repo.AuthorizeRead(ctx, viewer); err != nil {
+		t.Fatalf("same request read the membership again: %v", err)
+	}
+	// The locked recheck refuses before LeaveWorkspace's own lookup would.
+	if _, err := w.repo.LeaveWorkspace(ctx, viewer); err != publishing.ErrForbidden {
+		t.Fatalf("locked recheck reused the request's check: %v", err)
+	}
+	if err := w.repo.AuthorizeRead(publishing.RememberAuthorization(w.ctx), viewer); !errors.Is(err, publishing.ErrForbidden) {
+		t.Fatalf("next request admitted a removed member: %v", err)
+	}
+}

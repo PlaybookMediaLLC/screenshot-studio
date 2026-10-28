@@ -24,72 +24,71 @@ const campaignSchema = z.object({
 })
 const campaignListSchema = z.object({ campaigns: z.array(z.object({ id: z.string() })) })
 
-test('a founder connects a product, describes a release, and returns to the same draft', async ({
-  app,
-  browser,
-  identity,
-  page,
-}) => {
-  await app.open('/campaigns')
-  await page.getByRole('link', { name: 'New campaign' }).click()
+test(
+  'a founder connects a product, describes a release, and returns to the same draft',
+  { tag: '@smoke' },
+  async ({ app, browser, identity, page }) => {
+    await app.open('/campaigns')
+    await page.getByRole('link', { name: 'New campaign' }).click()
 
-  await page.getByLabel('Product name').fill('Ledgerly')
-  await page.getByLabel('App URL').fill('https://app.ledgerly.example')
-  await chooseOption(page.getByLabel('Environment'), 'staging')
-  await page.getByLabel('Marketing site URL (optional)').fill('https://ledgerly.example')
-  await page.getByLabel('Release title').fill('Recurring invoices')
-  await page.getByLabel('Why it matters').fill('Invoices now send themselves every month.')
-  await page.getByLabel('Description').fill('Set a schedule once; Ledgerly sends the rest.')
-  await page.getByLabel('Target audience').fill('Freelancers who bill monthly')
-  await page.getByLabel('Source links (optional)').fill('https://ledgerly.example/changelog')
-  await page.getByRole('button', { name: 'Create campaign' }).click()
+    await page.getByLabel('Product name').fill('Ledgerly')
+    await page.getByLabel('App URL').fill('https://app.ledgerly.example')
+    await chooseOption(page.getByLabel('Environment'), 'staging')
+    await page.getByLabel('Marketing site URL (optional)').fill('https://ledgerly.example')
+    await page.getByLabel('Release title').fill('Recurring invoices')
+    await page.getByLabel('Why it matters').fill('Invoices now send themselves every month.')
+    await page.getByLabel('Description').fill('Set a schedule once; Ledgerly sends the rest.')
+    await page.getByLabel('Target audience').fill('Freelancers who bill monthly')
+    await page.getByLabel('Source links (optional)').fill('https://ledgerly.example/changelog')
+    await page.getByRole('button', { name: 'Create campaign' }).click()
 
-  await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/campaigns\/c[a-z0-9]{20,}$/)
-  const campaignPath = new URL(page.url()).pathname
-  const assertDraft = async (target = page) => {
-    await expect(
-      target.getByRole('heading', { level: 1, name: 'Recurring invoices' })
-    ).toBeVisible()
-    await expect(target.getByText('Draft', { exact: true })).toBeVisible()
-    await expect(target.getByText('Invoices now send themselves every month.')).toBeVisible()
-    await expect(target.getByText('Freelancers who bill monthly')).toBeVisible()
-    await expect(target.getByText(/Ledgerly · staging ·/)).toBeVisible()
-    await expect(
-      target.getByRole('link', { name: 'https://ledgerly.example/changelog' })
-    ).toBeVisible()
+    await expect.poll(() => new URL(page.url()).pathname).toMatch(/^\/campaigns\/c[a-z0-9]{20,}$/)
+    const campaignPath = new URL(page.url()).pathname
+    const assertDraft = async (target = page) => {
+      await expect(
+        target.getByRole('heading', { level: 1, name: 'Recurring invoices' })
+      ).toBeVisible()
+      await expect(target.getByText('Draft', { exact: true })).toBeVisible()
+      await expect(target.getByText('Invoices now send themselves every month.')).toBeVisible()
+      await expect(target.getByText('Freelancers who bill monthly')).toBeVisible()
+      await expect(target.getByText(/Ledgerly · staging ·/)).toBeVisible()
+      await expect(
+        target.getByRole('link', { name: 'https://ledgerly.example/changelog' })
+      ).toBeVisible()
+    }
+    await assertDraft()
+
+    await app.reload()
+    await assertDraft()
+    expect(new URL(page.url()).pathname).toBe(campaignPath)
+
+    await page.getByRole('button', { name: 'Edit brief' }).click()
+    await page.getByLabel('Description').fill('Schedules, reminders, and automatic retries.')
+    await page.getByRole('button', { name: 'Save brief' }).click()
+    await expect(page.getByText(/^Brief updated\./)).toBeVisible()
+    await expect(page.getByText('Schedules, reminders, and automatic retries.')).toBeVisible()
+    expect(new URL(page.url()).pathname).toBe(campaignPath)
+
+    // A fresh sign-in finds the same campaign from the list.
+    const returning = await browser.newContext()
+    const returningPage = await returning.newPage()
+    try {
+      await returningPage.goto(getE2EUrl('/sign-in'))
+      await returningPage.getByLabel('Email', { exact: true }).fill(identity.email)
+      await returningPage.getByLabel('Password').fill(identity.password)
+      await returningPage.getByRole('button', { name: 'Sign in' }).click()
+      await expect.poll(() => new URL(returningPage.url()).pathname).toBe('/home')
+      await returningPage.goto(getE2EUrl('/campaigns'))
+      await returningPage.getByRole('link', { name: /Recurring invoices/ }).click()
+      await expect.poll(() => new URL(returningPage.url()).pathname).toBe(campaignPath)
+      await expect(
+        returningPage.getByText('Schedules, reminders, and automatic retries.')
+      ).toBeVisible()
+    } finally {
+      await returning.close()
+    }
   }
-  await assertDraft()
-
-  await app.reload()
-  await assertDraft()
-  expect(new URL(page.url()).pathname).toBe(campaignPath)
-
-  await page.getByRole('button', { name: 'Edit brief' }).click()
-  await page.getByLabel('Description').fill('Schedules, reminders, and automatic retries.')
-  await page.getByRole('button', { name: 'Save brief' }).click()
-  await expect(page.getByText(/^Brief updated\./)).toBeVisible()
-  await expect(page.getByText('Schedules, reminders, and automatic retries.')).toBeVisible()
-  expect(new URL(page.url()).pathname).toBe(campaignPath)
-
-  // A fresh sign-in finds the same campaign from the list.
-  const returning = await browser.newContext()
-  const returningPage = await returning.newPage()
-  try {
-    await returningPage.goto(getE2EUrl('/sign-in'))
-    await returningPage.getByLabel('Email', { exact: true }).fill(identity.email)
-    await returningPage.getByLabel('Password').fill(identity.password)
-    await returningPage.getByRole('button', { name: 'Sign in' }).click()
-    await expect.poll(() => new URL(returningPage.url()).pathname).toBe('/home')
-    await returningPage.goto(getE2EUrl('/campaigns'))
-    await returningPage.getByRole('link', { name: /Recurring invoices/ }).click()
-    await expect.poll(() => new URL(returningPage.url()).pathname).toBe(campaignPath)
-    await expect(
-      returningPage.getByText('Schedules, reminders, and automatic retries.')
-    ).toBeVisible()
-  } finally {
-    await returning.close()
-  }
-})
+)
 
 test('campaign context stays inside its workspace and survives surface deletion', async ({
   browser,

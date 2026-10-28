@@ -20,20 +20,24 @@ async function uploadImage(page: Page) {
   await expect(page.getByRole('button', { exact: true, name: 'Export' })).toBeEnabled()
 }
 
-test('an authenticated user can upload an image and export a PNG', async ({ app, page }) => {
-  await app.openEditor()
-  await uploadImage(page)
+test(
+  'an authenticated user can upload an image and export a PNG',
+  { tag: '@smoke' },
+  async ({ app, page }) => {
+    await app.openEditor()
+    await uploadImage(page)
 
-  const save = page.getByRole('button', { exact: true, name: 'Export' })
-  await save.click()
-  await page.getByRole('button', { exact: true, name: 'PNG' }).click()
-  const exportButton = page.getByRole('button', { name: 'Export as PNG' })
-  await expect(exportButton).toBeVisible()
+    const save = page.getByRole('button', { exact: true, name: 'Export' })
+    await save.click()
+    await page.getByRole('button', { exact: true, name: 'PNG' }).click()
+    const exportButton = page.getByRole('button', { name: 'Export as PNG' })
+    await expect(exportButton).toBeVisible()
 
-  const download = page.waitForEvent('download')
-  await exportButton.click()
-  expect((await download).suggestedFilename()).toMatch(/\.png$/)
-})
+    const download = page.waitForEvent('download')
+    await exportButton.click()
+    expect((await download).suggestedFilename()).toMatch(/\.png$/)
+  }
+)
 
 test('an authenticated user can prepare a social aspect ratio, style it, and clear the draft', async ({
   app,

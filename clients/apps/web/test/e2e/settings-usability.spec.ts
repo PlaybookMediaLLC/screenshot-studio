@@ -2,39 +2,40 @@ import { db, expect, openWorkspaceSetting, test } from './framework'
 
 test.use({ workspaceOptions: { plan: 'pro' } })
 
-test('General keeps unsaved edits, warns on navigation, and discards to the last save', async ({
-  app,
-  page,
-}) => {
-  await openWorkspaceSetting(page, 'General')
-  const description = page.getByLabel('Description', { exact: true })
-  await description.fill('Keep this draft')
-  await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
-  page.once('dialog', (dialog) => dialog.dismiss())
-  await page.getByRole('link', { name: 'Account', exact: true }).click()
-  await expect(description).toHaveValue('Keep this draft')
+test(
+  'General keeps unsaved edits, warns on navigation, and discards to the last save',
+  { tag: '@smoke' },
+  async ({ app, page }) => {
+    await openWorkspaceSetting(page, 'General')
+    const description = page.getByLabel('Description', { exact: true })
+    await description.fill('Keep this draft')
+    await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
+    page.once('dialog', (dialog) => dialog.dismiss())
+    await page.getByRole('link', { name: 'Account', exact: true }).click()
+    await expect(description).toHaveValue('Keep this draft')
 
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('link', { name: 'Account', exact: true }).click()
-  await expect(page).toHaveURL(/\/workspace\/account/)
-  await openWorkspaceSetting(page, 'General')
-  await expect(description).toHaveValue('Keep this draft')
-  page.once('dialog', (dialog) => dialog.accept())
-  await app.reload()
-  await expect(description).toHaveValue('Keep this draft')
-  await page.getByRole('button', { name: 'Save workspace' }).click()
-  await expect(page.getByText('Workspace details updated.')).toBeVisible()
-  await description.fill('Discard this edit')
-  await page.getByRole('button', { name: 'Discard', exact: true }).click()
-  await expect(description).toHaveValue('Keep this draft')
-  await app.reload()
-  await expect(description).toHaveValue('Keep this draft')
+    page.once('dialog', (dialog) => dialog.accept())
+    await page.getByRole('link', { name: 'Account', exact: true }).click()
+    await expect(page).toHaveURL(/\/workspace\/account/)
+    await openWorkspaceSetting(page, 'General')
+    await expect(description).toHaveValue('Keep this draft')
+    page.once('dialog', (dialog) => dialog.accept())
+    await app.reload()
+    await expect(description).toHaveValue('Keep this draft')
+    await page.getByRole('button', { name: 'Save workspace' }).click()
+    await expect(page.getByText('Workspace details updated.')).toBeVisible()
+    await description.fill('Discard this edit')
+    await page.getByRole('button', { name: 'Discard', exact: true }).click()
+    await expect(description).toHaveValue('Keep this draft')
+    await app.reload()
+    await expect(description).toHaveValue('Keep this draft')
 
-  await page.getByLabel('Workspace slug').fill('INVALID SPACE!')
-  await expect(page.locator('#workspace-slug-error')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Save workspace' })).toBeDisabled()
-  await page.getByRole('button', { name: 'Discard', exact: true }).click()
-})
+    await page.getByLabel('Workspace slug').fill('INVALID SPACE!')
+    await expect(page.locator('#workspace-slug-error')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Save workspace' })).toBeDisabled()
+    await page.getByRole('button', { name: 'Discard', exact: true }).click()
+  }
+)
 
 test('brand colors retain the last valid preview and block publication until corrected', async ({
   page,

@@ -66,35 +66,35 @@ async function expireInvitation(invitationId: string): Promise<void> {
   ])
 }
 
-test('an invitation accepts once for its intended recipient', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  const member = getMemberIdentity(identity, 'accepted')
-  const invitation = await createInvitation(page, member.email)
-  const memberContext = await browser.newContext()
-  const memberPage = await memberContext.newPage()
+test(
+  'an invitation accepts once for its intended recipient',
+  { tag: '@smoke' },
+  async ({ browser, identity, page }) => {
+    const member = getMemberIdentity(identity, 'accepted')
+    const invitation = await createInvitation(page, member.email)
+    const memberContext = await browser.newContext()
+    const memberPage = await memberContext.newPage()
 
-  try {
-    await signUp(member, memberPage)
-    await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
-    await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
-    await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/workspace')
-    await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
-    await expect(memberPage.getByText('This invitation has already been accepted.')).toBeVisible()
-    await expect(memberPage.getByRole('button', { name: 'Accept invitation' })).toHaveCount(0)
-    expect(
-      (
-        await requestJson(memberPage, '/api/auth/organization/accept-invitation', {
-          invitationId: invitation.id,
-        })
-      ).status
-    ).toBe(409)
-  } finally {
-    await memberContext.close()
+    try {
+      await signUp(member, memberPage)
+      await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
+      await memberPage.getByRole('button', { name: 'Accept invitation' }).click()
+      await expect.poll(() => new URL(memberPage.url()).pathname).toBe('/workspace')
+      await memberPage.goto(getE2EUrl(`/accept-invitation?invitationId=${invitation.id}`))
+      await expect(memberPage.getByText('This invitation has already been accepted.')).toBeVisible()
+      await expect(memberPage.getByRole('button', { name: 'Accept invitation' })).toHaveCount(0)
+      expect(
+        (
+          await requestJson(memberPage, '/api/auth/organization/accept-invitation', {
+            invitationId: invitation.id,
+          })
+        ).status
+      ).toBe(409)
+    } finally {
+      await memberContext.close()
+    }
   }
-})
+)
 
 test('an invitation cannot be accepted by another user or after cancellation', async ({
   browser,

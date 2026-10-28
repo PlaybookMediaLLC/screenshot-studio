@@ -15,6 +15,7 @@ node_modules/
 /clients/apps/web/playwright-report/
 /clients/apps/web/test-results/
 /clients/apps/web/.context/
+/clients/apps/web/.local/
 /.context/
 
 # next.js

@@ -41,6 +41,14 @@ destination, and schedules through the web. It verifies:
 5. HTTP 429 and 500 responses retry into one remote post each.
 6. An expired provider credential fails without publishing.
 
+The gate schedules an approved campaign variant, not a draft. Draft media
+(a photo, a video, an ordered carousel with a MOV, separate posts, an
+unanswered submission and a withdrawn approval) is proven through the real
+publish activities in the Temporal test environment by
+`TestScheduledMediaReachesTheProviderThroughTheWorker`, against a private
+signed-URL bucket and a test provider; see
+[media scheduling](media-scheduling.md) for the capability matrix.
+
 `test/e2e/social-scheduling.spec.ts` checks the web callback and scheduling facade
 with a mock social API, including cross-workspace isolation, X, LinkedIn, and
 both Instagram login variants. Go tests cover ambiguous delivery, retry and
@@ -56,6 +64,8 @@ rerun it after changing those paths.
 - Hold a post for more than 24 real hours, then verify the worker signs its
   private media only when it publishes. Moving a future timestamp forward in
   a test proves scheduling behavior, but not elapsed URL expiry.
+- Extend the gate to schedule drafts with a photo, a video and a
+  multi-image post to its fake destination.
 - Run new harmless LinkedIn and Instagram feed/Reel canaries through the
   cutover customer UI. Record the canonical post and attempt IDs, remote ID
   and URL, visible caption/media, and absence of duplicates. X image and video

@@ -105,12 +105,14 @@ function NavLink({
 
 function Navigation({
   campaignsEnabled,
+  canWriteDrafts,
   collapsed,
   draftsEnabled,
   onNavigate,
   paidPlan,
 }: {
   campaignsEnabled: boolean
+  canWriteDrafts: boolean
   collapsed: boolean
   draftsEnabled: boolean
   onNavigate?: () => void
@@ -126,6 +128,7 @@ function Navigation({
       <ShellActions
         collapsed={collapsed}
         campaignsEnabled={campaignsEnabled}
+        canWriteDrafts={canWriteDrafts}
         draftsEnabled={draftsEnabled}
         onNavigate={onNavigate}
         paidPlan={paidPlan}
@@ -306,6 +309,8 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 export interface PlatformSidebarProps {
   campaignsEnabled: boolean
   /** Show Drafts; content drafts are behind PLATFORM_CONTENT_DRAFTS. */
+  /** The member may write drafts, so New → Post creates one at once. */
+  canWriteDrafts?: boolean
   draftsEnabled?: boolean
   /** The layout the navigation cookie names, for the first paint. */
   initialNavigation?: z.infer<typeof navigationLayoutSchema>
@@ -374,6 +379,7 @@ function useNavigationExpanded(
  */
 export function PlatformSidebar({
   campaignsEnabled,
+  canWriteDrafts = false,
   draftsEnabled = false,
   initialNavigation = 'expanded',
   notificationIdentity,
@@ -418,6 +424,7 @@ export function PlatformSidebar({
         <div className="mt-5 min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-0.5 py-1">
           <Navigation
             campaignsEnabled={campaignsEnabled}
+            canWriteDrafts={canWriteDrafts}
             collapsed={collapsed}
             draftsEnabled={draftsEnabled}
             paidPlan={paidPlan}
@@ -467,6 +474,7 @@ export function PlatformSidebar({
               <div className="mt-5 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 py-1">
                 <Navigation
                   campaignsEnabled={campaignsEnabled}
+                  canWriteDrafts={canWriteDrafts}
                   collapsed={false}
                   draftsEnabled={draftsEnabled}
                   paidPlan={paidPlan}

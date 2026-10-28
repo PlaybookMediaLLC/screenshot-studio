@@ -178,8 +178,10 @@ export function WriteProvider({
   if (data.query.sort) searchQuery.set('sort', data.query.sort)
   if (data.experiments.tags && data.query.tag) searchQuery.set('tagId', data.query.tag)
   const searchKey = searchQuery.toString()
+  // Another tab, or a search past the loaded page, comes from the drafts API.
+  const fetched = !loaded || Boolean(search && data.hasMore)
   React.useEffect(() => {
-    if (loaded && (!search || !data.hasMore)) return
+    if (!fetched) return
     // Search beyond the loaded page, or load another tab, through JSON without remounting the route.
     const controller = new AbortController()
     void fetch(`/api/v1/content-drafts?${searchKey}`, { signal: controller.signal })
@@ -200,8 +202,9 @@ export function WriteProvider({
         if (!loaded) setResults({ key: searchKey, items: [] })
       })
     return () => controller.abort()
-  }, [data.hasMore, loaded, search, searchKey])
-  const remote = results?.key === searchKey ? results.items : null
+    // A refreshed page (after an archive, restore or pin) reloads the fetched list too.
+  }, [data, fetched, loaded, searchKey])
+  const remote = fetched && results?.key === searchKey ? results.items : null
   const libraryPending = !loaded && !remote
   const visibleData = React.useMemo(
     () => ({

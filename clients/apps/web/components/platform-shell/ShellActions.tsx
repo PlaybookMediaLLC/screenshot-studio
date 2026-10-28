@@ -64,12 +64,15 @@ export function SearchButton() {
 export function ShellActions({
   collapsed,
   campaignsEnabled,
+  canWriteDrafts,
   draftsEnabled,
   onNavigate,
   paidPlan = true,
 }: {
   collapsed: boolean
   campaignsEnabled: boolean
+  /** Without it, Post opens the drafts the member may read instead of making one. */
+  canWriteDrafts: boolean
   draftsEnabled: boolean
   onNavigate?: () => void
   /** Without it, paid items say Pro and open the plan page instead of bouncing. */
@@ -122,7 +125,7 @@ export function ShellActions({
               (campaignsEnabled || item.label !== 'Campaign') &&
               (draftsEnabled || item.label !== 'Post')
           ).map((item) =>
-            item.label === 'Post' ? (
+            item.label === 'Post' && canWriteDrafts ? (
               <DropdownMenuItem key={item.href} onSelect={newPost}>
                 {item.label}
               </DropdownMenuItem>

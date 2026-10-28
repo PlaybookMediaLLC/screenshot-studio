@@ -50,6 +50,7 @@ import { assetContentUrl } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
 import {
   type BatchAccount,
+  itemAccounts,
   pendingAccounts,
   POST_STATUS,
   postOn,
@@ -70,7 +71,7 @@ import {
 import { importedBody, importedPosts } from '@/lib/write/import-text'
 import { readVersions, withOptions } from '@/lib/write/versions'
 import { cn } from '@/lib/utils'
-import { saveExportToWorkspace } from '@/lib/workspace/save-export'
+import { safeAssetFileName, saveExportToWorkspace } from '@/lib/workspace/save-export'
 
 /** Files a batch takes: the formats some destination publishes; a PDF goes to LinkedIn as a document. */
 const ACCEPT =
@@ -562,7 +563,7 @@ export function BatchWorkspace({
     if (!valid.length) return
     setBusy('add')
     try {
-      for (const file of chosen) files.current.set(file.name, file)
+      for (const file of chosen) files.current.set(safeAssetFileName(file.name), file)
       const next = await call<ContentBatch>(`${base}/items`, {
         body: { items: valid.map((row) => row.input) },
         method: 'POST',
@@ -584,8 +585,9 @@ export function BatchWorkspace({
 
   const reselect = (selected: File[]) => {
     for (const file of selected) {
-      const wanted = missingFiles.find((entry) => entry.fileName === file.name)
-      if (wanted && wanted.bytes === file.size) files.current.set(file.name, file)
+      const name = safeAssetFileName(file.name)
+      const wanted = missingFiles.find((entry) => entry.fileName === name)
+      if (wanted && wanted.bytes === file.size) files.current.set(name, file)
     }
     startUploads()
     setUploads((current) => ({ ...current }))
@@ -624,7 +626,7 @@ export function BatchWorkspace({
   const planTimes = async () => {
     // Items with nothing scheduled yet on some account, or no accounts chosen yet.
     const targets = items.filter((item) => {
-      const ids = item.draft?.channelConnectionIds ?? item.channelConnectionIds
+      const ids = itemAccounts(item)
       return !ids.length || pendingAccounts(item, ids).remaining.length > 0
     })
     if (!targets.length) {
@@ -738,10 +740,7 @@ export function BatchWorkspace({
     setBusy('check')
     try {
       const requests = items.flatMap((item) => {
-        const { remaining } = pendingAccounts(
-          item,
-          item.draft?.channelConnectionIds ?? item.channelConnectionIds
-        )
+        const { remaining } = pendingAccounts(item, itemAccounts(item))
         return remaining.length ? [{ itemId: item.id, channelConnectionIds: remaining }] : []
       })
       if (!requests.length) {
@@ -1205,7 +1204,7 @@ export function BatchWorkspace({
             <ol className="grid gap-4" aria-label="Batch items">
               {items.map((item, index) => {
                 const timing = readTiming(item.timing)
-                const accountIds = item.draft?.channelConnectionIds ?? item.channelConnectionIds
+                const accountIds = itemAccounts(item)
                 const staged = stagedChecks(item, accounts)
                 const status = itemStatus(item)
                 return (

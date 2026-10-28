@@ -1,3 +1,4 @@
+import { safeAssetFileName } from '@/lib/workspace/save-export'
 import { draftChannelSchema } from '@/lib/write/document'
 import { isTimeZone } from '@/lib/write/zoned-time'
 
@@ -161,7 +162,7 @@ const ASSET_ID =
 /** Whether a CSV media token names a workspace asset rather than a file. */
 export const isAssetId = (token: string) => ASSET_ID.test(token)
 
-/** An attachment of a row: a workspace asset, or a selected file to upload. */
+/** An attachment of a row: a workspace asset, or a selected file to upload under `fileName`. */
 export type MatchedMedia = { assetId: string } | { fileName: string; bytes: number }
 
 /**
@@ -182,7 +183,14 @@ export function matchRowMedia(
     if (named.length > 1) {
       problems.push(`Two selected files are named ${token}. Rename one and select the files again.`)
     } else if (named.length === 1) {
-      media.push({ fileName: token, bytes: named[0].size })
+      // Stored under a name object keys accept; the person still matches by the original.
+      const fileName = safeAssetFileName(token)
+      if (!fileName) problems.push(`Rename ${token}: its name has no letters or digits to keep.`)
+      else if (files.some((file) => file !== named[0] && safeAssetFileName(file.name) === fileName))
+        problems.push(
+          `${token} and another selected file would both be saved as ${fileName}. Rename one and select the files again.`
+        )
+      else media.push({ fileName, bytes: named[0].size })
     } else if (isAssetId(token)) {
       if (assets.has(token)) media.push({ assetId: token })
       else problems.push(`Line ${row.line}: asset ${token} is not in this workspace's library.`)

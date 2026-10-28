@@ -217,6 +217,18 @@ function percent(total: number, onProgress?: (progress: number) => void) {
 }
 
 /**
+ * A file name object keys accept: letters, digits, dots, dashes and
+ * underscores, starting with a letter or digit, at most 128 characters.
+ * Empty when nothing of the name is left.
+ */
+export function safeAssetFileName(name: string): string {
+  return name
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/^[^a-zA-Z0-9]+/, '')
+    .slice(0, 128)
+}
+
+/**
  * Filename for a saved export.
  *
  * Saved assets are listed alongside one another, so a timestamp keeps

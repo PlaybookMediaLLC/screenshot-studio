@@ -100,6 +100,25 @@ test('media matches an exact selected name or a confirmed asset, and flags every
   assert.deepEqual(matchRowMedia(fixed, files, known).problems, [])
 })
 
+test('a file name storage cannot key is stored under a safe name, and a clash is flagged', () => {
+  const { rows } = parseBatchCSV('caption,asset\nA,Product launch.png\nB,a b.png\nC,日本\n')
+  const files = [
+    { name: 'Product launch.png', size: 5 },
+    { name: 'a b.png', size: 1 },
+    { name: 'a-b.png', size: 2 },
+    { name: '日本', size: 3 },
+  ]
+  assert.deepEqual(matchRowMedia(rows[0], files, new Set()), {
+    media: [{ fileName: 'Product-launch.png', bytes: 5 }],
+    problems: [],
+  })
+  assert.match(
+    matchRowMedia(rows[1], files, new Set()).problems[0],
+    /would both be saved as a-b.png/
+  )
+  assert.match(matchRowMedia(rows[2], files, new Set()).problems[0], /no letters or digits/)
+})
+
 test('IMPORT-01: review flags unknown and unconnected channels, never unassigned rows', () => {
   const [unknown, unconnected, unassigned, connected] = parseBatchCSV(
     'caption,asset,channels\nA,,not-a-channel\nB,,x\nC,,\nD,,LinkedIn'

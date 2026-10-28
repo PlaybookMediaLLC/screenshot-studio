@@ -139,6 +139,15 @@ export const POST_STATUS: Record<string, string> = {
   UNKNOWN_DELIVERY: 'Uncertain: check the account',
 }
 
+/**
+ * The accounts an item is meant for: those chosen in the batch and any its
+ * draft gained since. Scheduling some of them narrows the draft's list to
+ * what was scheduled, so the batch keeps the rest to check and send later.
+ */
+export function itemAccounts(item: BatchItem): string[] {
+  return [...new Set([...item.channelConnectionIds, ...(item.draft?.channelConnectionIds ?? [])])]
+}
+
 /** The accounts an item still needs scheduled to, and whether it already has live posts. */
 export function pendingAccounts(item: BatchItem, accountIds: string[]) {
   const live = accountIds.filter((id) => {

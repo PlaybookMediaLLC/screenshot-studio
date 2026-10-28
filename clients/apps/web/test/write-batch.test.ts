@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { BatchItem } from '@/lib/api/contracts/content-batches'
 import {
+  itemAccounts,
   pendingAccounts,
   postOn,
   queueTimings,
@@ -124,4 +125,11 @@ test('a corrected item resubmits only accounts without a live post, beside the o
   assert.deepEqual(pendingAccounts(scheduled, ['ig', 'li', 'x']), { add: true, remaining: ['li'] })
   assert.equal(postOn(scheduled, 'li')?.status, 'FAILED')
   assert.deepEqual(pendingAccounts(item(), ['ig']), { add: false, remaining: ['ig'] })
+})
+
+test("scheduling some accounts keeps the batch's other accounts to check and send", () => {
+  const draft = { channelConnectionIds: ['ig'] } as BatchItem['draft']
+  assert.deepEqual(itemAccounts(item({ draft, draftId: 'd' })), ['ig', 'li'])
+  const widened = { channelConnectionIds: ['ig', 'x'] } as BatchItem['draft']
+  assert.deepEqual(itemAccounts(item({ draft: widened, draftId: 'd' })), ['ig', 'li', 'x'])
 })

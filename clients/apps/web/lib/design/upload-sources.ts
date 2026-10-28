@@ -2,7 +2,7 @@
 
 import type { TRPCClient } from '@trpc/client'
 import type { AppRouter } from '@/lib/trpc/router'
-import { buildExportFileName, saveExportToWorkspace } from '@/lib/workspace/save-export'
+import { buildExportFileName, safeAssetFileName, saveExportToWorkspace } from '@/lib/workspace/save-export'
 import { type DesignDocument, getLocalDesignSources, mapDesignSources } from './document'
 
 /**
@@ -27,7 +27,7 @@ export async function uploadSource(
   const blob = await (await fetch(ref)).blob()
   const { assetId } = await saveExportToWorkspace({
     blob,
-    fileName: fileName?.replace(/[^a-zA-Z0-9._-]/g, '-').replace(/^[^a-zA-Z0-9]+/, '').slice(0, 128) || buildExportFileName(blob.type),
+    fileName: (fileName && safeAssetFileName(fileName)) || buildExportFileName(blob.type),
     trpcClient,
   })
   uploads.set(ref, `asset:${assetId}`)

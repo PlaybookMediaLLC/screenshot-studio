@@ -110,6 +110,16 @@ func Height(v int) predicate.Asset {
 	return predicate.Asset(sql.FieldEQ(FieldHeight, v))
 }
 
+// DurationMs applies equality check predicate on the "duration_ms" field. It's identical to DurationMsEQ.
+func DurationMs(v int) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldDurationMs, v))
+}
+
+// Codecs applies equality check predicate on the "codecs" field. It's identical to CodecsEQ.
+func Codecs(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldCodecs, v))
+}
+
 // AltText applies equality check predicate on the "alt_text" field. It's identical to AltTextEQ.
 func AltText(v string) predicate.Asset {
 	return predicate.Asset(sql.FieldEQ(FieldAltText, v))
@@ -683,6 +693,131 @@ func HeightIsNil() predicate.Asset {
 // HeightNotNil applies the NotNil predicate on the "height" field.
 func HeightNotNil() predicate.Asset {
 	return predicate.Asset(sql.FieldNotNull(FieldHeight))
+}
+
+// DurationMsEQ applies the EQ predicate on the "duration_ms" field.
+func DurationMsEQ(v int) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldDurationMs, v))
+}
+
+// DurationMsNEQ applies the NEQ predicate on the "duration_ms" field.
+func DurationMsNEQ(v int) predicate.Asset {
+	return predicate.Asset(sql.FieldNEQ(FieldDurationMs, v))
+}
+
+// DurationMsIn applies the In predicate on the "duration_ms" field.
+func DurationMsIn(vs ...int) predicate.Asset {
+	return predicate.Asset(sql.FieldIn(FieldDurationMs, vs...))
+}
+
+// DurationMsNotIn applies the NotIn predicate on the "duration_ms" field.
+func DurationMsNotIn(vs ...int) predicate.Asset {
+	return predicate.Asset(sql.FieldNotIn(FieldDurationMs, vs...))
+}
+
+// DurationMsGT applies the GT predicate on the "duration_ms" field.
+func DurationMsGT(v int) predicate.Asset {
+	return predicate.Asset(sql.FieldGT(FieldDurationMs, v))
+}
+
+// DurationMsGTE applies the GTE predicate on the "duration_ms" field.
+func DurationMsGTE(v int) predicate.Asset {
+	return predicate.Asset(sql.FieldGTE(FieldDurationMs, v))
+}
+
+// DurationMsLT applies the LT predicate on the "duration_ms" field.
+func DurationMsLT(v int) predicate.Asset {
+	return predicate.Asset(sql.FieldLT(FieldDurationMs, v))
+}
+
+// DurationMsLTE applies the LTE predicate on the "duration_ms" field.
+func DurationMsLTE(v int) predicate.Asset {
+	return predicate.Asset(sql.FieldLTE(FieldDurationMs, v))
+}
+
+// DurationMsIsNil applies the IsNil predicate on the "duration_ms" field.
+func DurationMsIsNil() predicate.Asset {
+	return predicate.Asset(sql.FieldIsNull(FieldDurationMs))
+}
+
+// DurationMsNotNil applies the NotNil predicate on the "duration_ms" field.
+func DurationMsNotNil() predicate.Asset {
+	return predicate.Asset(sql.FieldNotNull(FieldDurationMs))
+}
+
+// CodecsEQ applies the EQ predicate on the "codecs" field.
+func CodecsEQ(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEQ(FieldCodecs, v))
+}
+
+// CodecsNEQ applies the NEQ predicate on the "codecs" field.
+func CodecsNEQ(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldNEQ(FieldCodecs, v))
+}
+
+// CodecsIn applies the In predicate on the "codecs" field.
+func CodecsIn(vs ...string) predicate.Asset {
+	return predicate.Asset(sql.FieldIn(FieldCodecs, vs...))
+}
+
+// CodecsNotIn applies the NotIn predicate on the "codecs" field.
+func CodecsNotIn(vs ...string) predicate.Asset {
+	return predicate.Asset(sql.FieldNotIn(FieldCodecs, vs...))
+}
+
+// CodecsGT applies the GT predicate on the "codecs" field.
+func CodecsGT(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldGT(FieldCodecs, v))
+}
+
+// CodecsGTE applies the GTE predicate on the "codecs" field.
+func CodecsGTE(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldGTE(FieldCodecs, v))
+}
+
+// CodecsLT applies the LT predicate on the "codecs" field.
+func CodecsLT(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldLT(FieldCodecs, v))
+}
+
+// CodecsLTE applies the LTE predicate on the "codecs" field.
+func CodecsLTE(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldLTE(FieldCodecs, v))
+}
+
+// CodecsContains applies the Contains predicate on the "codecs" field.
+func CodecsContains(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldContains(FieldCodecs, v))
+}
+
+// CodecsHasPrefix applies the HasPrefix predicate on the "codecs" field.
+func CodecsHasPrefix(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldHasPrefix(FieldCodecs, v))
+}
+
+// CodecsHasSuffix applies the HasSuffix predicate on the "codecs" field.
+func CodecsHasSuffix(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldHasSuffix(FieldCodecs, v))
+}
+
+// CodecsIsNil applies the IsNil predicate on the "codecs" field.
+func CodecsIsNil() predicate.Asset {
+	return predicate.Asset(sql.FieldIsNull(FieldCodecs))
+}
+
+// CodecsNotNil applies the NotNil predicate on the "codecs" field.
+func CodecsNotNil() predicate.Asset {
+	return predicate.Asset(sql.FieldNotNull(FieldCodecs))
+}
+
+// CodecsEqualFold applies the EqualFold predicate on the "codecs" field.
+func CodecsEqualFold(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldEqualFold(FieldCodecs, v))
+}
+
+// CodecsContainsFold applies the ContainsFold predicate on the "codecs" field.
+func CodecsContainsFold(v string) predicate.Asset {
+	return predicate.Asset(sql.FieldContainsFold(FieldCodecs, v))
 }
 
 // StatusEQ applies the EQ predicate on the "status" field.

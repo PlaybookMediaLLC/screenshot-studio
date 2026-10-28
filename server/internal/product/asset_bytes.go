@@ -15,6 +15,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediadocument"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediaimage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediavideo"
 )
 
 // Upload checks (RFC 025): an upload's bytes must be what it says it is,
@@ -24,6 +25,18 @@ import (
 // objectOpener streams a stored object, to check an upload's bytes.
 type objectOpener interface {
 	Open(ctx context.Context, key string) (io.ReadCloser, error)
+}
+
+// openObject streams a stored object, or reads it whole from a store that cannot stream.
+func (c *Configuration) openObject(ctx context.Context, key string) (io.ReadCloser, error) {
+	if opener, ok := c.objects.(objectOpener); ok {
+		return opener.Open(ctx, key)
+	}
+	data, err := c.objects.Read(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	return io.NopCloser(bytes.NewReader(data)), nil
 }
 
 // sniffedTypes are the media types whose first bytes are checked, and what
@@ -85,23 +98,36 @@ func verifyAssetBytes(mediaType string, object io.Reader) error {
 // countPDFPages shares the same parser with the native document publisher.
 func countPDFPages(object io.Reader) (int, bool) { return mediadocument.CountPages(object) }
 
+// probedVideo are the containers whose movie header scheduling reads.
+var probedVideo = map[string]bool{"video/mp4": true, "video/quicktime": true}
+
 // verifyUploadedContent consumes at most the reserved size plus one byte. Neither
 // a dishonest Content-Length nor a caller-supplied checksum establishes readiness.
-func verifyUploadedContent(source io.Reader, mediaType string, size int, digest *string) error {
+// For an MP4 or QuickTime movie it also returns what the container holds.
+func verifyUploadedContent(source io.Reader, mediaType string, size int, digest *string) (*mediavideo.Info, error) {
 	hash := sha256.New()
 	limited := &io.LimitedReader{R: source, N: int64(size) + 1}
 	reader := bufio.NewReader(io.TeeReader(limited, hash))
 	if err := verifyAssetBytes(mediaType, reader); err != nil {
-		return err
+		return nil, err
+	}
+	var video *mediavideo.Info
+	var probeErr error
+	if probedVideo[mediaType] {
+		info, err := mediavideo.Probe(reader)
+		video, probeErr = &info, err
 	}
 	if _, err := io.Copy(io.Discard, reader); err != nil {
-		return err
+		return nil, err
 	}
 	if int64(size)+1-limited.N != int64(size) {
-		return invalid("The stored file size differs from the reserved upload. Upload the complete file again.")
+		return nil, invalid("The stored file size differs from the reserved upload. Upload the complete file again.")
 	}
 	if digest != nil && !strings.EqualFold(fmt.Sprintf("%x", hash.Sum(nil)), *digest) {
-		return invalid("The uploaded file checksum does not match. Upload the file again.")
+		return nil, invalid("The uploaded file checksum does not match. Upload the file again.")
 	}
-	return nil
+	if probeErr != nil {
+		return nil, invalid("This file is not a complete MP4 or MOV video. Export it again and upload the whole file.")
+	}
+	return video, nil
 }

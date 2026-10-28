@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"image/color"
 	"image/jpeg"
 	"image/png"
 	"slices"
@@ -25,9 +26,10 @@ func providerImagePrefix(organizationID string) string {
 }
 
 // providerImage produces a bounded, oriented derivative. PNG preserves alpha;
-// JPEG re-encodes at explicit quality. The original is never overwritten.
+// JPEG re-encodes at explicit quality, over white where the source is
+// transparent (a destination that takes only JPEG). The original is never overwritten.
 func providerImage(body []byte, mime string, limit int) (result []byte, resultMIME string, width, height int, err error) {
-	return providerImageForProfile(body, mime, medialimits.ImageProfile{MaxBytes: limit, MaxEdge: 4096})
+	return providerImageForProfile(body, mime, medialimits.ImageProfile{MaxBytes: limit, MaxEdge: 4096, Formats: []string{"image/jpeg", "image/png"}})
 }
 
 func providerImageForProfile(body []byte, mime string, profile medialimits.ImageProfile) ([]byte, string, int, int, error) {
@@ -40,8 +42,10 @@ func providerImageForProfile(body []byte, mime string, profile medialimits.Image
 	}
 	var current image.Image = imaging.Fit(picture, profile.MaxEdge, profile.MaxEdge, imaging.Lanczos)
 	outputType := "image/png"
-	if mime == "image/jpeg" {
-		outputType = mime
+	if providerJPEG(mime, profile) {
+		outputType = "image/jpeg"
+		// JPEG has no alpha; transparent pixels would otherwise encode as their hidden colour.
+		current = imaging.Overlay(imaging.New(current.Bounds().Dx(), current.Bounds().Dy(), color.White), current, image.Point{}, 1)
 	}
 	for attempt := 0; attempt < 12; attempt++ {
 		var encoded bytes.Buffer
@@ -63,6 +67,12 @@ func providerImageForProfile(body []byte, mime string, profile medialimits.Image
 		current = imaging.Resize(current, width, height, imaging.Lanczos)
 	}
 	return nil, "", 0, 0, invalid("The image could not be resized within the provider's limit.")
+}
+
+// providerJPEG reports whether a derivative is JPEG: a JPEG source, or a
+// destination that does not take PNG.
+func providerJPEG(mime string, profile medialimits.ImageProfile) bool {
+	return mime == "image/jpeg" || !slices.Contains(profile.Formats, "image/png")
 }
 
 // prepareDraftImages resolves provider derivatives before the schedule transaction.
@@ -110,7 +120,7 @@ func (c *Configuration) prepareDraftImages(ctx context.Context, actor Actor, tar
 					continue
 				}
 				name := fmt.Sprintf("provider-image-v2-%s-%d-%d.png", connection.Platform, profile.MaxBytes, profile.MaxEdge)
-				if row.MediaType == "image/jpeg" {
+				if providerJPEG(row.MediaType, profile) {
 					name = strings.TrimSuffix(name, "png") + "jpg"
 				}
 				cached, err := c.client.Asset.Query().Where(asset.ParentAssetID(id), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED), asset.ObjectKeyHasPrefix(providerImagePrefix(actor.OrganizationID)), asset.ObjectKeyHasSuffix("/"+name)).First(ctx)

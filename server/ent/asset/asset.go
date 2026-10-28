@@ -33,6 +33,10 @@ const (
 	FieldWidth = "width"
 	// FieldHeight holds the string denoting the height field in the database.
 	FieldHeight = "height"
+	// FieldDurationMs holds the string denoting the duration_ms field in the database.
+	FieldDurationMs = "durationMs"
+	// FieldCodecs holds the string denoting the codecs field in the database.
+	FieldCodecs = "codecs"
 	// FieldStatus holds the string denoting the status field in the database.
 	FieldStatus = "status"
 	// FieldAltText holds the string denoting the alt_text field in the database.
@@ -66,6 +70,8 @@ var Columns = []string{
 	FieldBytes,
 	FieldWidth,
 	FieldHeight,
+	FieldDurationMs,
+	FieldCodecs,
 	FieldStatus,
 	FieldAltText,
 	FieldCreatedAt,
@@ -170,6 +176,16 @@ func ByWidth(opts ...sql.OrderTermOption) OrderOption {
 // ByHeight orders the results by the height field.
 func ByHeight(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldHeight, opts...).ToFunc()
+}
+
+// ByDurationMs orders the results by the duration_ms field.
+func ByDurationMs(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDurationMs, opts...).ToFunc()
+}
+
+// ByCodecs orders the results by the codecs field.
+func ByCodecs(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCodecs, opts...).ToFunc()
 }
 
 // ByStatus orders the results by the status field.

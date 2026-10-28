@@ -35,6 +35,10 @@ type Asset struct {
 	Width *int `json:"width,omitempty"`
 	// Height holds the value of the "height" field.
 	Height *int `json:"height,omitempty"`
+	// DurationMs holds the value of the "duration_ms" field.
+	DurationMs *int `json:"duration_ms,omitempty"`
+	// Codecs holds the value of the "codecs" field.
+	Codecs *string `json:"codecs,omitempty"`
 	// Status holds the value of the "status" field.
 	Status asset.Status `json:"status,omitempty"`
 	// AltText holds the value of the "alt_text" field.
@@ -72,9 +76,9 @@ func (*Asset) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case asset.FieldBytes, asset.FieldWidth, asset.FieldHeight:
+		case asset.FieldBytes, asset.FieldWidth, asset.FieldHeight, asset.FieldDurationMs:
 			values[i] = new(sql.NullInt64)
-		case asset.FieldID, asset.FieldOrganizationID, asset.FieldCaptureID, asset.FieldParentAssetID, asset.FieldObjectKey, asset.FieldSha256, asset.FieldMediaType, asset.FieldStatus, asset.FieldAltText:
+		case asset.FieldID, asset.FieldOrganizationID, asset.FieldCaptureID, asset.FieldParentAssetID, asset.FieldObjectKey, asset.FieldSha256, asset.FieldMediaType, asset.FieldCodecs, asset.FieldStatus, asset.FieldAltText:
 			values[i] = new(sql.NullString)
 		case asset.FieldCreatedAt, asset.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -157,6 +161,20 @@ func (_m *Asset) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Height = new(int)
 				*_m.Height = int(value.Int64)
+			}
+		case asset.FieldDurationMs:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field duration_ms", values[i])
+			} else if value.Valid {
+				_m.DurationMs = new(int)
+				*_m.DurationMs = int(value.Int64)
+			}
+		case asset.FieldCodecs:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field codecs", values[i])
+			} else if value.Valid {
+				_m.Codecs = new(string)
+				*_m.Codecs = value.String
 			}
 		case asset.FieldStatus:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -259,6 +277,16 @@ func (_m *Asset) String() string {
 	if v := _m.Height; v != nil {
 		builder.WriteString("height=")
 		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.DurationMs; v != nil {
+		builder.WriteString("duration_ms=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.Codecs; v != nil {
+		builder.WriteString("codecs=")
+		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")
 	builder.WriteString("status=")

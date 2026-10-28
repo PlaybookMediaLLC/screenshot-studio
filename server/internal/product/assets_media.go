@@ -21,6 +21,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/mediavideo"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
@@ -110,7 +111,7 @@ func validAssetUpload(input AssetUploadInput) bool {
 		return false
 	}
 	switch input.ContentType {
-	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm", "application/pdf",
+	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime", "video/webm", "application/pdf",
 		// Audio for design timelines (music, voice-over).
 		"audio/aac", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/wav", "audio/webm",
 		"font/woff", "font/woff2", "font/ttf", "font/otf":
@@ -246,7 +247,8 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if sha256 != nil && row.Sha256 == nil {
 		row.Sha256 = sha256
 	}
-	if err := c.checkUploadedBytes(ctx, actor, row); err != nil {
+	video, err := c.checkUploadedBytes(ctx, actor, row)
+	if err != nil {
 		return nil, err
 	}
 	dimensions, err := c.uploadedImageDimensions(ctx, row)
@@ -265,6 +267,9 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 		asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusUPLOADED)
 	if dimensions != nil {
 		update.SetWidth(dimensions.Width).SetHeight(dimensions.Height)
+	}
+	if video != nil {
+		update.SetWidth(video.Width).SetHeight(video.Height).SetDurationMs(video.DurationMs).SetCodecs(strings.Join(video.Codecs, ","))
 	}
 	if sha256 != nil {
 		update.SetSha256(*sha256)
@@ -296,29 +301,22 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 
 // checkUploadedBytes verifies the actual length, digest and media signature.
 // A store without streaming still verifies bytes through its Read contract.
-func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row *ent.Asset) error {
-	var object io.ReadCloser
-	var err error
-	if opener, ok := c.objects.(objectOpener); ok {
-		object, err = opener.Open(ctx, row.ObjectKey)
-	} else {
-		var data []byte
-		data, err = c.objects.Read(ctx, row.ObjectKey)
-		object = io.NopCloser(bytes.NewReader(data))
-	}
+func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row *ent.Asset) (*mediavideo.Info, error) {
+	object, err := c.openObject(ctx, row.ObjectKey)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+		return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
 	}
 	defer object.Close()
-	if err := verifyUploadedContent(object, row.MediaType, row.Bytes, row.Sha256); err != nil {
+	video, err := verifyUploadedContent(object, row.MediaType, row.Bytes, row.Sha256)
+	if err != nil {
 		if errors.Is(err, ErrInvalidInput) {
 			if _, failErr := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusFAILED).Save(ctx); failErr != nil {
-				return failErr
+				return nil, failErr
 			}
 		}
-		return err
+		return nil, err
 	}
-	return nil
+	return video, nil
 }
 
 func (c *Configuration) SignAssetDownload(ctx context.Context, actor Actor, assetID string) (string, error) {

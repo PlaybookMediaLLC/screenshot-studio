@@ -101,6 +101,13 @@ func (c *Configuration) ValidateContentDraftSchedule(ctx context.Context, actor 
 	if err := validateDraftTargets(input); err != nil {
 		return err
 	}
+	loaded, err := c.loadDraft(ctx, actor, id)
+	if err != nil {
+		return err
+	}
+	if err := c.probeDraftVideos(ctx, actor.OrganizationID, input.Targets, loaded.AssetIds); err != nil {
+		return err
+	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return err

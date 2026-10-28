@@ -115,6 +115,34 @@ func (_c *AssetCreate) SetNillableHeight(v *int) *AssetCreate {
 	return _c
 }
 
+// SetDurationMs sets the "duration_ms" field.
+func (_c *AssetCreate) SetDurationMs(v int) *AssetCreate {
+	_c.mutation.SetDurationMs(v)
+	return _c
+}
+
+// SetNillableDurationMs sets the "duration_ms" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableDurationMs(v *int) *AssetCreate {
+	if v != nil {
+		_c.SetDurationMs(*v)
+	}
+	return _c
+}
+
+// SetCodecs sets the "codecs" field.
+func (_c *AssetCreate) SetCodecs(v string) *AssetCreate {
+	_c.mutation.SetCodecs(v)
+	return _c
+}
+
+// SetNillableCodecs sets the "codecs" field if the given value is not nil.
+func (_c *AssetCreate) SetNillableCodecs(v *string) *AssetCreate {
+	if v != nil {
+		_c.SetCodecs(*v)
+	}
+	return _c
+}
+
 // SetStatus sets the "status" field.
 func (_c *AssetCreate) SetStatus(v asset.Status) *AssetCreate {
 	_c.mutation.SetStatus(v)
@@ -339,6 +367,14 @@ func (_c *AssetCreate) createSpec() (*Asset, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Height(); ok {
 		_spec.SetField(asset.FieldHeight, field.TypeInt, value)
 		_node.Height = &value
+	}
+	if value, ok := _c.mutation.DurationMs(); ok {
+		_spec.SetField(asset.FieldDurationMs, field.TypeInt, value)
+		_node.DurationMs = &value
+	}
+	if value, ok := _c.mutation.Codecs(); ok {
+		_spec.SetField(asset.FieldCodecs, field.TypeString, value)
+		_node.Codecs = &value
 	}
 	if value, ok := _c.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)

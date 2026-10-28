@@ -6872,6 +6872,9 @@ type AssetMutation struct {
 	addwidth        *int
 	height          *int
 	addheight       *int
+	duration_ms     *int
+	addduration_ms  *int
+	codecs          *string
 	status          *asset.Status
 	alt_text        *string
 	created_at      *time.Time
@@ -7440,6 +7443,125 @@ func (m *AssetMutation) ResetHeight() {
 	delete(m.clearedFields, asset.FieldHeight)
 }
 
+// SetDurationMs sets the "duration_ms" field.
+func (m *AssetMutation) SetDurationMs(i int) {
+	m.duration_ms = &i
+	m.addduration_ms = nil
+}
+
+// DurationMs returns the value of the "duration_ms" field in the mutation.
+func (m *AssetMutation) DurationMs() (r int, exists bool) {
+	v := m.duration_ms
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDurationMs returns the old "duration_ms" field's value of the Asset entity.
+// If the Asset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssetMutation) OldDurationMs(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDurationMs is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDurationMs requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDurationMs: %w", err)
+	}
+	return oldValue.DurationMs, nil
+}
+
+// AddDurationMs adds i to the "duration_ms" field.
+func (m *AssetMutation) AddDurationMs(i int) {
+	if m.addduration_ms != nil {
+		*m.addduration_ms += i
+	} else {
+		m.addduration_ms = &i
+	}
+}
+
+// AddedDurationMs returns the value that was added to the "duration_ms" field in this mutation.
+func (m *AssetMutation) AddedDurationMs() (r int, exists bool) {
+	v := m.addduration_ms
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearDurationMs clears the value of the "duration_ms" field.
+func (m *AssetMutation) ClearDurationMs() {
+	m.duration_ms = nil
+	m.addduration_ms = nil
+	m.clearedFields[asset.FieldDurationMs] = struct{}{}
+}
+
+// DurationMsCleared returns if the "duration_ms" field was cleared in this mutation.
+func (m *AssetMutation) DurationMsCleared() bool {
+	_, ok := m.clearedFields[asset.FieldDurationMs]
+	return ok
+}
+
+// ResetDurationMs resets all changes to the "duration_ms" field.
+func (m *AssetMutation) ResetDurationMs() {
+	m.duration_ms = nil
+	m.addduration_ms = nil
+	delete(m.clearedFields, asset.FieldDurationMs)
+}
+
+// SetCodecs sets the "codecs" field.
+func (m *AssetMutation) SetCodecs(s string) {
+	m.codecs = &s
+}
+
+// Codecs returns the value of the "codecs" field in the mutation.
+func (m *AssetMutation) Codecs() (r string, exists bool) {
+	v := m.codecs
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCodecs returns the old "codecs" field's value of the Asset entity.
+// If the Asset object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AssetMutation) OldCodecs(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCodecs is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCodecs requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCodecs: %w", err)
+	}
+	return oldValue.Codecs, nil
+}
+
+// ClearCodecs clears the value of the "codecs" field.
+func (m *AssetMutation) ClearCodecs() {
+	m.codecs = nil
+	m.clearedFields[asset.FieldCodecs] = struct{}{}
+}
+
+// CodecsCleared returns if the "codecs" field was cleared in this mutation.
+func (m *AssetMutation) CodecsCleared() bool {
+	_, ok := m.clearedFields[asset.FieldCodecs]
+	return ok
+}
+
+// ResetCodecs resets all changes to the "codecs" field.
+func (m *AssetMutation) ResetCodecs() {
+	m.codecs = nil
+	delete(m.clearedFields, asset.FieldCodecs)
+}
+
 // SetStatus sets the "status" field.
 func (m *AssetMutation) SetStatus(a asset.Status) {
 	m.status = &a
@@ -7685,7 +7807,7 @@ func (m *AssetMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *AssetMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 15)
 	if m.organization_id != nil {
 		fields = append(fields, asset.FieldOrganizationID)
 	}
@@ -7712,6 +7834,12 @@ func (m *AssetMutation) Fields() []string {
 	}
 	if m.height != nil {
 		fields = append(fields, asset.FieldHeight)
+	}
+	if m.duration_ms != nil {
+		fields = append(fields, asset.FieldDurationMs)
+	}
+	if m.codecs != nil {
+		fields = append(fields, asset.FieldCodecs)
 	}
 	if m.status != nil {
 		fields = append(fields, asset.FieldStatus)
@@ -7751,6 +7879,10 @@ func (m *AssetMutation) Field(name string) (ent.Value, bool) {
 		return m.Width()
 	case asset.FieldHeight:
 		return m.Height()
+	case asset.FieldDurationMs:
+		return m.DurationMs()
+	case asset.FieldCodecs:
+		return m.Codecs()
 	case asset.FieldStatus:
 		return m.Status()
 	case asset.FieldAltText:
@@ -7786,6 +7918,10 @@ func (m *AssetMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldWidth(ctx)
 	case asset.FieldHeight:
 		return m.OldHeight(ctx)
+	case asset.FieldDurationMs:
+		return m.OldDurationMs(ctx)
+	case asset.FieldCodecs:
+		return m.OldCodecs(ctx)
 	case asset.FieldStatus:
 		return m.OldStatus(ctx)
 	case asset.FieldAltText:
@@ -7866,6 +8002,20 @@ func (m *AssetMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetHeight(v)
 		return nil
+	case asset.FieldDurationMs:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDurationMs(v)
+		return nil
+	case asset.FieldCodecs:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCodecs(v)
+		return nil
 	case asset.FieldStatus:
 		v, ok := value.(asset.Status)
 		if !ok {
@@ -7911,6 +8061,9 @@ func (m *AssetMutation) AddedFields() []string {
 	if m.addheight != nil {
 		fields = append(fields, asset.FieldHeight)
 	}
+	if m.addduration_ms != nil {
+		fields = append(fields, asset.FieldDurationMs)
+	}
 	return fields
 }
 
@@ -7925,6 +8078,8 @@ func (m *AssetMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedWidth()
 	case asset.FieldHeight:
 		return m.AddedHeight()
+	case asset.FieldDurationMs:
+		return m.AddedDurationMs()
 	}
 	return nil, false
 }
@@ -7955,6 +8110,13 @@ func (m *AssetMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddHeight(v)
 		return nil
+	case asset.FieldDurationMs:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDurationMs(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Asset numeric field %s", name)
 }
@@ -7977,6 +8139,12 @@ func (m *AssetMutation) ClearedFields() []string {
 	}
 	if m.FieldCleared(asset.FieldHeight) {
 		fields = append(fields, asset.FieldHeight)
+	}
+	if m.FieldCleared(asset.FieldDurationMs) {
+		fields = append(fields, asset.FieldDurationMs)
+	}
+	if m.FieldCleared(asset.FieldCodecs) {
+		fields = append(fields, asset.FieldCodecs)
 	}
 	if m.FieldCleared(asset.FieldAltText) {
 		fields = append(fields, asset.FieldAltText)
@@ -8009,6 +8177,12 @@ func (m *AssetMutation) ClearField(name string) error {
 		return nil
 	case asset.FieldHeight:
 		m.ClearHeight()
+		return nil
+	case asset.FieldDurationMs:
+		m.ClearDurationMs()
+		return nil
+	case asset.FieldCodecs:
+		m.ClearCodecs()
 		return nil
 	case asset.FieldAltText:
 		m.ClearAltText()
@@ -8047,6 +8221,12 @@ func (m *AssetMutation) ResetField(name string) error {
 		return nil
 	case asset.FieldHeight:
 		m.ResetHeight()
+		return nil
+	case asset.FieldDurationMs:
+		m.ResetDurationMs()
+		return nil
+	case asset.FieldCodecs:
+		m.ResetCodecs()
 		return nil
 	case asset.FieldStatus:
 		m.ResetStatus()

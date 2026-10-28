@@ -43,13 +43,6 @@ func EnableE2EDraftPlatform() {
 	draftPlatformChannels["e2e"] = "x"
 }
 
-// draftChannelImageLimits is how many images each channel takes in one post.
-// Excess attachments are rejected, never silently truncated. The composer
-// enforces the same counts (lib/content-drafts/serialize.ts).
-var draftChannelImageLimits = map[string]int{
-	"bluesky": 4, "instagram": 10, "linkedin": 9, "mastodon": 4, "threads": 10, "x": 4,
-}
-
 // draftChannelLimits is each channel's caption limit; the composer holds the
 // same numbers (DRAFT_CHANNEL_LIMITS in lib/content-drafts/serialize.ts).
 var draftChannelLimits = map[string]int{
@@ -279,6 +272,10 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if !ok {
 			return nil, nil, conflict("A " + connection.Platform + " channel cannot publish a draft.")
 		}
+		if connection.Platform == "instagram" {
+			// The publisher has no verified path for Facebook Login accounts yet.
+			return nil, nil, conflict("Instagram accounts connected through Facebook Login can't publish from Shots yet. Reconnect this account with Instagram Login.")
+		}
 		ids := draftImages
 		if target.AssetIDs != nil {
 			ids = target.AssetIDs
@@ -310,13 +307,20 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 			}
 			limit = caps.PostTextLimit()
 		}
-		if len(ids) > draftChannelImageLimits[channel] {
+		if len(ids) > draftMediaLimit(channel) {
 			return nil, nil, invalid("Too many attachments for " + channel + ". Remove attachments before scheduling.")
 		}
 		if target.AssetIDs != nil {
 			if ids, err = contentDraftAssets(ctx, tx, organizationID, ids); err != nil {
 				return nil, nil, err
 			}
+		}
+		rows, err := draftMediaRows(ctx, tx.Client(), organizationID, ids)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := checkDraftMedia(channel, rows); err != nil {
+			return nil, nil, err
 		}
 		if channel == "instagram" && len(ids) == 0 {
 			return nil, nil, conflict("Instagram needs an image. Add one to the draft first.")
@@ -508,12 +512,19 @@ func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel 
 		if distinctAssetCount(reply.AssetIDs) != len(reply.AssetIDs) {
 			return invalid("Each attachment in a reply must be distinct.")
 		}
-		if len(reply.AssetIDs) > draftChannelImageLimits[channel] {
+		if len(reply.AssetIDs) > draftMediaLimit(channel) {
 			return invalid("Too many attachments for " + channel + ".")
 		}
 		ids, err := contentDraftAssets(ctx, tx, organizationID, reply.AssetIDs)
 		if err != nil {
 			return err
+		}
+		rows, err := draftMediaRows(ctx, tx.Client(), organizationID, ids)
+		if err != nil {
+			return err
+		}
+		if err := checkDraftMedia(channel, rows); err != nil {
+			return fmt.Errorf("Post %d: %w", index+2, err)
 		}
 		if reply.Caption == "" && len(ids) == 0 {
 			return invalid(fmt.Sprintf("Post %d is empty.", index+2))
@@ -602,6 +613,9 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 			}
 		}
 		if err := c.prepareDraftImages(ctx, actor, input.Targets, loadedDraft.AssetIds); err != nil {
+			return nil, err
+		}
+		if err := c.probeDraftVideos(ctx, actor.OrganizationID, input.Targets, loadedDraft.AssetIds); err != nil {
 			return nil, err
 		}
 	}

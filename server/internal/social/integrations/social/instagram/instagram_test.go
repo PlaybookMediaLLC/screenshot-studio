@@ -158,12 +158,15 @@ func TestSignedMediaURLsReachGraphIntact(t *testing.T) {
 	imageURL := "https://r2.example/bucket/photo.jpg?X-Amz-Date=20261013T000000Z&X-Amz-Signature=abc%2Fdef"
 	videoURL := "https://r2.example/bucket/clip.mp4?X-Amz-Date=20261013T000000Z&X-Amz-Signature=video"
 	coverURL := "https://r2.example/bucket/cover.jpg?X-Amz-Date=20261013T000000Z&X-Amz-Signature=cover"
+	movieURL := "https://r2.example/bucket/clip.mov?X-Amz-Date=20261013T000000Z&X-Amz-Signature=movie"
 	tests := []struct {
-		name, host, field, mediaURL, coverURL string
+		name, host, field, mediaURL, coverURL, kind string
 	}{
-		{"facebook-login-image", FacebookHost, "image_url", imageURL, ""},
-		{"instagram-login-image", "graph.instagram.com", "image_url", imageURL, ""},
-		{"reel-with-cover", FacebookHost, "video_url", videoURL, coverURL},
+		{"facebook-login-image", FacebookHost, "image_url", imageURL, "", ""},
+		{"instagram-login-image", "graph.instagram.com", "image_url", imageURL, "", ""},
+		{"reel-with-cover", FacebookHost, "video_url", videoURL, coverURL, ""},
+		// The stored type, not the file name, makes a QuickTime upload a Reel.
+		{"quicktime-reel", "graph.instagram.com", "video_url", movieURL, "", "video"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -183,7 +186,7 @@ func TestSignedMediaURLsReachGraphIntact(t *testing.T) {
 			})
 			p := setup(t, mux)
 			_, err := p.PostPendingOn(context.Background(), "ig1", "page", []integrations.PostDetails{{
-				ID: "post", Media: []integrations.MediaContent{{Path: test.mediaURL, Thumbnail: test.coverURL}},
+				ID: "post", Media: []integrations.MediaContent{{Path: test.mediaURL, Thumbnail: test.coverURL, Type: test.kind}},
 			}}, &ent.Integration{}, test.host)
 			if err != nil {
 				t.Fatal(err)

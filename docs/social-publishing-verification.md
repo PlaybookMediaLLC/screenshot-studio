@@ -40,13 +40,20 @@ destination, and schedules through the web. It verifies:
 4. A cancelled post makes no provider request.
 5. HTTP 429 and 500 responses retry into one remote post each.
 6. An expired provider credential fails without publishing.
+7. Content drafts publish their media through the same worker. A second flow
+   uploads a PNG, an MP4 and two more images through the signed-upload flow,
+   then schedules three drafts to the fake destination, which takes drafts
+   under X's rules only in the gate (`PLATFORM_E2E_DRAFT_PLATFORM`): a photo
+   with a Unicode caption, a video, and three images in an order that is not
+   their upload order. The fake receives each post once with its caption, and
+   each item's content type, SHA-256 in order, and a 24-hour
+   (`X-Amz-Expires=86400`) signature; each `scheduled_post` is `PUBLISHED`
+   with one successful `publication_attempt`.
 
-The gate schedules an approved campaign variant, not a draft. Draft media
-(a photo, a video, an ordered carousel with a MOV, separate posts, an
-unanswered submission and a withdrawn approval) is proven through the real
-publish activities in the Temporal test environment by
-`TestScheduledMediaReachesTheProviderThroughTheWorker`, against a private
-signed-URL bucket and a test provider; see
+In-process, `TestScheduledMediaReachesTheProviderThroughTheWorker` runs the
+real publish activities in the Temporal test environment against a private
+signed-URL bucket and a test provider. It adds a mixed carousel with a MOV,
+separate posts, an unanswered submission and a withdrawn approval; see
 [media scheduling](media-scheduling.md) for the capability matrix.
 
 `test/e2e/social-scheduling.spec.ts` checks the web callback and scheduling facade
@@ -67,8 +74,6 @@ rerun it after changing those paths.
 - Hold a post for more than 24 real hours, then verify the worker signs its
   private media only when it publishes. Moving a future timestamp forward in
   a test proves scheduling behavior, but not elapsed URL expiry.
-- Extend the gate to schedule drafts with a photo, a video and a
-  multi-image post to its fake destination.
 - Run new harmless LinkedIn and Instagram feed/Reel canaries through the
   cutover customer UI. Record the canonical post and attempt IDs, remote ID
   and URL, visible caption/media, and absence of duplicates. X image and video

@@ -277,7 +277,12 @@ re-apply idempotently and pass their upgrade tests.
   probed the video (3 s, 320×180). The in-memory S3 does not verify
   signatures, so R2's handling of the signed part URLs is not proven.
 
-Not run: the Playwright suite (four specs were rewritten for the batch page),
-`make tenant-isolation`, `./dev/social-gate`, real R2 multipart uploads, a
-24-hour real delay, and any live provider post. No post was published to a
-real account.
+In CI, `./dev/social-gate` also schedules content drafts through the full
+stack to its fake destination: a photo with a Unicode caption, an MP4 and an
+ordered set of three images, each received once with its caption, content
+types and digests in order ([social publishing verification](social-publishing-verification.md)).
+
+Not run locally (no Docker): the Playwright suite (four specs were rewritten
+for the batch page), `make tenant-isolation` and `./dev/social-gate`; CI runs
+them. Not verified anywhere: real R2 multipart uploads, a 24-hour real delay,
+and any live provider post. No post was published to a real account.

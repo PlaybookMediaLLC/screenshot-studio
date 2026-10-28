@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import {
+  apiRequest,
   connectionSchema,
   createApprovedVariant,
   createScheduledPost,
+  createUploadedAsset,
   createWorkspace,
   db,
   enableTwoFactor,
@@ -12,6 +14,7 @@ import {
   png,
   test,
   trpcMutation,
+  type Page,
 } from './framework'
 import { z } from 'zod'
 
@@ -55,6 +58,57 @@ function soon(): Date {
   return new Date(Date.now() + 15_000)
 }
 
+const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
+
+/** The fake destinations and social organization dev/social-gate created. */
+async function readBootstrap() {
+  return z
+    .object({
+      destinationId: z.string().min(1),
+      expiredDestinationId: z.string().min(1),
+      goOrganizationId: z.string().min(1),
+    })
+    .parse(JSON.parse(await readFile(process.env.E2E_SOCIAL_GATE_BOOTSTRAP!, 'utf8')))
+}
+
+/** Bind a workspace to the gate's social organization. */
+async function bindWorkspace(organizationId: string, goOrganizationId: string): Promise<void> {
+  await db.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
+    secretReference,
+  ])
+  await db.query(
+    `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
+     VALUES ($1, $2, $3)`,
+    [organizationId, goOrganizationId, secretReference]
+  )
+}
+
+async function connect(page: Page, externalAccountId: string): Promise<string> {
+  const response = await trpcMutation(page, 'channelConnection.create', {
+    externalAccountId,
+    platform: 'e2e',
+    secretReference,
+  })
+  expect(response.status, JSON.stringify(response.body)).toBe(200)
+  return connectionSchema.parse(response.body).connection.id
+}
+
+async function statusOf(id: string) {
+  return (await db.row<{ status: string }>('SELECT status FROM scheduled_post WHERE id = $1', [id]))
+    ?.status
+}
+
+function awaitStatus(id: string, status: string) {
+  return expect.poll(() => statusOf(id), { intervals: [1_000], timeout: 180_000 }).toBe(status)
+}
+
+function attemptsOf(id: string) {
+  return db.rows<{ outcome: string | null; providerPostId: string | null }>(
+    'SELECT outcome, "providerPostId" FROM publication_attempt WHERE "scheduledPostId" = $1',
+    [id]
+  )
+}
+
 // dev/social-gate connects fake-provider destinations through an isolated
 // product API; outside that script there is nothing to publish to.
 test.skip(!process.env.E2E_SOCIAL_GATE_BOOTSTRAP, 'Run through dev/social-gate.')
@@ -64,47 +118,15 @@ test('the backend worker publishes once through Go, retries, honors cancellation
   page,
 }) => {
   test.setTimeout(15 * 60_000)
-  const bootstrap = z
-    .object({
-      destinationId: z.string().min(1),
-      expiredDestinationId: z.string().min(1),
-      goOrganizationId: z.string().min(1),
-    })
-    .parse(JSON.parse(await readFile(process.env.E2E_SOCIAL_GATE_BOOTSTRAP!, 'utf8')))
+  const bootstrap = await readBootstrap()
   await resetFake('normal')
   await createWorkspace(identity, page)
   await enableTwoFactor(page, identity.password)
   const organizationId = await getActiveOrganizationId(page)
-  const statusOf = async (id: string) =>
-    (await db.row<{ status: string }>('SELECT status FROM scheduled_post WHERE id = $1', [id]))
-      ?.status
-  const awaitStatus = (id: string, status: string) =>
-    expect.poll(() => statusOf(id), { intervals: [1_000], timeout: 180_000 }).toBe(status)
-  const attemptsOf = (id: string) =>
-    db.rows<{ outcome: string | null; providerPostId: string | null }>(
-      'SELECT outcome, "providerPostId" FROM publication_attempt WHERE "scheduledPostId" = $1',
-      [id]
-    )
   try {
-    await db.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
-      secretReference,
-    ])
-    await db.query(
-      `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
-       VALUES ($1, $2, $3)`,
-      [organizationId, bootstrap.goOrganizationId, secretReference]
-    )
+    await bindWorkspace(organizationId, bootstrap.goOrganizationId)
     const variantId = await createApprovedVariant(page)
-    const connect = async (externalAccountId: string) => {
-      const response = await trpcMutation(page, 'channelConnection.create', {
-        externalAccountId,
-        platform: 'e2e',
-        secretReference,
-      })
-      expect(response.status, JSON.stringify(response.body)).toBe(200)
-      return connectionSchema.parse(response.body).connection.id
-    }
-    const connectionId = await connect(bootstrap.destinationId)
+    const connectionId = await connect(page, bootstrap.destinationId)
 
     // One canonical post, even when the request is repeated.
     const first = await createScheduledPost(
@@ -136,7 +158,7 @@ test('the backend worker publishes once through Go, retries, honors cancellation
           bytes: png.length,
           contentType: 'image/png',
           expires: '86400',
-          sha256: createHash('sha256').update(png).digest('hex'),
+          sha256: sha256(png),
         },
       ],
     })
@@ -199,7 +221,7 @@ test('the backend worker publishes once through Go, retries, honors cancellation
 
     // An expired provider credential fails the post without publishing.
     await resetFake('normal')
-    const expiredConnectionId = await connect(bootstrap.expiredDestinationId)
+    const expiredConnectionId = await connect(page, bootstrap.expiredDestinationId)
     const expired = await createScheduledPost(
       page,
       expiredConnectionId,
@@ -212,6 +234,115 @@ test('the backend worker publishes once through Go, retries, honors cancellation
     expect(
       (await attemptsOf(expired.scheduledPost.id)).some((item) => item.outcome === 'FAILED')
     ).toBe(true)
+  } finally {
+    await db.query('DELETE FROM social_tenant_binding WHERE "organizationId" = $1', [
+      organizationId,
+    ])
+  }
+})
+
+/** Two more 1x1 PNGs (red, blue), so an image's position in a post is visible by its hash. */
+const red = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
+  'base64'
+)
+const blue = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNgYPgPAAEDAQAIicLsAAAAAElFTkSuQmCC',
+  'base64'
+)
+
+test('the backend worker publishes draft photos, video, and ordered images once through Go', async ({
+  identity,
+  page,
+}) => {
+  test.setTimeout(10 * 60_000)
+  const bootstrap = await readBootstrap()
+  await resetFake('normal')
+  await createWorkspace(identity, page)
+  await enableTwoFactor(page, identity.password)
+  const organizationId = await getActiveOrganizationId(page)
+  try {
+    await bindWorkspace(organizationId, bootstrap.goOrganizationId)
+    const connectionId = await connect(page, bootstrap.destinationId)
+    const mp4 = await readFile(
+      '../../../server/internal/social/integrations/social/x/testdata/sample.mp4'
+    )
+    // Each through the signed-upload flow, as the composer uploads.
+    const upload = async (bytes: Buffer, contentType: string, fileName: string) => ({
+      bytes,
+      contentType,
+      id: await createUploadedAsset(page, bytes, contentType, fileName),
+    })
+    const photo = await upload(png, 'image/png', 'photo.png')
+    const clip = await upload(mp4, 'video/mp4', 'clip.mp4')
+    const first = await upload(red, 'image/png', 'red.png')
+    const last = await upload(blue, 'image/png', 'blue.png')
+    const drafts = [
+      { caption: 'Unicode survives: café, naïve, 日本語, emoji 🚀 ✓', media: [photo] },
+      { caption: 'A short clip.', media: [clip] },
+      // Not the upload order, so the post's order is the draft's.
+      { caption: 'Three images, in order.', media: [first, photo, last] },
+    ]
+
+    const postIds: string[] = []
+    for (const draft of drafts) {
+      const created = await apiRequest(page, '/api/v1/content-drafts', {
+        body: {
+          assetIds: draft.media.map((item) => item.id),
+          body: [
+            { children: [{ text: draft.caption }], type: 'p' },
+            ...draft.media.map((item) => ({
+              assetId: item.id,
+              children: [{ text: '' }],
+              mimeType: item.contentType,
+              type: item.contentType.startsWith('video/') ? 'video' : 'img',
+              url: `/api/v1/assets/${item.id}/content`,
+            })),
+          ],
+          channelConnectionIds: [connectionId],
+          plainText: draft.caption,
+        },
+        method: 'POST',
+      })
+      expect(created.status, JSON.stringify(created.body)).toBe(201)
+      const { id, version } = z.object({ id: z.string(), version: z.number() }).parse(created.body)
+      // A draft is scheduled at least 30 seconds out.
+      const scheduledFor = new Date(Date.now() + 35_000).toISOString()
+      const response = await apiRequest(page, `/api/v1/content-drafts/${id}/schedule`, {
+        body: { channelConnectionIds: [connectionId], scheduledFor, version },
+        method: 'POST',
+      })
+      expect(response.status, JSON.stringify(response.body)).toBe(201)
+      const { posts } = z
+        .object({ posts: z.array(z.object({ id: z.string(), status: z.string() })) })
+        .parse(response.body)
+      expect(posts.map((post) => post.status)).toEqual(['SCHEDULED'])
+      postIds.push(posts[0]!.id)
+    }
+
+    await expect
+      .poll(async () => (await fakeState()).posts.length, { timeout: 180_000 })
+      .toBe(drafts.length)
+    for (const postId of postIds) await awaitStatus(postId, 'PUBLISHED')
+    const remote = await fakeState()
+    expect(remote.requests).toBe(drafts.length)
+    for (const [index, draft] of drafts.entries()) {
+      const [received, ...duplicates] = remote.posts.filter(
+        (post) => post.caption === draft.caption
+      )
+      expect(duplicates).toHaveLength(0)
+      expect(received).toMatchObject({
+        media: draft.media.map((item) => ({
+          bytes: item.bytes.length,
+          contentType: item.contentType,
+          expires: '86400',
+          sha256: sha256(item.bytes),
+        })),
+      })
+      const [attempt, ...extraAttempts] = await attemptsOf(postIds[index]!)
+      expect(extraAttempts).toHaveLength(0)
+      expect(attempt).toEqual({ outcome: 'SUCCEEDED', providerPostId: received?.id })
+    }
   } finally {
     await db.query('DELETE FROM social_tenant_binding WHERE "organizationId" = $1', [
       organizationId,

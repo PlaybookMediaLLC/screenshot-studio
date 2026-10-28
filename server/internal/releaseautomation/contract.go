@@ -103,19 +103,29 @@ type Value struct {
 }
 
 type Event struct {
-	Family         Family           `json:"family"`
-	SemanticKey    string           `json:"semanticKey"`
-	RepositoryID   string           `json:"repositoryId"`
-	RepositoryName string           `json:"repositoryName"`
-	ObjectID       string           `json:"objectId"`
-	Number         int              `json:"number,omitempty"`
-	OccurredAt     time.Time        `json:"occurredAt"`
-	Origin         string           `json:"origin"`
-	Title          string           `json:"title"`
-	Notes          string           `json:"notes"`
-	URL            string           `json:"url"`
-	DefaultBranch  string           `json:"defaultBranch,omitempty"`
-	Fields         map[string]Value `json:"fields"`
+	Family         Family                   `json:"family"`
+	SemanticKey    string                   `json:"semanticKey"`
+	RepositoryID   string                   `json:"repositoryId"`
+	RepositoryName string                   `json:"repositoryName"`
+	ObjectID       string                   `json:"objectId"`
+	Number         int                      `json:"number,omitempty"`
+	OccurredAt     time.Time                `json:"occurredAt"`
+	Origin         string                   `json:"origin"`
+	Title          string                   `json:"title"`
+	Notes          string                   `json:"notes"`
+	URL            string                   `json:"url"`
+	DefaultBranch  string                   `json:"defaultBranch,omitempty"`
+	Fields         map[string]Value         `json:"fields"`
+	Production     *ProductionQualification `json:"production,omitempty"`
+}
+
+// ProductionQualification records a workspace decision, separate from GitHub's
+// production_environment flag and from any claim about live availability.
+type ProductionQualification struct {
+	ObservationID  string `json:"observationId"`
+	PolicyID       string `json:"policyId"`
+	PolicyRevision int    `json:"policyRevision"`
+	Strength       string `json:"strength"`
 }
 
 // Condition is either a predicate or an ALL/ANY/NOT group, never executable code.

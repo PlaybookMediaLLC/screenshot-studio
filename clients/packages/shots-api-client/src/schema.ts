@@ -92,6 +92,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/github/sources/{sourceId}/production": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect production evidence
+         * @description Session-only, tenant-scoped production evidence and policy history.
+         */
+        get: operations["getGitHubProduction"];
+        /**
+         * Configure production evidence
+         * @description Owners and administrators select GitHub evidence and a Shots workflow. Uses an expected revision; does not replay history.
+         */
+        put: operations["saveGitHubProduction"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/sources/{sourceId}/production-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview production policy
+         * @description Evaluates a saved observation or example with no writes, enrichment, credits, or execution.
+         */
+        post: operations["previewGitHubProduction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/sources/{sourceId}/production-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect GitHub deployment capabilities
+         * @description Reports missing permissions or subscriptions without blocking existing event types.
+         */
+        get: operations["getGitHubProductionCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/github/sources/{sourceId}/delivery-recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspect GitHub delivery recovery
+         * @description Tenant-scoped provider-delivery status and history gaps.
+         */
+        get: operations["getGitHubRecovery"];
+        put?: never;
+        /**
+         * Recover GitHub deliveries for review
+         * @description Owners/admins inspect a provider page; optional redelivery is bounded to five requests and three attempts. Recovered events cannot run live workflows.
+         */
+        post: operations["inspectGitHubRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/social-sets": {
         parameters: {
             query?: never;
@@ -3947,6 +4035,615 @@ export interface operations {
             };
             /** @description The upstream host refused the request. */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getGitHubProduction: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Production evidence. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        policies: {
+                            id: string;
+                            revision: number;
+                            policy: {
+                                schemaVersion: number;
+                                enabled: boolean;
+                                installationId: number;
+                                repositoryId: string;
+                                environments: unknown;
+                                refs: unknown;
+                                signal: string;
+                                workflows: unknown;
+                                jobNames: unknown;
+                                trustedAppIds: unknown;
+                                requireChangeReceipt: boolean;
+                                trustActionsOutcome: boolean;
+                                definitionId: string;
+                            };
+                            createdAt: string;
+                        }[];
+                        observations: {
+                            id: string;
+                            deliveryId: string;
+                            evidence: {
+                                /** @constant */
+                                schemaVersion: 1;
+                                /** @enum {string} */
+                                eventName: "deployment_status" | "workflow_run" | "workflow_job";
+                                action: string;
+                                key: string;
+                                objectKey: string;
+                                objectId: string;
+                                observationId: string;
+                                installationId: number;
+                                repositoryId: string;
+                                repositoryName: string;
+                                occurredAt: string;
+                                state: string;
+                                environment: string;
+                                deploymentEnvironment: string;
+                                production: boolean | null;
+                                ref: string;
+                                sha: string;
+                                url: string;
+                                appId: number;
+                                workflow: {
+                                    id: number;
+                                    name: string;
+                                    path: string;
+                                    state: string;
+                                };
+                                runId: number;
+                                runAttempt: number;
+                                jobId: number;
+                                jobName: string;
+                                association: string;
+                                conflict: boolean;
+                                changeReceipt: boolean | null;
+                                receiptRevision: string;
+                                receiptAppId: number;
+                            };
+                            policyId: string | null;
+                            workflowVersionId: string | null;
+                            eventId: string | null;
+                            status: string;
+                            origin: string;
+                            decision: {
+                                status: string;
+                                reason: string;
+                                strength: string;
+                                checks: unknown;
+                            };
+                            duplicates: number;
+                            receivedAt: string;
+                            processedAt: string | null;
+                            runId: string | null;
+                            dispatchStatus: string;
+                        }[];
+                        nextCursor: string;
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Source not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    saveGitHubProduction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    expectedRevision: number;
+                    policy: {
+                        schemaVersion: number;
+                        enabled: boolean;
+                        installationId: number;
+                        repositoryId: string;
+                        environments: string[] | null;
+                        refs: string[] | null;
+                        signal: string;
+                        workflows: {
+                            id: number;
+                            name: string;
+                            path: string;
+                            state: string;
+                        }[] | null;
+                        jobNames: string[] | null;
+                        trustedAppIds: number[] | null;
+                        requireChangeReceipt: boolean;
+                        trustActionsOutcome: boolean;
+                        definitionId: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Policy revision saved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        revision: number;
+                        policy: {
+                            schemaVersion: number;
+                            enabled: boolean;
+                            installationId: number;
+                            repositoryId: string;
+                            environments: unknown;
+                            refs: unknown;
+                            signal: string;
+                            workflows: unknown;
+                            jobNames: unknown;
+                            trustedAppIds: unknown;
+                            requireChangeReceipt: boolean;
+                            trustActionsOutcome: boolean;
+                            definitionId: string;
+                        };
+                        createdAt: string;
+                    };
+                };
+            };
+            /** @description Invalid policy. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Revision conflict or inactive Shots workflow. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    previewGitHubProduction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    policy: {
+                        schemaVersion: number;
+                        enabled: boolean;
+                        installationId: number;
+                        repositoryId: string;
+                        environments: string[] | null;
+                        refs: string[] | null;
+                        signal: string;
+                        workflows: {
+                            id: number;
+                            name: string;
+                            path: string;
+                            state: string;
+                        }[] | null;
+                        jobNames: string[] | null;
+                        trustedAppIds: number[] | null;
+                        requireChangeReceipt: boolean;
+                        trustActionsOutcome: boolean;
+                        definitionId: string;
+                    };
+                    observationId?: string;
+                    example?: {
+                        /** @constant */
+                        schemaVersion: 1;
+                        /** @enum {string} */
+                        eventName: "deployment_status" | "workflow_run" | "workflow_job";
+                        action: string;
+                        key: string;
+                        objectKey: string;
+                        objectId: string;
+                        observationId: string;
+                        installationId: number;
+                        repositoryId: string;
+                        repositoryName: string;
+                        occurredAt: string;
+                        state: string;
+                        environment: string;
+                        deploymentEnvironment: string;
+                        production: boolean | null;
+                        ref: string;
+                        sha: string;
+                        url: string;
+                        appId: number;
+                        workflow: {
+                            id: number;
+                            name: string;
+                            path: string;
+                            state: string;
+                        };
+                        runId: number;
+                        runAttempt: number;
+                        jobId: number;
+                        jobName: string;
+                        association: string;
+                        conflict: boolean;
+                        changeReceipt: boolean | null;
+                        receiptRevision: string;
+                        receiptAppId: number;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Condition explanations. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        status: string;
+                        reason: string;
+                        strength: string;
+                        checks: unknown;
+                    };
+                };
+            };
+            /** @description Invalid example. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Source or observation not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getGitHubProductionCatalog: {
+        parameters: {
+            query?: {
+                runId?: number;
+                attempt?: number;
+            };
+            header?: never;
+            path: {
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Capabilities and available selections. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access: string;
+                        reason: string;
+                        installationId: number;
+                        repositoryId: string;
+                        capabilities: {
+                            actions: boolean;
+                            deployments: boolean;
+                            events: string[];
+                            subscriptionsKnown: boolean;
+                        } | null;
+                        workflows: unknown;
+                        jobs: unknown;
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Source not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getGitHubRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recovery status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        status: string;
+                        reason: string;
+                        gap: boolean;
+                        hasMore: boolean;
+                        windowStart: string | null;
+                        lastCompleteAt: string | null;
+                        nextAttemptAt: string | null;
+                        deliveries: {
+                            id: string;
+                            guid: string;
+                            eventName: string;
+                            status: string;
+                            attempts: number;
+                            deliveredAt: string;
+                            nextAttemptAt: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Source not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    inspectGitHubRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    redeliver: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Progress, backoff, or failure status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        status: string;
+                        reason: string;
+                        gap: boolean;
+                        hasMore: boolean;
+                        windowStart: string | null;
+                        lastCompleteAt: string | null;
+                        nextAttemptAt: string | null;
+                        deliveries: {
+                            id: string;
+                            guid: string;
+                            eventName: string;
+                            status: string;
+                            attempts: number;
+                            deliveredAt: string;
+                            nextAttemptAt: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description GitHub recovery unavailable. */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

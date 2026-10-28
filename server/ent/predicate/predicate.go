@@ -126,11 +126,23 @@ type Design func(*sql.Selector)
 // EnrichmentRecord is the predicate function for enrichmentrecord builders.
 type EnrichmentRecord func(*sql.Selector)
 
+// GitHubDeliveryRecovery is the predicate function for githubdeliveryrecovery builders.
+type GitHubDeliveryRecovery func(*sql.Selector)
+
 // GitHubInstallStart is the predicate function for githubinstallstart builders.
 type GitHubInstallStart func(*sql.Selector)
 
 // GitHubInstallation is the predicate function for githubinstallation builders.
 type GitHubInstallation func(*sql.Selector)
+
+// GitHubObservation is the predicate function for githubobservation builders.
+type GitHubObservation func(*sql.Selector)
+
+// GitHubProductionPolicy is the predicate function for githubproductionpolicy builders.
+type GitHubProductionPolicy func(*sql.Selector)
+
+// GitHubRecoveryScan is the predicate function for githubrecoveryscan builders.
+type GitHubRecoveryScan func(*sql.Selector)
 
 // IdealCustomerProfile is the predicate function for idealcustomerprofile builders.
 type IdealCustomerProfile func(*sql.Selector)

@@ -72,7 +72,7 @@ func TestAutomationPRAndDeploymentCreateReviewableReleases(t *testing.T) {
 				f.graph.Qualification = automation.Condition{Field: "deployment.environment", Operator: "eq", Values: []string{"production"}}
 				f.graph.Nodes[1].Condition = &automation.Condition{Field: "deployment.state", Operator: "eq", Values: []string{"success"}}
 				payload["deployment"] = map[string]any{"id": 901, "environment": "production", "sha": "abc123", "production_environment": true}
-				payload["deployment_status"] = map[string]any{"state": "success", "environment_url": "https://app.example.com", "created_at": "2026-10-19T10:00:00Z"}
+				payload["deployment_status"] = map[string]any{"id": 1901, "state": "success", "environment_url": "https://app.example.com", "created_at": "2026-10-19T10:00:00Z"}
 			}
 			active := f.activate(t)
 			body, _ := json.Marshal(payload)
@@ -147,6 +147,8 @@ func newAutomationFixture(t *testing.T) *automationFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// This fixture models a source that existed before the production-policy migration.
+	w.exec(t, `INSERT INTO github_production_policy (id,"organizationId","sourceAppId",revision,policy,"createdBy") VALUES ($1,$2,$3,0,'{"schemaVersion":0,"enabled":false}','migration')`, "legacy-"+source.ID, w.org, source.ID)
 	brand, err := w.db.Client.BrandKit.Create().SetID("brand" + w.id).SetOrganizationID(w.org).SetName("Fixture brand").SetVersion(1).SetStatus("ACTIVE").SetDefinition(map[string]any{"schemaVersion": 1, "colors": map[string]any{"text": "#111111", "background": "#ffffff", "accent": "#ff0000"}, "typography": map[string]any{"headingFamily": "Inter"}}).Save(ctx)
 	if err != nil {
 		t.Fatal(err)

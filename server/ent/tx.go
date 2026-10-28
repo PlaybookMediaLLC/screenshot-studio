@@ -92,10 +92,18 @@ type Tx struct {
 	Design *DesignClient
 	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
 	EnrichmentRecord *EnrichmentRecordClient
+	// GitHubDeliveryRecovery is the client for interacting with the GitHubDeliveryRecovery builders.
+	GitHubDeliveryRecovery *GitHubDeliveryRecoveryClient
 	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
 	GitHubInstallation *GitHubInstallationClient
+	// GitHubObservation is the client for interacting with the GitHubObservation builders.
+	GitHubObservation *GitHubObservationClient
+	// GitHubProductionPolicy is the client for interacting with the GitHubProductionPolicy builders.
+	GitHubProductionPolicy *GitHubProductionPolicyClient
+	// GitHubRecoveryScan is the client for interacting with the GitHubRecoveryScan builders.
+	GitHubRecoveryScan *GitHubRecoveryScanClient
 	// IdealCustomerProfile is the client for interacting with the IdealCustomerProfile builders.
 	IdealCustomerProfile *IdealCustomerProfileClient
 	// IntegrationConnection is the client for interacting with the IntegrationConnection builders.
@@ -407,8 +415,12 @@ func (tx *Tx) init() {
 	tx.DeploymentEvent = NewDeploymentEventClient(tx.config)
 	tx.Design = NewDesignClient(tx.config)
 	tx.EnrichmentRecord = NewEnrichmentRecordClient(tx.config)
+	tx.GitHubDeliveryRecovery = NewGitHubDeliveryRecoveryClient(tx.config)
 	tx.GitHubInstallStart = NewGitHubInstallStartClient(tx.config)
 	tx.GitHubInstallation = NewGitHubInstallationClient(tx.config)
+	tx.GitHubObservation = NewGitHubObservationClient(tx.config)
+	tx.GitHubProductionPolicy = NewGitHubProductionPolicyClient(tx.config)
+	tx.GitHubRecoveryScan = NewGitHubRecoveryScanClient(tx.config)
 	tx.IdealCustomerProfile = NewIdealCustomerProfileClient(tx.config)
 	tx.IntegrationConnection = NewIntegrationConnectionClient(tx.config)
 	tx.Invitation = NewInvitationClient(tx.config)

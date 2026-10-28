@@ -516,3 +516,6 @@ false branch. GitHub and the model provider are the protocol fixture
 `scripts/e2e-release-automation-mock.mjs`; the renderer is a local headless
 Chromium. This is not live GitHub, model, or deployed renderer verification. Run instructions are in
 [the fixture guide](./release-automation-fixture.md).
+
+Repository-specific production policies, GitHub Actions evidence, and delivery recovery
+are documented in [GitHub production evidence](github-production-evidence.md).

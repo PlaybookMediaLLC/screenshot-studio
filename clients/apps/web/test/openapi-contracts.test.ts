@@ -22,6 +22,7 @@ import * as socialAnalytics from '@/lib/api/contracts/social-analytics'
 import * as draftComments from '@/lib/api/contracts/draft-comments'
 import * as draftTags from '@/lib/api/contracts/draft-tags'
 import * as integrations from '@/lib/api/contracts/integrations'
+import * as githubProduction from '@/lib/api/contracts/github-production'
 import * as internal from '@/lib/api/contracts/internal'
 import * as linkPreview from '@/lib/api/contracts/link-preview'
 import * as notifications from '@/lib/api/contracts/notifications'
@@ -71,6 +72,7 @@ const contracts = new Map<string, RouteContract>(
     draftBatch,
     socialAnalytics,
     integrations,
+    githubProduction,
     internal,
     linkPreview,
     onboardingRuns,

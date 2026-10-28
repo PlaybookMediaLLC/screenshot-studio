@@ -550,6 +550,1787 @@
         }
       }
     },
+    "/api/v1/github/sources/{sourceId}/production": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "free"
+        },
+        "description": "Session-only, tenant-scoped production evidence and policy history.",
+        "operationId": "getGitHubProduction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Production evidence.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "policies": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "policy": {
+                            "type": "object",
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "enabled": {
+                                "type": "boolean"
+                              },
+                              "installationId": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "repositoryId": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "environments": {},
+                              "refs": {},
+                              "signal": {
+                                "type": "string"
+                              },
+                              "workflows": {},
+                              "jobNames": {},
+                              "trustedAppIds": {},
+                              "requireChangeReceipt": {
+                                "type": "boolean"
+                              },
+                              "trustActionsOutcome": {
+                                "type": "boolean"
+                              },
+                              "definitionId": {
+                                "type": "string",
+                                "maxLength": 100
+                              }
+                            },
+                            "required": [
+                              "schemaVersion",
+                              "enabled",
+                              "installationId",
+                              "repositoryId",
+                              "environments",
+                              "refs",
+                              "signal",
+                              "workflows",
+                              "jobNames",
+                              "trustedAppIds",
+                              "requireChangeReceipt",
+                              "trustActionsOutcome",
+                              "definitionId"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "revision",
+                          "policy",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "observations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "deliveryId": {
+                            "type": "string"
+                          },
+                          "evidence": {
+                            "type": "object",
+                            "properties": {
+                              "schemaVersion": {
+                                "type": "number",
+                                "const": 1
+                              },
+                              "eventName": {
+                                "type": "string",
+                                "enum": [
+                                  "deployment_status",
+                                  "workflow_run",
+                                  "workflow_job"
+                                ]
+                              },
+                              "action": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "key": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "objectKey": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "objectId": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "observationId": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "installationId": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "repositoryId": {
+                                "type": "string",
+                                "maxLength": 64
+                              },
+                              "repositoryName": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "occurredAt": {
+                                "type": "string"
+                              },
+                              "state": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "environment": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "deploymentEnvironment": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "production": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "ref": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "sha": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "url": {
+                                "type": "string",
+                                "maxLength": 2000
+                              },
+                              "appId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "workflow": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "state": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "path",
+                                  "state"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "runId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "runAttempt": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "jobId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "jobName": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "association": {
+                                "type": "string",
+                                "maxLength": 100
+                              },
+                              "conflict": {
+                                "type": "boolean"
+                              },
+                              "changeReceipt": {
+                                "type": [
+                                  "boolean",
+                                  "null"
+                                ]
+                              },
+                              "receiptRevision": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "receiptAppId": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "schemaVersion",
+                              "eventName",
+                              "action",
+                              "key",
+                              "objectKey",
+                              "objectId",
+                              "observationId",
+                              "installationId",
+                              "repositoryId",
+                              "repositoryName",
+                              "occurredAt",
+                              "state",
+                              "environment",
+                              "deploymentEnvironment",
+                              "production",
+                              "ref",
+                              "sha",
+                              "url",
+                              "appId",
+                              "workflow",
+                              "runId",
+                              "runAttempt",
+                              "jobId",
+                              "jobName",
+                              "association",
+                              "conflict",
+                              "changeReceipt",
+                              "receiptRevision",
+                              "receiptAppId"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "policyId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "workflowVersionId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "eventId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "origin": {
+                            "type": "string"
+                          },
+                          "decision": {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "strength": {
+                                "type": "string"
+                              },
+                              "checks": {}
+                            },
+                            "required": [
+                              "status",
+                              "reason",
+                              "strength",
+                              "checks"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "duplicates": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "receivedAt": {
+                            "type": "string"
+                          },
+                          "processedAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "runId": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "dispatchStatus": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "deliveryId",
+                          "evidence",
+                          "policyId",
+                          "workflowVersionId",
+                          "eventId",
+                          "status",
+                          "origin",
+                          "decision",
+                          "duplicates",
+                          "receivedAt",
+                          "processedAt",
+                          "runId",
+                          "dispatchStatus"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "policies",
+                    "observations",
+                    "nextCursor"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Inspect production evidence",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "put": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "free"
+        },
+        "description": "Owners and administrators select GitHub evidence and a Shots workflow. Uses an expected revision; does not replay history.",
+        "operationId": "saveGitHubProduction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "policy": {
+                    "type": "object",
+                    "properties": {
+                      "schemaVersion": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "installationId": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "repositoryId": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "environments": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 255
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "refs": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 255
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "signal": {
+                        "type": "string"
+                      },
+                      "workflows": {
+                        "anyOf": [
+                          {
+                            "maxItems": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "path",
+                                "state"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "jobNames": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 255
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "trustedAppIds": {
+                        "anyOf": [
+                          {
+                            "maxItems": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "requireChangeReceipt": {
+                        "type": "boolean"
+                      },
+                      "trustActionsOutcome": {
+                        "type": "boolean"
+                      },
+                      "definitionId": {
+                        "type": "string",
+                        "maxLength": 100
+                      }
+                    },
+                    "required": [
+                      "schemaVersion",
+                      "enabled",
+                      "installationId",
+                      "repositoryId",
+                      "environments",
+                      "refs",
+                      "signal",
+                      "workflows",
+                      "jobNames",
+                      "trustedAppIds",
+                      "requireChangeReceipt",
+                      "trustActionsOutcome",
+                      "definitionId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "expectedRevision",
+                  "policy"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Policy revision saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "policy": {
+                      "type": "object",
+                      "properties": {
+                        "schemaVersion": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "installationId": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "repositoryId": {
+                          "type": "string",
+                          "maxLength": 64
+                        },
+                        "environments": {},
+                        "refs": {},
+                        "signal": {
+                          "type": "string"
+                        },
+                        "workflows": {},
+                        "jobNames": {},
+                        "trustedAppIds": {},
+                        "requireChangeReceipt": {
+                          "type": "boolean"
+                        },
+                        "trustActionsOutcome": {
+                          "type": "boolean"
+                        },
+                        "definitionId": {
+                          "type": "string",
+                          "maxLength": 100
+                        }
+                      },
+                      "required": [
+                        "schemaVersion",
+                        "enabled",
+                        "installationId",
+                        "repositoryId",
+                        "environments",
+                        "refs",
+                        "signal",
+                        "workflows",
+                        "jobNames",
+                        "trustedAppIds",
+                        "requireChangeReceipt",
+                        "trustActionsOutcome",
+                        "definitionId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "policy",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid policy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision conflict or inactive Shots workflow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Configure production evidence",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/github/sources/{sourceId}/production-preview": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "free"
+        },
+        "description": "Evaluates a saved observation or example with no writes, enrichment, credits, or execution.",
+        "operationId": "previewGitHubProduction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "policy": {
+                    "type": "object",
+                    "properties": {
+                      "schemaVersion": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "installationId": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "repositoryId": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "environments": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 255
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "refs": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 255
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "signal": {
+                        "type": "string"
+                      },
+                      "workflows": {
+                        "anyOf": [
+                          {
+                            "maxItems": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "path": {
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "path",
+                                "state"
+                              ]
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "jobNames": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "maxLength": 255
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "trustedAppIds": {
+                        "anyOf": [
+                          {
+                            "maxItems": 20,
+                            "type": "array",
+                            "items": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "requireChangeReceipt": {
+                        "type": "boolean"
+                      },
+                      "trustActionsOutcome": {
+                        "type": "boolean"
+                      },
+                      "definitionId": {
+                        "type": "string",
+                        "maxLength": 100
+                      }
+                    },
+                    "required": [
+                      "schemaVersion",
+                      "enabled",
+                      "installationId",
+                      "repositoryId",
+                      "environments",
+                      "refs",
+                      "signal",
+                      "workflows",
+                      "jobNames",
+                      "trustedAppIds",
+                      "requireChangeReceipt",
+                      "trustActionsOutcome",
+                      "definitionId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "observationId": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "example": {
+                    "type": "object",
+                    "properties": {
+                      "schemaVersion": {
+                        "type": "number",
+                        "const": 1
+                      },
+                      "eventName": {
+                        "type": "string",
+                        "enum": [
+                          "deployment_status",
+                          "workflow_run",
+                          "workflow_job"
+                        ]
+                      },
+                      "action": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "key": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "objectKey": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "objectId": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "observationId": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "installationId": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "repositoryId": {
+                        "type": "string",
+                        "maxLength": 64
+                      },
+                      "repositoryName": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "occurredAt": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "environment": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "deploymentEnvironment": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "production": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      },
+                      "ref": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "sha": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "url": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "appId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "workflow": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "path",
+                          "state"
+                        ]
+                      },
+                      "runId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "runAttempt": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "jobId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "jobName": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "association": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "conflict": {
+                        "type": "boolean"
+                      },
+                      "changeReceipt": {
+                        "type": [
+                          "boolean",
+                          "null"
+                        ]
+                      },
+                      "receiptRevision": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "receiptAppId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "schemaVersion",
+                      "eventName",
+                      "action",
+                      "key",
+                      "objectKey",
+                      "objectId",
+                      "observationId",
+                      "installationId",
+                      "repositoryId",
+                      "repositoryName",
+                      "occurredAt",
+                      "state",
+                      "environment",
+                      "deploymentEnvironment",
+                      "production",
+                      "ref",
+                      "sha",
+                      "url",
+                      "appId",
+                      "workflow",
+                      "runId",
+                      "runAttempt",
+                      "jobId",
+                      "jobName",
+                      "association",
+                      "conflict",
+                      "changeReceipt",
+                      "receiptRevision",
+                      "receiptAppId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "policy"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Condition explanations.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "strength": {
+                      "type": "string"
+                    },
+                    "checks": {}
+                  },
+                  "required": [
+                    "status",
+                    "reason",
+                    "strength",
+                    "checks"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid example.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source or observation not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Preview production policy",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/github/sources/{sourceId}/production-catalog": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "free"
+        },
+        "description": "Reports missing permissions or subscriptions without blocking existing event types.",
+        "operationId": "getGitHubProductionCatalog",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          {
+            "in": "query",
+            "name": "runId",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "in": "query",
+            "name": "attempt",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Capabilities and available selections.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "installationId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "repositoryId": {
+                      "type": "string"
+                    },
+                    "capabilities": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "actions": {
+                              "type": "boolean"
+                            },
+                            "deployments": {
+                              "type": "boolean"
+                            },
+                            "events": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "subscriptionsKnown": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "actions",
+                            "deployments",
+                            "events",
+                            "subscriptionsKnown"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "workflows": {},
+                    "jobs": {}
+                  },
+                  "required": [
+                    "access",
+                    "reason",
+                    "installationId",
+                    "repositoryId",
+                    "capabilities",
+                    "workflows",
+                    "jobs"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Inspect GitHub deployment capabilities",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/github/sources/{sourceId}/delivery-recovery": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "free"
+        },
+        "description": "Tenant-scoped provider-delivery status and history gaps.",
+        "operationId": "getGitHubRecovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recovery status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "gap": {
+                      "type": "boolean"
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    },
+                    "windowStart": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lastCompleteAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "nextAttemptAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "guid": {
+                            "type": "string"
+                          },
+                          "eventName": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "attempts": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "deliveredAt": {
+                            "type": "string"
+                          },
+                          "nextAttemptAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "guid",
+                          "eventName",
+                          "status",
+                          "attempts",
+                          "deliveredAt",
+                          "nextAttemptAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason",
+                    "gap",
+                    "hasMore",
+                    "windowStart",
+                    "lastCompleteAt",
+                    "nextAttemptAt",
+                    "deliveries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Inspect GitHub delivery recovery",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "free"
+        },
+        "description": "Owners/admins inspect a provider page; optional redelivery is bounded to five requests and three attempts. Recovered events cannot run live workflows.",
+        "operationId": "inspectGitHubRecovery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sourceId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "redeliver": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "redeliver"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Progress, backoff, or failure status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "gap": {
+                      "type": "boolean"
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    },
+                    "windowStart": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "lastCompleteAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "nextAttemptAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "deliveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "guid": {
+                            "type": "string"
+                          },
+                          "eventName": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "attempts": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "deliveredAt": {
+                            "type": "string"
+                          },
+                          "nextAttemptAt": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "guid",
+                          "eventName",
+                          "status",
+                          "attempts",
+                          "deliveredAt",
+                          "nextAttemptAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "reason",
+                    "gap",
+                    "hasMore",
+                    "windowStart",
+                    "lastCompleteAt",
+                    "nextAttemptAt",
+                    "deliveries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The member lacks the permission or plan, the sign-in is not fresh enough, or the request sent an API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "GitHub recovery unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Recover GitHub deliveries for review",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
     "/api/v1/social-sets": {
       "get": {
         "x-shots-entitlement": {

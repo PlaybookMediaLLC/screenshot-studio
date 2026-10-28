@@ -52,8 +52,12 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubproductionpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubrecoveryscan"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
@@ -184,8 +188,12 @@ const (
 	TypeDeploymentEvent                 = "DeploymentEvent"
 	TypeDesign                          = "Design"
 	TypeEnrichmentRecord                = "EnrichmentRecord"
+	TypeGitHubDeliveryRecovery          = "GitHubDeliveryRecovery"
 	TypeGitHubInstallStart              = "GitHubInstallStart"
 	TypeGitHubInstallation              = "GitHubInstallation"
+	TypeGitHubObservation               = "GitHubObservation"
+	TypeGitHubProductionPolicy          = "GitHubProductionPolicy"
+	TypeGitHubRecoveryScan              = "GitHubRecoveryScan"
 	TypeIdealCustomerProfile            = "IdealCustomerProfile"
 	TypeIntegrationConnection           = "IntegrationConnection"
 	TypeInvitation                      = "Invitation"
@@ -38090,6 +38098,1002 @@ func (m *EnrichmentRecordMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown EnrichmentRecord edge %s", name)
 }
 
+// GitHubDeliveryRecoveryMutation represents an operation that mutates the GitHubDeliveryRecovery nodes in the graph.
+type GitHubDeliveryRecoveryMutation struct {
+	config
+	op                 Op
+	typ                string
+	id                 *string
+	guid               *string
+	installation_id    *int64
+	addinstallation_id *int64
+	repository_id      *string
+	event_name         *string
+	delivered_at       *time.Time
+	status_code        *int
+	addstatus_code     *int
+	recovery           *bool
+	attempts           *int
+	addattempts        *int
+	status             *string
+	next_attempt_at    *time.Time
+	updated_at         *time.Time
+	clearedFields      map[string]struct{}
+	done               bool
+	oldValue           func(context.Context) (*GitHubDeliveryRecovery, error)
+	predicates         []predicate.GitHubDeliveryRecovery
+}
+
+var _ ent.Mutation = (*GitHubDeliveryRecoveryMutation)(nil)
+
+// githubdeliveryrecoveryOption allows management of the mutation configuration using functional options.
+type githubdeliveryrecoveryOption func(*GitHubDeliveryRecoveryMutation)
+
+// newGitHubDeliveryRecoveryMutation creates new mutation for the GitHubDeliveryRecovery entity.
+func newGitHubDeliveryRecoveryMutation(c config, op Op, opts ...githubdeliveryrecoveryOption) *GitHubDeliveryRecoveryMutation {
+	m := &GitHubDeliveryRecoveryMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGitHubDeliveryRecovery,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGitHubDeliveryRecoveryID sets the ID field of the mutation.
+func withGitHubDeliveryRecoveryID(id string) githubdeliveryrecoveryOption {
+	return func(m *GitHubDeliveryRecoveryMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GitHubDeliveryRecovery
+		)
+		m.oldValue = func(ctx context.Context) (*GitHubDeliveryRecovery, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GitHubDeliveryRecovery.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGitHubDeliveryRecovery sets the old GitHubDeliveryRecovery of the mutation.
+func withGitHubDeliveryRecovery(node *GitHubDeliveryRecovery) githubdeliveryrecoveryOption {
+	return func(m *GitHubDeliveryRecoveryMutation) {
+		m.oldValue = func(context.Context) (*GitHubDeliveryRecovery, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GitHubDeliveryRecoveryMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GitHubDeliveryRecoveryMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of GitHubDeliveryRecovery entities.
+func (m *GitHubDeliveryRecoveryMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GitHubDeliveryRecoveryMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GitHubDeliveryRecoveryMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GitHubDeliveryRecovery.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetGUID sets the "guid" field.
+func (m *GitHubDeliveryRecoveryMutation) SetGUID(s string) {
+	m.guid = &s
+}
+
+// GUID returns the value of the "guid" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) GUID() (r string, exists bool) {
+	v := m.guid
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGUID returns the old "guid" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldGUID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGUID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGUID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGUID: %w", err)
+	}
+	return oldValue.GUID, nil
+}
+
+// ResetGUID resets all changes to the "guid" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetGUID() {
+	m.guid = nil
+}
+
+// SetInstallationID sets the "installation_id" field.
+func (m *GitHubDeliveryRecoveryMutation) SetInstallationID(i int64) {
+	m.installation_id = &i
+	m.addinstallation_id = nil
+}
+
+// InstallationID returns the value of the "installation_id" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) InstallationID() (r int64, exists bool) {
+	v := m.installation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldInstallationID returns the old "installation_id" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldInstallationID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldInstallationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldInstallationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldInstallationID: %w", err)
+	}
+	return oldValue.InstallationID, nil
+}
+
+// AddInstallationID adds i to the "installation_id" field.
+func (m *GitHubDeliveryRecoveryMutation) AddInstallationID(i int64) {
+	if m.addinstallation_id != nil {
+		*m.addinstallation_id += i
+	} else {
+		m.addinstallation_id = &i
+	}
+}
+
+// AddedInstallationID returns the value that was added to the "installation_id" field in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) AddedInstallationID() (r int64, exists bool) {
+	v := m.addinstallation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetInstallationID resets all changes to the "installation_id" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetInstallationID() {
+	m.installation_id = nil
+	m.addinstallation_id = nil
+}
+
+// SetRepositoryID sets the "repository_id" field.
+func (m *GitHubDeliveryRecoveryMutation) SetRepositoryID(s string) {
+	m.repository_id = &s
+}
+
+// RepositoryID returns the value of the "repository_id" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) RepositoryID() (r string, exists bool) {
+	v := m.repository_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRepositoryID returns the old "repository_id" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldRepositoryID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRepositoryID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRepositoryID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRepositoryID: %w", err)
+	}
+	return oldValue.RepositoryID, nil
+}
+
+// ResetRepositoryID resets all changes to the "repository_id" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetRepositoryID() {
+	m.repository_id = nil
+}
+
+// SetEventName sets the "event_name" field.
+func (m *GitHubDeliveryRecoveryMutation) SetEventName(s string) {
+	m.event_name = &s
+}
+
+// EventName returns the value of the "event_name" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) EventName() (r string, exists bool) {
+	v := m.event_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventName returns the old "event_name" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldEventName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventName: %w", err)
+	}
+	return oldValue.EventName, nil
+}
+
+// ResetEventName resets all changes to the "event_name" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetEventName() {
+	m.event_name = nil
+}
+
+// SetDeliveredAt sets the "delivered_at" field.
+func (m *GitHubDeliveryRecoveryMutation) SetDeliveredAt(t time.Time) {
+	m.delivered_at = &t
+}
+
+// DeliveredAt returns the value of the "delivered_at" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) DeliveredAt() (r time.Time, exists bool) {
+	v := m.delivered_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeliveredAt returns the old "delivered_at" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldDeliveredAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeliveredAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeliveredAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeliveredAt: %w", err)
+	}
+	return oldValue.DeliveredAt, nil
+}
+
+// ResetDeliveredAt resets all changes to the "delivered_at" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetDeliveredAt() {
+	m.delivered_at = nil
+}
+
+// SetStatusCode sets the "status_code" field.
+func (m *GitHubDeliveryRecoveryMutation) SetStatusCode(i int) {
+	m.status_code = &i
+	m.addstatus_code = nil
+}
+
+// StatusCode returns the value of the "status_code" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) StatusCode() (r int, exists bool) {
+	v := m.status_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatusCode returns the old "status_code" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldStatusCode(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatusCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatusCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatusCode: %w", err)
+	}
+	return oldValue.StatusCode, nil
+}
+
+// AddStatusCode adds i to the "status_code" field.
+func (m *GitHubDeliveryRecoveryMutation) AddStatusCode(i int) {
+	if m.addstatus_code != nil {
+		*m.addstatus_code += i
+	} else {
+		m.addstatus_code = &i
+	}
+}
+
+// AddedStatusCode returns the value that was added to the "status_code" field in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) AddedStatusCode() (r int, exists bool) {
+	v := m.addstatus_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetStatusCode resets all changes to the "status_code" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetStatusCode() {
+	m.status_code = nil
+	m.addstatus_code = nil
+}
+
+// SetRecovery sets the "recovery" field.
+func (m *GitHubDeliveryRecoveryMutation) SetRecovery(b bool) {
+	m.recovery = &b
+}
+
+// Recovery returns the value of the "recovery" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) Recovery() (r bool, exists bool) {
+	v := m.recovery
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRecovery returns the old "recovery" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldRecovery(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRecovery is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRecovery requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRecovery: %w", err)
+	}
+	return oldValue.Recovery, nil
+}
+
+// ResetRecovery resets all changes to the "recovery" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetRecovery() {
+	m.recovery = nil
+}
+
+// SetAttempts sets the "attempts" field.
+func (m *GitHubDeliveryRecoveryMutation) SetAttempts(i int) {
+	m.attempts = &i
+	m.addattempts = nil
+}
+
+// Attempts returns the value of the "attempts" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) Attempts() (r int, exists bool) {
+	v := m.attempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttempts returns the old "attempts" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldAttempts(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttempts is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttempts requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttempts: %w", err)
+	}
+	return oldValue.Attempts, nil
+}
+
+// AddAttempts adds i to the "attempts" field.
+func (m *GitHubDeliveryRecoveryMutation) AddAttempts(i int) {
+	if m.addattempts != nil {
+		*m.addattempts += i
+	} else {
+		m.addattempts = &i
+	}
+}
+
+// AddedAttempts returns the value that was added to the "attempts" field in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) AddedAttempts() (r int, exists bool) {
+	v := m.addattempts
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAttempts resets all changes to the "attempts" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetAttempts() {
+	m.attempts = nil
+	m.addattempts = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *GitHubDeliveryRecoveryMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetNextAttemptAt sets the "next_attempt_at" field.
+func (m *GitHubDeliveryRecoveryMutation) SetNextAttemptAt(t time.Time) {
+	m.next_attempt_at = &t
+}
+
+// NextAttemptAt returns the value of the "next_attempt_at" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) NextAttemptAt() (r time.Time, exists bool) {
+	v := m.next_attempt_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextAttemptAt returns the old "next_attempt_at" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldNextAttemptAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextAttemptAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextAttemptAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextAttemptAt: %w", err)
+	}
+	return oldValue.NextAttemptAt, nil
+}
+
+// ClearNextAttemptAt clears the value of the "next_attempt_at" field.
+func (m *GitHubDeliveryRecoveryMutation) ClearNextAttemptAt() {
+	m.next_attempt_at = nil
+	m.clearedFields[githubdeliveryrecovery.FieldNextAttemptAt] = struct{}{}
+}
+
+// NextAttemptAtCleared returns if the "next_attempt_at" field was cleared in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) NextAttemptAtCleared() bool {
+	_, ok := m.clearedFields[githubdeliveryrecovery.FieldNextAttemptAt]
+	return ok
+}
+
+// ResetNextAttemptAt resets all changes to the "next_attempt_at" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetNextAttemptAt() {
+	m.next_attempt_at = nil
+	delete(m.clearedFields, githubdeliveryrecovery.FieldNextAttemptAt)
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *GitHubDeliveryRecoveryMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *GitHubDeliveryRecoveryMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the GitHubDeliveryRecovery entity.
+// If the GitHubDeliveryRecovery object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubDeliveryRecoveryMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *GitHubDeliveryRecoveryMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the GitHubDeliveryRecoveryMutation builder.
+func (m *GitHubDeliveryRecoveryMutation) Where(ps ...predicate.GitHubDeliveryRecovery) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GitHubDeliveryRecoveryMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GitHubDeliveryRecoveryMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GitHubDeliveryRecovery, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GitHubDeliveryRecoveryMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GitHubDeliveryRecoveryMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GitHubDeliveryRecovery).
+func (m *GitHubDeliveryRecoveryMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GitHubDeliveryRecoveryMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.guid != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldGUID)
+	}
+	if m.installation_id != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldInstallationID)
+	}
+	if m.repository_id != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldRepositoryID)
+	}
+	if m.event_name != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldEventName)
+	}
+	if m.delivered_at != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldDeliveredAt)
+	}
+	if m.status_code != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldStatusCode)
+	}
+	if m.recovery != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldRecovery)
+	}
+	if m.attempts != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldAttempts)
+	}
+	if m.status != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldStatus)
+	}
+	if m.next_attempt_at != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldNextAttemptAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GitHubDeliveryRecoveryMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case githubdeliveryrecovery.FieldGUID:
+		return m.GUID()
+	case githubdeliveryrecovery.FieldInstallationID:
+		return m.InstallationID()
+	case githubdeliveryrecovery.FieldRepositoryID:
+		return m.RepositoryID()
+	case githubdeliveryrecovery.FieldEventName:
+		return m.EventName()
+	case githubdeliveryrecovery.FieldDeliveredAt:
+		return m.DeliveredAt()
+	case githubdeliveryrecovery.FieldStatusCode:
+		return m.StatusCode()
+	case githubdeliveryrecovery.FieldRecovery:
+		return m.Recovery()
+	case githubdeliveryrecovery.FieldAttempts:
+		return m.Attempts()
+	case githubdeliveryrecovery.FieldStatus:
+		return m.Status()
+	case githubdeliveryrecovery.FieldNextAttemptAt:
+		return m.NextAttemptAt()
+	case githubdeliveryrecovery.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GitHubDeliveryRecoveryMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case githubdeliveryrecovery.FieldGUID:
+		return m.OldGUID(ctx)
+	case githubdeliveryrecovery.FieldInstallationID:
+		return m.OldInstallationID(ctx)
+	case githubdeliveryrecovery.FieldRepositoryID:
+		return m.OldRepositoryID(ctx)
+	case githubdeliveryrecovery.FieldEventName:
+		return m.OldEventName(ctx)
+	case githubdeliveryrecovery.FieldDeliveredAt:
+		return m.OldDeliveredAt(ctx)
+	case githubdeliveryrecovery.FieldStatusCode:
+		return m.OldStatusCode(ctx)
+	case githubdeliveryrecovery.FieldRecovery:
+		return m.OldRecovery(ctx)
+	case githubdeliveryrecovery.FieldAttempts:
+		return m.OldAttempts(ctx)
+	case githubdeliveryrecovery.FieldStatus:
+		return m.OldStatus(ctx)
+	case githubdeliveryrecovery.FieldNextAttemptAt:
+		return m.OldNextAttemptAt(ctx)
+	case githubdeliveryrecovery.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown GitHubDeliveryRecovery field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubDeliveryRecoveryMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case githubdeliveryrecovery.FieldGUID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGUID(v)
+		return nil
+	case githubdeliveryrecovery.FieldInstallationID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetInstallationID(v)
+		return nil
+	case githubdeliveryrecovery.FieldRepositoryID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRepositoryID(v)
+		return nil
+	case githubdeliveryrecovery.FieldEventName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventName(v)
+		return nil
+	case githubdeliveryrecovery.FieldDeliveredAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeliveredAt(v)
+		return nil
+	case githubdeliveryrecovery.FieldStatusCode:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatusCode(v)
+		return nil
+	case githubdeliveryrecovery.FieldRecovery:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRecovery(v)
+		return nil
+	case githubdeliveryrecovery.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttempts(v)
+		return nil
+	case githubdeliveryrecovery.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case githubdeliveryrecovery.FieldNextAttemptAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextAttemptAt(v)
+		return nil
+	case githubdeliveryrecovery.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubDeliveryRecovery field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GitHubDeliveryRecoveryMutation) AddedFields() []string {
+	var fields []string
+	if m.addinstallation_id != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldInstallationID)
+	}
+	if m.addstatus_code != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldStatusCode)
+	}
+	if m.addattempts != nil {
+		fields = append(fields, githubdeliveryrecovery.FieldAttempts)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GitHubDeliveryRecoveryMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case githubdeliveryrecovery.FieldInstallationID:
+		return m.AddedInstallationID()
+	case githubdeliveryrecovery.FieldStatusCode:
+		return m.AddedStatusCode()
+	case githubdeliveryrecovery.FieldAttempts:
+		return m.AddedAttempts()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubDeliveryRecoveryMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case githubdeliveryrecovery.FieldInstallationID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddInstallationID(v)
+		return nil
+	case githubdeliveryrecovery.FieldStatusCode:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddStatusCode(v)
+		return nil
+	case githubdeliveryrecovery.FieldAttempts:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAttempts(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubDeliveryRecovery numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GitHubDeliveryRecoveryMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(githubdeliveryrecovery.FieldNextAttemptAt) {
+		fields = append(fields, githubdeliveryrecovery.FieldNextAttemptAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GitHubDeliveryRecoveryMutation) ClearField(name string) error {
+	switch name {
+	case githubdeliveryrecovery.FieldNextAttemptAt:
+		m.ClearNextAttemptAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubDeliveryRecovery nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GitHubDeliveryRecoveryMutation) ResetField(name string) error {
+	switch name {
+	case githubdeliveryrecovery.FieldGUID:
+		m.ResetGUID()
+		return nil
+	case githubdeliveryrecovery.FieldInstallationID:
+		m.ResetInstallationID()
+		return nil
+	case githubdeliveryrecovery.FieldRepositoryID:
+		m.ResetRepositoryID()
+		return nil
+	case githubdeliveryrecovery.FieldEventName:
+		m.ResetEventName()
+		return nil
+	case githubdeliveryrecovery.FieldDeliveredAt:
+		m.ResetDeliveredAt()
+		return nil
+	case githubdeliveryrecovery.FieldStatusCode:
+		m.ResetStatusCode()
+		return nil
+	case githubdeliveryrecovery.FieldRecovery:
+		m.ResetRecovery()
+		return nil
+	case githubdeliveryrecovery.FieldAttempts:
+		m.ResetAttempts()
+		return nil
+	case githubdeliveryrecovery.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case githubdeliveryrecovery.FieldNextAttemptAt:
+		m.ResetNextAttemptAt()
+		return nil
+	case githubdeliveryrecovery.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubDeliveryRecovery field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GitHubDeliveryRecoveryMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GitHubDeliveryRecoveryMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GitHubDeliveryRecovery unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GitHubDeliveryRecoveryMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GitHubDeliveryRecovery edge %s", name)
+}
+
 // GitHubInstallStartMutation represents an operation that mutates the GitHubInstallStart nodes in the graph.
 type GitHubInstallStartMutation struct {
 	config
@@ -39421,6 +40425,2871 @@ func (m *GitHubInstallationMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *GitHubInstallationMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown GitHubInstallation edge %s", name)
+}
+
+// GitHubObservationMutation represents an operation that mutates the GitHubObservation nodes in the graph.
+type GitHubObservationMutation struct {
+	config
+	op                  Op
+	typ                 string
+	id                  *string
+	organization_id     *string
+	source_app_id       *string
+	semantic_key        *string
+	object_key          *string
+	delivery_id         *string
+	evidence            *releaseautomation.GitHubEvidence
+	enrichment          **releaseautomation.GitHubEvidence
+	policy_id           *string
+	workflow_version_id *string
+	origin              *string
+	status              *string
+	decision            *releaseautomation.ProductionDecision
+	event_id            *string
+	duplicate_count     *int
+	addduplicate_count  *int
+	occurred_at         *time.Time
+	received_at         *time.Time
+	processed_at        *time.Time
+	clearedFields       map[string]struct{}
+	done                bool
+	oldValue            func(context.Context) (*GitHubObservation, error)
+	predicates          []predicate.GitHubObservation
+}
+
+var _ ent.Mutation = (*GitHubObservationMutation)(nil)
+
+// githubobservationOption allows management of the mutation configuration using functional options.
+type githubobservationOption func(*GitHubObservationMutation)
+
+// newGitHubObservationMutation creates new mutation for the GitHubObservation entity.
+func newGitHubObservationMutation(c config, op Op, opts ...githubobservationOption) *GitHubObservationMutation {
+	m := &GitHubObservationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGitHubObservation,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGitHubObservationID sets the ID field of the mutation.
+func withGitHubObservationID(id string) githubobservationOption {
+	return func(m *GitHubObservationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GitHubObservation
+		)
+		m.oldValue = func(ctx context.Context) (*GitHubObservation, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GitHubObservation.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGitHubObservation sets the old GitHubObservation of the mutation.
+func withGitHubObservation(node *GitHubObservation) githubobservationOption {
+	return func(m *GitHubObservationMutation) {
+		m.oldValue = func(context.Context) (*GitHubObservation, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GitHubObservationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GitHubObservationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of GitHubObservation entities.
+func (m *GitHubObservationMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GitHubObservationMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GitHubObservationMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GitHubObservation.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *GitHubObservationMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *GitHubObservationMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *GitHubObservationMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSourceAppID sets the "source_app_id" field.
+func (m *GitHubObservationMutation) SetSourceAppID(s string) {
+	m.source_app_id = &s
+}
+
+// SourceAppID returns the value of the "source_app_id" field in the mutation.
+func (m *GitHubObservationMutation) SourceAppID() (r string, exists bool) {
+	v := m.source_app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceAppID returns the old "source_app_id" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldSourceAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceAppID: %w", err)
+	}
+	return oldValue.SourceAppID, nil
+}
+
+// ResetSourceAppID resets all changes to the "source_app_id" field.
+func (m *GitHubObservationMutation) ResetSourceAppID() {
+	m.source_app_id = nil
+}
+
+// SetSemanticKey sets the "semantic_key" field.
+func (m *GitHubObservationMutation) SetSemanticKey(s string) {
+	m.semantic_key = &s
+}
+
+// SemanticKey returns the value of the "semantic_key" field in the mutation.
+func (m *GitHubObservationMutation) SemanticKey() (r string, exists bool) {
+	v := m.semantic_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSemanticKey returns the old "semantic_key" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldSemanticKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSemanticKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSemanticKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSemanticKey: %w", err)
+	}
+	return oldValue.SemanticKey, nil
+}
+
+// ResetSemanticKey resets all changes to the "semantic_key" field.
+func (m *GitHubObservationMutation) ResetSemanticKey() {
+	m.semantic_key = nil
+}
+
+// SetObjectKey sets the "object_key" field.
+func (m *GitHubObservationMutation) SetObjectKey(s string) {
+	m.object_key = &s
+}
+
+// ObjectKey returns the value of the "object_key" field in the mutation.
+func (m *GitHubObservationMutation) ObjectKey() (r string, exists bool) {
+	v := m.object_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldObjectKey returns the old "object_key" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldObjectKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldObjectKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldObjectKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldObjectKey: %w", err)
+	}
+	return oldValue.ObjectKey, nil
+}
+
+// ResetObjectKey resets all changes to the "object_key" field.
+func (m *GitHubObservationMutation) ResetObjectKey() {
+	m.object_key = nil
+}
+
+// SetDeliveryID sets the "delivery_id" field.
+func (m *GitHubObservationMutation) SetDeliveryID(s string) {
+	m.delivery_id = &s
+}
+
+// DeliveryID returns the value of the "delivery_id" field in the mutation.
+func (m *GitHubObservationMutation) DeliveryID() (r string, exists bool) {
+	v := m.delivery_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDeliveryID returns the old "delivery_id" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldDeliveryID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDeliveryID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDeliveryID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDeliveryID: %w", err)
+	}
+	return oldValue.DeliveryID, nil
+}
+
+// ResetDeliveryID resets all changes to the "delivery_id" field.
+func (m *GitHubObservationMutation) ResetDeliveryID() {
+	m.delivery_id = nil
+}
+
+// SetEvidence sets the "evidence" field.
+func (m *GitHubObservationMutation) SetEvidence(rhe releaseautomation.GitHubEvidence) {
+	m.evidence = &rhe
+}
+
+// Evidence returns the value of the "evidence" field in the mutation.
+func (m *GitHubObservationMutation) Evidence() (r releaseautomation.GitHubEvidence, exists bool) {
+	v := m.evidence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEvidence returns the old "evidence" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldEvidence(ctx context.Context) (v releaseautomation.GitHubEvidence, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEvidence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEvidence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEvidence: %w", err)
+	}
+	return oldValue.Evidence, nil
+}
+
+// ResetEvidence resets all changes to the "evidence" field.
+func (m *GitHubObservationMutation) ResetEvidence() {
+	m.evidence = nil
+}
+
+// SetEnrichment sets the "enrichment" field.
+func (m *GitHubObservationMutation) SetEnrichment(rhe *releaseautomation.GitHubEvidence) {
+	m.enrichment = &rhe
+}
+
+// Enrichment returns the value of the "enrichment" field in the mutation.
+func (m *GitHubObservationMutation) Enrichment() (r *releaseautomation.GitHubEvidence, exists bool) {
+	v := m.enrichment
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnrichment returns the old "enrichment" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldEnrichment(ctx context.Context) (v *releaseautomation.GitHubEvidence, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnrichment is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnrichment requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnrichment: %w", err)
+	}
+	return oldValue.Enrichment, nil
+}
+
+// ClearEnrichment clears the value of the "enrichment" field.
+func (m *GitHubObservationMutation) ClearEnrichment() {
+	m.enrichment = nil
+	m.clearedFields[githubobservation.FieldEnrichment] = struct{}{}
+}
+
+// EnrichmentCleared returns if the "enrichment" field was cleared in this mutation.
+func (m *GitHubObservationMutation) EnrichmentCleared() bool {
+	_, ok := m.clearedFields[githubobservation.FieldEnrichment]
+	return ok
+}
+
+// ResetEnrichment resets all changes to the "enrichment" field.
+func (m *GitHubObservationMutation) ResetEnrichment() {
+	m.enrichment = nil
+	delete(m.clearedFields, githubobservation.FieldEnrichment)
+}
+
+// SetPolicyID sets the "policy_id" field.
+func (m *GitHubObservationMutation) SetPolicyID(s string) {
+	m.policy_id = &s
+}
+
+// PolicyID returns the value of the "policy_id" field in the mutation.
+func (m *GitHubObservationMutation) PolicyID() (r string, exists bool) {
+	v := m.policy_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPolicyID returns the old "policy_id" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldPolicyID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPolicyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPolicyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPolicyID: %w", err)
+	}
+	return oldValue.PolicyID, nil
+}
+
+// ClearPolicyID clears the value of the "policy_id" field.
+func (m *GitHubObservationMutation) ClearPolicyID() {
+	m.policy_id = nil
+	m.clearedFields[githubobservation.FieldPolicyID] = struct{}{}
+}
+
+// PolicyIDCleared returns if the "policy_id" field was cleared in this mutation.
+func (m *GitHubObservationMutation) PolicyIDCleared() bool {
+	_, ok := m.clearedFields[githubobservation.FieldPolicyID]
+	return ok
+}
+
+// ResetPolicyID resets all changes to the "policy_id" field.
+func (m *GitHubObservationMutation) ResetPolicyID() {
+	m.policy_id = nil
+	delete(m.clearedFields, githubobservation.FieldPolicyID)
+}
+
+// SetWorkflowVersionID sets the "workflow_version_id" field.
+func (m *GitHubObservationMutation) SetWorkflowVersionID(s string) {
+	m.workflow_version_id = &s
+}
+
+// WorkflowVersionID returns the value of the "workflow_version_id" field in the mutation.
+func (m *GitHubObservationMutation) WorkflowVersionID() (r string, exists bool) {
+	v := m.workflow_version_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWorkflowVersionID returns the old "workflow_version_id" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldWorkflowVersionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWorkflowVersionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWorkflowVersionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWorkflowVersionID: %w", err)
+	}
+	return oldValue.WorkflowVersionID, nil
+}
+
+// ClearWorkflowVersionID clears the value of the "workflow_version_id" field.
+func (m *GitHubObservationMutation) ClearWorkflowVersionID() {
+	m.workflow_version_id = nil
+	m.clearedFields[githubobservation.FieldWorkflowVersionID] = struct{}{}
+}
+
+// WorkflowVersionIDCleared returns if the "workflow_version_id" field was cleared in this mutation.
+func (m *GitHubObservationMutation) WorkflowVersionIDCleared() bool {
+	_, ok := m.clearedFields[githubobservation.FieldWorkflowVersionID]
+	return ok
+}
+
+// ResetWorkflowVersionID resets all changes to the "workflow_version_id" field.
+func (m *GitHubObservationMutation) ResetWorkflowVersionID() {
+	m.workflow_version_id = nil
+	delete(m.clearedFields, githubobservation.FieldWorkflowVersionID)
+}
+
+// SetOrigin sets the "origin" field.
+func (m *GitHubObservationMutation) SetOrigin(s string) {
+	m.origin = &s
+}
+
+// Origin returns the value of the "origin" field in the mutation.
+func (m *GitHubObservationMutation) Origin() (r string, exists bool) {
+	v := m.origin
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrigin returns the old "origin" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldOrigin(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrigin is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrigin requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrigin: %w", err)
+	}
+	return oldValue.Origin, nil
+}
+
+// ResetOrigin resets all changes to the "origin" field.
+func (m *GitHubObservationMutation) ResetOrigin() {
+	m.origin = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *GitHubObservationMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *GitHubObservationMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *GitHubObservationMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetDecision sets the "decision" field.
+func (m *GitHubObservationMutation) SetDecision(rd releaseautomation.ProductionDecision) {
+	m.decision = &rd
+}
+
+// Decision returns the value of the "decision" field in the mutation.
+func (m *GitHubObservationMutation) Decision() (r releaseautomation.ProductionDecision, exists bool) {
+	v := m.decision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDecision returns the old "decision" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldDecision(ctx context.Context) (v releaseautomation.ProductionDecision, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDecision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDecision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDecision: %w", err)
+	}
+	return oldValue.Decision, nil
+}
+
+// ResetDecision resets all changes to the "decision" field.
+func (m *GitHubObservationMutation) ResetDecision() {
+	m.decision = nil
+}
+
+// SetEventID sets the "event_id" field.
+func (m *GitHubObservationMutation) SetEventID(s string) {
+	m.event_id = &s
+}
+
+// EventID returns the value of the "event_id" field in the mutation.
+func (m *GitHubObservationMutation) EventID() (r string, exists bool) {
+	v := m.event_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEventID returns the old "event_id" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldEventID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEventID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEventID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEventID: %w", err)
+	}
+	return oldValue.EventID, nil
+}
+
+// ClearEventID clears the value of the "event_id" field.
+func (m *GitHubObservationMutation) ClearEventID() {
+	m.event_id = nil
+	m.clearedFields[githubobservation.FieldEventID] = struct{}{}
+}
+
+// EventIDCleared returns if the "event_id" field was cleared in this mutation.
+func (m *GitHubObservationMutation) EventIDCleared() bool {
+	_, ok := m.clearedFields[githubobservation.FieldEventID]
+	return ok
+}
+
+// ResetEventID resets all changes to the "event_id" field.
+func (m *GitHubObservationMutation) ResetEventID() {
+	m.event_id = nil
+	delete(m.clearedFields, githubobservation.FieldEventID)
+}
+
+// SetDuplicateCount sets the "duplicate_count" field.
+func (m *GitHubObservationMutation) SetDuplicateCount(i int) {
+	m.duplicate_count = &i
+	m.addduplicate_count = nil
+}
+
+// DuplicateCount returns the value of the "duplicate_count" field in the mutation.
+func (m *GitHubObservationMutation) DuplicateCount() (r int, exists bool) {
+	v := m.duplicate_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDuplicateCount returns the old "duplicate_count" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldDuplicateCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDuplicateCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDuplicateCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDuplicateCount: %w", err)
+	}
+	return oldValue.DuplicateCount, nil
+}
+
+// AddDuplicateCount adds i to the "duplicate_count" field.
+func (m *GitHubObservationMutation) AddDuplicateCount(i int) {
+	if m.addduplicate_count != nil {
+		*m.addduplicate_count += i
+	} else {
+		m.addduplicate_count = &i
+	}
+}
+
+// AddedDuplicateCount returns the value that was added to the "duplicate_count" field in this mutation.
+func (m *GitHubObservationMutation) AddedDuplicateCount() (r int, exists bool) {
+	v := m.addduplicate_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDuplicateCount resets all changes to the "duplicate_count" field.
+func (m *GitHubObservationMutation) ResetDuplicateCount() {
+	m.duplicate_count = nil
+	m.addduplicate_count = nil
+}
+
+// SetOccurredAt sets the "occurred_at" field.
+func (m *GitHubObservationMutation) SetOccurredAt(t time.Time) {
+	m.occurred_at = &t
+}
+
+// OccurredAt returns the value of the "occurred_at" field in the mutation.
+func (m *GitHubObservationMutation) OccurredAt() (r time.Time, exists bool) {
+	v := m.occurred_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOccurredAt returns the old "occurred_at" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldOccurredAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOccurredAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOccurredAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOccurredAt: %w", err)
+	}
+	return oldValue.OccurredAt, nil
+}
+
+// ClearOccurredAt clears the value of the "occurred_at" field.
+func (m *GitHubObservationMutation) ClearOccurredAt() {
+	m.occurred_at = nil
+	m.clearedFields[githubobservation.FieldOccurredAt] = struct{}{}
+}
+
+// OccurredAtCleared returns if the "occurred_at" field was cleared in this mutation.
+func (m *GitHubObservationMutation) OccurredAtCleared() bool {
+	_, ok := m.clearedFields[githubobservation.FieldOccurredAt]
+	return ok
+}
+
+// ResetOccurredAt resets all changes to the "occurred_at" field.
+func (m *GitHubObservationMutation) ResetOccurredAt() {
+	m.occurred_at = nil
+	delete(m.clearedFields, githubobservation.FieldOccurredAt)
+}
+
+// SetReceivedAt sets the "received_at" field.
+func (m *GitHubObservationMutation) SetReceivedAt(t time.Time) {
+	m.received_at = &t
+}
+
+// ReceivedAt returns the value of the "received_at" field in the mutation.
+func (m *GitHubObservationMutation) ReceivedAt() (r time.Time, exists bool) {
+	v := m.received_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReceivedAt returns the old "received_at" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldReceivedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReceivedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReceivedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReceivedAt: %w", err)
+	}
+	return oldValue.ReceivedAt, nil
+}
+
+// ResetReceivedAt resets all changes to the "received_at" field.
+func (m *GitHubObservationMutation) ResetReceivedAt() {
+	m.received_at = nil
+}
+
+// SetProcessedAt sets the "processed_at" field.
+func (m *GitHubObservationMutation) SetProcessedAt(t time.Time) {
+	m.processed_at = &t
+}
+
+// ProcessedAt returns the value of the "processed_at" field in the mutation.
+func (m *GitHubObservationMutation) ProcessedAt() (r time.Time, exists bool) {
+	v := m.processed_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldProcessedAt returns the old "processed_at" field's value of the GitHubObservation entity.
+// If the GitHubObservation object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubObservationMutation) OldProcessedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldProcessedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldProcessedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldProcessedAt: %w", err)
+	}
+	return oldValue.ProcessedAt, nil
+}
+
+// ClearProcessedAt clears the value of the "processed_at" field.
+func (m *GitHubObservationMutation) ClearProcessedAt() {
+	m.processed_at = nil
+	m.clearedFields[githubobservation.FieldProcessedAt] = struct{}{}
+}
+
+// ProcessedAtCleared returns if the "processed_at" field was cleared in this mutation.
+func (m *GitHubObservationMutation) ProcessedAtCleared() bool {
+	_, ok := m.clearedFields[githubobservation.FieldProcessedAt]
+	return ok
+}
+
+// ResetProcessedAt resets all changes to the "processed_at" field.
+func (m *GitHubObservationMutation) ResetProcessedAt() {
+	m.processed_at = nil
+	delete(m.clearedFields, githubobservation.FieldProcessedAt)
+}
+
+// Where appends a list predicates to the GitHubObservationMutation builder.
+func (m *GitHubObservationMutation) Where(ps ...predicate.GitHubObservation) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GitHubObservationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GitHubObservationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GitHubObservation, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GitHubObservationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GitHubObservationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GitHubObservation).
+func (m *GitHubObservationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GitHubObservationMutation) Fields() []string {
+	fields := make([]string, 0, 17)
+	if m.organization_id != nil {
+		fields = append(fields, githubobservation.FieldOrganizationID)
+	}
+	if m.source_app_id != nil {
+		fields = append(fields, githubobservation.FieldSourceAppID)
+	}
+	if m.semantic_key != nil {
+		fields = append(fields, githubobservation.FieldSemanticKey)
+	}
+	if m.object_key != nil {
+		fields = append(fields, githubobservation.FieldObjectKey)
+	}
+	if m.delivery_id != nil {
+		fields = append(fields, githubobservation.FieldDeliveryID)
+	}
+	if m.evidence != nil {
+		fields = append(fields, githubobservation.FieldEvidence)
+	}
+	if m.enrichment != nil {
+		fields = append(fields, githubobservation.FieldEnrichment)
+	}
+	if m.policy_id != nil {
+		fields = append(fields, githubobservation.FieldPolicyID)
+	}
+	if m.workflow_version_id != nil {
+		fields = append(fields, githubobservation.FieldWorkflowVersionID)
+	}
+	if m.origin != nil {
+		fields = append(fields, githubobservation.FieldOrigin)
+	}
+	if m.status != nil {
+		fields = append(fields, githubobservation.FieldStatus)
+	}
+	if m.decision != nil {
+		fields = append(fields, githubobservation.FieldDecision)
+	}
+	if m.event_id != nil {
+		fields = append(fields, githubobservation.FieldEventID)
+	}
+	if m.duplicate_count != nil {
+		fields = append(fields, githubobservation.FieldDuplicateCount)
+	}
+	if m.occurred_at != nil {
+		fields = append(fields, githubobservation.FieldOccurredAt)
+	}
+	if m.received_at != nil {
+		fields = append(fields, githubobservation.FieldReceivedAt)
+	}
+	if m.processed_at != nil {
+		fields = append(fields, githubobservation.FieldProcessedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GitHubObservationMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case githubobservation.FieldOrganizationID:
+		return m.OrganizationID()
+	case githubobservation.FieldSourceAppID:
+		return m.SourceAppID()
+	case githubobservation.FieldSemanticKey:
+		return m.SemanticKey()
+	case githubobservation.FieldObjectKey:
+		return m.ObjectKey()
+	case githubobservation.FieldDeliveryID:
+		return m.DeliveryID()
+	case githubobservation.FieldEvidence:
+		return m.Evidence()
+	case githubobservation.FieldEnrichment:
+		return m.Enrichment()
+	case githubobservation.FieldPolicyID:
+		return m.PolicyID()
+	case githubobservation.FieldWorkflowVersionID:
+		return m.WorkflowVersionID()
+	case githubobservation.FieldOrigin:
+		return m.Origin()
+	case githubobservation.FieldStatus:
+		return m.Status()
+	case githubobservation.FieldDecision:
+		return m.Decision()
+	case githubobservation.FieldEventID:
+		return m.EventID()
+	case githubobservation.FieldDuplicateCount:
+		return m.DuplicateCount()
+	case githubobservation.FieldOccurredAt:
+		return m.OccurredAt()
+	case githubobservation.FieldReceivedAt:
+		return m.ReceivedAt()
+	case githubobservation.FieldProcessedAt:
+		return m.ProcessedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GitHubObservationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case githubobservation.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case githubobservation.FieldSourceAppID:
+		return m.OldSourceAppID(ctx)
+	case githubobservation.FieldSemanticKey:
+		return m.OldSemanticKey(ctx)
+	case githubobservation.FieldObjectKey:
+		return m.OldObjectKey(ctx)
+	case githubobservation.FieldDeliveryID:
+		return m.OldDeliveryID(ctx)
+	case githubobservation.FieldEvidence:
+		return m.OldEvidence(ctx)
+	case githubobservation.FieldEnrichment:
+		return m.OldEnrichment(ctx)
+	case githubobservation.FieldPolicyID:
+		return m.OldPolicyID(ctx)
+	case githubobservation.FieldWorkflowVersionID:
+		return m.OldWorkflowVersionID(ctx)
+	case githubobservation.FieldOrigin:
+		return m.OldOrigin(ctx)
+	case githubobservation.FieldStatus:
+		return m.OldStatus(ctx)
+	case githubobservation.FieldDecision:
+		return m.OldDecision(ctx)
+	case githubobservation.FieldEventID:
+		return m.OldEventID(ctx)
+	case githubobservation.FieldDuplicateCount:
+		return m.OldDuplicateCount(ctx)
+	case githubobservation.FieldOccurredAt:
+		return m.OldOccurredAt(ctx)
+	case githubobservation.FieldReceivedAt:
+		return m.OldReceivedAt(ctx)
+	case githubobservation.FieldProcessedAt:
+		return m.OldProcessedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown GitHubObservation field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubObservationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case githubobservation.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case githubobservation.FieldSourceAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceAppID(v)
+		return nil
+	case githubobservation.FieldSemanticKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSemanticKey(v)
+		return nil
+	case githubobservation.FieldObjectKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetObjectKey(v)
+		return nil
+	case githubobservation.FieldDeliveryID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDeliveryID(v)
+		return nil
+	case githubobservation.FieldEvidence:
+		v, ok := value.(releaseautomation.GitHubEvidence)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEvidence(v)
+		return nil
+	case githubobservation.FieldEnrichment:
+		v, ok := value.(*releaseautomation.GitHubEvidence)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnrichment(v)
+		return nil
+	case githubobservation.FieldPolicyID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPolicyID(v)
+		return nil
+	case githubobservation.FieldWorkflowVersionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWorkflowVersionID(v)
+		return nil
+	case githubobservation.FieldOrigin:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrigin(v)
+		return nil
+	case githubobservation.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case githubobservation.FieldDecision:
+		v, ok := value.(releaseautomation.ProductionDecision)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDecision(v)
+		return nil
+	case githubobservation.FieldEventID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEventID(v)
+		return nil
+	case githubobservation.FieldDuplicateCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDuplicateCount(v)
+		return nil
+	case githubobservation.FieldOccurredAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOccurredAt(v)
+		return nil
+	case githubobservation.FieldReceivedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReceivedAt(v)
+		return nil
+	case githubobservation.FieldProcessedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetProcessedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubObservation field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GitHubObservationMutation) AddedFields() []string {
+	var fields []string
+	if m.addduplicate_count != nil {
+		fields = append(fields, githubobservation.FieldDuplicateCount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GitHubObservationMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case githubobservation.FieldDuplicateCount:
+		return m.AddedDuplicateCount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubObservationMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case githubobservation.FieldDuplicateCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDuplicateCount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubObservation numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GitHubObservationMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(githubobservation.FieldEnrichment) {
+		fields = append(fields, githubobservation.FieldEnrichment)
+	}
+	if m.FieldCleared(githubobservation.FieldPolicyID) {
+		fields = append(fields, githubobservation.FieldPolicyID)
+	}
+	if m.FieldCleared(githubobservation.FieldWorkflowVersionID) {
+		fields = append(fields, githubobservation.FieldWorkflowVersionID)
+	}
+	if m.FieldCleared(githubobservation.FieldEventID) {
+		fields = append(fields, githubobservation.FieldEventID)
+	}
+	if m.FieldCleared(githubobservation.FieldOccurredAt) {
+		fields = append(fields, githubobservation.FieldOccurredAt)
+	}
+	if m.FieldCleared(githubobservation.FieldProcessedAt) {
+		fields = append(fields, githubobservation.FieldProcessedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GitHubObservationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GitHubObservationMutation) ClearField(name string) error {
+	switch name {
+	case githubobservation.FieldEnrichment:
+		m.ClearEnrichment()
+		return nil
+	case githubobservation.FieldPolicyID:
+		m.ClearPolicyID()
+		return nil
+	case githubobservation.FieldWorkflowVersionID:
+		m.ClearWorkflowVersionID()
+		return nil
+	case githubobservation.FieldEventID:
+		m.ClearEventID()
+		return nil
+	case githubobservation.FieldOccurredAt:
+		m.ClearOccurredAt()
+		return nil
+	case githubobservation.FieldProcessedAt:
+		m.ClearProcessedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubObservation nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GitHubObservationMutation) ResetField(name string) error {
+	switch name {
+	case githubobservation.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case githubobservation.FieldSourceAppID:
+		m.ResetSourceAppID()
+		return nil
+	case githubobservation.FieldSemanticKey:
+		m.ResetSemanticKey()
+		return nil
+	case githubobservation.FieldObjectKey:
+		m.ResetObjectKey()
+		return nil
+	case githubobservation.FieldDeliveryID:
+		m.ResetDeliveryID()
+		return nil
+	case githubobservation.FieldEvidence:
+		m.ResetEvidence()
+		return nil
+	case githubobservation.FieldEnrichment:
+		m.ResetEnrichment()
+		return nil
+	case githubobservation.FieldPolicyID:
+		m.ResetPolicyID()
+		return nil
+	case githubobservation.FieldWorkflowVersionID:
+		m.ResetWorkflowVersionID()
+		return nil
+	case githubobservation.FieldOrigin:
+		m.ResetOrigin()
+		return nil
+	case githubobservation.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case githubobservation.FieldDecision:
+		m.ResetDecision()
+		return nil
+	case githubobservation.FieldEventID:
+		m.ResetEventID()
+		return nil
+	case githubobservation.FieldDuplicateCount:
+		m.ResetDuplicateCount()
+		return nil
+	case githubobservation.FieldOccurredAt:
+		m.ResetOccurredAt()
+		return nil
+	case githubobservation.FieldReceivedAt:
+		m.ResetReceivedAt()
+		return nil
+	case githubobservation.FieldProcessedAt:
+		m.ResetProcessedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubObservation field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GitHubObservationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GitHubObservationMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GitHubObservationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GitHubObservationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GitHubObservationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GitHubObservationMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GitHubObservationMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GitHubObservation unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GitHubObservationMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GitHubObservation edge %s", name)
+}
+
+// GitHubProductionPolicyMutation represents an operation that mutates the GitHubProductionPolicy nodes in the graph.
+type GitHubProductionPolicyMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *string
+	organization_id *string
+	source_app_id   *string
+	revision        *int
+	addrevision     *int
+	policy          *releaseautomation.ProductionPolicy
+	created_by      *string
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	done            bool
+	oldValue        func(context.Context) (*GitHubProductionPolicy, error)
+	predicates      []predicate.GitHubProductionPolicy
+}
+
+var _ ent.Mutation = (*GitHubProductionPolicyMutation)(nil)
+
+// githubproductionpolicyOption allows management of the mutation configuration using functional options.
+type githubproductionpolicyOption func(*GitHubProductionPolicyMutation)
+
+// newGitHubProductionPolicyMutation creates new mutation for the GitHubProductionPolicy entity.
+func newGitHubProductionPolicyMutation(c config, op Op, opts ...githubproductionpolicyOption) *GitHubProductionPolicyMutation {
+	m := &GitHubProductionPolicyMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGitHubProductionPolicy,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGitHubProductionPolicyID sets the ID field of the mutation.
+func withGitHubProductionPolicyID(id string) githubproductionpolicyOption {
+	return func(m *GitHubProductionPolicyMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GitHubProductionPolicy
+		)
+		m.oldValue = func(ctx context.Context) (*GitHubProductionPolicy, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GitHubProductionPolicy.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGitHubProductionPolicy sets the old GitHubProductionPolicy of the mutation.
+func withGitHubProductionPolicy(node *GitHubProductionPolicy) githubproductionpolicyOption {
+	return func(m *GitHubProductionPolicyMutation) {
+		m.oldValue = func(context.Context) (*GitHubProductionPolicy, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GitHubProductionPolicyMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GitHubProductionPolicyMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of GitHubProductionPolicy entities.
+func (m *GitHubProductionPolicyMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GitHubProductionPolicyMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GitHubProductionPolicyMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GitHubProductionPolicy.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *GitHubProductionPolicyMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *GitHubProductionPolicyMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the GitHubProductionPolicy entity.
+// If the GitHubProductionPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubProductionPolicyMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *GitHubProductionPolicyMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSourceAppID sets the "source_app_id" field.
+func (m *GitHubProductionPolicyMutation) SetSourceAppID(s string) {
+	m.source_app_id = &s
+}
+
+// SourceAppID returns the value of the "source_app_id" field in the mutation.
+func (m *GitHubProductionPolicyMutation) SourceAppID() (r string, exists bool) {
+	v := m.source_app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceAppID returns the old "source_app_id" field's value of the GitHubProductionPolicy entity.
+// If the GitHubProductionPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubProductionPolicyMutation) OldSourceAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceAppID: %w", err)
+	}
+	return oldValue.SourceAppID, nil
+}
+
+// ResetSourceAppID resets all changes to the "source_app_id" field.
+func (m *GitHubProductionPolicyMutation) ResetSourceAppID() {
+	m.source_app_id = nil
+}
+
+// SetRevision sets the "revision" field.
+func (m *GitHubProductionPolicyMutation) SetRevision(i int) {
+	m.revision = &i
+	m.addrevision = nil
+}
+
+// Revision returns the value of the "revision" field in the mutation.
+func (m *GitHubProductionPolicyMutation) Revision() (r int, exists bool) {
+	v := m.revision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRevision returns the old "revision" field's value of the GitHubProductionPolicy entity.
+// If the GitHubProductionPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubProductionPolicyMutation) OldRevision(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRevision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRevision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRevision: %w", err)
+	}
+	return oldValue.Revision, nil
+}
+
+// AddRevision adds i to the "revision" field.
+func (m *GitHubProductionPolicyMutation) AddRevision(i int) {
+	if m.addrevision != nil {
+		*m.addrevision += i
+	} else {
+		m.addrevision = &i
+	}
+}
+
+// AddedRevision returns the value that was added to the "revision" field in this mutation.
+func (m *GitHubProductionPolicyMutation) AddedRevision() (r int, exists bool) {
+	v := m.addrevision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRevision resets all changes to the "revision" field.
+func (m *GitHubProductionPolicyMutation) ResetRevision() {
+	m.revision = nil
+	m.addrevision = nil
+}
+
+// SetPolicy sets the "policy" field.
+func (m *GitHubProductionPolicyMutation) SetPolicy(rp releaseautomation.ProductionPolicy) {
+	m.policy = &rp
+}
+
+// Policy returns the value of the "policy" field in the mutation.
+func (m *GitHubProductionPolicyMutation) Policy() (r releaseautomation.ProductionPolicy, exists bool) {
+	v := m.policy
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPolicy returns the old "policy" field's value of the GitHubProductionPolicy entity.
+// If the GitHubProductionPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubProductionPolicyMutation) OldPolicy(ctx context.Context) (v releaseautomation.ProductionPolicy, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPolicy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPolicy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPolicy: %w", err)
+	}
+	return oldValue.Policy, nil
+}
+
+// ResetPolicy resets all changes to the "policy" field.
+func (m *GitHubProductionPolicyMutation) ResetPolicy() {
+	m.policy = nil
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (m *GitHubProductionPolicyMutation) SetCreatedBy(s string) {
+	m.created_by = &s
+}
+
+// CreatedBy returns the value of the "created_by" field in the mutation.
+func (m *GitHubProductionPolicyMutation) CreatedBy() (r string, exists bool) {
+	v := m.created_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedBy returns the old "created_by" field's value of the GitHubProductionPolicy entity.
+// If the GitHubProductionPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubProductionPolicyMutation) OldCreatedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedBy: %w", err)
+	}
+	return oldValue.CreatedBy, nil
+}
+
+// ResetCreatedBy resets all changes to the "created_by" field.
+func (m *GitHubProductionPolicyMutation) ResetCreatedBy() {
+	m.created_by = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *GitHubProductionPolicyMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *GitHubProductionPolicyMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the GitHubProductionPolicy entity.
+// If the GitHubProductionPolicy object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubProductionPolicyMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *GitHubProductionPolicyMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the GitHubProductionPolicyMutation builder.
+func (m *GitHubProductionPolicyMutation) Where(ps ...predicate.GitHubProductionPolicy) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GitHubProductionPolicyMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GitHubProductionPolicyMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GitHubProductionPolicy, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GitHubProductionPolicyMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GitHubProductionPolicyMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GitHubProductionPolicy).
+func (m *GitHubProductionPolicyMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GitHubProductionPolicyMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.organization_id != nil {
+		fields = append(fields, githubproductionpolicy.FieldOrganizationID)
+	}
+	if m.source_app_id != nil {
+		fields = append(fields, githubproductionpolicy.FieldSourceAppID)
+	}
+	if m.revision != nil {
+		fields = append(fields, githubproductionpolicy.FieldRevision)
+	}
+	if m.policy != nil {
+		fields = append(fields, githubproductionpolicy.FieldPolicy)
+	}
+	if m.created_by != nil {
+		fields = append(fields, githubproductionpolicy.FieldCreatedBy)
+	}
+	if m.created_at != nil {
+		fields = append(fields, githubproductionpolicy.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GitHubProductionPolicyMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case githubproductionpolicy.FieldOrganizationID:
+		return m.OrganizationID()
+	case githubproductionpolicy.FieldSourceAppID:
+		return m.SourceAppID()
+	case githubproductionpolicy.FieldRevision:
+		return m.Revision()
+	case githubproductionpolicy.FieldPolicy:
+		return m.Policy()
+	case githubproductionpolicy.FieldCreatedBy:
+		return m.CreatedBy()
+	case githubproductionpolicy.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GitHubProductionPolicyMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case githubproductionpolicy.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case githubproductionpolicy.FieldSourceAppID:
+		return m.OldSourceAppID(ctx)
+	case githubproductionpolicy.FieldRevision:
+		return m.OldRevision(ctx)
+	case githubproductionpolicy.FieldPolicy:
+		return m.OldPolicy(ctx)
+	case githubproductionpolicy.FieldCreatedBy:
+		return m.OldCreatedBy(ctx)
+	case githubproductionpolicy.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown GitHubProductionPolicy field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubProductionPolicyMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case githubproductionpolicy.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case githubproductionpolicy.FieldSourceAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceAppID(v)
+		return nil
+	case githubproductionpolicy.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRevision(v)
+		return nil
+	case githubproductionpolicy.FieldPolicy:
+		v, ok := value.(releaseautomation.ProductionPolicy)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPolicy(v)
+		return nil
+	case githubproductionpolicy.FieldCreatedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedBy(v)
+		return nil
+	case githubproductionpolicy.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubProductionPolicy field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GitHubProductionPolicyMutation) AddedFields() []string {
+	var fields []string
+	if m.addrevision != nil {
+		fields = append(fields, githubproductionpolicy.FieldRevision)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GitHubProductionPolicyMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case githubproductionpolicy.FieldRevision:
+		return m.AddedRevision()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubProductionPolicyMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case githubproductionpolicy.FieldRevision:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRevision(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubProductionPolicy numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GitHubProductionPolicyMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GitHubProductionPolicyMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GitHubProductionPolicyMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown GitHubProductionPolicy nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GitHubProductionPolicyMutation) ResetField(name string) error {
+	switch name {
+	case githubproductionpolicy.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case githubproductionpolicy.FieldSourceAppID:
+		m.ResetSourceAppID()
+		return nil
+	case githubproductionpolicy.FieldRevision:
+		m.ResetRevision()
+		return nil
+	case githubproductionpolicy.FieldPolicy:
+		m.ResetPolicy()
+		return nil
+	case githubproductionpolicy.FieldCreatedBy:
+		m.ResetCreatedBy()
+		return nil
+	case githubproductionpolicy.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubProductionPolicy field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GitHubProductionPolicyMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GitHubProductionPolicyMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GitHubProductionPolicyMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GitHubProductionPolicyMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GitHubProductionPolicyMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GitHubProductionPolicyMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GitHubProductionPolicyMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GitHubProductionPolicy unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GitHubProductionPolicyMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GitHubProductionPolicy edge %s", name)
+}
+
+// GitHubRecoveryScanMutation represents an operation that mutates the GitHubRecoveryScan nodes in the graph.
+type GitHubRecoveryScanMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *string
+	organization_id  *string
+	source_app_id    *string
+	cursor           *string
+	status           *string
+	reason           *string
+	gap              *bool
+	window_start     *time.Time
+	last_complete_at *time.Time
+	next_attempt_at  *time.Time
+	updated_at       *time.Time
+	clearedFields    map[string]struct{}
+	done             bool
+	oldValue         func(context.Context) (*GitHubRecoveryScan, error)
+	predicates       []predicate.GitHubRecoveryScan
+}
+
+var _ ent.Mutation = (*GitHubRecoveryScanMutation)(nil)
+
+// githubrecoveryscanOption allows management of the mutation configuration using functional options.
+type githubrecoveryscanOption func(*GitHubRecoveryScanMutation)
+
+// newGitHubRecoveryScanMutation creates new mutation for the GitHubRecoveryScan entity.
+func newGitHubRecoveryScanMutation(c config, op Op, opts ...githubrecoveryscanOption) *GitHubRecoveryScanMutation {
+	m := &GitHubRecoveryScanMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeGitHubRecoveryScan,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withGitHubRecoveryScanID sets the ID field of the mutation.
+func withGitHubRecoveryScanID(id string) githubrecoveryscanOption {
+	return func(m *GitHubRecoveryScanMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *GitHubRecoveryScan
+		)
+		m.oldValue = func(ctx context.Context) (*GitHubRecoveryScan, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().GitHubRecoveryScan.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withGitHubRecoveryScan sets the old GitHubRecoveryScan of the mutation.
+func withGitHubRecoveryScan(node *GitHubRecoveryScan) githubrecoveryscanOption {
+	return func(m *GitHubRecoveryScanMutation) {
+		m.oldValue = func(context.Context) (*GitHubRecoveryScan, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m GitHubRecoveryScanMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m GitHubRecoveryScanMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of GitHubRecoveryScan entities.
+func (m *GitHubRecoveryScanMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *GitHubRecoveryScanMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GitHubRecoveryScanMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GitHubRecoveryScan.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *GitHubRecoveryScanMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *GitHubRecoveryScanMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *GitHubRecoveryScanMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetSourceAppID sets the "source_app_id" field.
+func (m *GitHubRecoveryScanMutation) SetSourceAppID(s string) {
+	m.source_app_id = &s
+}
+
+// SourceAppID returns the value of the "source_app_id" field in the mutation.
+func (m *GitHubRecoveryScanMutation) SourceAppID() (r string, exists bool) {
+	v := m.source_app_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceAppID returns the old "source_app_id" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldSourceAppID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceAppID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceAppID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceAppID: %w", err)
+	}
+	return oldValue.SourceAppID, nil
+}
+
+// ResetSourceAppID resets all changes to the "source_app_id" field.
+func (m *GitHubRecoveryScanMutation) ResetSourceAppID() {
+	m.source_app_id = nil
+}
+
+// SetCursor sets the "cursor" field.
+func (m *GitHubRecoveryScanMutation) SetCursor(s string) {
+	m.cursor = &s
+}
+
+// Cursor returns the value of the "cursor" field in the mutation.
+func (m *GitHubRecoveryScanMutation) Cursor() (r string, exists bool) {
+	v := m.cursor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCursor returns the old "cursor" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldCursor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCursor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCursor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCursor: %w", err)
+	}
+	return oldValue.Cursor, nil
+}
+
+// ResetCursor resets all changes to the "cursor" field.
+func (m *GitHubRecoveryScanMutation) ResetCursor() {
+	m.cursor = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *GitHubRecoveryScanMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *GitHubRecoveryScanMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *GitHubRecoveryScanMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *GitHubRecoveryScanMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *GitHubRecoveryScanMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *GitHubRecoveryScanMutation) ResetReason() {
+	m.reason = nil
+}
+
+// SetGap sets the "gap" field.
+func (m *GitHubRecoveryScanMutation) SetGap(b bool) {
+	m.gap = &b
+}
+
+// Gap returns the value of the "gap" field in the mutation.
+func (m *GitHubRecoveryScanMutation) Gap() (r bool, exists bool) {
+	v := m.gap
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGap returns the old "gap" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldGap(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGap is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGap requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGap: %w", err)
+	}
+	return oldValue.Gap, nil
+}
+
+// ResetGap resets all changes to the "gap" field.
+func (m *GitHubRecoveryScanMutation) ResetGap() {
+	m.gap = nil
+}
+
+// SetWindowStart sets the "window_start" field.
+func (m *GitHubRecoveryScanMutation) SetWindowStart(t time.Time) {
+	m.window_start = &t
+}
+
+// WindowStart returns the value of the "window_start" field in the mutation.
+func (m *GitHubRecoveryScanMutation) WindowStart() (r time.Time, exists bool) {
+	v := m.window_start
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWindowStart returns the old "window_start" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldWindowStart(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWindowStart is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWindowStart requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWindowStart: %w", err)
+	}
+	return oldValue.WindowStart, nil
+}
+
+// ClearWindowStart clears the value of the "window_start" field.
+func (m *GitHubRecoveryScanMutation) ClearWindowStart() {
+	m.window_start = nil
+	m.clearedFields[githubrecoveryscan.FieldWindowStart] = struct{}{}
+}
+
+// WindowStartCleared returns if the "window_start" field was cleared in this mutation.
+func (m *GitHubRecoveryScanMutation) WindowStartCleared() bool {
+	_, ok := m.clearedFields[githubrecoveryscan.FieldWindowStart]
+	return ok
+}
+
+// ResetWindowStart resets all changes to the "window_start" field.
+func (m *GitHubRecoveryScanMutation) ResetWindowStart() {
+	m.window_start = nil
+	delete(m.clearedFields, githubrecoveryscan.FieldWindowStart)
+}
+
+// SetLastCompleteAt sets the "last_complete_at" field.
+func (m *GitHubRecoveryScanMutation) SetLastCompleteAt(t time.Time) {
+	m.last_complete_at = &t
+}
+
+// LastCompleteAt returns the value of the "last_complete_at" field in the mutation.
+func (m *GitHubRecoveryScanMutation) LastCompleteAt() (r time.Time, exists bool) {
+	v := m.last_complete_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastCompleteAt returns the old "last_complete_at" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldLastCompleteAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastCompleteAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastCompleteAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastCompleteAt: %w", err)
+	}
+	return oldValue.LastCompleteAt, nil
+}
+
+// ClearLastCompleteAt clears the value of the "last_complete_at" field.
+func (m *GitHubRecoveryScanMutation) ClearLastCompleteAt() {
+	m.last_complete_at = nil
+	m.clearedFields[githubrecoveryscan.FieldLastCompleteAt] = struct{}{}
+}
+
+// LastCompleteAtCleared returns if the "last_complete_at" field was cleared in this mutation.
+func (m *GitHubRecoveryScanMutation) LastCompleteAtCleared() bool {
+	_, ok := m.clearedFields[githubrecoveryscan.FieldLastCompleteAt]
+	return ok
+}
+
+// ResetLastCompleteAt resets all changes to the "last_complete_at" field.
+func (m *GitHubRecoveryScanMutation) ResetLastCompleteAt() {
+	m.last_complete_at = nil
+	delete(m.clearedFields, githubrecoveryscan.FieldLastCompleteAt)
+}
+
+// SetNextAttemptAt sets the "next_attempt_at" field.
+func (m *GitHubRecoveryScanMutation) SetNextAttemptAt(t time.Time) {
+	m.next_attempt_at = &t
+}
+
+// NextAttemptAt returns the value of the "next_attempt_at" field in the mutation.
+func (m *GitHubRecoveryScanMutation) NextAttemptAt() (r time.Time, exists bool) {
+	v := m.next_attempt_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNextAttemptAt returns the old "next_attempt_at" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldNextAttemptAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNextAttemptAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNextAttemptAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNextAttemptAt: %w", err)
+	}
+	return oldValue.NextAttemptAt, nil
+}
+
+// ClearNextAttemptAt clears the value of the "next_attempt_at" field.
+func (m *GitHubRecoveryScanMutation) ClearNextAttemptAt() {
+	m.next_attempt_at = nil
+	m.clearedFields[githubrecoveryscan.FieldNextAttemptAt] = struct{}{}
+}
+
+// NextAttemptAtCleared returns if the "next_attempt_at" field was cleared in this mutation.
+func (m *GitHubRecoveryScanMutation) NextAttemptAtCleared() bool {
+	_, ok := m.clearedFields[githubrecoveryscan.FieldNextAttemptAt]
+	return ok
+}
+
+// ResetNextAttemptAt resets all changes to the "next_attempt_at" field.
+func (m *GitHubRecoveryScanMutation) ResetNextAttemptAt() {
+	m.next_attempt_at = nil
+	delete(m.clearedFields, githubrecoveryscan.FieldNextAttemptAt)
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *GitHubRecoveryScanMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *GitHubRecoveryScanMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the GitHubRecoveryScan entity.
+// If the GitHubRecoveryScan object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GitHubRecoveryScanMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *GitHubRecoveryScanMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the GitHubRecoveryScanMutation builder.
+func (m *GitHubRecoveryScanMutation) Where(ps ...predicate.GitHubRecoveryScan) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the GitHubRecoveryScanMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GitHubRecoveryScanMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GitHubRecoveryScan, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *GitHubRecoveryScanMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GitHubRecoveryScanMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (GitHubRecoveryScan).
+func (m *GitHubRecoveryScanMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *GitHubRecoveryScanMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.organization_id != nil {
+		fields = append(fields, githubrecoveryscan.FieldOrganizationID)
+	}
+	if m.source_app_id != nil {
+		fields = append(fields, githubrecoveryscan.FieldSourceAppID)
+	}
+	if m.cursor != nil {
+		fields = append(fields, githubrecoveryscan.FieldCursor)
+	}
+	if m.status != nil {
+		fields = append(fields, githubrecoveryscan.FieldStatus)
+	}
+	if m.reason != nil {
+		fields = append(fields, githubrecoveryscan.FieldReason)
+	}
+	if m.gap != nil {
+		fields = append(fields, githubrecoveryscan.FieldGap)
+	}
+	if m.window_start != nil {
+		fields = append(fields, githubrecoveryscan.FieldWindowStart)
+	}
+	if m.last_complete_at != nil {
+		fields = append(fields, githubrecoveryscan.FieldLastCompleteAt)
+	}
+	if m.next_attempt_at != nil {
+		fields = append(fields, githubrecoveryscan.FieldNextAttemptAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, githubrecoveryscan.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *GitHubRecoveryScanMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case githubrecoveryscan.FieldOrganizationID:
+		return m.OrganizationID()
+	case githubrecoveryscan.FieldSourceAppID:
+		return m.SourceAppID()
+	case githubrecoveryscan.FieldCursor:
+		return m.Cursor()
+	case githubrecoveryscan.FieldStatus:
+		return m.Status()
+	case githubrecoveryscan.FieldReason:
+		return m.Reason()
+	case githubrecoveryscan.FieldGap:
+		return m.Gap()
+	case githubrecoveryscan.FieldWindowStart:
+		return m.WindowStart()
+	case githubrecoveryscan.FieldLastCompleteAt:
+		return m.LastCompleteAt()
+	case githubrecoveryscan.FieldNextAttemptAt:
+		return m.NextAttemptAt()
+	case githubrecoveryscan.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *GitHubRecoveryScanMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case githubrecoveryscan.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case githubrecoveryscan.FieldSourceAppID:
+		return m.OldSourceAppID(ctx)
+	case githubrecoveryscan.FieldCursor:
+		return m.OldCursor(ctx)
+	case githubrecoveryscan.FieldStatus:
+		return m.OldStatus(ctx)
+	case githubrecoveryscan.FieldReason:
+		return m.OldReason(ctx)
+	case githubrecoveryscan.FieldGap:
+		return m.OldGap(ctx)
+	case githubrecoveryscan.FieldWindowStart:
+		return m.OldWindowStart(ctx)
+	case githubrecoveryscan.FieldLastCompleteAt:
+		return m.OldLastCompleteAt(ctx)
+	case githubrecoveryscan.FieldNextAttemptAt:
+		return m.OldNextAttemptAt(ctx)
+	case githubrecoveryscan.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown GitHubRecoveryScan field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubRecoveryScanMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case githubrecoveryscan.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case githubrecoveryscan.FieldSourceAppID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceAppID(v)
+		return nil
+	case githubrecoveryscan.FieldCursor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCursor(v)
+		return nil
+	case githubrecoveryscan.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case githubrecoveryscan.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case githubrecoveryscan.FieldGap:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGap(v)
+		return nil
+	case githubrecoveryscan.FieldWindowStart:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWindowStart(v)
+		return nil
+	case githubrecoveryscan.FieldLastCompleteAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastCompleteAt(v)
+		return nil
+	case githubrecoveryscan.FieldNextAttemptAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNextAttemptAt(v)
+		return nil
+	case githubrecoveryscan.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubRecoveryScan field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *GitHubRecoveryScanMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *GitHubRecoveryScanMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *GitHubRecoveryScanMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown GitHubRecoveryScan numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *GitHubRecoveryScanMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(githubrecoveryscan.FieldWindowStart) {
+		fields = append(fields, githubrecoveryscan.FieldWindowStart)
+	}
+	if m.FieldCleared(githubrecoveryscan.FieldLastCompleteAt) {
+		fields = append(fields, githubrecoveryscan.FieldLastCompleteAt)
+	}
+	if m.FieldCleared(githubrecoveryscan.FieldNextAttemptAt) {
+		fields = append(fields, githubrecoveryscan.FieldNextAttemptAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *GitHubRecoveryScanMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *GitHubRecoveryScanMutation) ClearField(name string) error {
+	switch name {
+	case githubrecoveryscan.FieldWindowStart:
+		m.ClearWindowStart()
+		return nil
+	case githubrecoveryscan.FieldLastCompleteAt:
+		m.ClearLastCompleteAt()
+		return nil
+	case githubrecoveryscan.FieldNextAttemptAt:
+		m.ClearNextAttemptAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubRecoveryScan nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *GitHubRecoveryScanMutation) ResetField(name string) error {
+	switch name {
+	case githubrecoveryscan.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case githubrecoveryscan.FieldSourceAppID:
+		m.ResetSourceAppID()
+		return nil
+	case githubrecoveryscan.FieldCursor:
+		m.ResetCursor()
+		return nil
+	case githubrecoveryscan.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case githubrecoveryscan.FieldReason:
+		m.ResetReason()
+		return nil
+	case githubrecoveryscan.FieldGap:
+		m.ResetGap()
+		return nil
+	case githubrecoveryscan.FieldWindowStart:
+		m.ResetWindowStart()
+		return nil
+	case githubrecoveryscan.FieldLastCompleteAt:
+		m.ResetLastCompleteAt()
+		return nil
+	case githubrecoveryscan.FieldNextAttemptAt:
+		m.ResetNextAttemptAt()
+		return nil
+	case githubrecoveryscan.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown GitHubRecoveryScan field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *GitHubRecoveryScanMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *GitHubRecoveryScanMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *GitHubRecoveryScanMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *GitHubRecoveryScanMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *GitHubRecoveryScanMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *GitHubRecoveryScanMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *GitHubRecoveryScanMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown GitHubRecoveryScan unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *GitHubRecoveryScanMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown GitHubRecoveryScan edge %s", name)
 }
 
 // IdealCustomerProfileMutation represents an operation that mutates the IdealCustomerProfile nodes in the graph.

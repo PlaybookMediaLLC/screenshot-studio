@@ -1,3 +1,6 @@
+import type { z } from 'zod'
+import { githubProductionStateSchema, githubPolicyVersionSchema, githubProductionDecisionSchema, githubProductionCatalogSchema, githubRecoverySchema, type saveGitHubProductionSchema, type previewGitHubProductionSchema } from './github-production.ts'
+export * from './github-production.ts'
 import { socialObservationSchema } from './social-analytics.ts'
 export * from './social-analytics.ts'
 import {
@@ -4035,6 +4038,24 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Save a draft with optimistic concurrency; incomplete graphs remain drafts. */
+  async getGitHubProduction(id: string, cursor = '') {
+    return githubProductionStateSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production?cursor=${encodeURIComponent(cursor)}`))
+  }
+  async saveGitHubProduction(id: string, input: z.infer<typeof saveGitHubProductionSchema>) {
+    return githubPolicyVersionSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production`, { body: input, method: 'PUT' }))
+  }
+  async previewGitHubProduction(id: string, input: z.infer<typeof previewGitHubProductionSchema>) {
+    return githubProductionDecisionSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production-preview`, { body: input, method: 'POST' }))
+  }
+  async getGitHubProductionCatalog(id: string, runId = 0, attempt = 0) {
+    return githubProductionCatalogSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production-catalog?runId=${runId}&attempt=${attempt}`))
+  }
+  async getGitHubRecovery(id: string) {
+    return githubRecoverySchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/delivery-recovery`))
+  }
+  async inspectGitHubRecovery(id: string, redeliver: boolean) {
+    return githubRecoverySchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/delivery-recovery`, { body: { redeliver }, method: 'POST' }))
+  }
   async saveReleaseAutomation(input: SaveAutomationInput) {
     return this.request<AutomationDefinition>('v1/release-automation', {
       method: 'PUT',

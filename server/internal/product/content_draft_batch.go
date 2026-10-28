@@ -115,8 +115,11 @@ func (c *Configuration) ValidateContentDraftSchedule(ctx context.Context, actor 
 	if err != nil {
 		return err
 	}
-	if err := c.probeDraftVideos(ctx, actor.OrganizationID, input.Targets, loaded.AssetIds); err != nil {
-		return err
+	// Check what scheduling would send: oriented, provider-sized images too.
+	if loaded.Version == input.Version {
+		if err := c.prepareDraftMedia(ctx, actor, &input, loaded.AssetIds); err != nil {
+			return err
+		}
 	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {

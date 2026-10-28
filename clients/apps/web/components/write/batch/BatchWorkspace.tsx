@@ -315,7 +315,9 @@ export function BatchWorkspace({
       items: (current.items ?? []).map((item) => (item.id === next.id ? next : item)),
     }))
 
-  // Files chosen in this tab, by name; a reload forgets them on purpose.
+  // Files chosen in this tab, by item and attachment (`itemId/index`), so a
+  // later import of a file with the same name never replaces one still needed.
+  // A reload forgets them on purpose.
   const files = React.useRef(new Map<string, File>())
   const [uploads, setUploads] = React.useState<Record<string, Upload>>({})
   const queue = React.useRef<{ itemId: string; index: number }[]>([])
@@ -385,10 +387,10 @@ export function BatchWorkspace({
       const job = queue.current.shift()!
       const item = itemsRef.current.find((candidate) => candidate.id === job.itemId)
       const entry = item?.media[job.index]
-      const file = entry?.fileName ? files.current.get(entry.fileName) : undefined
+      const key = `${job.itemId}/${job.index}`
+      const file = files.current.get(key)
       if (!item || !entry?.fileName || !file || entry.assetId) continue
       const fileName = entry.fileName
-      const key = `${job.itemId}/${job.index}`
       running.current += 1
       setUploads((current) => ({ ...current, [key]: { progress: 0 } }))
       const upload = (resumeAssetId?: string) =>
@@ -448,7 +450,7 @@ export function BatchWorkspace({
     for (const item of itemsRef.current) {
       item.media.forEach((entry, index) => {
         const key = `${item.id}/${index}`
-        if (entry.assetId || !entry.fileName || !files.current.has(entry.fileName)) return
+        if (entry.assetId || !entry.fileName || !files.current.has(key)) return
         if (entry.status === 'UPLOADED' || uploads[key]?.progress !== undefined) return
         if (queue.current.some((job) => job.itemId === item.id && job.index === index)) return
         queue.current.push({ itemId: item.id, index })
@@ -466,13 +468,15 @@ export function BatchWorkspace({
   }, [initial.items, recover])
 
   const missingFiles = items.flatMap((item) =>
-    item.media.filter(
-      (entry) =>
-        !entry.assetId &&
+    item.media.flatMap((entry, index) => {
+      const key = `${item.id}/${index}`
+      return !entry.assetId &&
         entry.status !== 'UPLOADED' &&
         entry.fileName &&
-        !files.current.has(entry.fileName)
-    )
+        !files.current.has(key)
+        ? [{ entry, key }]
+        : []
+    })
   )
 
   // Adding items: selected files, a CSV and shared settings, previewed first.
@@ -563,11 +567,20 @@ export function BatchWorkspace({
     if (!valid.length) return
     setBusy('add')
     try {
-      for (const file of chosen) files.current.set(safeAssetFileName(file.name), file)
       const next = await call<ContentBatch>(`${base}/items`, {
         body: { items: valid.map((row) => row.input) },
         method: 'POST',
       })
+      // Hold each chosen file for the attachments it was matched to.
+      const byName = new Map(chosen.map((file) => [safeAssetFileName(file.name), file]))
+      const added = new Set(valid.map((row) => row.input.importKey))
+      for (const item of next.items ?? []) {
+        if (!added.has(item.importKey)) continue
+        item.media.forEach((entry, index) => {
+          const file = !entry.assetId && entry.fileName ? byName.get(entry.fileName) : undefined
+          if (file) files.current.set(`${item.id}/${index}`, file)
+        })
+      }
       setBatch(next)
       itemsRef.current = next.items ?? []
       // Rows that were not added stay listed with their problems, so none is lost unseen.
@@ -586,8 +599,8 @@ export function BatchWorkspace({
   const reselect = (selected: File[]) => {
     for (const file of selected) {
       const name = safeAssetFileName(file.name)
-      const wanted = missingFiles.find((entry) => entry.fileName === name)
-      if (wanted && wanted.bytes === file.size) files.current.set(name, file)
+      for (const { entry, key } of missingFiles)
+        if (entry.fileName === name && entry.bytes === file.size) files.current.set(key, file)
     }
     startUploads()
     setUploads((current) => ({ ...current }))
@@ -872,8 +885,8 @@ export function BatchWorkspace({
             </AlertTitle>
             <AlertDescription className="grid gap-3">
               <p>
-                {[...new Set(missingFiles.map((entry) => entry.fileName))].join(', ')}. Select the
-                same files again to continue; large files resume where they stopped, and nothing
+                {[...new Set(missingFiles.map(({ entry }) => entry.fileName))].join(', ')}. Select
+                the same files again to continue; large files resume where they stopped, and nothing
                 else is lost.
               </p>
               <FilePicker
@@ -1251,7 +1264,7 @@ export function BatchWorkspace({
                             <MediaTile
                               key={`${entry.assetId ?? entry.fileName}-${at}`}
                               entry={entry}
-                              file={entry.fileName ? files.current.get(entry.fileName) : undefined}
+                              file={files.current.get(`${item.id}/${at}`)}
                               upload={uploads[`${item.id}/${at}`]}
                               onRetry={() => retryUpload(item.id, at)}
                             />

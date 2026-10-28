@@ -637,6 +637,25 @@ func liveDraftChannels(ctx context.Context, tx *ent.Tx, draftID string, targets 
 // ScheduleContentDraft queues the draft at input.Version to every target.
 // Scheduling snapshots each caption, so later edits to the draft do not
 // change queued posts; scheduling again cancels them and queues new ones.
+// prepareDraftMedia gives each target the media its provider will receive:
+// images oriented and sized for it, and the length of each video read.
+// Scheduling and its preflight both check what this leaves.
+func (c *Configuration) prepareDraftMedia(ctx context.Context, actor Actor, input *ScheduleContentDraftInput, fallback []string) error {
+	input.Targets = slices.Clone(input.Targets)
+	for i := range input.Targets {
+		target := &input.Targets[i]
+		target.AssetIDs = slices.Clone(target.AssetIDs)
+		target.Replies = slices.Clone(target.Replies)
+		for j := range target.Replies {
+			target.Replies[j].AssetIDs = slices.Clone(target.Replies[j].AssetIDs)
+		}
+	}
+	if err := c.prepareDraftImages(ctx, actor, input.Targets, fallback); err != nil {
+		return err
+	}
+	return c.probeDraftVideos(ctx, actor.OrganizationID, input.Targets, fallback)
+}
+
 func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, draftID string,
 	input ScheduleContentDraftInput) (*ScheduleContentDraftResult, error) {
 	if err := c.authorizeDecision(ctx, actor, "owner", "admin", "publisher"); err != nil {
@@ -653,19 +672,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, err
 	}
 	if loadedDraft.Version == input.Version {
-		input.Targets = slices.Clone(input.Targets)
-		for i := range input.Targets {
-			target := &input.Targets[i]
-			target.AssetIDs = slices.Clone(target.AssetIDs)
-			target.Replies = slices.Clone(target.Replies)
-			for j := range target.Replies {
-				target.Replies[j].AssetIDs = slices.Clone(target.Replies[j].AssetIDs)
-			}
-		}
-		if err := c.prepareDraftImages(ctx, actor, input.Targets, loadedDraft.AssetIds); err != nil {
-			return nil, err
-		}
-		if err := c.probeDraftVideos(ctx, actor.OrganizationID, input.Targets, loadedDraft.AssetIds); err != nil {
+		if err := c.prepareDraftMedia(ctx, actor, &input, loadedDraft.AssetIds); err != nil {
 			return nil, err
 		}
 	}

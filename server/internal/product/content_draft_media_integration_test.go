@@ -3,6 +3,7 @@ package product
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"image"
@@ -149,6 +150,27 @@ func TestMediaScheduling(t *testing.T) {
 		post := w.db.Client.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(carousel.ID)).OnlyX(ctx)
 		if strings.Join(post.AssetIds, ",") != photo+","+movie {
 			t.Fatalf("attachment order %v", post.AssetIds)
+		}
+	})
+
+	t.Run("a rotated photo is checked as it is shown, in preflight as in scheduling", func(t *testing.T) {
+		var encoded bytes.Buffer
+		if err := jpeg.Encode(&encoded, image.NewRGBA(image.Rect(0, 0, 1080, 1500)), nil); err != nil {
+			t.Fatal(err)
+		}
+		// EXIF orientation 6: stored 1080×1500, too tall for Instagram; shown 1500×1080.
+		exif := []byte{'E', 'x', 'i', 'f', 0, 0, 'I', 'I', 42, 0, 8, 0, 0, 0, 1, 0, 0x12, 1, 3, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0}
+		marker := []byte{0xff, 0xe1, 0, 0}
+		binary.BigEndian.PutUint16(marker[2:], uint16(len(exif)+2))
+		body := append(append(append(append([]byte{}, encoded.Bytes()[:2]...), marker...), exif...), encoded.Bytes()[2:]...)
+		rotated := upload("rotated.jpg", "image/jpeg", body)
+		d := draft("Rotated", rotated)
+		input := ScheduleContentDraftInput{Version: d.Version, ScheduledFor: at, Targets: []ContentDraftScheduleTarget{target(instagram, "Rotated", rotated)}}
+		if err := repo.ValidateContentDraftSchedule(ctx, owner, d.ID, input); err != nil {
+			t.Fatalf("preflight: %v", err)
+		}
+		if _, err := schedule(d, input); err != nil {
+			t.Fatalf("schedule: %v", err)
 		}
 	})
 

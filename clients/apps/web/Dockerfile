@@ -27,7 +27,8 @@ FROM dependencies AS builder
 
 WORKDIR /app
 
-COPY . .
+COPY clients ./clients
+COPY server/internal/medialimits/limits.json ./server/internal/medialimits/limits.json
 
 WORKDIR /app/clients/apps/web
 

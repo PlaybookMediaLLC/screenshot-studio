@@ -312,12 +312,15 @@ jobs:
       - name: Run local stack smoke test
         run: ./dev/studio smoke
       - name: Probe the sign-up reload loop (debug)
-        if: matrix.shard_index == 1
-        working-directory: clients
+        if: matrix.shard_index <= 2
         run: |
-          (cd .. && timeout 600 ./dev/studio e2e --shard=1/3 --max-failures=1 --retries=0 --timeout=40000) || true
-          docker compose --env-file ../.local/dev.env --file ../dev/compose.yaml logs app --tail 60 --no-color || true
-          docker exec screenshot-studio-app-1 sh -c 'cat /proc/sys/fs/inotify/max_user_watches /proc/sys/fs/inotify/max_user_instances; ls -la /workspace/clients/apps/web | head -40' || true
+          ./dev/studio tenant-isolation || true
+          if [ "${{ matrix.shard_index }}" = 2 ]; then
+            docker exec screenshot-studio-app-1 sh -c 'rm -rf /workspace/clients/apps/web/.next/* /workspace/clients/apps/web/.next/.[!.]*' || true
+            echo "DEBUG cleared .next"
+          fi
+          ./dev/studio e2e --shard=${{ matrix.shard }} --max-failures=1 --retries=0 || true
+          echo "DEBUG load count: $(docker compose --env-file .local/dev.env --file dev/compose.yaml logs app --no-color 2>/dev/null | grep -c 'GET /sign-up')"
           exit 1
       - name: Smoke test the API reference, OpenAPI document, and agent endpoints
         if: matrix.shard_index == 1

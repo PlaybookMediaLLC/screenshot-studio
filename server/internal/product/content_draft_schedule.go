@@ -93,6 +93,9 @@ type ScheduleContentDraftInput struct {
 	LocalTime      string `json:"localTime"`
 	PublishNow     bool   `json:"publishNow"`
 	TimeZone       string `json:"timeZone"`
+	// Add schedules these channels beside the draft's live posts instead of
+	// replacing them, so correcting one destination leaves the others queued.
+	Add bool `json:"add"`
 }
 
 // naturalOffsetLimit bounds a natural posting time's offset: four minutes.
@@ -261,6 +264,10 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if err != nil {
 			return nil, nil, err
 		}
+		if connection.Platform == "instagram" {
+			// The publisher has no verified path for Facebook Login accounts yet.
+			return nil, nil, conflict("Instagram accounts connected through Facebook Login can't publish from Shots yet. Reconnect this account with Instagram Login.")
+		}
 		if draft.SocialSetID != nil && (connection.SocialSetID == nil || *connection.SocialSetID != *draft.SocialSetID) {
 			return nil, nil, conflict("A selected account is not in this draft's social set.")
 		}
@@ -271,10 +278,6 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		channel, ok := draftPlatformChannels[connection.Platform]
 		if !ok {
 			return nil, nil, conflict("A " + connection.Platform + " channel cannot publish a draft.")
-		}
-		if connection.Platform == "instagram" {
-			// The publisher has no verified path for Facebook Login accounts yet.
-			return nil, nil, conflict("Instagram accounts connected through Facebook Login can't publish from Shots yet. Reconnect this account with Instagram Login.")
 		}
 		ids := draftImages
 		if target.AssetIDs != nil {
@@ -550,6 +553,29 @@ func replayDraftSchedule(ctx context.Context, tx *ent.Tx, draft *ent.ContentDraf
 	if len(existing) != len(keys) {
 		return nil, conflict("This draft was already scheduled to other channels at this version. Reload it and try again.")
 	}
+	// The same version is the same content; a different requested time is a
+	// different operation, refused rather than answered with the earlier result.
+	var want *time.Time
+	switch {
+	case input.LocalTime != "":
+		zone := input.TimeZone
+		if zone == "" && existing[0].ScheduleTimeZone != nil {
+			zone = *existing[0].ScheduleTimeZone
+		}
+		if at, err := resolveLocalTime(input.LocalTime, zone, input.Disambiguation); err == nil {
+			want = &at
+		}
+	case input.Queue:
+		want = input.ExpectedQueueSlot
+	case !input.PublishNow:
+		want = &input.ScheduledFor
+	}
+	for _, post := range existing {
+		// The database keeps microseconds; a request may carry nanoseconds.
+		if want != nil && post.SlotAt != nil && post.SlotAt.Sub(*want).Abs() >= time.Millisecond {
+			return nil, conflict("This version of the draft is already scheduled for another time. Reload it to see that schedule, or change the time with Reschedule.")
+		}
+	}
 	return existing, nil
 }
 
@@ -582,6 +608,30 @@ func cancelLiveDraftPosts(ctx context.Context, tx *ent.Tx, actor Actor, draftID 
 		cancelled = append(cancelled, post.ID)
 	}
 	return cancelled, nil
+}
+
+// liveDraftChannels is the channels of the draft's queued posts, which an
+// added schedule keeps. A target that already has one is refused: change that
+// post with Reschedule instead of queuing a second.
+func liveDraftChannels(ctx context.Context, tx *ent.Tx, draftID string, targets []ContentDraftScheduleTarget) ([]string, error) {
+	live, err := tx.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draftID), scheduledpost.StatusIn(
+		scheduledpost.StatusDRAFT, scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING,
+		scheduledpost.StatusUNKNOWN_DELIVERY, scheduledpost.StatusPUBLISHED)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	kept := []string{}
+	for _, post := range live {
+		for _, target := range targets {
+			if target.ChannelConnectionID == post.ChannelConnectionID {
+				return nil, conflict("This draft already has a post on a selected account. Reschedule that post instead of adding another.")
+			}
+		}
+		if post.Status != scheduledpost.StatusPUBLISHED && !slices.Contains(kept, post.ChannelConnectionID) {
+			kept = append(kept, post.ChannelConnectionID)
+		}
+	}
+	return kept, nil
 }
 
 // ScheduleContentDraft queues the draft at input.Version to every target.
@@ -625,6 +675,11 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	}
 	defer tx.Rollback()
 	if _, err := tx.PlatformExec(ctx, `SELECT id FROM organization WHERE id=$1 FOR SHARE`, actor.OrganizationID); err != nil {
+		return nil, err
+	}
+	// Concurrent schedules of one draft take turns, so a retry racing its
+	// original replays it instead of failing on the idempotency index.
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM content_draft WHERE id=$1 AND "organizationId"=$2 FOR UPDATE`, draftID, actor.OrganizationID); err != nil {
 		return nil, err
 	}
 	draft, err := visibleContentDraft(ctx, tx.Client(), actor, draftID)
@@ -686,7 +741,12 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID, captions...); err != nil {
 		return nil, err
 	}
-	cancelled, err := cancelLiveDraftPosts(ctx, tx, actor, draft.ID)
+	var cancelled, kept []string
+	if input.Add {
+		kept, err = liveDraftChannels(ctx, tx, draft.ID, input.Targets)
+	} else {
+		cancelled, err = cancelLiveDraftPosts(ctx, tx, actor, draft.ID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -729,7 +789,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		post, err := create.SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).
 			SetContentDraftID(draft.ID).SetChannelConnectionID(target.ChannelConnectionID).
 			SetSocialSetID(set.ID).SetScheduleMode(placement.mode).SetSlotAt(placement.base).
-			SetNaturalOffsetSeconds(placement.offset).SetScheduleTimeZone(set.TimeZone).
+			SetNaturalOffsetSeconds(placement.offset).SetScheduleTimeZone(placement.zone).
 			SetScheduledFor(placement.at).SetStatus(scheduledpost.StatusSCHEDULED).
 			SetCaption(strings.TrimSpace(target.Caption)).
 			SetIdempotencyKey(contentDraftPostKey(draft.ID, target.ChannelConnectionID, input.Version)).Save(ctx)
@@ -747,11 +807,16 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		result.Scheduled = append(result.Scheduled, post.Unwrap())
 		channelIDs = append(channelIDs, target.ChannelConnectionID)
 	}
-	// A scheduled draft is no longer only planned.
-	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version), contentdraft.CalendarVersion(draft.CalendarVersion)).
-		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(channelIDs).AddVersion(1).AddCalendarVersion(1).
+	// A scheduled draft is no longer only planned. Scheduling changes no
+	// content, so an approval of this version carries to the next.
+	update := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version), contentdraft.CalendarVersion(draft.CalendarVersion)).
+		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(append(kept, channelIDs...)).AddVersion(1).AddCalendarVersion(1).
 		ClearPlannedFor().ClearPlanTimeZone().
-		SetNillableUpdatedByUserID(projectActor(actor)).Save(ctx)
+		SetNillableUpdatedByUserID(projectActor(actor))
+	if draft.ApprovedVersion != nil && *draft.ApprovedVersion == draft.Version {
+		update.SetApprovedVersion(draft.Version + 1)
+	}
+	count, err := update.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -764,7 +829,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_scheduled", "content_draft", draft.ID,
 		map[string]any{"cancelledPostIds": cancelled, "scheduledPostIds": postIDs, "version": input.Version,
-			"scheduledFor": placement.at.Format(time.RFC3339), "reason": reason, "timeZone": set.TimeZone}); err != nil {
+			"scheduledFor": placement.at.Format(time.RFC3339), "reason": reason, "timeZone": placement.zone, "added": input.Add}); err != nil {
 		return nil, err
 	}
 	updated, err := tx.ContentDraft.Get(ctx, draft.ID)
@@ -800,6 +865,8 @@ type draftPlacement struct {
 	at, base time.Time
 	mode     scheduledpost.ScheduleMode
 	offset   int
+	// zone is the IANA zone the person scheduled in: theirs, or the set's.
+	zone string
 }
 
 // placeDraftSchedule picks a schedule's instant. A queued draft takes the
@@ -809,7 +876,13 @@ type draftPlacement struct {
 // that would land in the past is mirrored forward.
 func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, draft *ent.ContentDraft,
 	input ScheduleContentDraftInput, now time.Time) (draftPlacement, error) {
-	placement := draftPlacement{base: input.ScheduledFor.UTC(), mode: scheduledpost.ScheduleModeExplicit}
+	placement := draftPlacement{base: input.ScheduledFor.UTC(), mode: scheduledpost.ScheduleModeExplicit, zone: set.TimeZone}
+	if input.TimeZone != "" && !input.Queue {
+		if _, err := time.LoadLocation(input.TimeZone); err != nil {
+			return placement, invalid("Schedule in an IANA time zone, such as Europe/Paris.")
+		}
+		placement.zone = input.TimeZone
+	}
 	// Write (RFC 025): publish now goes out now, with no offset; a wall time
 	// is resolved in its zone (the set's when it names none), refusing a time
 	// the clocks skip and asking which of a repeated hour.
@@ -818,11 +891,7 @@ func placeDraftSchedule(ctx context.Context, tx *ent.Tx, set *ent.SocialSet, dra
 		return placement, nil
 	}
 	if input.LocalTime != "" {
-		zone := input.TimeZone
-		if zone == "" {
-			zone = set.TimeZone
-		}
-		resolved, err := resolveLocalTime(input.LocalTime, zone, input.Disambiguation)
+		resolved, err := resolveLocalTime(input.LocalTime, placement.zone, input.Disambiguation)
 		if err != nil {
 			return placement, err
 		}

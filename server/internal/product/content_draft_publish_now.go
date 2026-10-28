@@ -53,8 +53,10 @@ func (c *Configuration) PublishQueuedContentDraftPost(ctx context.Context, actor
 	if draft.Status == contentdraft.StatusArchived {
 		return nil, conflict("Restore this draft before publishing it.")
 	}
-	// Scheduling increments the draft version without changing the content.
-	// Review must still approve the version in this immutable commitment's key.
+	// Scheduling increments the draft version without changing the content,
+	// and carries an approval of that version with it. Review must still
+	// approve the version in this immutable commitment's key, or a later one
+	// it was carried to unchanged.
 	prefix := fmt.Sprintf("content-draft:%s:%s:v", draft.ID, post.ChannelConnectionID)
 	version, err := strconv.Atoi(strings.Split(strings.TrimPrefix(post.IdempotencyKey, prefix), ":")[0])
 	if err != nil || !strings.HasPrefix(post.IdempotencyKey, prefix) {
@@ -62,6 +64,9 @@ func (c *Configuration) PublishQueuedContentDraftPost(ctx context.Context, actor
 	}
 	approval := *draft
 	approval.Version = version
+	if draft.ApprovedVersion != nil && *draft.ApprovedVersion > version {
+		approval.Version = *draft.ApprovedVersion
+	}
 	if err := c.requireDraftApproval(ctx, &approval); err != nil {
 		return nil, err
 	}

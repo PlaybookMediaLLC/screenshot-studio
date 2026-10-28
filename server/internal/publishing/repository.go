@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/channelconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftsettings"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/creativevariant"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/postautomationrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/publicationattempt"
@@ -387,13 +388,22 @@ func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (Publ
 // if any. A draft post without an asset publishes as text.
 func (r *Repository) loadDraftPublishJob(ctx context.Context, post *ent.ScheduledPost, connection *ent.ChannelConnection) (PublishJob, error) {
 	inactive := PublishJob{Post: post, Connection: connection, WorkspaceActive: false}
-	owned, err := r.client.ContentDraft.Query().Where(contentdraft.ID(*post.ContentDraftID),
-		contentdraft.OrganizationID(post.OrganizationID)).Exist(ctx)
+	draft, err := r.client.ContentDraft.Query().Where(contentdraft.ID(*post.ContentDraftID),
+		contentdraft.OrganizationID(post.OrganizationID)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return inactive, nil
+	}
 	if err != nil {
 		return PublishJob{}, err
 	}
-	if !owned {
-		return inactive, nil
+	// A reviewer who asks for changes after scheduling withdraws the approval
+	// the post was queued under, in a workspace that requires one.
+	if draft.ReviewStatus == contentdraft.ReviewStatusChangesRequested {
+		required, err := r.client.ContentDraftSettings.Query().Where(contentdraftsettings.ID(post.OrganizationID),
+			contentdraftsettings.RequireApproval(true)).Exist(ctx)
+		if err != nil || required {
+			return inactive, err
+		}
 	}
 	job := PublishJob{Connection: connection, Post: post}
 	ids := post.AssetIds

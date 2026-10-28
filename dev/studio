@@ -352,6 +352,12 @@ run_e2e() {
     # Recreating app would strand the renderer, which shares app's network;
     # end-to-end flows do not render designs, so it is simply stopped.
     compose --profile renderer stop render-browser >/dev/null 2>&1 || true
+    # Start the suite's server from an empty dev cache. On Linux, a Turbopack
+    # cache written by the previous server (verify:agents, tenant-isolation)
+    # made the recreated one answer every HMR connection with "HMR hash
+    # mismatch", reloading each page in a loop so sign-up never hydrated.
+    compose stop app >/dev/null 2>&1 || true
+    compose run --rm --no-deps app sh -c 'rm -rf apps/web/.next/* apps/web/.next/.[!.]*'
     BETTER_AUTH_URL="${app_url%/}" \
       BETTER_AUTH_TRUSTED_ORIGINS="$e2e_trusted_origins" \
       NEXT_PUBLIC_APP_URL="${app_url%/}" \

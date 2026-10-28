@@ -128,17 +128,6 @@ export function postOn(item: BatchItem, accountId: string) {
   )
 }
 
-/** Words for a post's status, as the person reads them. */
-export const POST_STATUS: Record<string, string> = {
-  DRAFT: 'Draft',
-  SCHEDULED: 'Scheduled',
-  PROCESSING: 'Publishing',
-  PUBLISHED: 'Published',
-  FAILED: 'Failed',
-  CANCELLED: 'Cancelled',
-  UNKNOWN_DELIVERY: 'Uncertain: check the account',
-}
-
 /**
  * The accounts an item is meant for: those chosen in the batch and any its
  * draft gained since. Scheduling some of them narrows the draft's list to

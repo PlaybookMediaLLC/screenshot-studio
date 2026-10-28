@@ -46,13 +46,13 @@ import type {
   ContentBatch,
 } from '@/lib/api/contracts/content-batches'
 import { call, DraftRequestError, draftsApi } from '@/lib/content-drafts/client'
+import { type PostState, postFailureReason, postState } from '@/lib/content-drafts/post-status'
 import { assetContentUrl } from '@/lib/editor/services'
 import { useTRPCClient } from '@/lib/trpc/react'
 import {
   type BatchAccount,
   itemAccounts,
   pendingAccounts,
-  POST_STATUS,
   postOn,
   queueTimings,
   readTiming,
@@ -272,15 +272,15 @@ function itemStatus(item: BatchItem): { text: string; tone: PillTone } {
   return review[item.draft?.reviewStatus ?? ''] ?? { text: 'Draft', tone: 'blue' }
 }
 
-/** A scheduled post's status as a pill colour. */
-const POST_TONE: Record<string, PillTone> = {
-  CANCELLED: 'gray',
-  DRAFT: 'gray',
-  FAILED: 'red',
-  PROCESSING: 'yellow',
-  PUBLISHED: 'green',
-  SCHEDULED: 'blue',
-  UNKNOWN_DELIVERY: 'yellow',
+/** A destination's state, as the composer and calendar name it, as a pill colour. */
+const STATE_TONE: Record<PostState, PillTone> = {
+  Cancelled: 'gray',
+  Failed: 'red',
+  'Needs check': 'yellow',
+  Overdue: 'yellow',
+  Published: 'green',
+  Publishing: 'yellow',
+  Scheduled: 'blue',
 }
 
 /** A size people read: 1.2 MB. */
@@ -1432,9 +1432,16 @@ export function BatchWorkspace({
                                 <TableCell className="whitespace-normal">
                                   {post ? (
                                     <span className="grid justify-items-start gap-1">
-                                      <Pill tone={POST_TONE[post.status] ?? 'gray'}>
-                                        {POST_STATUS[post.status] ?? post.status}
+                                      <Pill
+                                        tone={STATE_TONE[postState(post.status, post.scheduledFor)]}
+                                      >
+                                        {postState(post.status, post.scheduledFor)}
                                       </Pill>
+                                      {postFailureReason(post.failureCode) ? (
+                                        <span className="text-destructive">
+                                          {postFailureReason(post.failureCode)}
+                                        </span>
+                                      ) : null}
                                       <span className="text-muted-foreground">
                                         {when(post.scheduledFor, post.scheduleTimeZone ?? zone)}
                                         {post.url ? (

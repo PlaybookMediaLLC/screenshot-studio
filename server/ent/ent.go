@@ -52,6 +52,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
@@ -225,6 +228,9 @@ func checkColumn(t, c string) error {
 			deploymentevent.Table:                 deploymentevent.ValidColumn,
 			design.Table:                          design.ValidColumn,
 			enrichmentrecord.Table:                enrichmentrecord.ValidColumn,
+			frontendactivation.Table:              frontendactivation.ValidColumn,
+			frontendobservation.Table:             frontendobservation.ValidColumn,
+			frontendsource.Table:                  frontendsource.ValidColumn,
 			githubinstallstart.Table:              githubinstallstart.ValidColumn,
 			githubinstallation.Table:              githubinstallation.ValidColumn,
 			idealcustomerprofile.Table:            idealcustomerprofile.ValidColumn,

@@ -92,6 +92,12 @@ type Tx struct {
 	Design *DesignClient
 	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
 	EnrichmentRecord *EnrichmentRecordClient
+	// FrontendActivation is the client for interacting with the FrontendActivation builders.
+	FrontendActivation *FrontendActivationClient
+	// FrontendObservation is the client for interacting with the FrontendObservation builders.
+	FrontendObservation *FrontendObservationClient
+	// FrontendSource is the client for interacting with the FrontendSource builders.
+	FrontendSource *FrontendSourceClient
 	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
@@ -407,6 +413,9 @@ func (tx *Tx) init() {
 	tx.DeploymentEvent = NewDeploymentEventClient(tx.config)
 	tx.Design = NewDesignClient(tx.config)
 	tx.EnrichmentRecord = NewEnrichmentRecordClient(tx.config)
+	tx.FrontendActivation = NewFrontendActivationClient(tx.config)
+	tx.FrontendObservation = NewFrontendObservationClient(tx.config)
+	tx.FrontendSource = NewFrontendSourceClient(tx.config)
 	tx.GitHubInstallStart = NewGitHubInstallStartClient(tx.config)
 	tx.GitHubInstallation = NewGitHubInstallationClient(tx.config)
 	tx.IdealCustomerProfile = NewIdealCustomerProfileClient(tx.config)

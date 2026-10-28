@@ -60,6 +60,14 @@ type OnboardingCanceller interface {
 // retries. Session locks disappear if a worker loses its database connection.
 func (s *Store) Run(ctx context.Context, job string) (int, error) {
 	handlers := map[string]func(context.Context) (int, error){
+		"frontend-deployments": func(ctx context.Context) (int, error) {
+			if p, ok := s.Events.(interface {
+				PollFrontends(context.Context) (int, error)
+			}); ok {
+				return p.PollFrontends(ctx)
+			}
+			return 0, nil
+		},
 		"tenant-outbox": s.Outbox, "audit-drains": s.AuditDrains,
 		"communications": s.Communications, "workspace-cleanup": s.WorkspaceCleanup,
 		"audit-retention":   s.AuditRetention,

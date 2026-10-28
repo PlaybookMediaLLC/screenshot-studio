@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
 	releaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
@@ -32,8 +33,9 @@ type GitHubEventAcceptance struct {
 }
 
 // AcceptGitHubEvent is facade-only, after raw-body signature verification.
-// All tenant receipts and dispatch intents commit atomically: a failed fan-out
-// has no partial effects, and a redelivery can safely retry the whole envelope.
+// Existing release receipts fan out atomically. Opt-in frontend receipts commit
+// per source; the facade acknowledges only after every receipt commits, and
+// redelivery safely resumes a partial frontend fan-out using durable event keys.
 func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHubEventInput) (result *GitHubEventAcceptance, resultErr error) {
 	started := time.Now()
 	defer func() {
@@ -57,12 +59,16 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 	if input.DeliveryID == "" || len(input.DeliveryID) > 255 {
 		return nil, ErrInvalidInput
 	}
+	frontend, err := c.acceptGitHubFrontend(ctx, input)
+	if err != nil {
+		return nil, err
+	}
 	installation, event, err := automation.NormalizeGitHub(input.EventName, input.Body)
 	if err != nil {
 		return nil, ErrInvalidInput
 	}
 	if event == nil {
-		return &GitHubEventAcceptance{}, nil
+		return &frontend, nil
 	}
 	sources, err := c.GitHubSources(ctx, installation, event.RepositoryID)
 	if err != nil {
@@ -73,6 +79,10 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 		result, err := c.acceptGitHubEvent(ctx, input.DeliveryID, *event, sources)
 		if ent.IsConstraintError(err) {
 			continue
+		}
+		if result != nil {
+			result.Handled += frontend.Handled
+			result.Duplicates += frontend.Duplicates
 		}
 		return result, err
 	}
@@ -90,6 +100,15 @@ func (c *Configuration) acceptGitHubEvent(ctx context.Context, delivery string, 
 		source, err := lockAutomationSource(ctx, tx, candidate.OrganizationID, candidate.ID)
 		if err != nil {
 			return nil, err
+		}
+		if event.Family == automation.Deployed {
+			opted, err := tx.FrontendSource.Query().Where(frontendsource.Or(frontendsource.ID(source.ID), frontendsource.GithubSourceID(source.ID)), frontendsource.OrganizationID(source.OrganizationID)).Exist(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if opted {
+				continue
+			}
 		}
 		// Tag pushes and milestones only exist as workflow triggers; a legacy
 		// source has no behavior for them, so nothing is recorded.

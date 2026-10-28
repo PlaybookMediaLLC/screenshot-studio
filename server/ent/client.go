@@ -55,6 +55,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
@@ -214,6 +217,12 @@ type Client struct {
 	Design *DesignClient
 	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
 	EnrichmentRecord *EnrichmentRecordClient
+	// FrontendActivation is the client for interacting with the FrontendActivation builders.
+	FrontendActivation *FrontendActivationClient
+	// FrontendObservation is the client for interacting with the FrontendObservation builders.
+	FrontendObservation *FrontendObservationClient
+	// FrontendSource is the client for interacting with the FrontendSource builders.
+	FrontendSource *FrontendSourceClient
 	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
@@ -409,6 +418,9 @@ func (c *Client) init() {
 	c.DeploymentEvent = NewDeploymentEventClient(c.config)
 	c.Design = NewDesignClient(c.config)
 	c.EnrichmentRecord = NewEnrichmentRecordClient(c.config)
+	c.FrontendActivation = NewFrontendActivationClient(c.config)
+	c.FrontendObservation = NewFrontendObservationClient(c.config)
+	c.FrontendSource = NewFrontendSourceClient(c.config)
 	c.GitHubInstallStart = NewGitHubInstallStartClient(c.config)
 	c.GitHubInstallation = NewGitHubInstallationClient(c.config)
 	c.IdealCustomerProfile = NewIdealCustomerProfileClient(c.config)
@@ -613,6 +625,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		DeploymentEvent:                 NewDeploymentEventClient(cfg),
 		Design:                          NewDesignClient(cfg),
 		EnrichmentRecord:                NewEnrichmentRecordClient(cfg),
+		FrontendActivation:              NewFrontendActivationClient(cfg),
+		FrontendObservation:             NewFrontendObservationClient(cfg),
+		FrontendSource:                  NewFrontendSourceClient(cfg),
 		GitHubInstallStart:              NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:              NewGitHubInstallationClient(cfg),
 		IdealCustomerProfile:            NewIdealCustomerProfileClient(cfg),
@@ -744,6 +759,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		DeploymentEvent:                 NewDeploymentEventClient(cfg),
 		Design:                          NewDesignClient(cfg),
 		EnrichmentRecord:                NewEnrichmentRecordClient(cfg),
+		FrontendActivation:              NewFrontendActivationClient(cfg),
+		FrontendObservation:             NewFrontendObservationClient(cfg),
+		FrontendSource:                  NewFrontendSourceClient(cfg),
 		GitHubInstallStart:              NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:              NewGitHubInstallationClient(cfg),
 		IdealCustomerProfile:            NewIdealCustomerProfileClient(cfg),
@@ -856,6 +874,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
 		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.FrontendActivation, c.FrontendObservation, c.FrontendSource,
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
@@ -900,6 +919,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
 		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
+		c.FrontendActivation, c.FrontendObservation, c.FrontendSource,
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
 		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
@@ -1012,6 +1032,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Design.mutate(ctx, m)
 	case *EnrichmentRecordMutation:
 		return c.EnrichmentRecord.mutate(ctx, m)
+	case *FrontendActivationMutation:
+		return c.FrontendActivation.mutate(ctx, m)
+	case *FrontendObservationMutation:
+		return c.FrontendObservation.mutate(ctx, m)
+	case *FrontendSourceMutation:
+		return c.FrontendSource.mutate(ctx, m)
 	case *GitHubInstallStartMutation:
 		return c.GitHubInstallStart.mutate(ctx, m)
 	case *GitHubInstallationMutation:
@@ -6558,6 +6584,405 @@ func (c *EnrichmentRecordClient) mutate(ctx context.Context, m *EnrichmentRecord
 		return (&EnrichmentRecordDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown EnrichmentRecord mutation op: %q", m.Op())
+	}
+}
+
+// FrontendActivationClient is a client for the FrontendActivation schema.
+type FrontendActivationClient struct {
+	config
+}
+
+// NewFrontendActivationClient returns a client for the FrontendActivation from the given config.
+func NewFrontendActivationClient(c config) *FrontendActivationClient {
+	return &FrontendActivationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `frontendactivation.Hooks(f(g(h())))`.
+func (c *FrontendActivationClient) Use(hooks ...Hook) {
+	c.hooks.FrontendActivation = append(c.hooks.FrontendActivation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `frontendactivation.Intercept(f(g(h())))`.
+func (c *FrontendActivationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FrontendActivation = append(c.inters.FrontendActivation, interceptors...)
+}
+
+// Create returns a builder for creating a FrontendActivation entity.
+func (c *FrontendActivationClient) Create() *FrontendActivationCreate {
+	mutation := newFrontendActivationMutation(c.config, OpCreate)
+	return &FrontendActivationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FrontendActivation entities.
+func (c *FrontendActivationClient) CreateBulk(builders ...*FrontendActivationCreate) *FrontendActivationCreateBulk {
+	return &FrontendActivationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FrontendActivationClient) MapCreateBulk(slice any, setFunc func(*FrontendActivationCreate, int)) *FrontendActivationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FrontendActivationCreateBulk{err: fmt.Errorf("calling to FrontendActivationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FrontendActivationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FrontendActivationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FrontendActivation.
+func (c *FrontendActivationClient) Update() *FrontendActivationUpdate {
+	mutation := newFrontendActivationMutation(c.config, OpUpdate)
+	return &FrontendActivationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FrontendActivationClient) UpdateOne(_m *FrontendActivation) *FrontendActivationUpdateOne {
+	mutation := newFrontendActivationMutation(c.config, OpUpdateOne, withFrontendActivation(_m))
+	return &FrontendActivationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FrontendActivationClient) UpdateOneID(id string) *FrontendActivationUpdateOne {
+	mutation := newFrontendActivationMutation(c.config, OpUpdateOne, withFrontendActivationID(id))
+	return &FrontendActivationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FrontendActivation.
+func (c *FrontendActivationClient) Delete() *FrontendActivationDelete {
+	mutation := newFrontendActivationMutation(c.config, OpDelete)
+	return &FrontendActivationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FrontendActivationClient) DeleteOne(_m *FrontendActivation) *FrontendActivationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FrontendActivationClient) DeleteOneID(id string) *FrontendActivationDeleteOne {
+	builder := c.Delete().Where(frontendactivation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FrontendActivationDeleteOne{builder}
+}
+
+// Query returns a query builder for FrontendActivation.
+func (c *FrontendActivationClient) Query() *FrontendActivationQuery {
+	return &FrontendActivationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFrontendActivation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FrontendActivation entity by its id.
+func (c *FrontendActivationClient) Get(ctx context.Context, id string) (*FrontendActivation, error) {
+	return c.Query().Where(frontendactivation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FrontendActivationClient) GetX(ctx context.Context, id string) *FrontendActivation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FrontendActivationClient) Hooks() []Hook {
+	return c.hooks.FrontendActivation
+}
+
+// Interceptors returns the client interceptors.
+func (c *FrontendActivationClient) Interceptors() []Interceptor {
+	return c.inters.FrontendActivation
+}
+
+func (c *FrontendActivationClient) mutate(ctx context.Context, m *FrontendActivationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FrontendActivationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FrontendActivationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FrontendActivationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FrontendActivationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FrontendActivation mutation op: %q", m.Op())
+	}
+}
+
+// FrontendObservationClient is a client for the FrontendObservation schema.
+type FrontendObservationClient struct {
+	config
+}
+
+// NewFrontendObservationClient returns a client for the FrontendObservation from the given config.
+func NewFrontendObservationClient(c config) *FrontendObservationClient {
+	return &FrontendObservationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `frontendobservation.Hooks(f(g(h())))`.
+func (c *FrontendObservationClient) Use(hooks ...Hook) {
+	c.hooks.FrontendObservation = append(c.hooks.FrontendObservation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `frontendobservation.Intercept(f(g(h())))`.
+func (c *FrontendObservationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FrontendObservation = append(c.inters.FrontendObservation, interceptors...)
+}
+
+// Create returns a builder for creating a FrontendObservation entity.
+func (c *FrontendObservationClient) Create() *FrontendObservationCreate {
+	mutation := newFrontendObservationMutation(c.config, OpCreate)
+	return &FrontendObservationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FrontendObservation entities.
+func (c *FrontendObservationClient) CreateBulk(builders ...*FrontendObservationCreate) *FrontendObservationCreateBulk {
+	return &FrontendObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FrontendObservationClient) MapCreateBulk(slice any, setFunc func(*FrontendObservationCreate, int)) *FrontendObservationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FrontendObservationCreateBulk{err: fmt.Errorf("calling to FrontendObservationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FrontendObservationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FrontendObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FrontendObservation.
+func (c *FrontendObservationClient) Update() *FrontendObservationUpdate {
+	mutation := newFrontendObservationMutation(c.config, OpUpdate)
+	return &FrontendObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FrontendObservationClient) UpdateOne(_m *FrontendObservation) *FrontendObservationUpdateOne {
+	mutation := newFrontendObservationMutation(c.config, OpUpdateOne, withFrontendObservation(_m))
+	return &FrontendObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FrontendObservationClient) UpdateOneID(id string) *FrontendObservationUpdateOne {
+	mutation := newFrontendObservationMutation(c.config, OpUpdateOne, withFrontendObservationID(id))
+	return &FrontendObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FrontendObservation.
+func (c *FrontendObservationClient) Delete() *FrontendObservationDelete {
+	mutation := newFrontendObservationMutation(c.config, OpDelete)
+	return &FrontendObservationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FrontendObservationClient) DeleteOne(_m *FrontendObservation) *FrontendObservationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FrontendObservationClient) DeleteOneID(id string) *FrontendObservationDeleteOne {
+	builder := c.Delete().Where(frontendobservation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FrontendObservationDeleteOne{builder}
+}
+
+// Query returns a query builder for FrontendObservation.
+func (c *FrontendObservationClient) Query() *FrontendObservationQuery {
+	return &FrontendObservationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFrontendObservation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FrontendObservation entity by its id.
+func (c *FrontendObservationClient) Get(ctx context.Context, id string) (*FrontendObservation, error) {
+	return c.Query().Where(frontendobservation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FrontendObservationClient) GetX(ctx context.Context, id string) *FrontendObservation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FrontendObservationClient) Hooks() []Hook {
+	return c.hooks.FrontendObservation
+}
+
+// Interceptors returns the client interceptors.
+func (c *FrontendObservationClient) Interceptors() []Interceptor {
+	return c.inters.FrontendObservation
+}
+
+func (c *FrontendObservationClient) mutate(ctx context.Context, m *FrontendObservationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FrontendObservationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FrontendObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FrontendObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FrontendObservationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FrontendObservation mutation op: %q", m.Op())
+	}
+}
+
+// FrontendSourceClient is a client for the FrontendSource schema.
+type FrontendSourceClient struct {
+	config
+}
+
+// NewFrontendSourceClient returns a client for the FrontendSource from the given config.
+func NewFrontendSourceClient(c config) *FrontendSourceClient {
+	return &FrontendSourceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `frontendsource.Hooks(f(g(h())))`.
+func (c *FrontendSourceClient) Use(hooks ...Hook) {
+	c.hooks.FrontendSource = append(c.hooks.FrontendSource, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `frontendsource.Intercept(f(g(h())))`.
+func (c *FrontendSourceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FrontendSource = append(c.inters.FrontendSource, interceptors...)
+}
+
+// Create returns a builder for creating a FrontendSource entity.
+func (c *FrontendSourceClient) Create() *FrontendSourceCreate {
+	mutation := newFrontendSourceMutation(c.config, OpCreate)
+	return &FrontendSourceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FrontendSource entities.
+func (c *FrontendSourceClient) CreateBulk(builders ...*FrontendSourceCreate) *FrontendSourceCreateBulk {
+	return &FrontendSourceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FrontendSourceClient) MapCreateBulk(slice any, setFunc func(*FrontendSourceCreate, int)) *FrontendSourceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FrontendSourceCreateBulk{err: fmt.Errorf("calling to FrontendSourceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FrontendSourceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FrontendSourceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FrontendSource.
+func (c *FrontendSourceClient) Update() *FrontendSourceUpdate {
+	mutation := newFrontendSourceMutation(c.config, OpUpdate)
+	return &FrontendSourceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FrontendSourceClient) UpdateOne(_m *FrontendSource) *FrontendSourceUpdateOne {
+	mutation := newFrontendSourceMutation(c.config, OpUpdateOne, withFrontendSource(_m))
+	return &FrontendSourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FrontendSourceClient) UpdateOneID(id string) *FrontendSourceUpdateOne {
+	mutation := newFrontendSourceMutation(c.config, OpUpdateOne, withFrontendSourceID(id))
+	return &FrontendSourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FrontendSource.
+func (c *FrontendSourceClient) Delete() *FrontendSourceDelete {
+	mutation := newFrontendSourceMutation(c.config, OpDelete)
+	return &FrontendSourceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FrontendSourceClient) DeleteOne(_m *FrontendSource) *FrontendSourceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FrontendSourceClient) DeleteOneID(id string) *FrontendSourceDeleteOne {
+	builder := c.Delete().Where(frontendsource.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FrontendSourceDeleteOne{builder}
+}
+
+// Query returns a query builder for FrontendSource.
+func (c *FrontendSourceClient) Query() *FrontendSourceQuery {
+	return &FrontendSourceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFrontendSource},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FrontendSource entity by its id.
+func (c *FrontendSourceClient) Get(ctx context.Context, id string) (*FrontendSource, error) {
+	return c.Query().Where(frontendsource.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FrontendSourceClient) GetX(ctx context.Context, id string) *FrontendSource {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FrontendSourceClient) Hooks() []Hook {
+	return c.hooks.FrontendSource
+}
+
+// Interceptors returns the client interceptors.
+func (c *FrontendSourceClient) Interceptors() []Interceptor {
+	return c.inters.FrontendSource
+}
+
+func (c *FrontendSourceClient) mutate(ctx context.Context, m *FrontendSourceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FrontendSourceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FrontendSourceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FrontendSourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FrontendSourceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FrontendSource mutation op: %q", m.Op())
 	}
 }
 
@@ -16197,7 +16622,8 @@ type (
 		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
 		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
 		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
-		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		EnrichmentRecord, FrontendActivation, FrontendObservation, FrontendSource,
+		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
 		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
 		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
 		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
@@ -16229,7 +16655,8 @@ type (
 		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
 		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
 		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
-		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
+		EnrichmentRecord, FrontendActivation, FrontendObservation, FrontendSource,
+		GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
 		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
 		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
 		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,

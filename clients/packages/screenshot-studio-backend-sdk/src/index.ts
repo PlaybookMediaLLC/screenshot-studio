@@ -1,3 +1,12 @@
+import { z } from 'zod'
+import {
+  frontendSourceSchema,
+  frontendEvidenceSchema,
+  frontendDecisionSchema,
+  frontendPreviewSchema,
+  type FrontendSourceInput,
+} from './frontend-deployments.ts'
+export * from './frontend-deployments.ts'
 import { socialObservationSchema } from './social-analytics.ts'
 export * from './social-analytics.ts'
 import {
@@ -1166,7 +1175,12 @@ export type BackendContentDraftPost = {
   url: string | null
   /** A thread: its reply count and how many went out. */
   replies: number
-  threadProgress: { lastReplyId?: string; posted: number; total: number; quotes?: {postId: string; state: string}[] }
+  threadProgress: {
+    lastReplyId?: string
+    posted: number
+    total: number
+    quotes?: { postId: string; state: string }[]
+  }
   /** Its follow-ups once live, each with its receipt (RFC 025). */
   automations?: BackendPostAutomation[]
   /** How the instant was chosen (RFC 024). */
@@ -2730,7 +2744,11 @@ export class ScreenshotStudioBackendSDK {
   /** Schedules at `scheduledFor`, or with `queue` at the set's next free slot, which the backend reserves. */
   async scheduleContentDraft(
     id: string,
-    input: BackendScheduleTiming & { targets: BackendContentDraftScheduleTarget[]; version: number; baseCalendarVersion?: number }
+    input: BackendScheduleTiming & {
+      targets: BackendContentDraftScheduleTarget[]
+      version: number
+      baseCalendarVersion?: number
+    }
   ) {
     return this.request<{
       created: boolean
@@ -2891,7 +2909,13 @@ export class ScreenshotStudioBackendSDK {
   /** Pin, tag or annotate a draft; its version and approval stay. */
   async updateContentDraftProperties(
     id: string,
-    input: { addTagIds?: string[]; pinned?: boolean; removeTagIds?: string[]; scratchpad?: string; suppressSlackOnPublish?: boolean }
+    input: {
+      addTagIds?: string[]
+      pinned?: boolean
+      removeTagIds?: string[]
+      scratchpad?: string
+      suppressSlackOnPublish?: boolean
+    }
   ) {
     return this.request<BackendContentDraft>(
       `v1/content-drafts/${encodeURIComponent(id)}/properties`,
@@ -2907,21 +2931,38 @@ export class ScreenshotStudioBackendSDK {
     return this.request<unknown>('v1/calendar/mutations', { body: input, method: 'POST' })
   }
   async getAnalytics(id: string, query: Record<string, string | number | undefined>) {
-    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    const params = new URLSearchParams(
+      Object.entries(query)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [key, String(value)])
+    )
     return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}?${params}`)
   }
   async refreshAnalytics(id: string) {
-    return this.request<{ refreshed: boolean }>(`v1/analytics/${encodeURIComponent(id)}/refresh`, { method: 'POST', body: {} })
+    return this.request<{ refreshed: boolean }>(`v1/analytics/${encodeURIComponent(id)}/refresh`, {
+      method: 'POST',
+      body: {},
+    })
   }
   async updateAnalyticsSettings(id: string, input: unknown) {
-    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}/settings`, { method: 'PUT', body: input })
+    return this.request<unknown>(`v1/analytics/${encodeURIComponent(id)}/settings`, {
+      method: 'PUT',
+      body: input,
+    })
   }
   async getPublicAnalytics(token: string, query: Record<string, string | number | undefined>) {
-    const params = new URLSearchParams(Object.entries(query).filter(([,value]) => value !== undefined).map(([key,value]) => [key,String(value)]))
+    const params = new URLSearchParams(
+      Object.entries(query)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [key, String(value)])
+    )
     return this.request<unknown>(`v1/internal/analytics/${encodeURIComponent(token)}?${params}`)
   }
 
-  async planContentDraft(id: string, input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }) {
+  async planContentDraft(
+    id: string,
+    input: { baseCalendarVersion?: number; plannedFor: Date | null; timeZone?: string }
+  ) {
     return this.request<BackendContentDraft>(`v1/content-drafts/${encodeURIComponent(id)}/plan`, {
       body: input,
       method: 'POST',
@@ -2929,10 +2970,13 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async duplicateContentDraft(id: string, requestKey?: string) {
-    return this.request<BackendDraftCopy>(`v1/content-drafts/${encodeURIComponent(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`, {
-      body: {},
-      method: 'POST',
-    })
+    return this.request<BackendDraftCopy>(
+      `v1/content-drafts/${encodeURIComponent(id)}/duplicate${requestKey ? `?requestKey=${encodeURIComponent(requestKey)}` : ''}`,
+      {
+        body: {},
+        method: 'POST',
+      }
+    )
   }
 
   async copyContentDraft(id: string, input: { socialSetId: string; tagMode: 'match' | 'drop' }) {
@@ -3074,9 +3118,18 @@ export class ScreenshotStudioBackendSDK {
 
   /** Apply a comment-only action with revision conflict protection. */
   /** Read the existing discussion document with optional lifecycle and platform filters. */
-  async listContentDraftComments(id: string, query: {status?: 'all'|'open'|'resolved'; platform?: string} = {}) {
-    const params = new URLSearchParams(Object.fromEntries(Object.entries(query).filter(([,value])=>value !== undefined)) as Record<string,string>)
-    return this.request<{id:string;version:number;discussions: Record<string,unknown>}>(`v1/content-drafts/${encodeURIComponent(id)}/comments?${params}`)
+  async listContentDraftComments(
+    id: string,
+    query: { status?: 'all' | 'open' | 'resolved'; platform?: string } = {}
+  ) {
+    const params = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(query).filter(([, value]) => value !== undefined)
+      ) as Record<string, string>
+    )
+    return this.request<{ id: string; version: number; discussions: Record<string, unknown> }>(
+      `v1/content-drafts/${encodeURIComponent(id)}/comments?${params}`
+    )
   }
 
   async mutateContentDraftComment(id: string, input: DraftCommentInput) {
@@ -3108,7 +3161,10 @@ export class ScreenshotStudioBackendSDK {
   /** A guest's view of a shared draft (service credential). */
   /** Read only the current shared image; the share token is checked again after storage. */
   async readSharedDraftImage(token: string) {
-    return this.request<Uint8Array>(`v1/internal/content-draft-shares/${encodeURIComponent(token)}/image`, {responseType: 'bytes'})
+    return this.request<Uint8Array>(
+      `v1/internal/content-draft-shares/${encodeURIComponent(token)}/image`,
+      { responseType: 'bytes' }
+    )
   }
 
   async getSharedContentDraft(token: string) {
@@ -3175,8 +3231,17 @@ export class ScreenshotStudioBackendSDK {
   }
 
   /** Change future queue defaults without moving existing deliveries. */
-  async updateSocialSetQueue(id: string, input: Pick<SocialSetUpdate, 'baseVersion' | 'timeZone' | 'postingSlots' | 'naturalPostingTimes'>) {
-    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}/queue`, { body: input, method: 'PATCH' })
+  async updateSocialSetQueue(
+    id: string,
+    input: Pick<
+      SocialSetUpdate,
+      'baseVersion' | 'timeZone' | 'postingSlots' | 'naturalPostingTimes'
+    >
+  ) {
+    return this.request<SocialSet>(`v1/social-sets/${encodeURIComponent(id)}/queue`, {
+      body: input,
+      method: 'PATCH',
+    })
   }
 
   /** Deletes a set; `confirmation` is its name. */
@@ -3330,10 +3395,17 @@ export class ScreenshotStudioBackendSDK {
   }
 
   async deleteContentDraft(id: string, expected?: { version?: number; calendarVersion?: number }) {
-    const params = new URLSearchParams(Object.entries(expected ?? {}).filter(([,v]) => v !== undefined).map(([k,v]) => [k,String(v)]))
-    return this.request<{ deleted: true }>(`v1/content-drafts/${encodeURIComponent(id)}?${params}`, {
-      method: 'DELETE',
-    })
+    const params = new URLSearchParams(
+      Object.entries(expected ?? {})
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, String(v)])
+    )
+    return this.request<{ deleted: true }>(
+      `v1/content-drafts/${encodeURIComponent(id)}?${params}`,
+      {
+        method: 'DELETE',
+      }
+    )
   }
 
   async listProjects(query: BackendProjectListQuery = {}) {
@@ -4017,6 +4089,42 @@ export class ScreenshotStudioBackendSDK {
       body: input,
       method: 'POST',
     })
+  }
+
+  /** List backend-verified production sources without credentials. */
+  async frontendSources() {
+    return z
+      .object({ sources: z.array(frontendSourceSchema) })
+      .parse(await this.request<unknown>('v1/frontend-sources'))
+  }
+  /** Save an opt-in production policy with optimistic concurrency. */
+  async saveFrontendSource(input: FrontendSourceInput) {
+    return frontendSourceSchema.parse(
+      await this.request<unknown>('v1/frontend-sources', { method: 'PUT', body: input })
+    )
+  }
+  /** Read this workspace's immutable deployment evidence and decisions. */
+  async frontendHistory(id: string) {
+    return z
+      .object({ items: z.array(frontendEvidenceSchema) })
+      .parse(await this.request<unknown>(`v1/frontend-sources/${encodeURIComponent(id)}/history`))
+  }
+  /** Preview the same evaluator used by durable acceptance, without side effects. */
+  async previewFrontend(input: z.infer<typeof frontendPreviewSchema>) {
+    return frontendDecisionSchema.parse(
+      await this.request<unknown>('v1/frontend-sources/preview', { method: 'POST', body: input })
+    )
+  }
+  /** Forward unmodified body text; the backend verifies the provider signature. */
+  async acceptFrontendWebhook(id: string, signature: string, body: string) {
+    return z
+      .object({ accepted: z.literal(true) })
+      .parse(
+        await this.request<unknown>(`v1/internal/frontend-webhooks/${encodeURIComponent(id)}`, {
+          method: 'POST',
+          body: { signature, body },
+        })
+      )
   }
 
   /** Begins connecting a GitHub App installation; the state is single-use. */

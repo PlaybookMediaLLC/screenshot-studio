@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { draftChannelSchema, type Numbering } from '@/lib/write/document'
 import { numberCaptions } from '@/lib/write/numbering'
+import { mediaProblems } from '@/lib/write/media-rules'
 import { xLength } from './x-length'
 
 /**
@@ -129,7 +130,7 @@ export type SerializeOptions = {
 
 /** A caption for one channel, with its limit and what it lost. */
 export type SerializedCaption = {
-  /** The post's workspace images in body order; the channel takes the first {@link CHANNEL_IMAGE_LIMITS}. */
+  /** The post's workspace images in body order; each channel's media rules apply (lib/write/media-rules.ts). */
   assetIds: string[]
   caption: string
   channel: DraftChannel
@@ -151,20 +152,6 @@ type PlateNode = {
   children?: PlateNode[]
   text?: string
   type?: string
-}
-
-/**
- * How many images one post takes on each channel. The backend attaches the
- * draft's first images up to this many (`draftChannelImageLimits` in
- * server/internal/product/content_draft_schedule.go).
- */
-export const CHANNEL_IMAGE_LIMITS: Record<DraftChannel, number> = {
-  bluesky: 4,
-  instagram: 10,
-  linkedin: 9,
-  mastodon: 4,
-  threads: 10,
-  x: 4,
 }
 
 const CONNECTION_CHANNELS: Record<string, DraftChannel> = {
@@ -230,6 +217,8 @@ type Context = {
   images: number
   /** Images not uploaded to the workspace. */
   unstored: number
+  /** Uploaded files and audio, which no draft channel posts as an attachment. */
+  unpublishable: number
   /** Uploaded videos, which go out as the post's media. */
   videos: number
 }
@@ -454,6 +443,11 @@ function blockText(node: PlateNode, context: Context): string {
     collectVideo(node, context)
     return ''
   }
+  if ((type === 'file' || type === 'audio') && typeof node.assetId === 'string') {
+    // An uploaded attachment is never left out silently; it blocks scheduling.
+    context.unpublishable += 1
+    return ''
+  }
   const dropped = DROPPED_BLOCKS[type]
   if (dropped) {
     degrade(
@@ -572,6 +566,7 @@ export function serializeDraft(
     footnotes: new Map(),
     images: 0,
     unstored: 0,
+    unpublishable: 0,
     videos: 0,
   }
   // Each post of a thread serializes on its own; footnotes close the last.
@@ -645,7 +640,6 @@ export function serializeDraft(
   }))
 
   const limit = options.limit ?? DRAFT_CHANNEL_LIMITS[channel]
-  const imageLimit = CHANNEL_IMAGE_LIMITS[channel]
   const errors: string[] = []
   if (context.invalidMediaMetadata)
     errors.push(
@@ -669,19 +663,22 @@ export function serializeDraft(
         : `${post.length} of ${limit} characters: shorten it for ${channel}.`
     )
   })
-  if (channel === 'instagram' && context.images === context.unstored) {
-    errors.push('Instagram needs an image.')
-  }
-  if (posts.some((post) => post.images > imageLimit)) {
-    if (channel === 'bluesky' || channel === 'x') {
-      errors.push(
-        channel === 'x'
-          ? 'Choose up to four images, one GIF, or one MP4 video for each X post.'
-          : 'Choose up to four images or one MP4 video for each Bluesky post.'
-      )
-    } else {
-      errors.push(`Choose up to ${imageLimit} attachments per ${CHANNEL_NAMES[channel]} post.`)
-    }
+  // Each post's stored media against the channel's rules, as Go checks it;
+  // an attachment known only by its kind is counted, not judged by format.
+  posts.forEach((post, index) => {
+    if (post.images > post.media.length) return
+    const facts = post.media.map((media) => ({
+      mimeType:
+        media.mimeType ??
+        (media.kind === 'gif' ? 'image/gif' : media.kind === 'video' ? 'video/*' : 'image/*'),
+    }))
+    for (const problem of mediaProblems(channel, facts))
+      errors.push(posts.length > 1 ? `Post ${index + 1}: ${problem}` : problem)
+  })
+  if (context.unpublishable > 0) {
+    errors.push(
+      `${CHANNEL_NAMES[channel]} can't post an uploaded file or audio as an attachment. Remove it from the post; a PDF goes to LinkedIn through the document option.`
+    )
   }
   if (context.unstored > 0) {
     errors.push('Upload every image to the workspace before scheduling.')
@@ -689,22 +686,6 @@ export function serializeDraft(
   if (context.media.some((media) => media.processingStatus !== 'ready')) {
     errors.push('Wait for every attachment to finish processing, or replace failed media.')
   }
-  if (
-    channel === 'x' &&
-    posts.some((post) => post.media.some((media) => media.kind === 'gif') && post.images > 1)
-  ) {
-    errors.push(
-      'The X API requires a GIF to be the only attachment. Mixed media is not supported by this connection.'
-    )
-  }
-  // Every channel takes a video alone: one, with no images beside it.
-  posts.forEach((post, index) => {
-    if (post.videos > 0 && post.images > 1) {
-      errors.push(
-        `${posts.length > 1 ? `Post ${index + 1}: a` : 'A'} video goes alone: one video, no images with it.`
-      )
-    }
-  })
   return {
     assetIds: context.assetIds,
     caption: posts.map((post) => post.caption).join('\n\n'),

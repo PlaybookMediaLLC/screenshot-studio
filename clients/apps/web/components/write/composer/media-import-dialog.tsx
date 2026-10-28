@@ -59,11 +59,18 @@ export function MediaImportDialog({
       setBusy(false)
     }
   }
-  const insert = (assetId: string, source: string) => {
+  // The stored type, when known, lets the composer check each destination's formats.
+  const insert = (assetId: string, source: string, mimeType?: string) => {
     const range = postRanges(editor.children)[post]
     if (!range) throw new Error('That post changed. Choose a destination again.')
     editor.tf.insertNodes(
-      { type: 'img', assetId, url: source, children: [{ text: '' }] },
+      {
+        type: 'img',
+        assetId,
+        url: source,
+        ...(mimeType ? { mimeType } : {}),
+        children: [{ text: '' }],
+      },
       { at: [range[1]] }
     )
     refresh()
@@ -73,7 +80,7 @@ export function MediaImportDialog({
       throw new Error('Choose an image smaller than 20 MB.')
     const saved = await uploadFile(new File([blob], name, { type: blob.type }))
     if (!saved.assetId) throw new Error('The image was not saved to the workspace.')
-    insert(saved.assetId, saved.url)
+    insert(saved.assetId, saved.url, blob.type)
     toast.success('Image attached. Review the channel’s media limits before scheduling.')
   }
   const move = (from: number, to: number) => {
@@ -334,7 +341,7 @@ export function MediaImportDialog({
                     '/api/v1/content-drafts/giphy',
                     { method: 'POST', body: { id: gif.id } }
                   )
-                  insert(result.assetId, assetContentUrl(result.assetId))
+                  insert(result.assetId, assetContentUrl(result.assetId), 'image/gif')
                 })
               }
             >

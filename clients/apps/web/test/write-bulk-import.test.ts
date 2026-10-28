@@ -1,35 +1,95 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { channelProblem, parseDraftCSV } from '@/lib/write/bulk-import'
+import { channelProblem, matchRowMedia, parseBatchCSV, unusedFiles } from '@/lib/write/bulk-import'
 
-test('CSV preserves multiline captions, Unicode, literal formulas, and escaped quotes', () => {
-  assert.deepEqual(
-    parseDraftCSV(
-      '\uFEFFcaption,asset,channels\r\n"Hello, ""team""\n🚀",design.png,x;linkedin\r\n=SUM(1),,x'
-    ),
-    [
-      { caption: 'Hello, "team"\n🚀', asset: 'design.png', channels: ['x', 'linkedin'] },
-      { caption: '=SUM(1)', asset: '', channels: ['x'] },
-    ]
+const asset = '0f8b5c1e-3d2a-4b7c-9e1f-2a3b4c5d6e7f'
+
+test('CSV preserves quoted commas, line breaks, Unicode, literal formulas, and escaped quotes', () => {
+  const { rows } = parseBatchCSV(
+    '﻿caption,asset,channels\r\n"Hello, ""team""\n🚀",design.png;b.png,x;LinkedIn\r\n=SUM(1),,x'
   )
+  assert.deepEqual(rows, [
+    {
+      line: 2,
+      caption: 'Hello, "team"\n🚀',
+      assets: ['design.png', 'b.png'],
+      channels: ['x', 'linkedin'],
+      problems: [],
+    },
+    { line: 3, caption: '=SUM(1)', assets: [], channels: ['x'], problems: [] },
+  ])
 })
-test('CSV rejects malformed input and accepts exactly fifty rows', () => {
+
+test('the mapping is shown: unknown columns are listed as ignored, times and zones are read', () => {
+  const { mapping, rows } = parseBatchCSV(
+    'Caption,Time,Time Zone,Notes\nLaunch,2026-11-03 09:30,Europe/Paris,internal\nLater,2026-11-03 9:30,Mars/Base,\n'
+  )
+  assert.deepEqual(mapping, [
+    { header: 'Caption', field: 'caption' },
+    { header: 'Time', field: 'time' },
+    { header: 'Time Zone', field: 'timezone' },
+    { header: 'Notes', field: null },
+  ])
+  assert.equal(rows[0].time, '2026-11-03T09:30')
+  assert.equal(rows[0].timeZone, 'Europe/Paris')
+  assert.match(rows[1].problems.join(' '), /time must look like/)
+  assert.match(rows[1].problems.join(' '), /IANA zone/)
+})
+
+test('CSV refuses malformed input and takes exactly fifty rows', () => {
   for (const text of [
     'caption\n"unfinished',
     'caption,caption\na,b',
-    'caption,unknown\na,b',
-    'caption,asset\none',
+    'asset\nx',
     'caption\n"a"b',
     'caption',
   ])
-    assert.throws(() => parseDraftCSV(text))
-  assert.equal(parseDraftCSV('caption\n' + Array(50).fill('item').join('\n')).length, 50)
-  assert.throws(() => parseDraftCSV('caption\n' + Array(51).fill('item').join('\n')), /50/)
+    assert.throws(() => parseBatchCSV(text))
+  assert.match(parseBatchCSV('caption,asset\none').rows[0].problems[0], /wrong number of fields/)
+  assert.equal(parseBatchCSV('caption\n' + Array(50).fill('item').join('\n')).rows.length, 50)
+  assert.throws(() => parseBatchCSV('caption\n' + Array(51).fill('item').join('\n')), /50/)
 })
-test('IMPORT-01: review flags unknown and unconnected channels, never unassigned rows', () => {
-  const [unknown, unconnected, unassigned, connected] = parseDraftCSV(
-    'caption,asset,channels\nA,,not-a-channel\nB,,x\nC,,\nD,,LinkedIn'
+
+test('media matches an exact selected name or a confirmed asset, and flags everything else', () => {
+  const files = [
+    { name: 'hero.png', size: 10 },
+    { name: 'clip.mov', size: 20 },
+    { name: 'twice.png', size: 1 },
+    { name: 'twice.png', size: 2 },
+    { name: 'spare.jpg', size: 3 },
+  ]
+  const { rows } = parseBatchCSV(
+    `caption,asset\nA,hero.png;${asset};clip.mov\nB,twice.png\nC,0f8b5c1e-0000-4b7c-9e1f-2a3b4c5d6e7f\nD,Hero.PNG\n`
   )
+  const known = new Set([asset])
+  assert.deepEqual(matchRowMedia(rows[0], files, known), {
+    media: [
+      { fileName: 'hero.png', bytes: 10 },
+      { assetId: asset },
+      { fileName: 'clip.mov', bytes: 20 },
+    ],
+    problems: [],
+  })
+  assert.match(
+    matchRowMedia(rows[1], files, known).problems[0],
+    /Two selected files are named twice.png/
+  )
+  assert.match(matchRowMedia(rows[2], files, known).problems[0], /not in this workspace/)
+  // Names match exactly; a different case is not guessed.
+  assert.match(
+    matchRowMedia(rows[3], files, known).problems[0],
+    /no selected file is named Hero.PNG/
+  )
+  assert.deepEqual(unusedFiles(rows, files), ['spare.jpg'])
+  // A corrected row matches.
+  const fixed = parseBatchCSV('caption,asset\nD,hero.png').rows[0]
+  assert.deepEqual(matchRowMedia(fixed, files, known).problems, [])
+})
+
+test('IMPORT-01: review flags unknown and unconnected channels, never unassigned rows', () => {
+  const [unknown, unconnected, unassigned, connected] = parseBatchCSV(
+    'caption,asset,channels\nA,,not-a-channel\nB,,x\nC,,\nD,,LinkedIn'
+  ).rows
   assert.match(
     channelProblem(unknown.channels, ['linkedin']) ?? '',
     /Unknown channel not-a-channel/

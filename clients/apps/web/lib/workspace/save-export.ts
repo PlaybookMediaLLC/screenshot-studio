@@ -25,6 +25,8 @@ const SUPPORTED_CONTENT_TYPES = new Set([
   'image/png',
   'image/webp',
   'video/mp4',
+  // QuickTime from phones and cameras; Instagram and Threads take it as is.
+  'video/quicktime',
   'video/webm',
   // Audio for design timelines.
   'audio/aac',
@@ -43,6 +45,11 @@ const SUPPORTED_CONTENT_TYPES = new Set([
 
 export interface SaveToWorkspaceInput {
   onProgress?: (progress: number) => void
+  /**
+   * Called with the reserved asset before any bytes move, so a caller can
+   * record it and recognize an interrupted upload after a reload.
+   */
+  onReserved?: (assetId: string) => void | Promise<void>
   parentAssetId?: string
   projectId?: string
   classification?: 'input' | 'export' | 'derived' | 'capture'
@@ -124,6 +131,7 @@ export async function saveExportToWorkspace(input: SaveToWorkspaceInput): Promis
     sha256,
   })
 
+  await input.onReserved?.(asset.id)
   // The signed URL is write-once; storage refuses a second PUT.
   await uploadWithProgress(uploadUrl, blob, input.onProgress)
 

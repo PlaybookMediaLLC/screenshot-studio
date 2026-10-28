@@ -537,7 +537,7 @@ function DraftToolbar({
       </ToolbarGroup>
       <ToolbarGroup>
         <FileButton
-          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
+          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
           inputRef={imageInput}
           label="Insert media"
           onFile={(file) => {

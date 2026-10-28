@@ -24,7 +24,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
-import { DraftRequestError, type DraftWire, draftsApi } from '@/lib/content-drafts/client'
+import { DraftRequestError, type DraftWire, call, draftsApi } from '@/lib/content-drafts/client'
 import type { BlockImages } from '@/lib/content-drafts/serialize'
 import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
@@ -181,6 +181,23 @@ export function ScheduleDialog({
     data.queue.map((item) => item.at)
   )
   const nextSlot = slots.find((slot) => !slot.busy)
+  // The backend's next free slot, shown and sent back with the schedule, so a
+  // queue that fills before confirming is refused instead of moving the post.
+  const [queueSlot, setQueueSlot] = React.useState<string | null>(null)
+  const [queueSeed] = React.useState(() => crypto.randomUUID())
+  const loadQueueSlot = React.useCallback(async () => {
+    if (!setId) return null
+    const { times } = await call<{ times: string[] }>('/api/v1/content-draft-batch/times', {
+      method: 'POST',
+      body: { socialSetId: setId, count: 1, mode: 'queue', seed: queueSeed },
+    })
+    setQueueSlot(times[0] ?? null)
+    return times[0] ?? null
+  }, [setId, queueSeed])
+  React.useEffect(() => {
+    if (queue) void loadQueueSlot().catch(() => setQueueSlot(null))
+  }, [queue, loadQueueSlot])
+  const shownSlot = queueSlot ?? nextSlot?.at
   const schedule = async () => {
     setAction('schedule')
     try {
@@ -189,7 +206,7 @@ export function ScheduleDialog({
         blockImages: await context.renderBlocks(),
         channelConnectionIds: context.items.map((item) => item.account.id),
         ...(queue
-          ? { queue: true }
+          ? { queue: true, expectedQueueSlot: queueSlot ?? (await loadQueueSlot()) ?? undefined }
           : { disambiguation: disambiguation ?? undefined, localTime: local, timeZone: zone }),
         naturalPostingTime: natural,
         version: context.versionRef.current,
@@ -205,6 +222,15 @@ export function ScheduleDialog({
       )
       onClose()
     } catch (error) {
+      if (queue && error instanceof DraftRequestError && /queue changed/i.test(error.message)) {
+        const next = await loadQueueSlot().catch(() => null)
+        toast.error(
+          next
+            ? `The queue changed before you confirmed. The next free slot is now ${new Date(next).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: zone })} (${zone}). Check it and schedule again.`
+            : 'The queue changed before you confirmed and has no free slot now. Pick a time instead.'
+        )
+        return
+      }
       toast.error(
         error instanceof DraftRequestError ? error.message : 'The draft could not be scheduled.'
       )
@@ -350,23 +376,23 @@ export function ScheduleDialog({
           <Button
             disabled={!data.advancedScheduling}
             aria-pressed={queue}
-            className={cn('rounded-full', queue && 'border-sky-400/60 text-sky-700 dark:text-sky-200')}
+            className={cn(
+              'rounded-full',
+              queue && 'border-sky-400/60 text-sky-700 dark:text-sky-200'
+            )}
             onClick={() => setQueue(!queue)}
             size="sm"
             type="button"
             variant="outline"
           >
             Next free slot
-            {nextSlot
-              ? ` · ${new Date(nextSlot.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}`
+            {shownSlot
+              ? ` · ${new Date(shownSlot).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}`
               : ' · none available'}
           </Button>
         </div>
         {data.advancedScheduling ? (
-          <details
-            className="rounded-lg border border-border p-3"
-            open={initialQueue || undefined}
-          >
+          <details className="rounded-lg border border-border p-3" open={initialQueue || undefined}>
             <summary className="cursor-pointer text-sm text-foreground">
               Advanced scheduling
             </summary>
@@ -506,9 +532,13 @@ export function ScheduleDialog({
               · {localZone.replaceAll('_', ' ')}
             </span>
           ) : null}
-          {natural && instant ? <span className="text-muted-foreground"> ± up to 4 minutes</span> : null}
+          {natural && instant ? (
+            <span className="text-muted-foreground"> ± up to 4 minutes</span>
+          ) : null}
         </p>
-        {past && !queue ? <p className="text-xs text-red-700 dark:text-red-300">That time has passed.</p> : null}
+        {past && !queue ? (
+          <p className="text-xs text-red-700 dark:text-red-300">That time has passed.</p>
+        ) : null}
         <Problems problems={problems} />
         <label className="flex items-center gap-2 text-xs">
           <input
@@ -519,7 +549,11 @@ export function ScheduleDialog({
           Open a new draft after scheduling
         </label>
         <DialogFooter className="flex-wrap gap-2">
-          {onPreview ? <Button onClick={onPreview} type="button" variant="outline">Preview</Button> : null}
+          {onPreview ? (
+            <Button onClick={onPreview} type="button" variant="outline">
+              Preview
+            </Button>
+          ) : null}
           {context.draft.plannedFor ? (
             <Button
               className="mr-auto"

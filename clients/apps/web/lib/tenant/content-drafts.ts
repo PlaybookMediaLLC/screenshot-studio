@@ -98,7 +98,7 @@ export async function deleteContentDraft(
 }
 
 /** A draft's post with its times as Dates. */
-function readPost(post: BackendContentDraftPost) {
+export function readPost(post: BackendContentDraftPost) {
   return {
     ...withDates(post),
     automations: (post.automations ?? []).map((automation) => ({
@@ -145,13 +145,54 @@ export async function prepareContentDraftSchedule(
     timeZone?: string
     baseCalendarVersion?: number
     version: number
+    /** Beside the draft's queued posts instead of replacing them. */
+    add?: boolean
   }
 ) {
-  const draft = await getContentDraft(context, id)
-  if (!draft) return null
   if (!input.publishNow && !input.queue && !input.localTime && !input.scheduledFor) {
     throw new ScheduledPostError('Pick a time, add the draft to the queue, or publish it now.', 400)
   }
+  const built = await draftTargets(context, id, input.channelConnectionIds, input.blockImages)
+  if (!built) return null
+  const targets = built.map(({ channel, problems, target }) => {
+    if (!target) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
+    if (problems.length > 0) throw new ScheduledPostError(`${channel}: ${problems.join(' ')}`, 409)
+    const legacy = input.options?.[target.channelConnectionId]
+    return {
+      ...target,
+      ...(legacy?.autoActions ? { autoActions: legacy.autoActions } : {}),
+      ...(!target.poll && legacy?.poll ? { poll: legacy.poll } : {}),
+    }
+  })
+  return {
+    add: input.add,
+    expectedQueueSlot: input.expectedQueueSlot,
+    disambiguation: input.disambiguation,
+    localTime: input.localTime,
+    naturalPostingTime: input.naturalPostingTime,
+    publishNow: input.publishNow,
+    queue: input.queue,
+    scheduledFor: input.scheduledFor,
+    targets,
+    timeZone: input.timeZone,
+    baseCalendarVersion: input.baseCalendarVersion,
+    version: input.version,
+  }
+}
+
+/**
+ * Each account's payload for the stored draft, or why it cannot take it:
+ * the same builder the composer previews with, for the account's standing.
+ * Null when the draft is not visible.
+ */
+export async function draftTargets(
+  context: OrganizationAccess,
+  id: string,
+  channelConnectionIds: string[],
+  blockImages?: (string | null)[]
+) {
+  const draft = await getContentDraft(context, id)
+  if (!draft) return null
   const [connections, sets] = await Promise.all([
     listBackendConnections(context),
     backendSDK(context).listSocialSets(),
@@ -165,10 +206,17 @@ export async function prepareContentDraftSchedule(
     draft.channelText as Partial<Record<DraftChannel, string>>,
     draft.body
   )
-  const targets = input.channelConnectionIds.map((channelConnectionId) => {
+  return channelConnectionIds.map((channelConnectionId) => {
     const platform = platforms.get(channelConnectionId)
     const channel = platform ? channelForPlatform(platform) : null
-    if (!channel) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
+    if (!channel)
+      return {
+        channel: platform ?? 'account',
+        channelConnectionId,
+        problems: ['This account cannot take a draft.'],
+        target: null,
+        version: draft.version,
+      }
     const { problems, target } = buildPublication(
       { ...draft, platformVersions: versions },
       {
@@ -182,31 +230,10 @@ export async function prepareContentDraftSchedule(
           mastodonQuotes: accounts.get(channelConnectionId)?.mastodonQuotes,
         },
       },
-      input.blockImages
+      blockImages
     )
-    if (problems.length > 0) {
-      throw new ScheduledPostError(`${channel}: ${problems.join(' ')}`, 409)
-    }
-    const legacy = input.options?.[channelConnectionId]
-    return {
-      ...target,
-      ...(legacy?.autoActions ? { autoActions: legacy.autoActions } : {}),
-      ...(!target.poll && legacy?.poll ? { poll: legacy.poll } : {}),
-    }
+    return { channel, channelConnectionId, problems, target, version: draft.version }
   })
-  return {
-    expectedQueueSlot: input.expectedQueueSlot,
-    disambiguation: input.disambiguation,
-    localTime: input.localTime,
-    naturalPostingTime: input.naturalPostingTime,
-    publishNow: input.publishNow,
-    queue: input.queue,
-    scheduledFor: input.scheduledFor,
-    targets,
-    timeZone: input.timeZone,
-    baseCalendarVersion: input.baseCalendarVersion,
-    version: input.version,
-  }
 }
 
 /** Schedule using the same preparation as a batch preflight. */

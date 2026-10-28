@@ -128,7 +128,6 @@ export async function loadWrite(
   ].sort((a, b) => a.at.localeCompare(b.at))
   return {
     activeSet: activeSet ?? null,
-    importStorageScope: `${tenant.organizationId}:${tenant.principal.kind === 'session' ? tenant.principal.userId : 'key'}`,
     advancedScheduling: advanced.allowed,
     experiments,
     library,

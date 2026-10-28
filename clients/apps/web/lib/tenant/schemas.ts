@@ -8,7 +8,7 @@ const contentTypeSchema = z
   .string()
   .trim()
   .regex(
-    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm)|font\/(woff2?|ttf|otf)|application\/pdf)$/,
+    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|quicktime|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm)|font\/(woff2?|ttf|otf)|application\/pdf)$/,
     'Unsupported media type.'
   )
 

@@ -108,6 +108,7 @@ test('library attachment keeps immutable media identity through writing serializ
   const image = draftAssetNode({ id, mediaType: 'image/png' })
   assert.equal(image.url, `/api/v1/assets/${id}/content`)
   assert.equal(image.type, 'img')
+  assert.equal(image.mimeType, 'image/png')
   assert.deepEqual(serializeDraft([image], 'linkedin').assetIds, [id])
   assert.equal(draftAssetNode({ id, mediaType: 'video/mp4' }).type, 'video')
   assert.equal(supportedDraftMedia('image/svg+xml'), false)

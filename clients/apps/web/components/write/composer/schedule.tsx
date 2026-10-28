@@ -575,7 +575,7 @@ export function ScheduleDialog({
             <span className="text-muted-foreground"> ± up to 4 minutes</span>
           ) : null}
         </p>
-        <ReplacedPosts context={context} />
+        <ReplacedPosts context={context} timeZone={zone} />
         {past && !queue ? <p className="text-xs text-red-700 dark:text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
         <label className="flex items-center gap-2 text-xs">
@@ -777,7 +777,7 @@ function Destinations({
  * destination: a schedule replaces them all, so a destination switched off
  * here is cancelled rather than left at its old time.
  */
-function ReplacedPosts({ context }: { context: ScheduleContext }) {
+function ReplacedPosts({ context, timeZone }: { context: ScheduleContext; timeZone: string }) {
   const { data } = useWrite()
   const scheduled = context.scheduled ?? []
   if (scheduled.length === 0) return null
@@ -810,6 +810,7 @@ function ReplacedPosts({ context }: { context: ScheduleContext }) {
                 {new Date(post.scheduledFor).toLocaleString(undefined, {
                   dateStyle: 'medium',
                   timeStyle: 'short',
+                  timeZone,
                 })}
               </span>
               {selected.has(post.channelConnectionId) ? (
@@ -958,7 +959,7 @@ export function PublishReview({
             )
           })}
         </ul>
-        <ReplacedPosts context={context} />
+        <ReplacedPosts context={context} timeZone={context.setTimeZone ?? 'UTC'} />
         <CommunityTimeline context={context} />
         {context.items.some((item) => item.account.channel === 'x') ? (
           <AutoDmDraft

@@ -457,15 +457,18 @@ export function PlanWorkspace({
           timeZone: prefs.zone,
         })}{' '}
         · {item.status}
-        {item.publishAt && new Date(item.publishAt).getTime() !== new Date(item.at).getTime()
-          ? ` · publishes ${new Date(item.publishAt).toLocaleTimeString(undefined, {
-              hour: 'numeric',
-              minute: '2-digit',
-              second: '2-digit',
-              timeZone: prefs.zone,
-            })}`
-          : ''}
       </span>
+      {item.publishAt && new Date(item.publishAt).getTime() !== new Date(item.at).getTime() ? (
+        <span className="block truncate text-muted-foreground" data-testid="calendar-publish-at">
+          publishes{' '}
+          {new Date(item.publishAt).toLocaleTimeString(undefined, {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: prefs.zone,
+          })}
+        </span>
+      ) : null}
       <strong className="block truncate">
         {sets.find((s) => s.id === item.setId)?.name ?? 'Account'}{' '}
         {prefs.platforms ? `· ${item.platform}` : ''}
@@ -1048,7 +1051,7 @@ export function PlanWorkspace({
                     candidate.id !== detail.id &&
                     candidate.setId === detail.setId &&
                     candidate.accountId === detail.accountId &&
-                    candidate.deliveryStatus === 'SCHEDULED' &&
+                    candidate.status === 'Scheduled' &&
                     !candidate.campaignId
                 )
               : []
@@ -1652,7 +1655,7 @@ function PlanDetail({
                 new Date(item.publishAt).getTime() !== new Date(item.at).getTime()
                   ? `Queue slot: ${new Date(item.at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short', timeZone: item.zone })} · `
                   : ''}
-                Publishes at:{' '}
+                Scheduled for:{' '}
                 {new Date(item.publishAt ?? item.at).toLocaleString(undefined, {
                   dateStyle: 'medium',
                   timeStyle: 'medium',

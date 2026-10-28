@@ -1,0 +1,200 @@
+# Scheduling reliability
+
+Audit and implementation: 28 October 2026. This document covers scheduling
+supported content from the composer, the Plan calendar and the batch dialog
+through the Go backend, PostgreSQL, the Temporal post workflow and the
+provider adapters. It records what was found, what changed, the failure
+model the code now implements, and how to verify it. It is not a
+live-provider certification; see [what was verified](#verification).
+
+## The path
+
+| Step | Owner | What it guarantees |
+| --- | --- | --- |
+| Review | `components/write/composer/schedule.tsx`, `components/plan/PlanWorkspace.tsx`, `components/write/bulk-schedule.tsx` | Content, destinations, the instant in its zone and offset, problems, and which queued posts a confirmation replaces |
+| Contract | `lib/api/contracts/content-drafts.ts`, `lib/tenant/content-drafts.ts`, backend SDK | Each destination's payload is built from the stored draft at the confirmed version |
+| Commit | `server/internal/product/content_draft_schedule.go` | One transaction: approval, eligibility, quota, one `scheduled_post` per destination, revision, audit and event |
+| Durable work | `server/internal/temporalpublishing` | `PostWorkflowV2` per post (`post_<id>`), started on commit and by the once-a-minute dispatcher |
+| Provider | `server/internal/social/tenantpublishing` | Media signed at send time; one provider mutation per attempt |
+| Receipt | `publishing.Repository.Complete` | `PUBLISHED` only with the provider's post ID on a succeeded `publication_attempt` |
+
+## States
+
+| State a person sees | Stored as | Meaning |
+| --- | --- | --- |
+| Draft | `content_draft` without `plannedFor` or posts | Nothing will publish |
+| Planned | `content_draft.plannedFor` | A calendar position only. No `scheduled_post` exists, so nothing publishes when the time passes |
+| Scheduled | `scheduled_post.status = SCHEDULED` | A durable publication job at `scheduledFor` |
+| Overdue | `SCHEDULED`, more than 5 minutes past `scheduledFor` | Its worker is behind; it still publishes if it starts within the late window |
+| Publishing | `PROCESSING` | A workflow claimed it; the provider call may be in flight |
+| Published | `PUBLISHED` with `remotePostId` and `publishedAt` | The provider confirmed it |
+| Failed | `FAILED` with `failureCode` | Definitively not published by this attempt; a person may retry |
+| Needs check | `UNKNOWN_DELIVERY` | The provider may have published it. Never retried until a person reconciles it |
+| Cancelled | `CANCELLED`, with `failureCode` when the worker cancelled it | Will not publish |
+
+Each destination is its own `scheduled_post` with its own state, attempts
+and receipt. A success on one destination never marks another.
+
+## Findings
+
+Each lead was reproduced with a failing test before it was fixed.
+
+| Finding | Evidence before the fix | Impact | Fix |
+| --- | --- | --- | --- |
+| The composer showed a client-guessed queue slot but sent only `queue: true` | `schedule.tsx` computed the slot from `upcomingSlots` and never sent `expectedQueueSlot` | The committed time could differ from the reviewed one with no warning | The dialog shows the backend's next free slot and sends it. The backend reserves exactly that slot or answers 409 `queue_slot_taken` with `nextQueueSlot`; the dialog shows the new slot and asks again |
+| A refused batch row moved every later queue row | The backend required the expected slot to equal the *next* free slot; with row 10 refused, row 11 conflicted, and so on | One failure blocked the rest of a 50-draft batch | The expected slot must be free and a real slot; it no longer has to be the first free one |
+| A retry at the same version with a different time replayed the old schedule | `replayDraftSchedule` matched only draft, destination and version | The person was told "Already scheduled" for a time they did not choose | Each post stores `scheduleIntent`, a fingerprint of the request's timing. A changed retry is a 409; the same retry replays. Posts queued before the column replay as before |
+| Concurrent identical submits failed | Two submits raced to the unique key; the loser got `publishing resource already exists` | A double click looked like a failure | Scheduling a draft takes a transaction advisory lock on it; the second submit waits, then replays |
+| The stored zone was always the set's | `SetScheduleTimeZone(set.TimeZone)` | A time chosen in another zone was shown in the wrong one | The zone the time was read in is stored |
+| The calendar placed a natural-time post at its slot and said nothing else | Cards and the detail used `slotAt ?? scheduledFor`; the detail called the slot the "publication instant" | The actual instant, up to four minutes off, was invisible | Cards keep their slot position and add "publishes 9:02:37"; the detail shows slot, instant and zone |
+| Calendar Unschedule cancelled every destination from one card | `MutateCalendar` cancels all of the draft's queued posts; the button said "Unschedule" | Cancelling one card silently cancelled other networks | The button names the scope ("Unschedule all 3 destinations") and the sheet lists them; per-destination cancel stays in the editor. Move already changed one destination and now says so |
+| Rescheduling replaced all queued destinations without saying so | `cancelLiveDraftPosts` cancels every queued post; the dialog did not list them | A destination switched off was cancelled unannounced | Schedule and Publish now list each queued post they replace and mark those that will be cancelled |
+| The calendar collapsed states | `PROCESSING` and `SCHEDULED` showed "Scheduled"; `UNKNOWN_DELIVERY` showed "Failed" | A post that may be live looked retryable | Planned, Scheduled, Overdue, Publishing, Published, Failed and Needs check, each filterable. The Write queue labels the same states and keeps overdue and unconfirmed posts from the last two days |
+| Withdrawn approval did not stop a timed post | The worker never re-checked draft approval; only Publish now did | A post a reviewer sent back still published | The worker re-checks approval for the post's scheduled version and cancels it as `APPROVAL_REQUIRED` |
+| Missing media cancelled a post with a generic reason | `CancelIneligible` with "workspace, connection, or approval…" | Not actionable | `FAILED` with `MEDIA_UNAVAILABLE`, nothing sent |
+| No late-publication policy | A post whose worker was down for days published when it came back | Stale posts could appear far from their moment | See [late publication](#late-publication) |
+| A receipt write could fail permanently | `Complete` had 3 attempts two minutes apart; then the workflow failed and the post stayed `PROCESSING` forever | A live post looked unpublished and nothing reconciled it | Outcome writes retry for 24 hours; the provider ID is logged first; a stalled post is settled (below) |
+| Nothing recovered a post stuck in `PROCESSING` | Recovery listed only `SCHEDULED` posts | A lost workflow left a permanent "Publishing" | The dispatcher settles posts whose workflow run has closed |
+| A failed workflow wakeup reported a failed schedule | The handler answered 503 after committing | People retried a schedule that had succeeded | The committed result is returned and the failure logged; the dispatcher starts the due post |
+
+## Scheduling identity
+
+- A post's idempotency key is `content-draft:<draft>:<connection>:v<version>`;
+  scheduling bumps the draft version, so a deliberate new schedule names the
+  new version and replaces the queued posts. Publish now and Reschedule are
+  separate, explicit actions.
+- A retry of the same version and the same timing replays the original posts
+  and charges nothing. The same version with other timing is a 409. A
+  request whose keys match only some existing posts is a 409.
+- Queue reservations hold the set's advisory lock for the transaction. Two
+  requests for one reviewed slot: one wins, the other gets 409 with the next
+  free slot. Nothing is moved silently. When rescheduling, the preview still
+  counts the draft's own queued slots as taken; the 409 after a conflict
+  does not, since the reschedule frees them. Either way the person confirms
+  the slot that is committed.
+- Quota is charged inside the scheduling transaction and refunded if it does
+  not commit. A replay charges nothing. Calendar moves never charge.
+  Rescheduling at a new version charges for the new posts, as before.
+- Calendar mutations keep their durable receipts, version checks and Undo.
+
+## Time zones
+
+The backend resolves a local time in its IANA zone, refuses a time the
+clocks skip and asks which of a repeated hour (`earlier` or `later`). Each
+post stores the UTC instant, the zone it was chosen in, its slot and its
+natural offset. Changing the calendar's display zone changes presentation
+only. A natural offset is derived from the draft, version and slot, so a
+retry or recovery lands on the same instant.
+
+## Failure model
+
+| Failure | Behavior | Test |
+| --- | --- | --- |
+| Validation fails | 4xx before any write; nothing scheduled or charged | `TestContentDraftScheduling`, batch case in `TestContentDraftScheduleReliability` |
+| Commit succeeds, workflow start fails | Committed result returned; the once-a-minute dispatcher starts the due post (`DispatchDue`, `ListRecoverablePosts`) | `TestScheduleContentDraftReportsCommittedPostsWhenWorkflowWakeupFails`, `TestRecoverablePostsAreDueScheduledPostsInsideTheWindow` |
+| Worker stops before the provider call | The post is `PROCESSING` without an open attempt. Once its run has closed, the sweep queues it again and it publishes once | `TestSchedulingThroughTemporal` "vanished before sending" |
+| Provider refuses (4xx, 5xx without ambiguity) | `FAILED` with the provider's status; no automatic retry | `TestSchedulingThroughTemporal` "refusal" |
+| Provider rate-limits (429) | Durable retry after `PUBLISHING_RETRY_DELAY`, up to `PUBLISHING_MAX_ATTEMPTS` | `TestSchedulingThroughTemporal` "rate limit" |
+| Response lost after the provider may have accepted | `UNKNOWN_DELIVERY`; retry refused until a person reconciles it as live (with its URL) or not live | `TestSchedulingThroughTemporal` "lost response" |
+| Provider accepted, receipt write fails | The write retries for 24 hours; the provider ID is in the worker log. If the run still closes, the sweep marks the post `UNKNOWN_DELIVERY`. It is never sent again | `TestSchedulingThroughTemporal` "receipt" |
+| Destination or approval becomes ineligible | `CANCELLED` with `ACCOUNT_UNAVAILABLE`, `APPROVAL_REQUIRED` or `WORKSPACE_INACTIVE`; nothing sent | `TestSchedulingThroughTemporal` "withdrawn approval", `TestPrepareSendsOnlyEligibleOnTimePosts` |
+| Media unavailable at send time | `FAILED` with `MEDIA_UNAVAILABLE`; nothing sent. A signing failure fails with 503, also before sending | `TestSchedulingThroughTemporal` "missing media" |
+| Worker down past the time | Overdue after 5 minutes; published late within the window; `MISSED_WINDOW` after it | `TestSchedulingThroughTemporal` "late window", `TestPrepareSendsOnlyEligibleOnTimePosts` |
+| Cancel races the provider call | The calendar refuses: "Publication has started or needs reconciliation"; the post finishes with its real result | `TestSchedulingThroughTemporal` "cancellation racing" |
+| Thread stops after its root | The root stays `PUBLISHED` with its receipt and thread progress; "Post the rest" continues from the last live reply | Existing `a stopped thread resumes` case |
+
+`PUBLISHED` always means a provider receipt. Shots does not promise
+exactly-once delivery: a provider that accepted a post and lost the response
+can leave a duplicate risk, which is why such posts wait for a person.
+
+### Late publication
+
+A post publishes late if its workflow starts it within one hour of
+`scheduledFor` (`temporalpublishing.LatePublicationWindow`). After that it
+is not sent: it fails as `MISSED_WINDOW` and the person publishes it now
+(Retry) or reschedules it. A 429 retry moves `scheduledFor`, so the window
+counts from the retry time. The card shows Overdue from five minutes late.
+
+### Stalled publications
+
+The `scheduled-posts` maintenance job first settles posts that have been
+`PROCESSING` for 15 minutes without progress and whose workflow run is no
+longer running in Temporal (a run ID Temporal never issued counts as not
+running). An open attempt means the provider may have been called, so the
+post becomes `UNKNOWN_DELIVERY` and operators are notified; no open attempt
+means nothing was sent, so it is queued again. A sweep failure is logged and
+never stops due posts from starting.
+
+## Batch scheduling
+
+The batch dialog takes up to 50 drafts from one publishing brand. It
+previews queue or Spread times, validates every draft without writing, shows
+each row's time and destinations, and asks before skipping blocked rows.
+Rows are scheduled one at a time with their previewed slot. A refused row
+stays blocked with its reason and can be previewed again without touching
+scheduled rows; a row without an answer is retried with the same request,
+which replays. All destinations of a draft share its time; per-destination
+times are not offered.
+
+## Data and rollout
+
+`20261102130000_scheduled_post_intent.sql` adds two nullable columns to
+`scheduled_post`: `scheduleIntent` and `failureCode`. Existing posts keep
+`NULL`, replay by key and keep their reasons on their attempts. No backfill.
+
+Deploy order: migration, then the API and worker together, then the web.
+An old web without `expectedQueueSlot` keeps the previous queue behavior.
+`PostWorkflowV2` histories recorded before this change replay on the new
+code (`TestPostWorkflowV2ReplaysHistoriesFromBeforeRecordRetries`); only
+activity options changed, which replay does not compare.
+
+Rollback: redeploy the previous API, worker and web. The two columns are
+ignored by older code and can stay. Posts that the new worker failed as
+`MISSED_WINDOW` or cancelled as `APPROVAL_REQUIRED` stay so; retry them by
+hand if wanted.
+
+Behavior changes to announce: turning on "Require approval" now stops
+queued, unapproved draft posts at their time, as the composer already says
+("This workspace approves drafts before they publish"); a post more than an
+hour late is no longer sent automatically.
+
+## Operations
+
+The worker logs, without credentials, signed URLs or post text:
+`publication starting` (post, platform, `lateSeconds`), `provider accepted
+publication` (post, platform, `remotePostId`), `publication missed its
+window`, `publication failed before sending`, `publication cancelled as
+ineligible`, and `stalled publication released`. `UNKNOWN_DELIVERY` emits
+the existing `post.publish_recovery_required` notification.
+
+Suggested targets to adopt after observing production, not current
+promises: 99% of due posts start within 2 minutes; zero posts `PROCESSING`
+for over 30 minutes; every `UNKNOWN_DELIVERY` reconciled within a day.
+
+## Verification
+
+Run from `server/` with disposable services (the native stack's Temporal
+dev server works):
+
+```bash
+export PUBLISHING_TEST_DATABASE_URL='postgresql://postgres@127.0.0.1:55432/shared_cutover_test?sslmode=disable'
+export PUBLISHING_TEST_TEMPORAL_ADDRESS=127.0.0.1:7233
+go test -count=1 ./internal/product -run 'TestContentDraftScheduleReliability|TestContentDraftScheduling|TestContentDraftPlatform|TestWritePublishing'
+go test -count=1 ./internal/temporalpublishing ./internal/httpapi ./internal/publishing
+```
+
+The interface was checked in the running app (`dev/native-stack`) with
+seeded posts in every state: calendar states and the natural-time instant,
+the unschedule scope, the composer's reviewed slot and replaced posts, the
+per-destination reasons, and a live conflict in which a second request took
+the reviewed slot and the dialog showed the next one. The native stack runs
+no publishing worker, so worker outcomes there were seeded in the database;
+the worker itself is covered by the Temporal test below.
+
+`TestSchedulingThroughTemporal` drives product scheduling, real PostgreSQL,
+`PostWorkflowV2` on a real Temporal server and an in-process fake provider.
+It needs `PUBLISHING_TEST_TEMPORAL_ADDRESS`, which CI does not set, so CI
+skips it. It proves application behavior, not provider delivery: no request
+reaches a social network, and it does not hold a post for 24 real hours.
+Live canaries remain as listed in
+[social publishing verification](../social-publishing-verification.md).

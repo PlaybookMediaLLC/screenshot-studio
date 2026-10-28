@@ -123,6 +123,7 @@ test(
     if (!(await dayButton.isVisible())) await nextMonth.click()
     await dayButton.click()
     await scheduleDialog.getByLabel('Time', { exact: true }).fill(local.slice(11))
+    await scheduleDialog.getByLabel('Open a new draft after scheduling').uncheck()
     await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
 
@@ -187,6 +188,7 @@ test(
     await page.keyboard.press('Escape')
 
     const dialog = await openSchedule(page)
+    await dialog.getByLabel('Open a new draft after scheduling').uncheck()
     await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     expect(await draftPosts(draftId)).toHaveLength(1)
@@ -352,6 +354,7 @@ test(
     await plug.getByLabel('Plug reply').fill('The full guide is on our blog.')
     await plug.getByRole('button', { name: 'Enable Auto-Plug' }).click()
     await expect(dialog.getByTestId('automation-auto-plug')).toContainText('At 25 likes')
+    await dialog.getByLabel('Open a new draft after scheduling').uncheck()
     await dialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
     const posts = await draftPosts(draftId)

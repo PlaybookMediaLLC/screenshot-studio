@@ -5,6 +5,7 @@ import { useStore } from 'zustand'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import {
   Select,
@@ -179,7 +180,9 @@ export function StoreGroupsLayer({
             onPointerDown={start}
             onDoubleClick={() => useCanvasUi.getState().editStore(id)}
           >
-            <button
+            <Button
+              variant="custom"
+              size={null}
               type="button"
               data-store-group-label
               className="absolute -top-6 left-0 flex max-w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-[11px] font-medium"
@@ -193,7 +196,7 @@ export function StoreGroupsLayer({
               <span className="opacity-70">
                 · {STORE_TARGETS.find((target) => target.id === item.targetId)?.shortName}
               </span>
-            </button>
+            </Button>
             <div
               className="absolute inset-0"
               style={{
@@ -263,7 +266,7 @@ export function StoreGroupPanel({
             Rename
           </Button>
         </form>
-        <label className="grid gap-1 text-xs text-muted-foreground">
+        <Label className="grid gap-1 text-xs text-muted-foreground">
           Device size on the canvas
           <Select
             value={item.targetId}
@@ -281,7 +284,7 @@ export function StoreGroupPanel({
               ))}
             </SelectContent>
           </Select>
-        </label>
+        </Label>
         <div className="grid grid-cols-2 gap-1">
           <Button size="sm" onClick={() => useCanvasUi.getState().editStore(id)}>
             {canEdit ? 'Edit screenshots' : 'Open screenshots'}

@@ -69,17 +69,19 @@ function List<T extends { id: string }>({
         const { title, detail } = render(item)
         return (
           <li key={item.id}>
-            <button
+            <Button
+              variant="custom"
+              size={null}
               type="button"
               disabled={disabled}
               onClick={() => onPick(item)}
-              className="w-full rounded-lg border border-transparent px-3 py-2 text-left text-sm hover:border-foreground/10 hover:bg-foreground/[0.04] focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+              className="w-full rounded-lg border border-transparent px-3 py-2 text-left text-sm hover:border-foreground/10 hover:bg-foreground/[0.04] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-ring disabled:opacity-50"
             >
               <span className="block truncate font-medium">{title}</span>
               {detail ? (
                 <span className="block truncate text-xs text-muted-foreground">{detail}</span>
               ) : null}
-            </button>
+            </Button>
           </li>
         )
       })}
@@ -266,16 +268,20 @@ export function ReleasePicker({
           : 'No recorded screenshots; you can add one after.'}
       </p>
       <div className="grid gap-1" role="group" aria-label="Release features">
-        <button
+        <Button
+          variant="custom"
+          size={null}
           type="button"
           disabled={disabled}
           onClick={() => onPick({ release: evidence, screenshotAssetIds: screenshots })}
           className={cn('rounded-lg border px-3 py-2 text-left text-sm hover:bg-foreground/[0.04]')}
         >
           Announce the whole release
-        </button>
+        </Button>
         {evidence.features.map((feature, index) => (
-          <button
+          <Button
+            variant="custom"
+            size={null}
             key={`${index}:${feature.title}`}
             type="button"
             disabled={disabled}
@@ -285,7 +291,7 @@ export function ReleasePicker({
             className="rounded-lg border px-3 py-2 text-left text-sm hover:bg-foreground/[0.04]"
           >
             {feature.title}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

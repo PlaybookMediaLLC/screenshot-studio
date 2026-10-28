@@ -9,6 +9,7 @@ import {
 } from '@/components/settings/social-sets/api'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/ui/date-picker'
 import {
   Dialog,
@@ -350,7 +351,7 @@ export function ScheduleDialog({
                     value={disambiguation ?? ''}
                   >
                     {(['earlier', 'later'] as const).map((option) => (
-                      <label className="flex items-center gap-2" key={option}>
+                      <Label className="flex items-center gap-2" key={option}>
                         <RadioGroupItem value={option} />
                         {option === 'earlier' ? 'The first' : 'The second'} (
                         {resolution[option].toLocaleTimeString(undefined, {
@@ -359,7 +360,7 @@ export function ScheduleDialog({
                           timeZoneName: 'short',
                         })}
                         )
-                      </label>
+                      </Label>
                     ))}
                   </RadioGroup>
                 </fieldset>
@@ -578,14 +579,13 @@ export function ScheduleDialog({
         <ReplacedPosts context={context} timeZone={zone} />
         {past && !queue ? <p className="text-xs text-red-700 dark:text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
+        <Label className="flex items-center gap-2 text-xs">
+          <Checkbox
             checked={continueWriting}
-            onChange={(event) => setContinueWriting(event.target.checked)}
+            onCheckedChange={(checked) => setContinueWriting(checked === true)}
           />
           Open a new draft after scheduling
-        </label>
+        </Label>
         <DialogFooter className="flex-wrap gap-2">
           {onPreview ? <Button onClick={onPreview} type="button" variant="outline">Preview</Button> : null}
           {context.draft.plannedFor ? (

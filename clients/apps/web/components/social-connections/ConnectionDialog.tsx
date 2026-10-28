@@ -270,14 +270,16 @@ export default function ConnectionDialog({
         close()
       }}
     >
-      <button
+      <Button
+        variant="custom"
+        size={null}
         aria-label={provider ? 'Back to platforms' : 'Close'}
         className="absolute right-3 top-3 grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
         onClick={close}
         type="button"
       >
         <X aria-hidden className="size-4" />
-      </button>
+      </Button>
       <DialogHeader className="pr-7">
         <DialogTitle ref={heading} tabIndex={-1} className="leading-snug outline-none">
           {provider

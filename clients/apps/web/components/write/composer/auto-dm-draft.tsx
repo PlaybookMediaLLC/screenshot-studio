@@ -1,7 +1,10 @@
 'use client'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Dialog,
@@ -78,30 +81,28 @@ export function AutoDmDraft({
               offer. Campaigns last four days; product caps are 30/minute, 100/hour, 500/day, and
               three active campaigns, subject to lower provider limits.
             </p>
-            <label>
+            <Label>
               Match
-              <select
+              <NativeSelect
                 aria-label="Auto-DM action matching"
                 value={form.match}
                 onChange={(event) =>
                   setForm({ ...form, match: event.target.value as AutoDm['match'] })
                 }
-                className="ml-2 border p-1"
               >
-                <option value="any">Any selected action</option>
-                <option value="all">All selected actions</option>
-              </select>
-            </label>
+                <NativeSelectOption value="any">Any selected action</NativeSelectOption>
+                <NativeSelectOption value="all">All selected actions</NativeSelectOption>
+              </NativeSelect>
+            </Label>
             {(['replies', 'reposts', 'requireFollow'] as const).map((key) => (
-              <label key={key} className="flex gap-2">
-                <input
-                  type="checkbox"
+              <Label key={key} className="flex gap-2">
+                <Checkbox
                   checked={form[key]}
-                  onChange={(event) =>
+                  onCheckedChange={(checked) =>
                     setForm({
                       ...form,
-                      [key]: event.target.checked,
-                      ...(key === 'replies' && !event.target.checked ? { replyText: '' } : {}),
+                      [key]: checked === true,
+                      ...(key === 'replies' && checked !== true ? { replyText: '' } : {}),
                     })
                   }
                 />
@@ -112,9 +113,9 @@ export function AutoDmDraft({
                     requireFollow: 'Must also follow this account',
                   }[key]
                 }
-              </label>
+              </Label>
             ))}
-            <label>
+            <Label className="block">
               Reply must contain
               <Input
                 disabled={!form.replies}
@@ -122,15 +123,15 @@ export function AutoDmDraft({
                 value={form.replyText ?? ''}
                 onChange={(event) => setForm({ ...form, replyText: event.target.value })}
               />
-            </label>
-            <label>
+            </Label>
+            <Label className="block">
               Direct message
               <Textarea
                 maxLength={10_000}
                 value={form.message}
                 onChange={(event) => setForm({ ...form, message: event.target.value })}
               />
-            </label>
+            </Label>
             <p className="text-xs">
               Variables: {'{{first_name}}, {{full_name}}, {{username}}, {{action}}, {{post_url}}'}.
               An opt-out instruction is appended. Following or engaging alone is not consent.

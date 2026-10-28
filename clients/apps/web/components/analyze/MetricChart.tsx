@@ -1,6 +1,16 @@
 'use client'
 
 import * as React from 'react'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import type { AnalyticsReport } from '@/lib/api/contracts/plan-analyze'
 import { chartPoints, formatValue } from '@/lib/analyze/report'
 
@@ -98,25 +108,25 @@ export function MetricChart({
       <details className="mt-3 text-sm">
         <summary>Chart data</summary>
         <div className="max-h-64 overflow-auto">
-          <table className="w-full">
-            <caption className="sr-only">Exact chart values</caption>
-            <thead>
-              <tr>
-                <th scope="col">Interval</th>
-                <th scope="col">Value</th>
-                <th scope="col">Observations</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="w-full">
+            <TableCaption className="sr-only">Exact chart values</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Interval</TableHead>
+                <TableHead scope="col">Value</TableHead>
+                <TableHead scope="col">Observations</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {points.map((p) => (
-                <tr key={p.at}>
-                  <th scope="row">{p.at}</th>
-                  <td>{formatValue(p.value)}</td>
-                  <td>{p.samples}</td>
-                </tr>
+                <TableRow key={p.at}>
+                  <TableHead scope="row">{p.at}</TableHead>
+                  <TableCell>{formatValue(p.value)}</TableCell>
+                  <TableCell>{p.samples}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </details>
     </figure>
@@ -136,9 +146,14 @@ export class ChartBoundary extends React.Component<
     return this.state.failed ? (
       <div role="alert">
         This chart could not render.{' '}
-        <button className="underline" onClick={() => this.setState({ failed: false })}>
+        <Button
+          variant="custom"
+          size={null}
+          className="underline"
+          onClick={() => this.setState({ failed: false })}
+        >
           Retry chart
-        </button>
+        </Button>
       </div>
     ) : (
       this.props.children

@@ -42,6 +42,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatch"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatchitem"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
@@ -188,6 +190,10 @@ type Client struct {
 	CommunicationRecipient *CommunicationRecipientClient
 	// ContentAngle is the client for interacting with the ContentAngle builders.
 	ContentAngle *ContentAngleClient
+	// ContentBatch is the client for interacting with the ContentBatch builders.
+	ContentBatch *ContentBatchClient
+	// ContentBatchItem is the client for interacting with the ContentBatchItem builders.
+	ContentBatchItem *ContentBatchItemClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
 	// ContentDraftFinisher is the client for interacting with the ContentDraftFinisher builders.
@@ -396,6 +402,8 @@ func (c *Client) init() {
 	c.CommunicationAttempt = NewCommunicationAttemptClient(c.config)
 	c.CommunicationRecipient = NewCommunicationRecipientClient(c.config)
 	c.ContentAngle = NewContentAngleClient(c.config)
+	c.ContentBatch = NewContentBatchClient(c.config)
+	c.ContentBatchItem = NewContentBatchItemClient(c.config)
 	c.ContentDraft = NewContentDraftClient(c.config)
 	c.ContentDraftFinisher = NewContentDraftFinisherClient(c.config)
 	c.ContentDraftRevision = NewContentDraftRevisionClient(c.config)
@@ -600,6 +608,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CommunicationAttempt:            NewCommunicationAttemptClient(cfg),
 		CommunicationRecipient:          NewCommunicationRecipientClient(cfg),
 		ContentAngle:                    NewContentAngleClient(cfg),
+		ContentBatch:                    NewContentBatchClient(cfg),
+		ContentBatchItem:                NewContentBatchItemClient(cfg),
 		ContentDraft:                    NewContentDraftClient(cfg),
 		ContentDraftFinisher:            NewContentDraftFinisherClient(cfg),
 		ContentDraftRevision:            NewContentDraftRevisionClient(cfg),
@@ -731,6 +741,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CommunicationAttempt:            NewCommunicationAttemptClient(cfg),
 		CommunicationRecipient:          NewCommunicationRecipientClient(cfg),
 		ContentAngle:                    NewContentAngleClient(cfg),
+		ContentBatch:                    NewContentBatchClient(cfg),
+		ContentBatchItem:                NewContentBatchItemClient(cfg),
 		ContentDraft:                    NewContentDraftClient(cfg),
 		ContentDraftFinisher:            NewContentDraftFinisherClient(cfg),
 		ContentDraftRevision:            NewContentDraftRevisionClient(cfg),
@@ -852,9 +864,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BrandProfile, c.CalendarMutation, c.Campaign, c.CampaignAsset,
 		c.CampaignPlan, c.CampaignPost, c.CampaignRevision, c.ChannelConnection,
 		c.CommunicationAttempt, c.CommunicationRecipient, c.ContentAngle,
-		c.ContentDraft, c.ContentDraftFinisher, c.ContentDraftRevision,
-		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
-		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.ContentBatch, c.ContentBatchItem, c.ContentDraft, c.ContentDraftFinisher,
+		c.ContentDraftRevision, c.ContentDraftSettings, c.ContentDraftTag,
+		c.Conversation, c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
@@ -896,9 +908,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BrandProfile, c.CalendarMutation, c.Campaign, c.CampaignAsset,
 		c.CampaignPlan, c.CampaignPost, c.CampaignRevision, c.ChannelConnection,
 		c.CommunicationAttempt, c.CommunicationRecipient, c.ContentAngle,
-		c.ContentDraft, c.ContentDraftFinisher, c.ContentDraftRevision,
-		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
-		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.ContentBatch, c.ContentBatchItem, c.ContentDraft, c.ContentDraftFinisher,
+		c.ContentDraftRevision, c.ContentDraftSettings, c.ContentDraftTag,
+		c.Conversation, c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
 		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
 		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
@@ -986,6 +998,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CommunicationRecipient.mutate(ctx, m)
 	case *ContentAngleMutation:
 		return c.ContentAngle.mutate(ctx, m)
+	case *ContentBatchMutation:
+		return c.ContentBatch.mutate(ctx, m)
+	case *ContentBatchItemMutation:
+		return c.ContentBatchItem.mutate(ctx, m)
 	case *ContentDraftMutation:
 		return c.ContentDraft.mutate(ctx, m)
 	case *ContentDraftFinisherMutation:
@@ -4797,6 +4813,272 @@ func (c *ContentAngleClient) mutate(ctx context.Context, m *ContentAngleMutation
 		return (&ContentAngleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ContentAngle mutation op: %q", m.Op())
+	}
+}
+
+// ContentBatchClient is a client for the ContentBatch schema.
+type ContentBatchClient struct {
+	config
+}
+
+// NewContentBatchClient returns a client for the ContentBatch from the given config.
+func NewContentBatchClient(c config) *ContentBatchClient {
+	return &ContentBatchClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentbatch.Hooks(f(g(h())))`.
+func (c *ContentBatchClient) Use(hooks ...Hook) {
+	c.hooks.ContentBatch = append(c.hooks.ContentBatch, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentbatch.Intercept(f(g(h())))`.
+func (c *ContentBatchClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentBatch = append(c.inters.ContentBatch, interceptors...)
+}
+
+// Create returns a builder for creating a ContentBatch entity.
+func (c *ContentBatchClient) Create() *ContentBatchCreate {
+	mutation := newContentBatchMutation(c.config, OpCreate)
+	return &ContentBatchCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentBatch entities.
+func (c *ContentBatchClient) CreateBulk(builders ...*ContentBatchCreate) *ContentBatchCreateBulk {
+	return &ContentBatchCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentBatchClient) MapCreateBulk(slice any, setFunc func(*ContentBatchCreate, int)) *ContentBatchCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentBatchCreateBulk{err: fmt.Errorf("calling to ContentBatchClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentBatchCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentBatchCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentBatch.
+func (c *ContentBatchClient) Update() *ContentBatchUpdate {
+	mutation := newContentBatchMutation(c.config, OpUpdate)
+	return &ContentBatchUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentBatchClient) UpdateOne(_m *ContentBatch) *ContentBatchUpdateOne {
+	mutation := newContentBatchMutation(c.config, OpUpdateOne, withContentBatch(_m))
+	return &ContentBatchUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentBatchClient) UpdateOneID(id string) *ContentBatchUpdateOne {
+	mutation := newContentBatchMutation(c.config, OpUpdateOne, withContentBatchID(id))
+	return &ContentBatchUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentBatch.
+func (c *ContentBatchClient) Delete() *ContentBatchDelete {
+	mutation := newContentBatchMutation(c.config, OpDelete)
+	return &ContentBatchDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentBatchClient) DeleteOne(_m *ContentBatch) *ContentBatchDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentBatchClient) DeleteOneID(id string) *ContentBatchDeleteOne {
+	builder := c.Delete().Where(contentbatch.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentBatchDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentBatch.
+func (c *ContentBatchClient) Query() *ContentBatchQuery {
+	return &ContentBatchQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentBatch},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentBatch entity by its id.
+func (c *ContentBatchClient) Get(ctx context.Context, id string) (*ContentBatch, error) {
+	return c.Query().Where(contentbatch.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentBatchClient) GetX(ctx context.Context, id string) *ContentBatch {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentBatchClient) Hooks() []Hook {
+	return c.hooks.ContentBatch
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentBatchClient) Interceptors() []Interceptor {
+	return c.inters.ContentBatch
+}
+
+func (c *ContentBatchClient) mutate(ctx context.Context, m *ContentBatchMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentBatchCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentBatchUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentBatchUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentBatchDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentBatch mutation op: %q", m.Op())
+	}
+}
+
+// ContentBatchItemClient is a client for the ContentBatchItem schema.
+type ContentBatchItemClient struct {
+	config
+}
+
+// NewContentBatchItemClient returns a client for the ContentBatchItem from the given config.
+func NewContentBatchItemClient(c config) *ContentBatchItemClient {
+	return &ContentBatchItemClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentbatchitem.Hooks(f(g(h())))`.
+func (c *ContentBatchItemClient) Use(hooks ...Hook) {
+	c.hooks.ContentBatchItem = append(c.hooks.ContentBatchItem, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentbatchitem.Intercept(f(g(h())))`.
+func (c *ContentBatchItemClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentBatchItem = append(c.inters.ContentBatchItem, interceptors...)
+}
+
+// Create returns a builder for creating a ContentBatchItem entity.
+func (c *ContentBatchItemClient) Create() *ContentBatchItemCreate {
+	mutation := newContentBatchItemMutation(c.config, OpCreate)
+	return &ContentBatchItemCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentBatchItem entities.
+func (c *ContentBatchItemClient) CreateBulk(builders ...*ContentBatchItemCreate) *ContentBatchItemCreateBulk {
+	return &ContentBatchItemCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentBatchItemClient) MapCreateBulk(slice any, setFunc func(*ContentBatchItemCreate, int)) *ContentBatchItemCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentBatchItemCreateBulk{err: fmt.Errorf("calling to ContentBatchItemClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentBatchItemCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentBatchItemCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentBatchItem.
+func (c *ContentBatchItemClient) Update() *ContentBatchItemUpdate {
+	mutation := newContentBatchItemMutation(c.config, OpUpdate)
+	return &ContentBatchItemUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentBatchItemClient) UpdateOne(_m *ContentBatchItem) *ContentBatchItemUpdateOne {
+	mutation := newContentBatchItemMutation(c.config, OpUpdateOne, withContentBatchItem(_m))
+	return &ContentBatchItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentBatchItemClient) UpdateOneID(id string) *ContentBatchItemUpdateOne {
+	mutation := newContentBatchItemMutation(c.config, OpUpdateOne, withContentBatchItemID(id))
+	return &ContentBatchItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentBatchItem.
+func (c *ContentBatchItemClient) Delete() *ContentBatchItemDelete {
+	mutation := newContentBatchItemMutation(c.config, OpDelete)
+	return &ContentBatchItemDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentBatchItemClient) DeleteOne(_m *ContentBatchItem) *ContentBatchItemDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentBatchItemClient) DeleteOneID(id string) *ContentBatchItemDeleteOne {
+	builder := c.Delete().Where(contentbatchitem.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentBatchItemDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentBatchItem.
+func (c *ContentBatchItemClient) Query() *ContentBatchItemQuery {
+	return &ContentBatchItemQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentBatchItem},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentBatchItem entity by its id.
+func (c *ContentBatchItemClient) Get(ctx context.Context, id string) (*ContentBatchItem, error) {
+	return c.Query().Where(contentbatchitem.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentBatchItemClient) GetX(ctx context.Context, id string) *ContentBatchItem {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentBatchItemClient) Hooks() []Hook {
+	return c.hooks.ContentBatchItem
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentBatchItemClient) Interceptors() []Interceptor {
+	return c.inters.ContentBatchItem
+}
+
+func (c *ContentBatchItemClient) mutate(ctx context.Context, m *ContentBatchItemMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentBatchItemCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentBatchItemUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentBatchItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentBatchItemDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentBatchItem mutation op: %q", m.Op())
 	}
 }
 
@@ -16193,19 +16475,20 @@ type (
 		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
 		BillingEntitlementEvent, BrandKit, BrandProfile, CalendarMutation, Campaign,
 		CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
-		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
-		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
-		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
-		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
-		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
-		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
-		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
-		PlatformCreativeSetVersion, PlatformDraftImport, PlatformNotificationDelivery,
-		PlatformNotificationInbox, PlatformNotificationPolicy,
-		PlatformNotificationPreference, PlatformNotificationSeenAction,
-		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentBatch,
+		ContentBatchItem, ContentDraft, ContentDraftFinisher, ContentDraftRevision,
+		ContentDraftSettings, ContentDraftTag, Conversation, ConversationMessage,
+		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
+		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
+		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
+		LaunchRunStep, Member, OnboardingRun, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformAutoDMCampaign, PlatformAutoDMDelivery, PlatformAutoDMOptOut,
+		PlatformAutoDMRecipient, PlatformCreativeSet, PlatformCreativeSetVersion,
+		PlatformDraftImport, PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformSocialMention,
 		PlatformSocialObservation, PlatformWorkspaceCreation, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
@@ -16225,19 +16508,20 @@ type (
 		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
 		BillingEntitlementEvent, BrandKit, BrandProfile, CalendarMutation, Campaign,
 		CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
-		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
-		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
-		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
-		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
-		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
-		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
-		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
-		PlatformCreativeSetVersion, PlatformDraftImport, PlatformNotificationDelivery,
-		PlatformNotificationInbox, PlatformNotificationPolicy,
-		PlatformNotificationPreference, PlatformNotificationSeenAction,
-		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentBatch,
+		ContentBatchItem, ContentDraft, ContentDraftFinisher, ContentDraftRevision,
+		ContentDraftSettings, ContentDraftTag, Conversation, ConversationMessage,
+		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
+		Design, EnrichmentRecord, GitHubInstallStart, GitHubInstallation,
+		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
+		LaunchRunStep, Member, OnboardingRun, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformAutoDMCampaign, PlatformAutoDMDelivery, PlatformAutoDMOptOut,
+		PlatformAutoDMRecipient, PlatformCreativeSet, PlatformCreativeSetVersion,
+		PlatformDraftImport, PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformSocialMention,
 		PlatformSocialObservation, PlatformWorkspaceCreation, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,

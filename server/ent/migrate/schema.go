@@ -842,6 +842,68 @@ var (
 			},
 		},
 	}
+	// ContentBatchColumns holds the columns for the "content_batch" table.
+	ContentBatchColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "socialSetId", Type: field.TypeString},
+		{Name: "createdByUserId", Type: field.TypeString, Nullable: true},
+		{Name: "title", Type: field.TypeString},
+		{Name: "archivedAt", Type: field.TypeTime, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentBatchTable holds the schema information for the "content_batch" table.
+	ContentBatchTable = &schema.Table{
+		Name:       "content_batch",
+		Columns:    ContentBatchColumns,
+		PrimaryKey: []*schema.Column{ContentBatchColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentbatch_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{ContentBatchColumns[1], ContentBatchColumns[6]},
+			},
+		},
+	}
+	// ContentBatchItemColumns holds the columns for the "content_batch_item" table.
+	ContentBatchItemColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "batchId", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "importKey", Type: field.TypeString},
+		{Name: "position", Type: field.TypeInt},
+		{Name: "caption", Type: field.TypeString, Default: ""},
+		{Name: "media", Type: field.TypeJSON},
+		{Name: "channelConnectionIds", Type: field.TypeJSON},
+		{Name: "timing", Type: field.TypeJSON},
+		{Name: "draftId", Type: field.TypeString, Nullable: true},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// ContentBatchItemTable holds the schema information for the "content_batch_item" table.
+	ContentBatchItemTable = &schema.Table{
+		Name:       "content_batch_item",
+		Columns:    ContentBatchItemColumns,
+		PrimaryKey: []*schema.Column{ContentBatchItemColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "contentbatchitem_batchId_importKey",
+				Unique:  true,
+				Columns: []*schema.Column{ContentBatchItemColumns[1], ContentBatchItemColumns[3]},
+			},
+			{
+				Name:    "contentbatchitem_batchId_position",
+				Unique:  false,
+				Columns: []*schema.Column{ContentBatchItemColumns[1], ContentBatchItemColumns[4]},
+			},
+			{
+				Name:    "contentbatchitem_draftId",
+				Unique:  true,
+				Columns: []*schema.Column{ContentBatchItemColumns[9]},
+			},
+		},
+	}
 	// ContentDraftColumns holds the columns for the "content_draft" table.
 	ContentDraftColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -3431,6 +3493,8 @@ var (
 		CommunicationAttemptTable,
 		CommunicationRecipientTable,
 		ContentAngleTable,
+		ContentBatchTable,
+		ContentBatchItemTable,
 		ContentDraftTable,
 		ContentDraftFinisherTable,
 		ContentDraftRevisionTable,
@@ -3601,6 +3665,12 @@ func init() {
 	}
 	ContentAngleTable.Annotation = &entsql.Annotation{
 		Table: "content_angle",
+	}
+	ContentBatchTable.Annotation = &entsql.Annotation{
+		Table: "content_batch",
+	}
+	ContentBatchItemTable.Annotation = &entsql.Annotation{
+		Table: "content_batch_item",
 	}
 	ContentDraftTable.Annotation = &entsql.Annotation{
 		Table: "content_draft",

@@ -87,6 +87,12 @@ type CommunicationRecipient func(*sql.Selector)
 // ContentAngle is the predicate function for contentangle builders.
 type ContentAngle func(*sql.Selector)
 
+// ContentBatch is the predicate function for contentbatch builders.
+type ContentBatch func(*sql.Selector)
+
+// ContentBatchItem is the predicate function for contentbatchitem builders.
+type ContentBatchItem func(*sql.Selector)
+
 // ContentDraft is the predicate function for contentdraft builders.
 type ContentDraft func(*sql.Selector)
 

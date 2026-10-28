@@ -686,6 +686,21 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err != nil {
 		return nil, err
 	}
+	// Share-lock the media so a concurrent deletion waits and then sees these posts.
+	media := slices.Clone(draft.AssetIds)
+	for _, target := range input.Targets {
+		media = append(media, target.AssetIDs...)
+		for _, reply := range target.Replies {
+			media = append(media, reply.AssetIDs...)
+		}
+		if target.Options != nil {
+			media = append(media, target.Options.DocumentAssetID, target.Options.ArticleCoverAssetID)
+		}
+	}
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM asset WHERE "organizationId"=$1 AND id = ANY($2::text[]) FOR SHARE`,
+		actor.OrganizationID, "{"+strings.Join(slices.DeleteFunc(media, func(id string) bool { return !contentDraftRefPattern.MatchString(id) }), ",")+"}"); err != nil {
+		return nil, err
+	}
 	if replay, err := replayDraftSchedule(ctx, tx, draft, input); err != nil || replay != nil {
 		if err != nil {
 			return nil, err

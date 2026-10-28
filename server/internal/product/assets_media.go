@@ -147,17 +147,6 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if input.Bytes > medialimits.UploadBytes(input.ContentType, plan) {
 		return nil, invalid("The file exceeds this plan’s media upload limit.")
 	}
-	used, err := c.client.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID),
-		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
-		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
-	}).Int(ctx)
-	if err != nil {
-		return nil, err
-	}
-	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
-	if int64(used)+int64(input.Bytes) > limits[plan] {
-		return nil, ErrStorageQuota
-	}
 	var parent *ent.Asset
 	if input.ParentAssetID != "" {
 		parent, err = c.client.Asset.Query().Where(asset.ID(input.ParentAssetID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
@@ -179,6 +168,9 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := reserveStorage(ctx, tx, actor.OrganizationID, plan, input.Bytes); err != nil {
+		return nil, err
+	}
 	create := tx.Asset.Create().SetID(id).SetOrganizationID(actor.OrganizationID).
 		SetObjectKey(key).SetMediaType(input.ContentType).SetBytes(input.Bytes)
 	if input.SHA256 != nil {
@@ -206,6 +198,35 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 		return nil, err
 	}
 	return &AssetUploadResult{Asset: recordAsset(row.Unwrap()), UploadURL: url}, nil
+}
+
+// storageLimits are each plan's stored bytes, counting reserved and failed
+// uploads until maintenance removes them.
+var storageLimits = map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
+
+func storageUsed(ctx context.Context, client *ent.Client, organizationID string) (int64, error) {
+	used, err := client.Asset.Query().Where(asset.OrganizationID(organizationID),
+		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
+		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
+	}).Int(ctx)
+	return int64(used), err
+}
+
+// reserveStorage counts the workspace's bytes and admits this many more under
+// a per-workspace lock held until the transaction ends, so concurrent uploads
+// cannot each see room that only one of them has.
+func reserveStorage(ctx context.Context, tx *ent.Tx, organizationID, plan string, bytes int) error {
+	if _, err := tx.PlatformExec(ctx, `SELECT pg_advisory_xact_lock(hashtext('asset-storage:' || $1))`, organizationID); err != nil {
+		return err
+	}
+	used, err := storageUsed(ctx, tx.Client(), organizationID)
+	if err != nil {
+		return err
+	}
+	if used+int64(bytes) > storageLimits[plan] {
+		return ErrStorageQuota
+	}
+	return nil
 }
 
 func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, assetID string, sha256 *string) (*AssetRecord, error) {
@@ -432,15 +453,10 @@ func (c *Configuration) storeGeneratedAsset(ctx context.Context, actor Actor, in
 	if len(input.Body) > medialimits.UploadBytes(input.ContentType, plan) {
 		return nil, invalid("The file exceeds this plan’s media upload limit.")
 	}
-	used, err := c.client.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID),
-		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
-		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
-	}).Int(ctx)
-	if err != nil {
+	// Refuse early without a lock; reserveStorage decides under it.
+	if used, err := storageUsed(ctx, c.client, actor.OrganizationID); err != nil {
 		return nil, err
-	}
-	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
-	if int64(used)+int64(len(input.Body)) > limits[plan] {
+	} else if used+int64(len(input.Body)) > storageLimits[plan] {
 		return nil, ErrStorageQuota
 	}
 	id := uuid.NewString()
@@ -464,6 +480,9 @@ func (c *Configuration) storeGeneratedAsset(ctx context.Context, actor Actor, in
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := reserveStorage(ctx, tx, actor.OrganizationID, plan, len(input.Body)); err != nil {
+		return nil, err
+	}
 	create := tx.Asset.Create().SetID(id).SetOrganizationID(actor.OrganizationID).
 		SetObjectKey(key).SetMediaType(input.ContentType).SetBytes(len(input.Body)).
 		SetSha256(fmt.Sprintf("%x", sha256.Sum256(input.Body))).SetStatus(asset.StatusUPLOADED).

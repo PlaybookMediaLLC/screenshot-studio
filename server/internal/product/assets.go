@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	entsql "entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/auditlog"
@@ -241,6 +242,15 @@ func (c *Configuration) DeleteAsset(ctx context.Context, actor Actor, assetID st
 		return "", err
 	}
 	if variantCount > 0 {
+		return AssetInUse, nil
+	}
+	// A draft, a post that has not finished, or a bulk batch still needs it.
+	var needed bool
+	if err := tx.Client().PlatformQuery(ctx, `SELECT platform_asset_in_use_v1($1, $2, false)`, []any{actor.OrganizationID, current.ID},
+		func(row entsql.ColumnScanner) error { return row.Scan(&needed) }); err != nil {
+		return "", err
+	}
+	if needed {
 		return AssetInUse, nil
 	}
 	changed, err := tx.Asset.Update().Where(asset.ID(current.ID), asset.OrganizationID(actor.OrganizationID),

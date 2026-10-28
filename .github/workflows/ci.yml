@@ -315,6 +315,7 @@ jobs:
         if: matrix.shard_index == 1
         working-directory: clients
         run: |
+          (cd .. && timeout 300 ./dev/studio e2e test/e2e/ai-agents.spec.ts --retries=0 --grep "owner creates" --timeout=60000) || true
           node ../.github/debug/hmr-probe.cjs || true
           docker compose --env-file ../.local/dev.env --file ../dev/compose.yaml logs app --tail 60 --no-color || true
           docker exec screenshot-studio-app-1 sh -c 'cat /proc/sys/fs/inotify/max_user_watches /proc/sys/fs/inotify/max_user_instances; ls -la /workspace/clients/apps/web | head -40' || true

@@ -153,7 +153,7 @@ test('publishing brands keep their own names, schedules and settings beside the 
   await withDraftWorkspace(identity, page, async () => {
     await page.goto('/workspace/social-sets')
     await expect(
-      page.getByRole('heading', { exact: true, level: 2, name: 'Publishing brands' })
+      page.getByRole('heading', { exact: true, level: 1, name: 'Publishing brands' })
     ).toBeVisible()
 
     // Two sets may share a name; each is its own by ID.

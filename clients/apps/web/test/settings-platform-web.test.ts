@@ -6,6 +6,7 @@ import {
   findSocialSetPage,
   SETTING_GROUPS,
   SETTINGS_SECTIONS,
+  settingsSectionAt,
   socialSetHref,
 } from '@/components/workspace/settings-sections'
 import {
@@ -95,6 +96,12 @@ test('settings sections are grouped and each has its own address', () => {
   assert.equal(socialSetHref('set1', 'scheduling'), '/workspace/social-sets/set1/scheduling')
   assert.equal(findSocialSetPage(undefined), 'general')
   assert.equal(findSocialSetPage('nope'), undefined)
+  // The settings sidebar lights the section a path is under.
+  assert.equal(settingsSectionAt('/workspace')?.id, 'general')
+  assert.equal(settingsSectionAt('/workspace/billing')?.id, 'billing')
+  assert.equal(settingsSectionAt('/workspace/social-sets/set1/scheduling')?.id, 'social-sets')
+  assert.equal(settingsSectionAt('/workspace/nope'), undefined)
+  assert.equal(settingsSectionAt('/home'), undefined)
 })
 
 test('a writing sample cannot close the fence it is quoted in', async () => {

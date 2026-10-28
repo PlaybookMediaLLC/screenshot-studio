@@ -45,10 +45,11 @@ Test evidence used below:
 1. **Required.** One hierarchy (Personal, Workspace, Publishing identities),
    addressable URLs, back and forward, deep links, composer access that keeps
    unsaved work, and every UI state.
-2. **Built.** `components/workspace/settings-sections.ts` groups 23 sections;
+2. **Built.** `components/workspace/settings-sections.ts` groups 22 sections;
    each has its own route under `/workspace`, and social sets nest as
    `/workspace/social-sets/{id}/{page}`. `components/settings/SettingsNav.tsx`
-   is the in-page navigation. The composer opens a set's settings in a drawer
+   replaces the sidebar destinations on settings pages, as in Polar. The
+   composer opens a set's settings in a drawer
    named in the address (`?settings=scheduling`), so the editor never unmounts,
    and it flushes pending edits before leaving the page.
 3. **Verified.** E2E: back and forward between sections; the drawer opens from

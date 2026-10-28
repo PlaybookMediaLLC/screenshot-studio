@@ -226,10 +226,10 @@ export async function enableTwoFactor(page: Page, password: string): Promise<Two
 }
 
 export async function openWorkspaceSetting(page: Page, name: string): Promise<void> {
-  // The sidebar is an icon rail whose settings open in a flyout, so go to the
-  // section's own route rather than clicking through the menu.
+  // Go to the section's own route; the compact rail names its links only in
+  // tooltips, so clicking through the sidebar depends on the layout.
   const section = SETTINGS_SECTIONS.find((candidate) => candidate.title === name)
   if (!section) throw new Error(`No workspace settings section is titled ${name}.`)
   await page.goto(settingsHref(section), { timeout: 45_000, waitUntil: 'load' })
-  await expect(page.getByRole('heading', { exact: true, level: 2, name })).toBeVisible()
+  await expect(page.getByRole('heading', { exact: true, level: 1, name })).toBeVisible()
 }

@@ -6,7 +6,7 @@
 @source "../components";
 @source "../hooks";
 @source "../lib";
-@source "../packages/platejs-editor/src";
+@source "../../../packages/platejs-editor/src";
 
 /* SF Pro Display - Local Font */
 @font-face {

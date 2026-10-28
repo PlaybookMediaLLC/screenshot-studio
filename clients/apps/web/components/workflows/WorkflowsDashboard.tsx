@@ -4,7 +4,7 @@ import { SearchIcon as Search01Icon } from '@/components/platform-shell/icons'
 import { AutomateScene } from '@/components/platform-ui/empty-scenes'
 import { AutomateIcon as WorkflowSquare03Icon } from '@/components/platform-shell/icons'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNotificationPageVisible } from '@/lib/notifications/client'
@@ -56,6 +56,7 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
   const client = useTRPCClient()
   const params = useSearchParams()
   const pathname = usePathname()
+  const router = useRouter()
   useEffect(() => {
     if (
       (window.location.hash !== '#sources' && !params.has('github')) ||
@@ -64,8 +65,10 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
       return
     const next = new URLSearchParams(params.toString())
     next.set('view', 'sources')
-    window.history.replaceState(null, '', `${pathname}?${next}#sources`)
-  }, [params, pathname])
+    // On first load this effect runs before the app router patches history,
+    // so a plain replaceState would change the address but not the view.
+    router.replace(`${pathname}?${next}#sources`, { scroll: false })
+  }, [params, pathname, router])
   const trpc = useTRPC()
   const overviewQuery = useQuery(
     trpc.releaseAutomation.overview.queryOptions(undefined, {

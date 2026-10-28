@@ -1,10 +1,7 @@
-import { chooseOption } from './framework/browser'
+import { chooseOption, type Download, expect, type Locator, type Page, test } from './framework'
 import { readFile } from 'node:fs/promises'
-import type { Download, Locator, Page } from '@playwright/test'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const SCREENSHOTS = [
   'public/demo/notion-showcase.webp',
@@ -98,11 +95,11 @@ async function nextThumbnail(button: Locator, previous: string): Promise<string>
 }
 
 test('framed screenshots compose, preview, and export the same everywhere (Workflow F)', async ({
-  identity,
+  app,
   page,
 }) => {
   test.setTimeout(480_000)
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await expect(
     page.getByText('Drag & drop, click to browse, or paste', { exact: true })
   ).toBeVisible()

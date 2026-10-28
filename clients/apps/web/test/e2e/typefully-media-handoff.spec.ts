@@ -1,29 +1,17 @@
 import sharp from 'sharp'
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import {
-  createDraftWorkspace,
-  draftEditor,
-  expectSaved,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
+import { apiRequest, draftEditor, expect, expectSaved, test } from './framework'
 import { importedBody } from '@/lib/write/import-text'
 
-configureE2EFlow()
 test.use({ actionTimeout: 30_000 })
 
-test('a framed workspace export returns to its draft for explicit attachment', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
-    await page.goto('/write')
+test(
+  'a framed workspace export returns to its draft for explicit attachment',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await startWorkspace({ channels: ['x', 'linkedin'] })
+    await app.open('/write')
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     const png = await sharp({
       create: { width: 640, height: 360, channels: 3, background: '#e5eef8' },
@@ -96,20 +84,14 @@ test('a framed workspace export returns to its draft for explicit attachment', a
     await editor.screenshot({ path: '.context/shots/typefully-frame-handoff.png' })
     expect(errors).toEqual([])
     await editor.close()
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('dragging a thread post preserves its contents and ordering after refresh', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'dragging a thread post preserves its contents and ordering after refresh',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
     const created = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {
@@ -121,7 +103,7 @@ test('dragging a thread post preserves its contents and ordering after refresh',
     })
     expect(created.status).toBe(201)
     await page.setViewportSize({ width: 1600, height: 1000 })
-    await page.goto(`/write/${(created.body as { id: string }).id}`)
+    await app.open(`/write/${(created.body as { id: string }).id}`)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     const resize = page.getByRole('separator', { name: 'Resize preview sidebar' })
     const initialWidth = Number(await resize.getAttribute('aria-valuenow'))
@@ -134,6 +116,7 @@ test('dragging a thread post preserves its contents and ordering after refresh',
     await expect
       .poll(async () => {
         const before = JSON.stringify(await resize.boundingBox())
+        // eslint-disable-next-line no-restricted-syntax -- Two measurements a moment apart prove the handle stopped moving.
         await page.waitForTimeout(200)
         return before === JSON.stringify(await resize.boundingBox())
       })
@@ -150,10 +133,7 @@ test('dragging a thread post preserves its contents and ordering after refresh',
       .dragTo(page.locator('[data-post-number="3"]'))
     await expect(draftEditor(page)).toContainText(/Second[\s\S]*Third[\s\S]*First/)
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(draftEditor(page)).toContainText(/Second[\s\S]*Third[\s\S]*First/)
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

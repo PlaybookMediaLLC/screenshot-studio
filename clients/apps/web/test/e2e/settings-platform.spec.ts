@@ -1,63 +1,36 @@
-import { type Page } from '@playwright/test'
-import { openWorkspaceSetting, signUpAndCreateWorkspace } from './framework/auth'
 import {
-  createDraftWorkspace,
-  type DraftWorkspace,
+  createWorkspace,
+  apiRequest,
+  chooseOption,
+  db,
   draftEditor,
+  expect,
   expectSaved,
   openNewDraft,
-} from './framework/content-drafts'
-import { chooseOption } from './framework/controls'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
+  openWorkspaceSetting,
+  test,
+} from './framework'
 import { socialSetSchema } from '../../lib/api/contracts/social-sets'
-import { createE2EDatabase, queryRow } from './framework/services'
-
-configureE2EFlow()
-
-// RFC 024: settings a person, a workspace and a social set own. Every change
-// is checked after a reload, so a save the server did not keep fails here.
-
-async function withDraftWorkspace(
-  identity: Parameters<typeof createDraftWorkspace>[0],
-  page: Page,
-  run: (workspace: DraftWorkspace) => Promise<void>
-): Promise<void> {
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x', 'linkedin'])
-    await run(workspace)
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
-  }
-}
 
 async function slotCount(setId: string): Promise<number> {
-  const database = createE2EDatabase()
-  try {
-    const row = await queryRow<{ count: number }>(
-      database,
-      `SELECT jsonb_array_length("postingSlots")::int AS count FROM social_set WHERE id = $1`,
-      [setId]
-    )
-    return row?.count ?? -1
-  } finally {
-    await database.end()
-  }
+  const row = await db.row<{ count: number }>(
+    `SELECT jsonb_array_length("postingSlots")::int AS count FROM social_set WHERE id = $1`,
+    [setId]
+  )
+  return row?.count ?? -1
 }
 
 test('personal settings are addressable, saved on the server and survive a reload', async ({
+  app,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-
+  await createWorkspace(identity, page)
   await openWorkspaceSetting(page, 'Appearance')
   await page.getByRole('radio', { name: /^Light/ }).check()
   await expect(page.locator('html')).toHaveClass(/\blight\b/)
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-  await page.reload()
+  await app.reload()
   await expect(page.getByRole('radio', { name: /^Light/ })).toBeChecked()
   await expect(page.locator('html')).toHaveClass(/\blight\b/)
   await page.getByRole('radio', { name: /^Sunday/ }).check()
@@ -87,7 +60,7 @@ test('personal settings are addressable, saved on the server and survive a reloa
   await expect(email).toBeChecked()
   await email.click()
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-  await page.reload()
+  await app.reload()
   await expect(page.getByRole('switch', { name: 'Email notifications' })).not.toBeChecked()
   await expect(
     page.getByText('No personal Slack account connected.', { exact: true })
@@ -102,7 +75,7 @@ test('personal settings are addressable, saved on the server and survive a reloa
   )
   await page.getByRole('button', { name: 'Save time zone', exact: true }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-  await page.reload()
+  await app.reload()
   await expect(
     page.getByRole('combobox', { exact: true, name: 'Display time zone' })
   ).toContainText('Asia/Tokyo')
@@ -114,15 +87,16 @@ test('personal settings are addressable, saved on the server and survive a reloa
   const tags = page.getByRole('switch', { name: /^Draft tags/ })
   await tags.click()
   await expect(tags).toBeChecked()
-  await page.reload()
+  await app.reload()
   await expect(page.getByRole('switch', { name: /^Draft tags/ })).toBeChecked()
 })
 
 test('a webhook secret shows once, and private addresses are refused', async ({
+  app,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await createWorkspace(identity, page)
   await openWorkspaceSetting(page, 'Developer API')
   await page.getByRole('button', { name: 'Add webhook' }).click()
   await page.getByPlaceholder('Zapier').fill('Refused')
@@ -141,18 +115,19 @@ test('a webhook secret shows once, and private addresses are refused', async ({
   const secret = (await page.locator('code', { hasText: /^whsec_/ }).textContent()) ?? ''
   expect(secret).toMatch(/^whsec_/)
 
-  await page.reload()
+  await app.reload()
   await expect(page.getByText('Receiver')).toBeVisible()
   await expect(notice).toHaveCount(0)
   await expect(page.getByText(secret)).toHaveCount(0)
 })
 
-test('publishing brands keep their own names, schedules and settings beside the composer', async ({
-  identity,
-  page,
-}) => {
-  await withDraftWorkspace(identity, page, async () => {
-    await page.goto('/workspace/social-sets')
+test(
+  'publishing brands keep their own names, schedules and settings beside the composer',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
+
+    await app.open('/workspace/social-sets')
     await expect(
       page.getByRole('heading', { exact: true, level: 1, name: 'Publishing brands' })
     ).toBeVisible()
@@ -172,7 +147,7 @@ test('publishing brands keep their own names, schedules and settings beside the 
 
     // A new set posts weekdays at 9:00. A second weekday time makes two rows
     // of five: ten weekly slots, as the server saved them.
-    await page.goto(`/workspace/social-sets/${setId}/scheduling`)
+    await app.open(`/workspace/social-sets/${setId}/scheduling`)
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('5 weekly posting slots')
     await page.getByLabel('Search scheduling time zone').fill('Paris')
     await chooseOption(
@@ -184,13 +159,13 @@ test('publishing brands keep their own names, schedules and settings beside the 
     await page.getByRole('button', { name: 'Add time' }).click()
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('10 weekly posting slots')
     await expect.poll(() => slotCount(setId)).toBe(10)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('weekly-slot-count')).toHaveText('10 weekly posting slots')
     await expect(
       page.getByRole('combobox', { exact: true, name: 'Scheduling time zone' })
     ).toContainText('Europe/Paris')
 
-    await page.goto('/workspace/brand-kit')
+    await app.open('/workspace/brand-kit')
     await page
       .getByLabel('Product description', { exact: true })
       .fill('Social publishing for teams')
@@ -198,24 +173,24 @@ test('publishing brands keep their own names, schedules and settings beside the 
     await page.getByLabel('Tone', { exact: true }).fill('Direct and concrete')
     await page.getByRole('button', { name: 'Save brand voice', exact: true }).click()
     await expect(page.getByText('Brand voice saved.', { exact: true })).toBeVisible()
-    await page.goto(`/workspace/social-sets/${setId}/writing-assistant`)
+    await app.open(`/workspace/social-sets/${setId}/writing-assistant`)
     await expect(page.getByText(/Workspace default: Direct and concrete/)).toBeVisible()
     await page.getByLabel('Tone', { exact: true }).fill('Playful')
     await page.getByRole('button', { name: 'Save style guide', exact: true }).click()
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-    await page.reload()
+    await app.reload()
     const tone = page.getByLabel('Tone', { exact: true })
     await expect(tone).toHaveValue('Playful')
     await tone.locator('..').getByRole('button', { name: 'Reset to workspace default' }).click()
     await page.getByRole('button', { name: 'Save style guide', exact: true }).click()
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-    await page.reload()
+    await app.reload()
     await expect(tone).toHaveValue('')
     await expect(page.getByText(/Workspace default: Direct and concrete/)).toBeVisible()
 
     // Settings open beside a draft without losing what was typed, and the
     // editor runs text in the direction Appearance chose.
-    await page.goto('/workspace/appearance')
+    await app.open('/workspace/appearance')
     await page.getByRole('radio', { name: /^Right to left/ }).check()
     await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
     await openNewDraft(page)
@@ -229,49 +204,51 @@ test('publishing brands keep their own names, schedules and settings beside the 
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(draftEditor(page)).toContainText('Unsaved thought stays put')
     await expectSaved(page)
-  })
-})
+  }
+)
 
 test('a public profile is served only while it is turned on', async ({
+  app,
   browser,
   identity,
   page,
+  startWorkspace,
 }) => {
-  await withDraftWorkspace(identity, page, async () => {
-    await page.goto('/workspace/social-sets')
-    await page
-      .getByRole('link', { name: /^Settings for / })
-      .first()
-      .click()
-    await page.waitForURL(/\/workspace\/social-sets\/[a-z0-9]+/)
-    const setId = new URL(page.url()).pathname.split('/')[3] ?? ''
-    await page.goto(`/workspace/social-sets/${setId}/public-profile`)
-    const toggle = page.getByRole('switch', { name: 'Make profile public' })
+  await startWorkspace({ channels: ['x', 'linkedin'] })
+
+  await app.open('/workspace/social-sets')
+  await page
+    .getByRole('link', { name: /^Settings for / })
+    .first()
+    .click()
+  await page.waitForURL(/\/workspace\/social-sets\/[a-z0-9]+/)
+  const setId = new URL(page.url()).pathname.split('/')[3] ?? ''
+  await app.open(`/workspace/social-sets/${setId}/public-profile`)
+  const toggle = page.getByRole('switch', { name: 'Make profile public' })
+  await toggle.click()
+  await expect(toggle).toBeChecked()
+  const address = (await page.locator('code', { hasText: '/p/' }).textContent()) ?? ''
+  expect(address).toMatch(/\/p\/[0-9a-f]{24}$/)
+  const path = new URL(address).pathname
+
+  const visitor = await browser.newContext()
+  try {
+    const anonymous = await visitor.newPage()
+    const shown = await anonymous.goto(path)
+    expect(shown?.status()).toBe(200)
+    // The default set is named after the workspace; only public identity shows.
+    await expect(
+      anonymous.getByRole('heading', { level: 1, name: identity.workspaceName })
+    ).toBeVisible()
+    // Handles come from the social API the first time the set is listed.
+    await expect(anonymous.getByText('@shots_x')).toBeVisible()
+
     await toggle.click()
-    await expect(toggle).toBeChecked()
-    const address = (await page.locator('code', { hasText: '/p/' }).textContent()) ?? ''
-    expect(address).toMatch(/\/p\/[0-9a-f]{24}$/)
-    const path = new URL(address).pathname
-
-    const visitor = await browser.newContext()
-    try {
-      const anonymous = await visitor.newPage()
-      const shown = await anonymous.goto(path)
-      expect(shown?.status()).toBe(200)
-      // The default set is named after the workspace; only public identity shows.
-      await expect(
-        anonymous.getByRole('heading', { level: 1, name: identity.workspaceName })
-      ).toBeVisible()
-      // Handles come from the social API the first time the set is listed.
-      await expect(anonymous.getByText('@shots_x')).toBeVisible()
-
-      await toggle.click()
-      await expect(toggle).not.toBeChecked()
-      await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
-      const hidden = await anonymous.goto(path)
-      expect(hidden?.status()).toBe(404)
-    } finally {
-      await visitor.close()
-    }
-  })
+    await expect(toggle).not.toBeChecked()
+    await expect(page.getByRole('status').filter({ hasText: 'Saved' }).first()).toBeVisible()
+    const hidden = await anonymous.goto(path)
+    expect(hidden?.status()).toBe(404)
+  } finally {
+    await visitor.close()
+  }
 })

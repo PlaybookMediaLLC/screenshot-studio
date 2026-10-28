@@ -1,14 +1,13 @@
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { expect, type Page, test } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const image = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
   'base64'
 )
 
-async function uploadImage(page: Parameters<typeof signUpAndCreateWorkspace>[1]) {
+async function uploadImage(page: Page) {
   const fileChooser = page.waitForEvent('filechooser')
   await page.getByText('Drag & drop, click to browse, or paste', { exact: true }).click()
   await (
@@ -21,8 +20,8 @@ async function uploadImage(page: Parameters<typeof signUpAndCreateWorkspace>[1])
   await expect(page.getByRole('button', { exact: true, name: 'Export' })).toBeEnabled()
 }
 
-test('an authenticated user can upload an image and export a PNG', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('an authenticated user can upload an image and export a PNG', async ({ app, page }) => {
+  await app.openEditor()
   await uploadImage(page)
 
   const save = page.getByRole('button', { exact: true, name: 'Export' })
@@ -37,10 +36,10 @@ test('an authenticated user can upload an image and export a PNG', async ({ iden
 })
 
 test('an authenticated user can prepare a social aspect ratio, style it, and clear the draft', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await uploadImage(page)
 
   await page.getByRole('button', { exact: true, name: '4:3' }).click()

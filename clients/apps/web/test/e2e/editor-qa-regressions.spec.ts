@@ -1,11 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import type { Page } from '@playwright/test'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { trpcQuery } from './framework/trpc'
+import { expect, type Page, test, trpcQuery } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const canvasText = (page: Page) =>
   page.locator('[data-html-canvas="true"]:visible [data-text-overlay-id]')
@@ -30,10 +27,10 @@ async function draftText(page: Page): Promise<string | undefined> {
 }
 
 test('bad images cannot block autosave, text remains editable, and playback and Back do not save', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   const buffer = await readFile(resolve('public/store-screenshot-create.png'))
   await page.getByLabel('Add slides', { exact: true }).setInputFiles([
     { buffer, mimeType: 'image/png', name: 'one.png' },
@@ -81,6 +78,7 @@ test('bad images cannot block autosave, text remains editable, and playback and 
   // The timeline is closed until Animate opens it.
   await page.getByRole('button', { name: 'Animate', exact: true }).click()
   await page.getByRole('button', { name: 'Play animation', exact: true }).click()
+  // eslint-disable-next-line no-restricted-syntax -- Playback runs on a clock: let it play, then prove it wrote nothing.
   await page.waitForTimeout(6500)
   await page.getByRole('button', { name: 'Pause animation', exact: true }).click()
   expect(writes).toBe(0)
@@ -92,6 +90,7 @@ test('bad images cannot block autosave, text remains editable, and playback and 
   await reopened
   await expect(saved).toBeVisible({ timeout: 30000 })
   // Give the loader and debounced save enough time to expose a false recovery.
+  // eslint-disable-next-line no-restricted-syntax -- Proves a false recovery never appears; an absence needs a window.
   await page.waitForTimeout(2000)
   await expect(canvasText(page)).toContainText('Still saving after a rejected image')
   await expect(page.getByText('Recovered your unsaved changes', { exact: true })).toHaveCount(0)
@@ -104,10 +103,10 @@ test('bad images cannot block autosave, text remains editable, and playback and 
 })
 
 test('Remove keeps other slides and text, and screenshot upload remains available', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   const buffer = await readFile(resolve('public/store-screenshot-create.png'))
   await page.getByLabel('Add slides', { exact: true }).setInputFiles(
     ['one', 'two', 'three'].map((name) => ({
@@ -159,8 +158,8 @@ test('Remove keeps other slides and text, and screenshot upload remains availabl
   await expect(canvasText(page)).toHaveText('One typing burst')
 })
 
-test('a stale tab cannot overwrite a newer local draft', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('a stale tab cannot overwrite a newer local draft', async ({ app, page }) => {
+  await app.openEditor()
   await page.getByRole('button', { name: 'Add Text', exact: true }).first().click()
   await page.getByLabel('Text content', { exact: true }).fill('Original draft')
   await expect.poll(() => draftText(page)).toBe('Original draft')

@@ -1,13 +1,18 @@
 import { z } from 'zod'
 import {
   acceptInvitation,
+  browserRequest,
+  createWorkspace,
+  type E2EIdentity,
+  expect,
   getActiveOrganizationId,
+  requestJson,
   signUp,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { trpcMutation } from './framework/trpc'
-import { configureE2EFlow, expect, test, type E2EIdentity } from './framework/flow'
+  test,
+  trpcMutation,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const bootstrapSchema = z.object({
   capabilities: z.record(z.string(), z.boolean()),
@@ -38,13 +43,10 @@ async function getBootstrap(page: Parameters<typeof browserRequest>[0]) {
   return { body: bootstrapSchema.parse(response.body), raw: JSON.stringify(response.body) }
 }
 
-configureE2EFlow()
-
 test('a shell bootstraps from the stable API and never receives secrets', async ({
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
   const { body, raw } = await getBootstrap(page)
 
@@ -79,7 +81,6 @@ test('organization switching goes through membership checks', async ({
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const firstId = await getActiveOrganizationId(page)
   const second = workspaceSchema.parse(
     (
@@ -103,7 +104,7 @@ test('organization switching goes through membership checks', async ({
   const outsiderContext = await browser.newContext()
   const outsider = await outsiderContext.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `outsider-${identity.email}`,
@@ -128,7 +129,6 @@ test('a cached permission can show an action, but the server denies it after a r
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
   const member: E2EIdentity = {
     ...identity,

@@ -1,8 +1,6 @@
-import type { Page } from '@playwright/test'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { expect, type Page, test } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const UPLOAD_PROMPT = 'Drag & drop, click to browse, or paste'
 
@@ -34,10 +32,10 @@ const mainImage = (page: Page) => page.locator('img[alt="Main image"]')
 const layers = (page: Page) => page.locator('[data-overlay-id]')
 
 test('one paste creates exactly one image, and each paste is one undo step', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await expect(page.getByText(UPLOAD_PROMPT, { exact: true })).toBeVisible()
 
   // ⌘V fires this paste event; headless macOS Chromium has no menu to map
@@ -62,21 +60,34 @@ test('one paste creates exactly one image, and each paste is one undo step', asy
   await expect(layers(page)).toHaveCount(4)
 })
 
-test('a drop on the upload area is imported once', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('the Templates sheet opens from the editor and closes again', async ({ app, page }) => {
+  await app.openEditor()
+  const templates = page.getByRole('button', { exact: true, name: 'Templates' })
+  await templates.click()
+  // The modal sheet hides the rest of the page, so the open dialog is the proof.
+  const library = page.getByRole('dialog', { name: 'Templates' })
+  await expect(library).toBeVisible()
+  await library.getByRole('button', { name: 'Close templates' }).click()
+  await expect(library).toBeHidden()
+  await expect(templates).toHaveAttribute('aria-expanded', 'false')
+})
+
+test('a drop on the upload area is imported once', async ({ app, page }) => {
+  await app.openEditor()
   await expect(page.getByText(UPLOAD_PROMPT, { exact: true })).toBeVisible()
   await dispatchImages(page, 'drop', '[data-local-dropzone]', 1)
   await expect(mainImage(page)).toHaveCount(1)
   // The global drop handler used to import the same drop again as a layer.
+  // eslint-disable-next-line no-restricted-syntax -- Proves the drop is not imported twice; an absence needs a window.
   await page.waitForTimeout(600)
   await expect(layers(page)).toHaveCount(0)
 })
 
 test('Start over asks first, by mouse or keyboard, and Remove can be undone', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await dispatchImages(page, 'drop', '[data-local-dropzone]', 1)
   await expect(mainImage(page)).toHaveCount(1)
   await page.getByRole('button', { exact: true, name: 'Add Text' }).first().click()

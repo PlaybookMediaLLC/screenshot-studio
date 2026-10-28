@@ -1,16 +1,15 @@
-import { expect, type Locator, type Page } from '@playwright/test'
 import {
-  createDraftWorkspace,
-  type DraftWorkspace,
+  apiRequest,
+  db,
   draftEditor,
   enableDraftTags,
+  expect,
   expectSaved,
-} from './framework/content-drafts'
-import { configureE2EFlow, test } from './framework/flow'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
-import { createE2EDatabase, queryRows } from './framework/services'
-
-configureE2EFlow()
+  type Locator,
+  type Page,
+  settleSelection,
+  test,
+} from './framework'
 
 /**
  * Write (RFC 025) end to end: the library, the composer, platform
@@ -21,6 +20,7 @@ configureE2EFlow()
 
 /** A screenshot for the delivery report, once dialogs and sheets finish animating. */
 async function snap(page: Page, name: string): Promise<void> {
+  // eslint-disable-next-line no-restricted-syntax -- Dialogs and sheets finish animating before the report screenshot.
   await page.waitForTimeout(500)
   await page.screenshot({ path: `.context/shots/${name}.png` })
 }
@@ -50,39 +50,25 @@ async function caretAtEndOf(page: Page, word: Locator): Promise<void> {
       })
     ).toBe(`${text}:${text.length}`)
   }).toPass({ timeout: 20_000 })
-  await page.waitForTimeout(300)
-}
-
-/** Wait out slate's selection sync after moving the caret. */
-async function settle(page: Page): Promise<void> {
-  await page.waitForTimeout(300)
+  await settleSelection(page)
 }
 
 type PostRow = { caption: string; platform: string; status: string }
 
 async function draftPosts(draftId: string): Promise<PostRow[]> {
-  const database = createE2EDatabase()
-  try {
-    return await queryRows<PostRow>(
-      database,
-      `SELECT p.caption, c.platform, p.status::text AS status
+  return await db.rows<PostRow>(
+    `SELECT p.caption, c.platform, p.status::text AS status
        FROM scheduled_post p JOIN channel_connection c ON c.id = p."channelConnectionId"
        WHERE p."contentDraftId" = $1 ORDER BY c.platform`,
-      [draftId]
-    )
-  } finally {
-    await database.end()
-  }
+    [draftId]
+  )
 }
 
-test('a thread is written once, adapted per platform, planned, scheduled, backed up and recovered', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'a thread is written once, adapted per platform, planned, scheduled, backed up and recovered',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     const draftId = await newDraft(page)
 
     // The composer says who it publishes as, and every post shows its account.
@@ -91,7 +77,7 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
 
     const editor = draftEditor(page)
     await editor.click()
-    await settle(page)
+    await settleSelection(page)
     await page.keyboard.type('Launch day is here.')
     await page.keyboard.press('ControlOrMeta+Enter')
     await page.keyboard.type('Second post 🚀 https://example.com/launch')
@@ -122,10 +108,10 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
     await page.getByRole('button', { name: 'Edit for LinkedIn independently' }).click()
     await expect(page.getByTestId('manual-version-linkedin')).toBeVisible()
     await editor.click()
-    await settle(page)
+    await settleSelection(page)
     // The end of the document: ⌘↓ on macOS, Ctrl+End elsewhere.
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowDown' : 'Control+End')
-    await settle(page)
+    await settleSelection(page)
     await page.keyboard.type(' Read more on our blog.')
     await expectSaved(page)
     await page.getByTestId('platform-tab-x').click()
@@ -188,16 +174,16 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
     await snap(page, 'write-scheduled')
 
     // The library: both posts in the queue; the draft found by its scratchpad, shown by its title.
-    await page.goto('/write?tab=queue')
+    await app.open('/write?tab=queue')
     await expect(page.getByTestId('write-rail')).toContainText('Launch day is here. Today! 1/2')
     await expect(page.getByTestId('write-rail')).toContainText('Read more on our blog.')
-    await page.goto('/write?q=legal')
+    await app.open('/write?q=legal')
     await expect(page.getByTestId('draft-row')).toHaveCount(1)
     await expect(page.getByTestId('draft-row')).toContainText('Launch thread')
     await snap(page, 'write-library-search')
 
     // Backups: browsed, compared, and recovered as a new draft.
-    await page.goto(`/write/${draftId}?panel=backups`)
+    await app.open(`/write/${draftId}?panel=backups`)
     const backups = page.getByTestId('backups-browser')
     await expect(backups).toBeVisible({ timeout: 60_000 })
     await expect(page.getByTestId('backup-time')).toContainText(
@@ -222,24 +208,18 @@ test('a thread is written once, adapted per platform, planned, scheduled, backed
     await expect(share.getByLabel('Public link to share')).toHaveCount(0)
     const revoked = await page.request.get(publicLink)
     expect(revoked.status()).toBe(404)
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('refine previews and applies only on accept, the assistant adds a post, follow-ups are set in review, and a failed destination is retried alone', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(300_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'refine previews and applies only on accept, the assistant adds a post, follow-ups are set in review, and a failed destination is retried alone',
+  { tag: ['@dev-server', '@journey'] },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     const draftId = await newDraft(page)
     const editor = draftEditor(page)
     await editor.click()
-    await settle(page)
+    await settleSelection(page)
     await page.keyboard.type('we shipped the new editor today')
     await expectSaved(page)
 
@@ -301,21 +281,16 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     // this browser case never sends fixture credentials to real providers.
     await publish.getByRole('button', { name: 'Publish now' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
-    const db = createE2EDatabase()
-    try {
-      await db.query(
-        // A running worker may already have claimed the posts.
-        `UPDATE scheduled_post SET status='FAILED' WHERE "contentDraftId"=$1 AND status IN ('SCHEDULED', 'PROCESSING')`,
-        [draftId]
-      )
-    } finally {
-      await db.end()
-    }
+    await db.query(
+      // A running worker may already have claimed the posts.
+      `UPDATE scheduled_post SET status='FAILED' WHERE "contentDraftId"=$1 AND status IN ('SCHEDULED', 'PROCESSING')`,
+      [draftId]
+    )
     expect((await draftPosts(draftId)).map((post) => post.status).sort()).toEqual([
       'FAILED',
       'FAILED',
     ])
-    await page.reload()
+    await app.reload()
     const unknown = page.getByTestId('draft-post').filter({ hasText: 'Outcome unknown' })
     while (await unknown.count()) {
       const remaining = await unknown.count()
@@ -341,22 +316,16 @@ test('refine previews and applies only on accept, the assistant adds a post, fol
     // Retrying one destination makes one new post for it; the other stays as it is.
     await failed.first().getByRole('button', { name: 'Retry this destination' }).click()
     await expect.poll(async () => (await draftPosts(draftId)).length, { timeout: 30_000 }).toBe(3)
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('on a phone the library is the page, panels are sheets, and the review keeps the account identity', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'on a phone the library is the page, panels are sheets, and the review keeps the account identity',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     await page.setViewportSize({ height: 844, width: 390 })
-    await page.goto('/write')
+    await app.open('/write')
     await expect(page.getByTestId('write-rail')).toBeVisible()
     await snap(page, 'write-phone-library')
     await page.getByTestId('new-draft').first().click()
@@ -364,7 +333,7 @@ test('on a phone the library is the page, panels are sheets, and the review keep
     const editor = draftEditor(page)
     await expect(editor).toBeVisible({ timeout: 60_000 })
     await editor.click()
-    await settle(page)
+    await settleSelection(page)
     await page.keyboard.type('Written on a phone.')
     await expectSaved(page)
     await expect(page.getByTestId('save-state')).toBeVisible()
@@ -406,48 +375,42 @@ test('on a phone the library is the page, panels are sheets, and the review keep
     }
     expect(next.socialSetId).toBe(previous.socialSetId)
     expect(await draftPosts(nextId)).toHaveLength(0)
-    await page.goto(`/write/${previousId}`)
+    await app.open(`/write/${previousId}`)
     await expect(draftEditor(page)).toContainText('Written on a phone.')
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a same-named set, bulk delete, the command palette and the Plan calendar', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(300_000)
-  let workspace: DraftWorkspace | null = null
-  const rows = () => page.getByTestId('draft-row')
-  const rowMenu = async (title: string) => {
-    await rows().filter({ hasText: title }).first().hover()
-    await page
-      .getByRole('button', { name: `Actions for ${title}` })
-      .first()
-      .click()
-  }
-  // Menu items are chosen from the keyboard: their open animation can keep
-  // Playwright's stability check from settling.
-  const choose = async (name: string) => {
-    const prefix = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
-    const item = page.getByRole('menuitem', { name: prefix }).last()
-    await item.focus()
-    await page.keyboard.press('Enter')
-  }
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'the library organizes drafts: tags, pins, kinds, duplicates, copies to a same-named set, bulk delete, the command palette and the Plan calendar',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const rows = () => page.getByTestId('draft-row')
+    const rowMenu = async (title: string) => {
+      await rows().filter({ hasText: title }).first().hover()
+      await page
+        .getByRole('button', { name: `Actions for ${title}` })
+        .first()
+        .click()
+    }
+    // Menu items are chosen from the keyboard: their open animation can keep
+    // Playwright's stability check from settling.
+    const choose = async (name: string) => {
+      const prefix = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
+      const item = page.getByRole('menuitem', { name: prefix }).last()
+      await item.focus()
+      await page.keyboard.press('Enter')
+    }
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     await enableDraftTags(page)
     const first = await newDraft(page)
     await draftEditor(page).click()
-    await settle(page)
+    await settleSelection(page)
     await page.keyboard.type('First draft about pricing')
     await page.getByRole('textbox', { name: 'Draft title' }).fill('Pricing')
     await expectSaved(page)
 
     // A tag of this set, put on the draft from its row, then used as a filter.
-    await page.goto('/write')
+    await app.open('/write')
     await page.getByRole('button', { name: 'Draft filters' }).click()
     await choose('Manage tags…')
     await page.getByLabel('Tag name').fill('Launch')
@@ -479,7 +442,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     await expect(page.getByTestId('draft-target')).toContainText('x.com/someone/status/1234567890')
 
     // Duplicate: a new draft with the text, no schedule or link.
-    await page.goto('/write')
+    await app.open('/write')
     await rowMenu('Pricing')
     await choose('Duplicate')
     await expect(rows().filter({ hasText: 'Pricing' })).toHaveCount(2)
@@ -503,7 +466,10 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
 
     // Copy to that set: the copy is found there; the original stays here.
     // Open the new set, then switch back to the default (listed first).
+    // Both brands share a name, so the screen cannot show which one is
+    // open; only the settled network shows a switch has finished.
     const switchSet = async (index: number) => {
+      // eslint-disable-next-line no-restricted-syntax -- see above.
       await page.waitForLoadState('networkidle')
       await page.getByRole('button', { name: /^Publishing brand: / }).click()
       const item = page
@@ -512,9 +478,10 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
         .nth(index)
       await item.focus()
       await page.keyboard.press('Enter')
+      // eslint-disable-next-line no-restricted-syntax -- see above.
       await page.waitForLoadState('networkidle')
     }
-    await page.goto(`/write?set=${secondSet}`)
+    await app.open(`/write?set=${secondSet}`)
     await expect(page.getByText('No drafts in this publishing brand.')).toBeVisible()
     await switchSet(0)
     await rowMenu('Pricing')
@@ -562,7 +529,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     // Plan: a planned draft shows dashed on the week it is planned for.
     const planned = await newDraft(page)
     await draftEditor(page).click()
-    await settle(page)
+    await settleSelection(page)
     await page.keyboard.type('Planned, not scheduled')
     await expectSaved(page)
     await page.getByTestId('schedule-button').click()
@@ -575,7 +542,7 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
       .getByRole('button', { name: 'Save as planned' })
       .click()
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
-    await page.goto(`/write/plan?week=${tomorrow}`)
+    await app.open(`/write/plan?week=${tomorrow}`)
     const plannedCard = page
       .getByTestId('calendar-planned')
       .filter({ hasText: 'Planned, not scheduled', visible: true })
@@ -587,20 +554,14 @@ test('the library organizes drafts: tags, pins, kinds, duplicates, copies to a s
     )
     await page.keyboard.press('Escape')
     await snap(page, 'write-plan')
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('draft text survives replacement and navigation; details, filters, archive and calendar remain actionable', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'draft text survives replacement and navigation; details, filters, archive and calendar remain actionable',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     const draftId = await newDraft(page)
     const editor = draftEditor(page)
     await expect(editor).toBeFocused()
@@ -611,7 +572,7 @@ test('draft text survives replacement and navigation; details, filters, archive 
     await editor.fill('QA persistence check two')
     await expect(page.getByTestId('post-length-1')).toHaveText('24 / 280')
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(editor).toContainText('QA persistence check two')
     await editor.click()
     await page.keyboard.press('ControlOrMeta+End')
@@ -622,10 +583,10 @@ test('draft text survives replacement and navigation; details, filters, archive 
     await page.keyboard.type(' after emoji')
     await expect(editor).toContainText('🚀 after emoji')
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(editor).toContainText('🚀 after emoji')
     await editor.click()
-    await settle(page)
+    await settleSelection(page)
     await page.keyboard.press('ControlOrMeta+a')
     await page.keyboard.type('Replacement text')
     await expect(editor).toContainText('Replacement text')
@@ -657,7 +618,7 @@ test('draft text survives replacement and navigation; details, filters, archive 
         return (result.body as { plainText: string }).plainText
       })
       .toContain('Second post')
-    await page.goto(`/write/${draftId}`)
+    await app.open(`/write/${draftId}`)
     await expect(editor).toContainText('Second post')
     await page.getByTestId('schedule-button').click()
     const schedule = page.getByTestId('schedule-dialog')
@@ -672,18 +633,18 @@ test('draft text survives replacement and navigation; details, filters, archive 
     await page.getByRole('menuitem', { name: 'Archive draft' }).click()
     await expect(page.getByRole('button', { name: 'Restore draft', exact: true })).toBeVisible()
     await expect(page.getByTestId('publish-button')).toHaveCount(0)
-    await page.goto('/write?tab=archived')
+    await app.open('/write?tab=archived')
     const archived = page.getByTestId('draft-row').filter({ hasText: 'Persistence regression' })
     await expect(archived).toContainText('Previously planned')
     await archived.getByRole('button', { name: 'Actions for Persistence regression' }).click()
     await page.getByRole('menuitem', { name: 'Restore draft', exact: true }).click()
     await expect(archived).toHaveCount(0)
 
-    await page.goto('/write?kind=article')
+    await app.open('/write?kind=article')
     await expect(page.getByRole('button', { name: 'Remove Article filter' })).toBeVisible()
     await page.getByRole('button', { name: 'Clear filters', exact: true }).first().click()
     await expect(page.getByRole('button', { name: 'Remove Article filter' })).toHaveCount(0)
-    await page.goto('/write/plan')
+    await app.open('/write/plan')
     await page
       .getByRole('button', { name: /^Create draft / })
       .first()
@@ -693,8 +654,5 @@ test('draft text survives replacement and navigation; details, filters, archive 
     ).toBeVisible()
     await page.keyboard.press('Escape')
     expect(await draftPosts(draftId)).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

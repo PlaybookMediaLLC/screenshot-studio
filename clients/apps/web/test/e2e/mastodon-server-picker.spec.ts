@@ -1,28 +1,29 @@
 import {
-  createPublishingWorkspace,
   apiRequest,
   bindTestGoOrganization,
+  chooseOption,
+  connectionAvailabilityFixture,
+  createWorkspace,
+  expect,
+  type HttpMockServer,
+  socialMockPort,
+  startHttpMockServer,
+  test,
   unbindTestGoOrganization,
-} from './framework/publishing'
-import { connectionAvailabilityFixture } from './framework/social-availability'
-import { startHttpMockServer, type HttpMockServer } from './framework/http-server'
-import { socialMockPort } from './framework/content-drafts'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { chooseOption } from './framework/controls'
+} from './framework'
 import { mastodonInstanceSchema } from 'screenshot-studio-backend-sdk'
 
 let provider: HttpMockServer | null = null
 let organizationId: string | null = null
-configureE2EFlow({
-  afterEach: async () => {
-    await unbindTestGoOrganization(organizationId)
-    await provider?.close()
-    organizationId = null
-    provider = null
-  },
+test.afterEach(async () => {
+  await unbindTestGoOrganization(organizationId)
+  await provider?.close()
+  organizationId = null
+  provider = null
 })
 
 test('a public Mastodon server returns a real preview through the authenticated backend', async ({
+  app,
   identity,
   page,
 }) => {
@@ -30,7 +31,7 @@ test('a public Mastodon server returns a real preview through the authenticated 
     process.env.E2E_LIVE_PUBLIC_PREVIEW !== '1',
     'Opt-in public network check; no provider account or credentials are used.'
   )
-  await createPublishingWorkspace(identity, page)
+  await createWorkspace(identity, page)
   organizationId = await bindTestGoOrganization(page)
   provider = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/me')
@@ -39,7 +40,7 @@ test('a public Mastodon server returns a real preview through the authenticated 
       return { body: connectionAvailabilityFixture({ 'mastodon-custom': 'disabled' }) }
     return { status: 404 }
   }, socialMockPort)
-  await page.goto('/workspace/social-sets')
+  await app.open('/workspace/social-sets')
   await page
     .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
     .click()
@@ -58,10 +59,11 @@ test('a public Mastodon server returns a real preview through the authenticated 
 })
 
 test('Mastodon preview follows the chosen server and refuses credentials in the request URL', async ({
+  app,
   identity,
   page,
 }) => {
-  await createPublishingWorkspace(identity, page)
+  await createWorkspace(identity, page)
   organizationId = await bindTestGoOrganization(page)
   provider = await startHttpMockServer((request) => {
     if (request.url === '/api/public/v1/me')
@@ -99,7 +101,7 @@ test('Mastodon preview follows the chosen server and refuses credentials in the 
     })
   })
   try {
-    await page.goto('/workspace/social-sets')
+    await app.open('/workspace/social-sets')
     await page
       .getByRole('button', { name: 'Add publishing brand to your personal workspace' })
       .click()

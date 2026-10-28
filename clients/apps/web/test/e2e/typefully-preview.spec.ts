@@ -1,25 +1,20 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import sharp from 'sharp'
-import { expect, type Page } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import {
-  createDraftWorkspace,
-  draftEditor,
-  expectSaved,
-  openNewDraft,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { chooseOption } from './framework/controls'
 import {
   apiRequest,
+  chooseOption,
+  draftEditor,
+  expect,
+  expectSaved,
+  openNewDraft,
+  type Page,
   signedAssetSchema,
+  test,
   uploadSignedAsset,
-  unbindTestGoOrganization,
-} from './framework/publishing'
+} from './framework'
 import { importedBody } from '@/lib/write/import-text'
 
-configureE2EFlow()
 test.use({ actionTimeout: 30_000 })
 const fixture = (name: string) => `test/fixtures/typefully-media/${name}`
 async function openMedia(page: Page) {
@@ -27,16 +22,13 @@ async function openMedia(page: Page) {
   await page.getByRole('menuitem', { name: 'Manage media…', exact: true }).click()
 }
 
-test('phone previews fit the sidebar, weighted long text expands, and link cards dismiss without removing the URL', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (e) => errors.push(e.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'phone previews fit the sidebar, weighted long text expands, and link cards dismiss without removing the URL',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     const url = `https://example.com/${'path'.repeat(100)}`
     const text = 'a'.repeat(250) + ' ' + url
     await page.route('**/api/v1/content-drafts/link-card?*', (route) =>
@@ -86,30 +78,24 @@ test('phone previews fit the sidebar, weighted long text expands, and link cards
         return !!box && box.x >= -1 && box.x + box.width <= 391
       })
       .toBe(true)
-    await page.reload()
+    await app.reload()
     await expect(draftEditor(page)).toContainText('ending')
     const saved = (await apiRequest(page, `/api/v1/content-drafts/${id}`)).body as {
       plainText: string
     }
     expect(saved.plainText).toContain(url)
     expect(errors).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('uploaded video plays in preview and imported PDFs render both carousel pages after reload', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (e) => errors.push(e.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
-    await page.goto('/write')
+test(
+  'uploaded video plays in preview and imported PDFs render both carousel pages after reload',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await startWorkspace({ channels: ['x', 'linkedin'] })
+    await app.open('/write')
     await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
     await page
       .getByLabel('Batch media files')
@@ -137,13 +123,15 @@ test('uploaded video plays in preview and imported PDFs render both carousel pag
     await expect
       .poll(() => video.evaluate((el: HTMLVideoElement) => el.currentTime))
       .toBeGreaterThan(0)
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await expect(video).toBeVisible()
     await page.goto(pdfURL)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     const carousel = page.getByTestId('pdf-carousel')
-    await expect(carousel.getByTestId('pdf-page-count')).toHaveText('2 pages', { timeout: 45_000 })
+    await expect(carousel.getByTestId('pdf-page-count')).toHaveText('2 pages', {
+      timeout: 45_000,
+    })
     await expect
       .poll(() =>
         carousel
@@ -169,30 +157,24 @@ test('uploaded video plays in preview and imported PDFs render both carousel pag
           )
       )
       .toBe(255)
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await expect(carousel.getByTestId('pdf-page-count')).toHaveText('2 pages')
     expect(errors).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('link images and searched GIFs become real workspace assets; article covers preview their stored bytes', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  test.skip(
-    !process.env.NEXT_PUBLIC_PLATFORM_GIPHY_API_KEY,
-    'Requires a configured fixture or production GIPHY key.'
-  )
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (e) => errors.push(e.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'])
+test(
+  'link images and searched GIFs become real workspace assets; article covers preview their stored bytes',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    test.skip(
+      !process.env.NEXT_PUBLIC_PLATFORM_GIPHY_API_KEY,
+      'Requires a configured fixture or production GIPHY key.'
+    )
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    const workspace = await startWorkspace({ channels: ['x'] })
     const image = await sharp({
       create: { width: 1200, height: 630, channels: 3, background: '#6611bb' },
     })
@@ -266,7 +248,7 @@ test('link images and searched GIFs become real workspace assets; article covers
     await expect(page.getByTestId('draft-media-item')).toHaveCount(2)
     await page.getByRole('button', { name: 'Done', exact: true }).click()
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     const draft = (await apiRequest(page, `/api/v1/content-drafts/${id}`)).body as {
       assetIds: string[]
     }
@@ -292,7 +274,7 @@ test('link images and searched GIFs become real workspace assets; article covers
       },
     })
     expect(created.status, JSON.stringify(created.body)).toBe(201)
-    await page.goto(`/write/${(created.body as { id: string }).id}`)
+    await app.open(`/write/${(created.body as { id: string }).id}`)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     const preview = page.getByTestId('preview-x')
     await expect(
@@ -306,8 +288,5 @@ test('link images and searched GIFs become real workspace assets; article covers
       )
       .toBe(1200)
     expect(errors).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

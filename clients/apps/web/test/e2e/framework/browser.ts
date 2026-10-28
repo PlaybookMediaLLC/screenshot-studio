@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
 
 export type BrowserRequest = {
   body?: string
@@ -145,11 +145,4 @@ export async function requestJson(
     headers: { 'content-type': 'application/json', ...headers },
     method,
   })
-}
-
-export async function chooseOption(control: Locator, name: string): Promise<void> {
-  await control.click({ timeout: 20_000 })
-  const option = control.page().getByRole('option', { name, exact: true })
-  await option.click({ timeout: 20_000 })
-  await expect(option).toBeHidden()
 }

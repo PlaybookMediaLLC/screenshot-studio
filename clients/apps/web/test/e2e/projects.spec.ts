@@ -1,9 +1,14 @@
-import type { Page, Route } from '@playwright/test'
-import { getE2EUrl, signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { trpcMutation, trpcQuery } from './framework/trpc'
+import {
+  createWorkspace,
+  expect,
+  type Page,
+  type Route,
+  test,
+  trpcMutation,
+  trpcQuery,
+} from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const texts = (page: Page) => page.locator('[data-html-canvas="true"] [data-text-overlay-id]')
 const projectButton = (page: Page, name: string, status = 'Saved') =>
@@ -27,10 +32,10 @@ async function projectMenu(page: Page, name: string, item: string) {
 }
 
 test('a project autosaves, reopens after a reload, and restores a named version', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await addText(page)
   await expect(texts(page)).toHaveCount(1)
   const projectId = await saveAsProject(page, 'Launch hero')
@@ -50,7 +55,7 @@ test('a project autosaves, reopens after a reload, and restores a named version'
   await expect(projectButton(page, 'Launch hero')).toBeVisible({ timeout: 30_000 })
 
   // A reload reopens the project from the address bar.
-  await page.reload()
+  await app.reload()
   await expect(projectButton(page, 'Launch hero')).toBeVisible({ timeout: 60_000 })
   await expect(texts(page)).toHaveCount(2)
 
@@ -66,8 +71,8 @@ test('a project autosaves, reopens after a reload, and restores a named version'
   expect(await revision()).toBeGreaterThan(beforeRestore)
 })
 
-test('unsaved changes survive a reload before autosave runs', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('unsaved changes survive a reload before autosave runs', async ({ app, page }) => {
+  await app.openEditor()
   await saveAsProject(page, 'Interrupted')
   // Saves cannot reach the server (the leave-page save included), so the edit
   // exists only in this device's draft when the page reloads.
@@ -79,16 +84,17 @@ test('unsaved changes survive a reload before autosave runs', async ({ identity,
   })
   await expect(page.getByText('Your project has not been saved', { exact: true })).toBeVisible()
   // Let the draft autosave (1 s) write the edit before reloading.
+  // eslint-disable-next-line no-restricted-syntax -- The local draft autosave runs on a 1 s timer and fires no event.
   await page.waitForTimeout(2_000)
-  await page.reload()
+  await app.reload()
   await page.unroute('**/api/trpc/**project.updateDocument**', blockSaves)
   await expect(page.getByText('Recovered your unsaved changes')).toBeVisible({ timeout: 60_000 })
   await expect(texts(page)).toHaveCount(1)
   await expect(projectButton(page, 'Interrupted')).toBeVisible({ timeout: 30_000 })
 })
 
-test('a stale write is refused and can be kept as a copy', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('a stale write is refused and can be kept as a copy', async ({ app, page }) => {
+  await app.openEditor()
   const projectId = await saveAsProject(page, 'Shared')
 
   // Someone else saves the project first.
@@ -113,17 +119,17 @@ test('a stale write is refused and can be kept as a copy', async ({ identity, pa
 })
 
 test('the library searches, duplicates, and deletes, and other workspaces see nothing', async ({
+  app,
   browser,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const document = { image: { src: null }, version: 2 }
   const created = await trpcMutation(page, 'project.create', { document, name: 'Pricing banner' })
   await trpcMutation(page, 'project.create', { document, name: 'Changelog card' })
   const projectId = (created.body as { id: string }).id
 
-  await page.goto(getE2EUrl('/projects'))
+  await app.open('/projects')
   await page.getByRole('searchbox', { name: 'Search projects' }).fill('pricing')
   await expect(page.getByRole('link', { exact: true, name: 'Pricing banner' })).toBeVisible()
   await expect(page.getByRole('link', { exact: true, name: 'Changelog card' })).toHaveCount(0)
@@ -145,7 +151,7 @@ test('the library searches, duplicates, and deletes, and other workspaces see no
   const otherContext = await browser.newContext()
   const otherPage = await otherContext.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `other-${identity.email}`,

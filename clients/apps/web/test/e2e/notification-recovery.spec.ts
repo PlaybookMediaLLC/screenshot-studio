@@ -1,49 +1,50 @@
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { z } from 'zod'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { signUpViaApi } from './framework/auth'
-import { browserJson, browserRequest } from './framework/browser'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
+import {
+  browserJson,
+  browserRequest,
+  db,
+  expect,
+  grantWorkspacePlan,
+  signUpViaApi,
+  test,
+} from './framework'
 import {
   notificationSettingsSchema,
   notificationDeliverySchema,
 } from '../../lib/notifications/schema'
 
-configureE2EFlow()
 test.skip(
   !process.env.NOTIFICATIONS_E2E_PROVIDER_URL,
   'Requires the isolated notification protocol fixture.'
 )
 
 for (const scenario of ['expired', 'uncertain'] as const) {
-  test(`personal delivery recovery handles ${scenario} authorization or acceptance without duplicate sends`, async ({
-    identity,
-    page,
-  }) => {
-    test.setTimeout(180_000)
-    const db = createE2EDatabase()
-    const runWorker = () =>
-      execFileSync(
-        'docker',
-        [
-          'exec',
-          process.env.NOTIFICATIONS_E2E_TEMPORAL_CONTAINER!,
-          'temporal',
-          'workflow',
-          'execute',
-          '--type',
-          'platform-maintenance-v1',
-          '--task-queue',
-          'platform-maintenance',
-          '--workflow-id',
-          `notification-recovery-${randomUUID()}`,
-          '--input',
-          '"notifications"',
-        ],
-        { stdio: 'pipe', timeout: 30_000 }
-      )
-    try {
+  test(
+    `personal delivery recovery handles ${scenario} authorization or acceptance without duplicate sends`,
+    { tag: '@journey' },
+    async ({ app, identity, page }) => {
+      const runWorker = () =>
+        execFileSync(
+          'docker',
+          [
+            'exec',
+            process.env.NOTIFICATIONS_E2E_TEMPORAL_CONTAINER!,
+            'temporal',
+            'workflow',
+            'execute',
+            '--type',
+            'platform-maintenance-v1',
+            '--task-queue',
+            'platform-maintenance',
+            '--workflow-id',
+            `notification-recovery-${randomUUID()}`,
+            '--input',
+            '"notifications"',
+          ],
+          { stdio: 'pipe', timeout: 30_000 }
+        )
       await signUpViaApi(identity, page)
       const workspace = z.object({ id: z.string() }).parse(
         await browserJson(page, '/api/auth/organization/create', {
@@ -56,7 +57,7 @@ for (const scenario of ['expired', 'uncertain'] as const) {
         })
       )
       await grantWorkspacePlan(workspace.id, 'pro')
-      await page.goto('/workspace/notifications')
+      await app.open('/workspace/notifications')
       await page.getByRole('switch', { name: 'Personal Slack messages', exact: true }).uncheck()
       await page.getByRole('button', { name: 'Save my preferences', exact: true }).click()
       await expect(page.getByText('Your preferences are saved.', { exact: true })).toBeVisible()
@@ -103,7 +104,7 @@ for (const scenario of ['expired', 'uncertain'] as const) {
         (item) => item.kind === 'notification.test' && item.channel === 'slack_dm'
       )!
       expect(receipt.status).toBe(scenario === 'expired' ? 'BLOCKED' : 'UNCERTAIN')
-      await page.reload()
+      await app.reload()
       await page.getByText('Your email and Slack delivery history', { exact: true }).click()
       const card = page.getByRole('listitem', { name: `Delivery ${receipt.id}`, exact: true })
       await expect(card).toBeVisible()
@@ -174,8 +175,6 @@ for (const scenario of ['expired', 'uncertain'] as const) {
         path: `.context/notification-recovery-${scenario}.png`,
         fullPage: true,
       })
-    } finally {
-      await db.end()
     }
-  })
+  )
 }

@@ -1,11 +1,9 @@
 import { writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { dropSensitiveScreenshot, ocr, SECRETS } from './framework/sensitive'
+import { dropSensitiveScreenshot, expect, ocr, SECRETS, test } from './framework'
 
-configureE2EFlow()
+test.use({ thirdPartyAssets: true, workspaceOptions: { plan: 'pro' } })
 
 /**
  * Workflow D, safe publishing: a screenshot with test emails, credentials,
@@ -14,12 +12,12 @@ configureE2EFlow()
  * the app, and by the app's own detectors run on the downloaded file.
  */
 test('Workflow D: redacted work publishes without the sensitive text or face', async ({
+  app,
   browser,
-  identity,
   page,
 }) => {
   test.setTimeout(420_000)
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await dropSensitiveScreenshot(page)
 
   await page.getByRole('button', { exact: true, name: 'Redact' }).click()

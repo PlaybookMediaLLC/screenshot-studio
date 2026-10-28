@@ -1,22 +1,25 @@
 import { z } from 'zod'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { trpcMutation } from './framework/trpc'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import {
+  browserRequest,
+  createWorkspace,
+  expect,
+  requestJson,
+  test,
+  trpcMutation,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const apiKeySchema = z.object({ apiKey: z.object({ id: z.string(), key: z.string().min(1) }) })
 const releaseSchema = z.object({ id: z.string().uuid(), title: z.string() })
 const releaseResultSchema = z.object({ created: z.boolean(), release: releaseSchema })
 const releaseListSchema = z.object({ releases: z.array(releaseSchema) })
 
-configureE2EFlow()
-
 test('an API key creates idempotent releases only for its workspace and stops after revocation', async ({
   browser,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const key = apiKeySchema.parse(
     (
       await trpcMutation(page, 'apiKey.create', {
@@ -46,7 +49,7 @@ test('an API key creates idempotent releases only for its workspace and stops af
   const otherContext = await browser.newContext()
   const otherPage = await otherContext.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `other-${identity.email}`,

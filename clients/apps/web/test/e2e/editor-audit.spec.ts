@@ -1,11 +1,9 @@
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import type { Page } from '@playwright/test'
+import { expect, type Page, test } from './framework'
 import { resolve } from 'node:path'
 import { readFile } from 'node:fs/promises'
 import JSZip from 'jszip'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 async function savedText(page: Page): Promise<string | undefined> {
   return page.evaluate(async () => {
@@ -26,11 +24,8 @@ async function savedText(page: Page): Promise<string | undefined> {
   })
 }
 
-test('draft saves changes at the end of long text with the same length', async ({
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('draft saves changes at the end of long text with the same length', async ({ app, page }) => {
+  await app.openEditor()
   await page.getByRole('button', { name: 'Add Text', exact: true }).first().click()
   const original = `${'A long heading '.repeat(24)}before`
   const edited = `${'A long heading '.repeat(24)}after!`
@@ -38,12 +33,12 @@ test('draft saves changes at the end of long text with the same length', async (
   await expect.poll(() => savedText(page)).toBe(original)
   await page.getByLabel('Text content', { exact: true }).fill(edited)
   await expect.poll(() => savedText(page), { timeout: 5_000 }).toBe(edited)
-  await page.reload()
+  await app.reload()
   await expect(page.locator('[data-text-overlay-id]')).toContainText(edited)
 })
 
-test('leaving the editor flushes a pending draft', async ({ identity, page }) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('leaving the editor flushes a pending draft', async ({ app, page }) => {
+  await app.openEditor()
   await page.request.get('/projects')
   await page.getByRole('button', { name: 'Add Text', exact: true }).first().click()
   await page.getByLabel('Text content', { exact: true }).fill('Saved first')
@@ -51,16 +46,15 @@ test('leaving the editor flushes a pending draft', async ({ identity, page }) =>
   await page.getByLabel('Text content', { exact: true }).fill('Saved before leaving')
   await page.getByRole('link', { name: 'Library', exact: true }).click()
   await expect.poll(() => savedText(page), { timeout: 5_000 }).toBe('Saved before leaving')
-  await page.goto('/')
+  await app.open('/')
   await expect(page.locator('[data-text-overlay-id]')).toContainText('Saved before leaving')
 })
 
 test('App Store save failure keeps the open project and does not report success', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await page.goto('/store-screenshots')
+  await app.open('/store-screenshots')
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   await expect(page.locator('[data-store-canvas-slide]')).toBeVisible()
   await page.evaluate(() => {
@@ -86,12 +80,8 @@ test('App Store save failure keeps the open project and does not report success'
   await expect(page.getByTitle('Rename project')).toHaveText('Unsaved audit project')
 })
 
-test('App Store canvas and editing controls remain usable on a phone', async ({
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await page.goto('/store-screenshots')
+test('App Store canvas and editing controls remain usable on a phone', async ({ app, page }) => {
+  await app.open('/store-screenshots')
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   await expect(page.locator('[data-store-canvas-slide]')).toBeVisible()
   await page.setViewportSize({ width: 390, height: 844 })
@@ -133,102 +123,100 @@ async function switchEditor(page: Page, section: 'Screenshot editor' | 'App Stor
   }
 }
 
-test('editor sections preserve projects, selection, uploaded assets and independent history', async ({
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
-  await page.getByRole('button', { name: 'Add Text', exact: true }).first().click()
-  await page.getByLabel('Text content', { exact: true }).fill('Main editor audit')
-  await page.getByRole('button', { name: 'Save as project', exact: true }).click()
-  await page.getByLabel('Project name').fill('Main audit project')
-  await page.getByRole('button', { name: 'Save project', exact: true }).click()
-  await expect(
-    page.getByRole('button', { name: 'Project Main audit project: Saved' })
-  ).toBeVisible()
-  const projectId = new URL(page.url()).searchParams.get('project')
+test(
+  'editor sections preserve projects, selection, uploaded assets and independent history',
+  { tag: '@journey' },
+  async ({ app, page }) => {
+    await app.openEditor()
+    await page.getByRole('button', { name: 'Add Text', exact: true }).first().click()
+    await page.getByLabel('Text content', { exact: true }).fill('Main editor audit')
+    await page.getByRole('button', { name: 'Save as project', exact: true }).click()
+    await page.getByLabel('Project name').fill('Main audit project')
+    await page.getByRole('button', { name: 'Save project', exact: true }).click()
+    await expect(
+      page.getByRole('button', { name: 'Project Main audit project: Saved' })
+    ).toBeVisible()
+    const projectId = new URL(page.url()).searchParams.get('project')
 
-  await switchEditor(page, 'App Store Screenshots')
-  await page.getByRole('button', { name: 'Use the sample set' }).click()
-  const canvas = page.locator('[data-store-canvas-slide]:visible')
-  await expect(canvas).toBeVisible()
-  await page.getByRole('option', { name: /^Heading/ }).click()
-  await page.getByLabel('Heading text', { exact: true }).fill('Store editor audit')
-  await page.getByRole('option', { name: /^Device/ }).click()
-  const chooser = page.waitForEvent('filechooser')
-  await page.getByRole('button', { name: 'Replace', exact: true }).click()
-  await (await chooser).setFiles(resolve('public/store-screenshot-write.png'))
-  const uploaded = canvas.locator('img[src^="blob:"]')
-  await expect(uploaded).toHaveCount(1)
-  await expect
-    .poll(() => uploaded.evaluate((img: HTMLImageElement) => img.naturalWidth))
-    .toBeGreaterThan(0)
-  const storeId = new URL(page.url()).searchParams.get('storeProject')
-  expect(storeId).toBeTruthy()
-  expect(new URL(page.url()).searchParams.get('project')).toBe(projectId)
+    await switchEditor(page, 'App Store Screenshots')
+    await page.getByRole('button', { name: 'Use the sample set' }).click()
+    const canvas = page.locator('[data-store-canvas-slide]:visible')
+    await expect(canvas).toBeVisible()
+    await page.getByRole('option', { name: /^Heading/ }).click()
+    await page.getByLabel('Heading text', { exact: true }).fill('Store editor audit')
+    await page.getByRole('option', { name: /^Device/ }).click()
+    const chooser = page.waitForEvent('filechooser')
+    await page.getByRole('button', { name: 'Replace', exact: true }).click()
+    await (await chooser).setFiles(resolve('public/store-screenshot-write.png'))
+    const uploaded = canvas.locator('img[src^="blob:"]')
+    await expect(uploaded).toHaveCount(1)
+    await expect
+      .poll(() => uploaded.evaluate((img: HTMLImageElement) => img.naturalWidth))
+      .toBeGreaterThan(0)
+    const storeId = new URL(page.url()).searchParams.get('storeProject')
+    expect(storeId).toBeTruthy()
+    expect(new URL(page.url()).searchParams.get('project')).toBe(projectId)
 
-  await switchEditor(page, 'Screenshot editor')
-  await expect(page.getByLabel('Text content', { exact: true })).toHaveValue('Main editor audit')
-  await page.getByRole('button', { name: /^Undo/ }).click()
-  await expect(page.locator('[data-text-overlay-id]:visible')).not.toContainText(
-    'Main editor audit'
-  )
-  await page.getByRole('button', { name: /^Redo/ }).click()
-  await expect(page.locator('[data-text-overlay-id]:visible')).toContainText('Main editor audit')
+    await switchEditor(page, 'Screenshot editor')
+    await expect(page.getByLabel('Text content', { exact: true })).toHaveValue('Main editor audit')
+    await page.getByRole('button', { name: /^Undo/ }).click()
+    await expect(page.locator('[data-text-overlay-id]:visible')).not.toContainText(
+      'Main editor audit'
+    )
+    await page.getByRole('button', { name: /^Redo/ }).click()
+    await expect(page.locator('[data-text-overlay-id]:visible')).toContainText('Main editor audit')
 
-  await switchEditor(page, 'App Store Screenshots')
-  await expect(canvas).toContainText('Store editor audit')
-  await expect(page.getByRole('option', { name: /^Device/ })).toHaveAttribute(
-    'aria-selected',
-    'true'
-  )
-  await expect
-    .poll(() => uploaded.evaluate((img: HTMLImageElement) => img.naturalWidth))
-    .toBeGreaterThan(0)
-  await page.getByRole('button', { name: /^Undo/ }).click()
-  await expect(uploaded).toHaveCount(0)
-  await page.getByRole('button', { name: /^Redo/ }).click()
-  await expect(uploaded).toHaveCount(1)
-  await expect(
-    page.getByRole('status').filter({ hasText: /^Saved on this browser$/ })
-  ).toBeVisible()
-  await page.screenshot({ path: '.context/editor-audit/integrated-desktop.png' })
-  await expect(page).toHaveURL(/[?&]editor=app-store/)
-  await page.screenshot({
-    path: '.context/editor-audit/integrated-navigation.png',
-    animations: 'disabled',
-  })
-  await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: 'Export', exact: true }).click()
-  const storeDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: /^Export \d+ files$/ }).click()
-  const zip = await JSZip.loadAsync(await readFile((await (await storeDownload).path())!))
-  const iphone = Object.values(zip.files).find((file) => file.name.endsWith('_1320x2868.png'))
-  expect(iphone).toBeDefined()
-  const pixels = await iphone!.async('nodebuffer')
-  expect([pixels.readUInt32BE(16), pixels.readUInt32BE(20), pixels[25]]).toEqual([1320, 2868, 2])
-  await page.reload()
-  await expect(canvas).toContainText('Store editor audit')
-  await expect
-    .poll(() => uploaded.evaluate((img: HTMLImageElement) => img.naturalWidth))
-    .toBeGreaterThan(0)
-  await switchEditor(page, 'Screenshot editor')
-  await expect(page.locator('[data-text-overlay-id]:visible')).toContainText('Main editor audit')
-  expect(new URL(page.url()).searchParams.get('project')).toBe(projectId)
-  await page.getByRole('button', { name: 'Export', exact: true }).click()
-  await page.getByRole('button', { name: 'PNG', exact: true }).click()
-  const mainDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Export as PNG', exact: true }).click()
-  const mainPng = await readFile((await (await mainDownload).path())!)
-  expect(mainPng.subarray(1, 4).toString()).toBe('PNG')
-  expect(mainPng.readUInt32BE(16) / mainPng.readUInt32BE(20)).toBeCloseTo(4 / 3, 2)
-})
+    await switchEditor(page, 'App Store Screenshots')
+    await expect(canvas).toContainText('Store editor audit')
+    await expect(page.getByRole('option', { name: /^Device/ })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    )
+    await expect
+      .poll(() => uploaded.evaluate((img: HTMLImageElement) => img.naturalWidth))
+      .toBeGreaterThan(0)
+    await page.getByRole('button', { name: /^Undo/ }).click()
+    await expect(uploaded).toHaveCount(0)
+    await page.getByRole('button', { name: /^Redo/ }).click()
+    await expect(uploaded).toHaveCount(1)
+    await expect(
+      page.getByRole('status').filter({ hasText: /^Saved on this browser$/ })
+    ).toBeVisible()
+    await page.screenshot({ path: '.context/editor-audit/integrated-desktop.png' })
+    await expect(page).toHaveURL(/[?&]editor=app-store/)
+    await page.screenshot({
+      path: '.context/editor-audit/integrated-navigation.png',
+      animations: 'disabled',
+    })
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Export', exact: true }).click()
+    const storeDownload = page.waitForEvent('download')
+    await page.getByRole('button', { name: /^Export \d+ files$/ }).click()
+    const zip = await JSZip.loadAsync(await readFile((await (await storeDownload).path())!))
+    const iphone = Object.values(zip.files).find((file) => file.name.endsWith('_1320x2868.png'))
+    expect(iphone).toBeDefined()
+    const pixels = await iphone!.async('nodebuffer')
+    expect([pixels.readUInt32BE(16), pixels.readUInt32BE(20), pixels[25]]).toEqual([1320, 2868, 2])
+    await app.reload()
+    await expect(canvas).toContainText('Store editor audit')
+    await expect
+      .poll(() => uploaded.evaluate((img: HTMLImageElement) => img.naturalWidth))
+      .toBeGreaterThan(0)
+    await switchEditor(page, 'Screenshot editor')
+    await expect(page.locator('[data-text-overlay-id]:visible')).toContainText('Main editor audit')
+    expect(new URL(page.url()).searchParams.get('project')).toBe(projectId)
+    await page.getByRole('button', { name: 'Export', exact: true }).click()
+    await page.getByRole('button', { name: 'PNG', exact: true }).click()
+    const mainDownload = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Export as PNG', exact: true }).click()
+    const mainPng = await readFile((await (await mainDownload).path())!)
+    expect(mainPng.subarray(1, 4).toString()).toBe('PNG')
+    expect(mainPng.readUInt32BE(16) / mainPng.readUInt32BE(20)).toBeCloseTo(4 / 3, 2)
+  }
+)
 
-test('mobile editor navigation works with the keyboard and browser back', async ({
-  identity,
-  page,
-}) => {
-  await signUpAndCreateWorkspace(identity, page)
+test('mobile editor navigation works with the keyboard and browser back', async ({ app, page }) => {
+  await app.openEditor()
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click()
   const navigation = page.getByRole('dialog', { name: 'Navigation', exact: true })
@@ -251,10 +239,10 @@ test('mobile editor navigation works with the keyboard and browser back', async 
 })
 
 test('adding slides keeps the active image, accepts a repeated file, and rejects invalid input', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   const chooser = page.waitForEvent('filechooser')
   await page.getByText('Drag & drop, click to browse, or paste', { exact: true }).click()
   await (await chooser).setFiles(resolve('public/demo/demo-2.png'))
@@ -280,10 +268,10 @@ test('adding slides keeps the active image, accepts a repeated file, and rejects
 })
 
 test('deleting the open App Store project does not save it back into the library', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await switchEditor(page, 'App Store Screenshots')
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   await expect(page.locator('[data-store-canvas-slide]')).toBeVisible()
@@ -298,16 +286,16 @@ test('deleting the open App Store project does not save it back into the library
     .getByRole('button', { name: 'Delete project', exact: true })
     .click()
   await expect(page.getByRole('button', { name: 'Use the sample set' })).toBeVisible()
-  await page.reload()
+  await app.reload()
   await expect(page.getByRole('button', { name: 'Use the sample set' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Your projects', exact: true })).toHaveCount(0)
 })
 
 test('initial App Store imports are consumed once and do not reopen in a new project', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await switchEditor(page, 'App Store Screenshots')
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Import screenshots…', exact: true }).click()
@@ -329,10 +317,10 @@ test('initial App Store imports are consumed once and do not reopen in a new pro
 })
 
 test('App Store tabs and layers support keyboard selection and reordering', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await switchEditor(page, 'App Store Screenshots')
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   const layers = page.getByRole('tab', { name: 'Layers', exact: true })
@@ -355,10 +343,10 @@ test('App Store tabs and layers support keyboard selection and reordering', asyn
 })
 
 test('App Store transforms, device frames, visibility and backgrounds persist', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await switchEditor(page, 'App Store Screenshots')
   await page.getByRole('button', { name: 'Use the sample set' }).click()
   const canvas = page.locator('[data-store-canvas-slide]:visible')
@@ -406,7 +394,7 @@ test('App Store transforms, device frames, visibility and backgrounds persist', 
   await expect(
     page.getByRole('status').filter({ hasText: /^Saved on this browser$/ })
   ).toBeVisible()
-  await page.reload()
+  await app.reload()
   await expect(background).toHaveAttribute('style', savedBackground!)
   await page.getByRole('option', { name: /^Device/ }).click()
   await expect(page.getByRole('combobox', { name: 'Model', exact: true })).toHaveText(
@@ -417,10 +405,10 @@ test('App Store transforms, device frames, visibility and backgrounds persist', 
 })
 
 test('App Store opens from the editor by keyboard, mobile navigation reaches Create; Settings opens its own menu', async ({
-  identity,
+  app,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
+  await app.openEditor()
   await page.getByRole('link', { name: /^Create App Store screenshots/ }).press('Enter')
   await expect(page).toHaveURL(/[?&]editor=app-store/)
   await page.getByRole('button', { name: 'Use the sample set' }).click()

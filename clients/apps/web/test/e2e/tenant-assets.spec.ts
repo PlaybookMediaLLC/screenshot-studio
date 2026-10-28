@@ -1,15 +1,21 @@
 import { createHash } from 'node:crypto'
-import { type Browser, expect, type Page } from '@playwright/test'
-import { z } from 'zod'
-import { signUpAndCreateWorkspace } from './framework/auth'
 import {
+  type Browser,
   browserRequest,
+  createWorkspace,
+  db,
   downloadSignedAsset,
+  type E2EIdentity,
+  expect,
+  grantWorkspacePlan,
+  type Page,
   requestJson,
+  test,
   uploadSignedAsset,
-} from './framework/browser'
-import { configureE2EFlow, test, type E2EIdentity } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan, queryRow } from './framework/services'
+} from './framework'
+import { z } from 'zod'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
@@ -63,7 +69,7 @@ async function assertCrossTenantIsolation({
   const context = await browser.newContext()
   const page = await context.newPage()
   try {
-    await signUpAndCreateWorkspace(
+    await createWorkspace(
       {
         ...identity,
         email: `other-${identity.email}`,
@@ -112,14 +118,13 @@ async function assertCrossTenantIsolation({
   }
 }
 
-configureE2EFlow()
-
 test('an uploaded asset stays private to its workspace through completion and download', async ({
   browser,
   identity,
   page,
+  workspace,
 }) => {
-  const organizationId = await signUpAndCreateWorkspace(identity, page)
+  const organizationId = workspace.id
   const sha256 = createHash('sha256').update(png).digest('hex')
   const request: AssetRequest = {
     bytes: png.byteLength,
@@ -187,49 +192,43 @@ test('an uploaded asset stays private to its workspace through completion and do
 
   // The Go maintenance worker removes the stored object when it dispatches
   // asset.deleted; the web path only has to queue it.
-  const database = createE2EDatabase()
-  try {
-    expect(
-      await queryRow(database, 'SELECT status FROM asset WHERE id = $1', [signed.asset.id])
-    ).toEqual({ status: 'DELETED' })
-    expect(
-      await queryRow(
-        database,
-        `SELECT "deliveredAt" FROM outbox_event WHERE "aggregateId" = $1 AND type = 'asset.deleted' LIMIT 1`,
-        [signed.asset.id]
-      )
-    ).toEqual({ deliveredAt: null })
-  } finally {
-    await database.end()
-  }
-})
-
-test('a signed asset download URL expires at the authorization boundary', async ({
-  identity,
-  page,
-}) => {
-  test.slow()
-  await signUpAndCreateWorkspace(identity, page)
-  const sha256 = createHash('sha256').update(png).digest('hex')
-  const signed = await signAsset(page, {
-    bytes: png.byteLength,
-    classification: 'input',
-    contentType: 'image/png',
-    fileName: 'expiring-product.png',
-    sha256,
+  expect(await db.row('SELECT status FROM asset WHERE id = $1', [signed.asset.id])).toEqual({
+    status: 'DELETED',
   })
-  expect(await uploadSignedAsset(page, signed.uploadUrl, [...png], 'image/png')).toBe(200)
   expect(
-    (
-      await requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {
-        sha256,
-      })
-    ).status
-  ).toBe(200)
-  const downloadUrl = downloadSchema.parse(
-    (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).body
-  ).downloadUrl
-
-  await page.waitForTimeout(122_000)
-  expect([400, 401, 403]).toContain((await downloadSignedAsset(page, downloadUrl)).status)
+    await db.row(
+      `SELECT "deliveredAt" FROM outbox_event WHERE "aggregateId" = $1 AND type = 'asset.deleted' LIMIT 1`,
+      [signed.asset.id]
+    )
+  ).toEqual({ deliveredAt: null })
 })
+
+test(
+  'a signed asset download URL expires at the authorization boundary',
+  { tag: '@journey' },
+  async ({ page }) => {
+    const sha256 = createHash('sha256').update(png).digest('hex')
+    const signed = await signAsset(page, {
+      bytes: png.byteLength,
+      classification: 'input',
+      contentType: 'image/png',
+      fileName: 'expiring-product.png',
+      sha256,
+    })
+    expect(await uploadSignedAsset(page, signed.uploadUrl, [...png], 'image/png')).toBe(200)
+    expect(
+      (
+        await requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {
+          sha256,
+        })
+      ).status
+    ).toBe(200)
+    const downloadUrl = downloadSchema.parse(
+      (await browserRequest(page, `/api/tenant/assets/${signed.asset.id}/download-url`)).body
+    ).downloadUrl
+
+    // eslint-disable-next-line no-restricted-syntax -- The signed URL expires after 120 s on the object store clock.
+    await page.waitForTimeout(122_000)
+    expect([400, 401, 403]).toContain((await downloadSignedAsset(page, downloadUrl)).status)
+  }
+)

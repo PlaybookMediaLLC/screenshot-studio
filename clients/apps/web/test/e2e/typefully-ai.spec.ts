@@ -1,25 +1,12 @@
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import {
-  createDraftWorkspace,
-  draftEditor,
-  expectSaved,
-  type DraftWorkspace,
-} from './framework/content-drafts'
-import { apiRequest, unbindTestGoOrganization } from './framework/publishing'
+import { apiRequest, draftEditor, expect, expectSaved, test } from './framework'
 
-configureE2EFlow()
-
-test('prompt examples and reviewed voice notes enter the existing editable assistant workflow', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'prompt examples and reviewed voice notes enter the existing editable assistant workflow',
+  { tag: ['@dev-server', '@journey'] },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
     const created = await apiRequest(page, '/api/v1/content-drafts', {
       method: 'POST',
       body: {
@@ -31,7 +18,7 @@ test('prompt examples and reviewed voice notes enter the existing editable assis
     })
     expect(created.status).toBe(201)
     const id = (created.body as { id: string }).id
-    await page.goto(`/write/${id}?panel=assistant`)
+    await app.open(`/write/${id}?panel=assistant`)
     await page.getByRole('button', { name: 'Skip for now', exact: true }).click()
     const panel = page.getByTestId('assistant-panel')
     await panel.getByText('Writing prompts and examples', { exact: true }).click()
@@ -78,32 +65,31 @@ test('prompt examples and reviewed voice notes enter the existing editable assis
     await panel.getByRole('button', { name: 'Add as a new post', exact: true }).click()
     await expect(page.getByTestId('post-header')).toHaveCount(2)
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(page.getByTestId('post-header')).toHaveCount(2)
     await expect(draftEditor(page)).toContainText('Original evidence')
     expect(
-      ((await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)).body as { posts: unknown[] })
-        .posts
+      (
+        (await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)).body as {
+          posts: unknown[]
+        }
+      ).posts
     ).toHaveLength(0)
     await page.screenshot({ path: '.context/shots/typefully-voice-reviewed.png' })
     expect(errors).toEqual([])
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)
 
-test('saved voice samples and style guidance survive reload, configure the assistant, and honor the workspace AI switch', async ({
-  page,
-  identity,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | null = null
-  try {
-    workspace = await createDraftWorkspace(identity, page)
-    const sets = (await apiRequest(page, '/api/v1/social-sets')).body as { items: { id: string }[] }
+test(
+  'saved voice samples and style guidance survive reload, configure the assistant, and honor the workspace AI switch',
+  { tag: ['@dev-server', '@journey'] },
+  async ({ app, page, startWorkspace }) => {
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
+    const sets = (await apiRequest(page, '/api/v1/social-sets')).body as {
+      items: { id: string }[]
+    }
     const setId = sets.items[0].id
-    await page.goto(`/workspace/social-sets/${setId}/writing-assistant`)
+    await app.open(`/workspace/social-sets/${setId}/writing-assistant`)
     await page.getByLabel('Tone', { exact: true }).fill('Direct, warm and specific')
     await page.getByLabel('Phrases to avoid', { exact: true }).fill('game changer')
     await page.getByLabel('Preferred terms', { exact: true }).fill('workspace')
@@ -116,7 +102,7 @@ test('saved voice samples and style guidance survive reload, configure the assis
     await expect(page.getByText('Writing samples (1 of 20)', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Create assistant', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Turn off', exact: true })).toBeVisible()
-    await page.reload()
+    await app.reload()
     await expect(page.getByLabel('Tone', { exact: true })).toHaveValue('Direct, warm and specific')
     await expect(page.getByLabel('Phrases to avoid', { exact: true })).toHaveValue('game changer')
     await expect(page.getByText('Writing samples (1 of 20)', { exact: true })).toBeVisible()
@@ -132,7 +118,7 @@ test('saved voice samples and style guidance survive reload, configure the assis
     })
     expect(created.status).toBe(201)
     const id = (created.body as { id: string }).id
-    await page.goto(`/write/${id}?panel=assistant`)
+    await app.open(`/write/${id}?panel=assistant`)
     const panel = page.getByTestId('assistant-panel')
     await panel.getByLabel('Ask the assistant').fill('Suggest one concrete improvement.')
     await panel.getByRole('button', { name: 'Send', exact: true }).click()
@@ -170,11 +156,11 @@ test('saved voice samples and style guidance survive reload, configure the assis
           .status,
         endpoint
       ).toBe(404)
-    await page.goto('/workspace')
+    await app.open('/workspace')
     await page.getByRole('checkbox', { name: 'Let AI draft campaigns', exact: true }).uncheck()
     await page.getByRole('button', { name: 'Save workspace', exact: true }).click()
     await expect(page.getByRole('status').filter({ hasText: 'All changes saved' })).toBeVisible()
-    await page.reload()
+    await app.reload()
     await expect(
       page.getByRole('checkbox', { name: 'Let AI draft campaigns', exact: true })
     ).not.toBeChecked()
@@ -187,11 +173,11 @@ test('saved voice samples and style guidance survive reload, configure the assis
       ).status
     ).toBe(403)
     expect(
-      ((await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)).body as { posts: unknown[] })
-        .posts
+      (
+        (await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)).body as {
+          posts: unknown[]
+        }
+      ).posts
     ).toHaveLength(0)
-  } finally {
-    await workspace?.provider.close()
-    await unbindTestGoOrganization(workspace?.organizationId ?? null)
   }
-})
+)

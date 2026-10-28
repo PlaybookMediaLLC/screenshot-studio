@@ -1,19 +1,19 @@
 import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import { expect } from '@playwright/test'
-import { z } from 'zod'
-import { configureE2EFlow, test } from './framework/flow'
 import {
   connectionSchema,
   createApprovedVariant,
-  createPublishingWorkspace,
   createScheduledPost,
-  enablePublishingTwoFactor,
+  createWorkspace,
+  db,
+  enableTwoFactor,
+  expect,
   getActiveOrganizationId,
   png,
+  test,
   trpcMutation,
-} from './framework/publishing'
-import { createE2EDatabase, queryRow, queryRows } from './framework/services'
+} from './framework'
+import { z } from 'zod'
 
 const secretReference = 'SOCIAL_API_KEY_GATE'
 const fakeURL = process.env.E2E_SOCIAL_GATE_FAKE_URL ?? 'http://127.0.0.1:5680'
@@ -55,8 +55,6 @@ function soon(): Date {
   return new Date(Date.now() + 15_000)
 }
 
-configureE2EFlow()
-
 // dev/social-gate connects fake-provider destinations through an isolated
 // product API; outside that script there is nothing to publish to.
 test.skip(!process.env.E2E_SOCIAL_GATE_BOOTSTRAP, 'Run through dev/social-gate.')
@@ -74,31 +72,24 @@ test('the backend worker publishes once through Go, retries, honors cancellation
     })
     .parse(JSON.parse(await readFile(process.env.E2E_SOCIAL_GATE_BOOTSTRAP!, 'utf8')))
   await resetFake('normal')
-  await createPublishingWorkspace(identity, page)
-  await enablePublishingTwoFactor(page, identity.password)
+  await createWorkspace(identity, page)
+  await enableTwoFactor(page, identity.password)
   const organizationId = await getActiveOrganizationId(page)
-  const database = createE2EDatabase()
   const statusOf = async (id: string) =>
-    (
-      await queryRow<{ status: string }>(
-        database,
-        'SELECT status FROM scheduled_post WHERE id = $1',
-        [id]
-      )
-    )?.status
+    (await db.row<{ status: string }>('SELECT status FROM scheduled_post WHERE id = $1', [id]))
+      ?.status
   const awaitStatus = (id: string, status: string) =>
     expect.poll(() => statusOf(id), { intervals: [1_000], timeout: 180_000 }).toBe(status)
   const attemptsOf = (id: string) =>
-    queryRows<{ outcome: string | null; providerPostId: string | null }>(
-      database,
+    db.rows<{ outcome: string | null; providerPostId: string | null }>(
       'SELECT outcome, "providerPostId" FROM publication_attempt WHERE "scheduledPostId" = $1',
       [id]
     )
   try {
-    await database.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
+    await db.query('DELETE FROM social_tenant_binding WHERE "secretReference" = $1', [
       secretReference,
     ])
-    await database.query(
+    await db.query(
       `INSERT INTO social_tenant_binding ("organizationId", "goOrganizationId", "secretReference")
        VALUES ($1, $2, $3)`,
       [organizationId, bootstrap.goOrganizationId, secretReference]
@@ -155,8 +146,7 @@ test('the backend worker publishes once through Go, retries, honors cancellation
     expect(attempt?.providerPostId).toBe(remote.posts[0]?.id)
     expect(remote.posts[0]?.media[0]?.signedAt).toMatch(/^\d{8}T\d{6}Z$/)
     expect(
-      await queryRow<{ count: string }>(
-        database,
+      await db.row<{ count: string }>(
         'SELECT count(*)::text AS count FROM "Post" WHERE "organizationId" = $1',
         [bootstrap.goOrganizationId]
       )
@@ -175,11 +165,11 @@ test('the backend worker publishes once through Go, retries, honors cancellation
         scheduledPostId: cancelled.scheduledPost.id,
       })
     ).toMatchObject({ body: { scheduledPost: { status: 'CANCELLED' } }, status: 200 })
+    // eslint-disable-next-line no-restricted-syntax -- Proves the worker never publishes the cancelled post; an absence needs a window.
     await page.waitForTimeout(30_000)
     expect(await statusOf(cancelled.scheduledPost.id)).toBe('CANCELLED')
     expect((await fakeState()).requests).toBe(1)
-    const actions = await queryRows<{ action: string }>(
-      database,
+    const actions = await db.rows<{ action: string }>(
       `SELECT action FROM audit_log WHERE "organizationId" = $1 AND action LIKE 'post.%'`,
       [organizationId]
     )
@@ -223,9 +213,8 @@ test('the backend worker publishes once through Go, retries, honors cancellation
       (await attemptsOf(expired.scheduledPost.id)).some((item) => item.outcome === 'FAILED')
     ).toBe(true)
   } finally {
-    await database.query('DELETE FROM social_tenant_binding WHERE "organizationId" = $1', [
+    await db.query('DELETE FROM social_tenant_binding WHERE "organizationId" = $1', [
       organizationId,
     ])
-    await database.end()
   }
 })

@@ -1,11 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { signUpViaApi } from './framework/auth'
-import { browserRequest, requestJson, uploadSignedAsset } from './framework/browser'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, grantWorkspacePlan } from './framework/services'
-
-configureE2EFlow()
+import {
+  browserRequest,
+  db,
+  expect,
+  grantWorkspacePlan,
+  requestJson,
+  signUpViaApi,
+  test,
+  uploadSignedAsset,
+} from './framework'
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
@@ -15,6 +19,7 @@ const idSchema = z.object({ id: z.string() })
 const downloadSchema = z.object({ downloadUrl: z.string().url() })
 
 test('removal invalidates an outstanding media link and stale audit and notification reads', async ({
+  app,
   browser,
   identity,
   page,
@@ -84,7 +89,7 @@ test('removal invalidates an outstanding media link and stale audit and notifica
     ]) {
       expect((await browserRequest(member, path)).status, path).toBe(200)
     }
-    await page.goto('/workspace/members')
+    await app.open('/workspace/members')
     await expect(page.getByText(email, { exact: true })).toBeVisible()
     expect(
       (
@@ -118,27 +123,21 @@ test('removal invalidates an outstanding media link and stale audit and notifica
       expect((await browserRequest(member, path)).status, path).toBe(401)
     }
     expect((await page.request.get(new URL(content, url).toString())).status()).toBe(200)
-    await page.reload()
+    await app.reload()
     await expect(page.getByText('1 member', { exact: true })).toBeVisible()
     await expect(page.getByText(email, { exact: true })).toHaveCount(0)
     await page.screenshot({ path: '.context/member-media-revoked.png' })
-    const database = createE2EDatabase()
-    try {
-      expect(
-        (await database.query('SELECT count(*)::int AS n FROM member WHERE id=$1', [memberId]))
-          .rows[0].n
-      ).toBe(0)
-      expect(
-        (
-          await database.query('SELECT status FROM asset WHERE id=$1 AND "organizationId"=$2', [
-            signed.asset.id,
-            org,
-          ])
-        ).rows[0].status
-      ).toBe('UPLOADED')
-    } finally {
-      await database.end()
-    }
+    expect(
+      (await db.query('SELECT count(*)::int AS n FROM member WHERE id=$1', [memberId])).rows[0].n
+    ).toBe(0)
+    expect(
+      (
+        await db.query('SELECT status FROM asset WHERE id=$1 AND "organizationId"=$2', [
+          signed.asset.id,
+          org,
+        ])
+      ).rows[0].status
+    ).toBe('UPLOADED')
   } finally {
     await memberContext.close()
     await anonymous.close()

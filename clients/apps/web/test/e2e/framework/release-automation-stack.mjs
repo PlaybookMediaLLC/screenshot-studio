@@ -93,7 +93,10 @@ if (mode === 'prepare') {
     RELEASE_AUTOMATION_E2E_WORKER: '1',
     PLATFORM_CAMPAIGN_WORKFLOW: 'true',
     PLATFORM_CONTENT_DRAFTS: 'true',
-    SOCIAL_API_KEY_E2E: 'local-fixture-only',
+    // Each Playwright worker binds to its own secret (framework/social-mock.ts).
+    ...Object.fromEntries(
+      Array.from({ length: 8 }, (_, slot) => [`SOCIAL_API_KEY_E2E_W${slot}`, 'local-fixture-only'])
+    ),
     SOCIAL_API_URL: `http://127.0.0.1:${socialPort}/api/public/v1`,
     E2E_SOCIAL_PORT: socialPort,
     RESEND_API_KEY: '',

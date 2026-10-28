@@ -1,50 +1,40 @@
 import { z } from 'zod'
 import {
   acceptInvitation,
+  browserRequest,
+  db,
+  expect,
   getActiveOrganizationId,
+  requestJson,
   signUp,
-  signUpAndCreateWorkspace,
-} from './framework/auth'
-import { browserRequest, requestJson } from './framework/browser'
-import { trpcMutation } from './framework/trpc'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { createE2EDatabase, queryRow } from './framework/services'
+  test,
+  trpcMutation,
+} from './framework'
+
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 const invitationSchema = z.object({ id: z.string() })
 
 async function getMemberId(email: string, organizationId: string): Promise<string> {
-  const database = createE2EDatabase()
-  try {
-    const user = await queryRow<{ id: string }>(
-      database,
-      'SELECT id FROM "user" WHERE email = $1',
-      [email]
-    )
-    if (!user) {
-      throw new Error('The invited user was not created.')
-    }
-    const member = await queryRow<{ id: string }>(
-      database,
-      'SELECT id FROM member WHERE "organizationId" = $1 AND "userId" = $2',
-      [organizationId, user.id]
-    )
-    if (!member) {
-      throw new Error('The invitation did not create a workspace member.')
-    }
-    return member.id
-  } finally {
-    await database.end()
+  const user = await db.row<{ id: string }>('SELECT id FROM "user" WHERE email = $1', [email])
+  if (!user) {
+    throw new Error('The invited user was not created.')
   }
+  const member = await db.row<{ id: string }>(
+    'SELECT id FROM member WHERE "organizationId" = $1 AND "userId" = $2',
+    [organizationId, user.id]
+  )
+  if (!member) {
+    throw new Error('The invitation did not create a workspace member.')
+  }
+  return member.id
 }
-
-configureE2EFlow()
 
 test('a role downgrade denies privileged actions and member removal revokes the active session', async ({
   browser,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const organizationId = await getActiveOrganizationId(page)
   const member = { ...identity, email: `authorization-${identity.email}`, name: 'E2E creator' }
   const invitation = invitationSchema.parse(

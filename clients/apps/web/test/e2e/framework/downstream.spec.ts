@@ -1,14 +1,14 @@
-import { expect, test } from './flow'
+import { expect, test } from './index'
 import { mockBrowserJson } from './downstream'
 
-test('browser mocks return JSON and record downstream calls', async ({ page }) => {
+test('browser mocks return JSON and record downstream calls', async ({ app, page }) => {
   const mock = await mockBrowserJson(page, '**/e2e-downstream-mock', {
     body: { accepted: true },
     method: 'POST',
     status: 201,
   })
 
-  await page.goto('/sign-in')
+  await app.open('/sign-in')
   const response = await page.evaluate(async () => {
     const result = await fetch('/e2e-downstream-mock', {
       body: JSON.stringify({ source: 'e2e' }),

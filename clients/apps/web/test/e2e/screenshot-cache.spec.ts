@@ -1,16 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import { HeadObjectCommand } from '@aws-sdk/client-s3'
 import { z } from 'zod'
-import { requestJson } from './framework/browser'
-import { signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
-import { getMaintenanceHeaders } from './framework/maintenance'
 import {
-  createE2EDatabase,
   createE2EObjectStoreClient,
+  db,
+  expect,
   getE2EObjectStoreBucket,
-  queryRow,
-} from './framework/services'
+  getMaintenanceHeaders,
+  requestJson,
+  test,
+} from './framework'
 
 const screenshotSchema = z.object({
   cached: z.boolean(),
@@ -19,23 +18,13 @@ const screenshotSchema = z.object({
 })
 
 // The screenshot API needs a paid workspace; the fixture gives it Pro.
-configureE2EFlow({
-  beforeEach: async ({ identity, page }) => {
-    await signUpAndCreateWorkspace(identity, page)
-  },
-})
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 async function getCacheRecord(url: string) {
-  const database = createE2EDatabase()
-  try {
-    return await queryRow<{ cloudinaryPublicId: string }>(
-      database,
-      'SELECT "cloudinaryPublicId" FROM screenshot_cache WHERE url = $1 LIMIT 1',
-      [url]
-    )
-  } finally {
-    await database.end()
-  }
+  return await db.row<{ cloudinaryPublicId: string }>(
+    'SELECT "cloudinaryPublicId" FROM screenshot_cache WHERE url = $1 LIMIT 1',
+    [url]
+  )
 }
 
 test('a capture is cached and a maintenance invalidation forces a fresh capture', async ({

@@ -1,35 +1,26 @@
 import sharp from 'sharp'
 import { readFile } from 'node:fs/promises'
 import { createHash, randomBytes } from 'node:crypto'
-import { expect } from '@playwright/test'
-import { configureE2EFlow, test } from './framework/flow'
-import {
-  createDraftWorkspace,
-  draftEditor,
-  expectSaved,
-  openNewDraft,
-  type DraftWorkspace,
-} from './framework/content-drafts'
 import {
   apiRequest,
+  db,
+  draftEditor,
+  expect,
+  expectSaved,
+  openNewDraft,
+  settleSelection,
   signedAssetSchema,
+  startHttpMockServer,
+  test,
   trpcMutation,
-  unbindTestGoOrganization,
   uploadSignedAsset,
-} from './framework/publishing'
-import { startHttpMockServer } from './framework/http-server'
-import { createE2EDatabase } from './framework/services'
+} from './framework'
 
-configureE2EFlow()
-
-test('TF-068: paid large-image upload and X resizing preserve the original; over-limit selection preserves authored text', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | undefined
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'])
+test(
+  'TF-068: paid large-image upload and X resizing preserve the original; over-limit selection preserves authored text',
+  { tag: '@journey' },
+  async ({ page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x'] })
     const id = await openNewDraft(page)
     const editor = draftEditor(page)
     await editor.click()
@@ -80,22 +71,14 @@ test('TF-068: paid large-image upload and X resizing preserve the original; over
     expect(metadata.width).toBeLessThan(1600)
     expect(metadata.width! / metadata.height!).toBeCloseTo(4 / 3, 2)
     expect(metadata.hasAlpha).toBe(true)
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)
 
-test('TF-019 TF-076: fixture GIF search attaches durable animation and rejects mixed X media', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | undefined
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'])
+test(
+  'TF-019 TF-076: fixture GIF search attaches durable animation and rejects mixed X media',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const workspace = await startWorkspace({ channels: ['x'] })
     const id = await openNewDraft(page)
     const frame = await sharp({
       create: { width: 120, height: 60, channels: 4, background: '#25a8df' },
@@ -184,7 +167,7 @@ test('TF-019 TF-076: fixture GIF search attaches durable animation and rejects m
     await page.getByRole('button', { name: 'Attach Local animation' }).click()
     await expect(draftEditor(page).locator('img')).toHaveCount(1)
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await expect(draftEditor(page).locator('figure')).toHaveCount(1)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await expect(page.getByTestId('preview-panel').locator('img')).toHaveCount(1)
@@ -231,41 +214,28 @@ test('TF-019 TF-076: fixture GIF search attaches durable animation and rejects m
     await schedule.getByRole('button', { name: /^Confirm schedule/ }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1)
     expect(await scheduledAssets(valid, 'x')).toEqual([stored.asset.id])
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)
 
 async function scheduledAssets(draftId: string, platform: string): Promise<string[]> {
-  const db = createE2EDatabase()
-  try {
-    const result = await db.query<{
-      assetIds: string[] | null
-      publishOptions: { documentAssetId?: string }
-    }>(
-      `SELECT p."assetIds", p."publishOptions" FROM scheduled_post p JOIN channel_connection c ON c.id=p."channelConnectionId" WHERE p."contentDraftId"=$1 AND c.platform=$2`,
-      [draftId, platform]
-    )
-    return result.rows.flatMap((row) => [
-      ...(row.assetIds ?? []),
-      ...(row.publishOptions?.documentAssetId ? [row.publishOptions.documentAssetId] : []),
-    ])
-  } finally {
-    await db.end()
-  }
+  const result = await db.query<{
+    assetIds: string[] | null
+    publishOptions: { documentAssetId?: string }
+  }>(
+    `SELECT p."assetIds", p."publishOptions" FROM scheduled_post p JOIN channel_connection c ON c.id=p."channelConnectionId" WHERE p."contentDraftId"=$1 AND c.platform=$2`,
+    [draftId, platform]
+  )
+  return result.rows.flatMap((row) => [
+    ...(row.assetIds ?? []),
+    ...(row.publishOptions?.documentAssetId ? [row.publishOptions.documentAssetId] : []),
+  ])
 }
 
-test('TF-001 TF-007 TF-092: dropped images copy through the clipboard between posts without reupload', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | undefined
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'])
+test(
+  'TF-001 TF-007 TF-092: dropped images copy through the clipboard between posts without reupload',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x'] })
     const id = await openNewDraft(page)
     const editor = draftEditor(page)
     await editor.click()
@@ -304,7 +274,7 @@ test('TF-001 TF-007 TF-092: dropped images copy through the clipboard between po
     await expect(page.getByTestId('describe-images')).toHaveCount(0)
     await page.keyboard.press('Escape')
     await editor.locator('img').click()
-    await page.waitForTimeout(200)
+    await settleSelection(page)
     // Native copy retains Slate's private clipboard format; writing only HTML
     // through ClipboardItem would deliberately discard that media metadata.
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
@@ -323,7 +293,7 @@ test('TF-001 TF-007 TF-092: dropped images copy through the clipboard between po
     expect(images.map((node) => node.alt)).toEqual(
       Array(2).fill('Dropped and copied blue rectangle.')
     )
-    await page.reload()
+    await app.reload()
     await expect(editor.locator('figure')).toHaveCount(2)
     await page.getByRole('button', { name: 'Manage media', exact: true }).click()
     const manager = page.getByTestId('media-manager')
@@ -333,24 +303,16 @@ test('TF-001 TF-007 TF-092: dropped images copy through the clipboard between po
     await expect(
       manager.getByRole('region', { name: 'Post 2 media' }).locator('[data-attachment-id]')
     ).toHaveCount(1)
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)
 
-test('TF-078 TF-100: preview toggles preserve the caret and scroll while rapid edits and draft switches stay isolated', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(180_000)
-  let workspace: DraftWorkspace | undefined
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'])
+test(
+  'TF-078 TF-100: preview toggles preserve the caret and scroll while rapid edits and draft switches stay isolated',
+  { tag: '@journey' },
+  async ({ page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await startWorkspace({ channels: ['x'] })
     const first = await openNewDraft(page)
     const editor = draftEditor(page)
     await editor.click()
@@ -366,7 +328,7 @@ test('TF-078 TF-100: preview toggles preserve the caret and scroll while rapid e
         window.getSelection()!.addRange(range)
       })
     // Slate syncs native DOM selection on a 100 ms timer.
-    await page.waitForTimeout(200)
+    await settleSelection(page)
     const toggle = page.getByRole('button', { name: 'Preview', exact: true })
     await toggle.click()
     await expect(editor).toBeFocused()
@@ -434,24 +396,16 @@ test('TF-078 TF-100: preview toggles preserve the caret and scroll while rapid e
     await expect(editor).toContainText('Second draft must stay isolated.')
     await expect(editor).not.toContainText('Alpha one two')
     expect(errors).toEqual([])
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)
 
-test('TF-007 TF-023 TF-092: upload, describe, copy, reorder, frame and reopen durable media', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(300_000)
-  let workspace: DraftWorkspace | undefined
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'TF-007 TF-023 TF-092: upload, describe, copy, reorder, frame and reopen durable media',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     const brand = await trpcMutation(page, 'brandKit.create', {
       definition: {
         colors: { accent: '#6366f1', background: '#ffffff', text: '#111111' },
@@ -546,7 +500,7 @@ test('TF-007 TF-023 TF-092: upload, describe, copy, reorder, frame and reopen du
     expect(images.map((node) => node.alt)).toEqual(
       Array(2).fill('A blue rectangle used to test accessible media.')
     )
-    await page.reload()
+    await app.reload()
     // The structured editor lazy-loads offscreen image elements.
     await expect(draftEditor(page).locator('figure')).toHaveCount(2)
     await draftEditor(page).locator('figure').last().scrollIntoViewIfNeeded()
@@ -567,22 +521,14 @@ test('TF-007 TF-023 TF-092: upload, describe, copy, reorder, frame and reopen du
       page.getByTestId('preview-panel').getByAltText('Description edited from the preview.')
     ).toHaveCount(1)
     expect(errors).toEqual([])
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)
 
-test('TF-057 TF-074 TF-078 TF-085 TF-100: live preview, expansion and scaled mobile geometry preserve draft', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | undefined
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x', 'linkedin', 'threads'])
+test(
+  'TF-057 TF-074 TF-078 TF-085 TF-100: live preview, expansion and scaled mobile geometry preserve draft',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin', 'threads'] })
     const id = await openNewDraft(page)
     const text =
       'Preview opening 👨‍👩‍👧‍👦 <script>alert(1)</script>\n\n' +
@@ -649,26 +595,18 @@ test('TF-057 TF-074 TF-078 TF-085 TF-100: live preview, expansion and scaled mob
     await page.getByRole('option', { name: /Preview current draft/ }).click()
     await expect(page.getByTestId('preview-panel')).toBeVisible()
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
-    await page.reload()
+    await app.reload()
     await expect(draftEditor(page)).toContainText('Live update.')
     const saved = await apiRequest(page, `/api/v1/content-drafts/${id}`)
     expect(JSON.stringify(saved.body)).toContain('Live update.')
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)
 
-test('TF-019 TF-040 TF-083: blocked GIF approval, unsafe URL rejection, and native PDF preview', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | undefined
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'TF-019 TF-040 TF-083: blocked GIF approval, unsafe URL rejection, and native PDF preview',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x', 'linkedin'] })
     await openNewDraft(page)
     await draftEditor(page).click()
     await page.keyboard.type('Document and image preview.')
@@ -701,7 +639,7 @@ test('TF-019 TF-040 TF-083: blocked GIF approval, unsafe URL rejection, and nati
     await page.getByTestId('pdf-carousel').screenshot({ path: '.context/shots/pdf-carousel.png' })
     await page.keyboard.press('Escape')
     await expectSaved(page)
-    await page.reload()
+    await app.reload()
     await page.getByTestId('platform-tab-linkedin').click()
     await expect(page.getByRole('button', { name: 'PDF: two-pages', exact: true })).toBeVisible()
     await page.getByTestId('schedule-button').click()
@@ -733,24 +671,16 @@ test('TF-019 TF-040 TF-083: blocked GIF approval, unsafe URL rejection, and nati
     const storedPDF = await page.request.get(`/api/v1/assets/${ids[0]}/content`)
     expect(storedPDF.ok()).toBe(true)
     expect(Buffer.compare(await storedPDF.body(), pdf)).toBe(0)
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)
 
-test('TF-001 TF-007 TF-038: typed provider mentions, photo tags and ALT edits persist across independent versions (local lookup)', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | undefined
-  const errors: string[] = []
-  page.on('pageerror', (error) => errors.push(error.message))
-  try {
-    workspace = await createDraftWorkspace(identity, page)
+test(
+  'TF-001 TF-007 TF-038: typed provider mentions, photo tags and ALT edits persist across independent versions (local lookup)',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    const errors: string[] = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
     const id = await openNewDraft(page)
     // Only the account lookup is intercepted: editor, saving, asset API and storage are real.
     await page.route('**/api/v1/social-sets/*/mentions?*', async (route) => {
@@ -881,7 +811,7 @@ test('TF-001 TF-007 TF-038: typed provider mentions, photo tags and ALT edits pe
       },
     })
     expect(scheduled.status, JSON.stringify(scheduled.body)).toBe(201)
-    await page.reload()
+    await app.reload()
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await expect(
       page
@@ -889,92 +819,81 @@ test('TF-001 TF-007 TF-038: typed provider mentions, photo tags and ALT edits pe
         .getByAltText('Shared description from the independent LinkedIn version.')
     ).toBeVisible()
     expect(errors).toEqual([])
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
+  }
+)
+
+test(
+  'TF-040: a controlled metadata URL becomes a stored image and scheduled attachment',
+  { tag: '@journey' },
+  async ({ app, page, startWorkspace }) => {
+    test.skip(
+      !process.env.E2E_LINK_FIXTURE_HOST,
+      'Set E2E_LINK_FIXTURE_HOST and include it in the web server SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS.'
+    )
+    const bytes = await sharp({
+      create: { width: 120, height: 60, channels: 4, background: '#39bd7a' },
+    })
+      .png()
+      .toBuffer()
+    const source = await startHttpMockServer((request) =>
+      request.url === '/page'
+        ? {
+            rawBody:
+              '<html><head><meta property="og:title" content="Controlled image source"><meta property="og:image" content="/image.png"></head></html>',
+            headers: { 'content-type': 'text/html' },
+          }
+        : request.url === '/image.png'
+          ? { rawBody: bytes, headers: { 'content-type': 'image/png' } }
+          : { status: 404 }
+    )
+    try {
+      await startWorkspace({ channels: ['x'] })
+      const id = await openNewDraft(page)
+      await draftEditor(page).click()
+      await page.keyboard.type('An image explicitly attached from a metadata page.')
+      const url = new URL('/page', source.url)
+      url.hostname = process.env.E2E_LINK_FIXTURE_HOST!
+      await page.getByRole('button', { name: 'Image from link', exact: true }).click()
+      await page.getByLabel('Page URL').fill(url.toString())
+      await page.getByRole('button', { name: 'Find image', exact: true }).click()
+      await expect(page.getByAltText('Controlled image source')).toBeVisible()
+      await page.getByRole('button', { name: 'Attach image', exact: true }).click()
+      await expect(page.getByRole('heading', { name: 'Image from link', exact: true })).toHaveCount(
+        0
+      )
+      await expectSaved(page)
+      const saved = await apiRequest(page, `/api/v1/content-drafts/${id}`)
+      const image = (saved.body as { body: Record<string, unknown>[] }).body.find(
+        (node) => node.type === 'img'
+      )!
+      expect(image.assetId).toBeTruthy()
+      expect(image.sourceUrl).toBe(url.toString())
+      const content = await page.request.get(`/api/v1/assets/${image.assetId}/content`)
+      expect(content.ok()).toBe(true)
+      const decoded = await sharp(await content.body()).metadata()
+      expect([decoded.width, decoded.height, decoded.format]).toEqual([120, 60, 'png'])
+      await app.reload()
+      await expect(draftEditor(page).locator('figure')).toHaveCount(1)
+      await page.getByTestId('schedule-button').click()
+      const schedule = page.getByTestId('schedule-dialog')
+      await schedule.getByRole('button', { name: /^Tomorrow 9:00/ }).click()
+      await schedule.getByRole('button', { name: /^Confirm schedule/ }).click()
+      await expect(page.getByTestId('draft-post')).toHaveCount(1)
+      const posts = await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)
+      expect(JSON.stringify(posts.body)).toContain('SCHEDULED')
+      expect(await scheduledAssets(id, 'x')).toEqual([image.assetId])
+      expect(source.calls.filter((call) => call.url === '/image.png').length).toBeGreaterThan(0)
+    } finally {
+      await source.close()
     }
   }
-})
+)
 
-test('TF-040: a controlled metadata URL becomes a stored image and scheduled attachment', async ({
-  identity,
-  page,
-}) => {
-  test.skip(
-    !process.env.E2E_LINK_FIXTURE_HOST,
-    'Set E2E_LINK_FIXTURE_HOST and include it in the web server SCREENSHOT_E2E_ALLOWED_DOWNLOAD_HOSTS.'
-  )
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | undefined
-  const bytes = await sharp({
-    create: { width: 120, height: 60, channels: 4, background: '#39bd7a' },
-  })
-    .png()
-    .toBuffer()
-  const source = await startHttpMockServer((request) =>
-    request.url === '/page'
-      ? {
-          rawBody:
-            '<html><head><meta property="og:title" content="Controlled image source"><meta property="og:image" content="/image.png"></head></html>',
-          headers: { 'content-type': 'text/html' },
-        }
-      : request.url === '/image.png'
-        ? { rawBody: bytes, headers: { 'content-type': 'image/png' } }
-        : { status: 404 }
-  )
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'])
-    const id = await openNewDraft(page)
-    await draftEditor(page).click()
-    await page.keyboard.type('An image explicitly attached from a metadata page.')
-    const url = new URL('/page', source.url)
-    url.hostname = process.env.E2E_LINK_FIXTURE_HOST!
-    await page.getByRole('button', { name: 'Image from link', exact: true }).click()
-    await page.getByLabel('Page URL').fill(url.toString())
-    await page.getByRole('button', { name: 'Find image', exact: true }).click()
-    await expect(page.getByAltText('Controlled image source')).toBeVisible()
-    await page.getByRole('button', { name: 'Attach image', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Image from link', exact: true })).toHaveCount(0)
-    await expectSaved(page)
-    const saved = await apiRequest(page, `/api/v1/content-drafts/${id}`)
-    const image = (saved.body as { body: Record<string, unknown>[] }).body.find(
-      (node) => node.type === 'img'
-    )!
-    expect(image.assetId).toBeTruthy()
-    expect(image.sourceUrl).toBe(url.toString())
-    const content = await page.request.get(`/api/v1/assets/${image.assetId}/content`)
-    expect(content.ok()).toBe(true)
-    const decoded = await sharp(await content.body()).metadata()
-    expect([decoded.width, decoded.height, decoded.format]).toEqual([120, 60, 'png'])
-    await page.reload()
-    await expect(draftEditor(page).locator('figure')).toHaveCount(1)
-    await page.getByTestId('schedule-button').click()
-    const schedule = page.getByTestId('schedule-dialog')
-    await schedule.getByRole('button', { name: /^Tomorrow 9:00/ }).click()
-    await schedule.getByRole('button', { name: /^Confirm schedule/ }).click()
-    await expect(page.getByTestId('draft-post')).toHaveCount(1)
-    const posts = await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)
-    expect(JSON.stringify(posts.body)).toContain('SCHEDULED')
-    expect(await scheduledAssets(id, 'x')).toEqual([image.assetId])
-    expect(source.calls.filter((call) => call.url === '/image.png').length).toBeGreaterThan(0)
-  } finally {
-    await source.close()
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
-  }
-})
-
-test('TF-066 TF-105: a ten-minute 1080p source uploads and schedules for a verified standard X fixture', async ({
-  identity,
-  page,
-}) => {
-  test.setTimeout(240_000)
-  let workspace: DraftWorkspace | undefined
-  try {
-    workspace = await createDraftWorkspace(identity, page, ['x'], { verifiedStandardVideo: true })
+test(
+  'TF-066 TF-105: a ten-minute 1080p source uploads and schedules for a verified standard X fixture',
+  { tag: '@journey' },
+  async ({ page, startWorkspace }) => {
+    await startWorkspace({ channels: ['x'], verifiedStandardVideo: true })
     const id = await openNewDraft(page)
     await draftEditor(page).click()
     await page.keyboard.type('A ten-minute video with original 1080p bytes.')
@@ -1018,10 +937,5 @@ test('TF-066 TF-105: a ten-minute 1080p source uploads and schedules for a verif
     const posts = await apiRequest(page, `/api/v1/content-drafts/${id}/posts`)
     expect(JSON.stringify(posts.body)).toContain('SCHEDULED')
     expect(await scheduledAssets(id, 'x')).toEqual([video.assetId])
-  } finally {
-    if (workspace) {
-      await unbindTestGoOrganization(workspace.organizationId)
-      await workspace.provider.close()
-    }
   }
-})
+)

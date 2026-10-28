@@ -1,14 +1,12 @@
-import { chooseOption } from './framework/browser'
-import { openWorkspaceSetting, signUpAndCreateWorkspace } from './framework/auth'
-import { configureE2EFlow, expect, test } from './framework/flow'
+import { chooseOption, expect, openWorkspaceSetting, test } from './framework'
 
-configureE2EFlow()
+test.use({ workspaceOptions: { plan: 'pro' } })
 
 test('an owner can persist workspace, profile, and active brand-kit settings', async ({
+  app,
   identity,
   page,
 }) => {
-  await signUpAndCreateWorkspace(identity, page)
   const workspaceName = `${identity.workspaceName} Updated`
   const workspaceSlug = `workspace-${identity.email.split('@')[0]}`
 
@@ -41,7 +39,7 @@ test('an owner can persist workspace, profile, and active brand-kit settings', a
   await page.getByRole('button', { name: 'Save brand voice' }).click()
   await expect(page.getByText('Brand voice saved.')).toBeVisible()
 
-  await page.reload()
+  await app.reload()
   await expect(page.getByLabel('Term 1', { exact: true })).toHaveValue('guaranteed')
   await expect(page.getByLabel('Reason for term 1')).toHaveValue('Legal does not allow promises')
   await expect(page.getByLabel('How term 1 matches')).toHaveText('Anywhere, even inside a word')

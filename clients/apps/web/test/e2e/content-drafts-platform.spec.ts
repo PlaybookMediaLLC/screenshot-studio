@@ -109,6 +109,8 @@ test('the queue takes the next slot, and the calendar moves a post to another da
     await dialog.getByText('Advanced scheduling', { exact: true }).click()
     await expect(dialog.getByText('Suggested times', { exact: true })).toBeVisible()
     await dialog.getByRole('button', { name: 'Next free slot' }).click()
+    // Stay on this draft; scheduling opens a new one by default.
+    await dialog.getByLabel('Open a new draft after scheduling').uncheck()
     await dialog.getByRole('button', { name: 'Confirm: next free slot' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     const [queued] = await draftPosts(draftId)

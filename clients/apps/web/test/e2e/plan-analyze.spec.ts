@@ -310,7 +310,17 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       await page.getByText('Filters', { exact: true }).click()
     })
     await test.step('P34 browser drag swap and Undo persist both placements', async () => {
-      const targetTime = new Date(Date.parse(plannedFor) + 86400000).toISOString()
+      // A neighbouring day in the same calendar week, so both cards stay in view:
+      // the day after would land in the next month when the post is on a
+      // month's last Saturday.
+      const saturday =
+        new Date(plannedFor).toLocaleDateString('en-US', {
+          weekday: 'short',
+          timeZone: 'America/New_York',
+        }) === 'Sat'
+      const targetTime = new Date(
+        Date.parse(plannedFor) + (saturday ? -1 : 1) * 86400000
+      ).toISOString()
       const other = await apiRequest(page, '/api/v1/calendar/mutations', {
         method: 'POST',
         body: {
@@ -379,6 +389,10 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       } finally {
         await db.end()
       }
+      // Restore the display zone: in Tokyo a post late on a month's last day
+      // shows in the next month, outside the calendar the later steps read.
+      await page.getByLabel('Display timezone', { exact: true }).fill('America/New_York')
+      await page.getByLabel('Display timezone', { exact: true }).blur()
     })
     await test.step('P34 P36 a move has a durable inverse and stale replay cannot overwrite it', async () => {
       const target = new Date(Date.parse(plannedFor) + 86400000).toISOString()
@@ -510,7 +524,8 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
       await page.getByLabel('Display timezone', { exact: true }).focus()
       await page.keyboard.press('w')
       await expect(page.getByLabel('Calendar view')).toHaveValue('month')
-      await page.getByLabel('Display timezone', { exact: true }).fill('Asia/Tokyo')
+      // West of New York, so the planned post keeps its day (and month) on screen.
+      await page.getByLabel('Display timezone', { exact: true }).fill('America/Los_Angeles')
       await page.getByLabel('Display timezone', { exact: true }).blur()
       await page.locator('body').click({ position: { x: 1270, y: 10 } })
       await page.keyboard.press('v')

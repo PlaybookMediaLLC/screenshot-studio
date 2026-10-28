@@ -325,28 +325,17 @@ export function BatchWorkspace({
   const itemsRef = React.useRef(items)
   itemsRef.current = items
 
-  // One save at a time per item: each sends the item's whole media list, so
-  // two of its uploads finishing together must not overwrite each other.
+  // One save at a time per item, each built from its latest state: two
+  // uploads of a post finishing together must not overwrite each other, and
+  // saving drafts waits for edits still on their way.
   const saving = React.useRef(new Map<string, Promise<void>>())
-  const patchMedia = React.useCallback(
-    (itemId: string, index: number, entry: BatchMedia) => {
+  const saveItem = React.useCallback(
+    (itemId: string, body: (item: BatchItem) => Record<string, unknown>) => {
       const save = async () => {
         const item = itemsRef.current.find((candidate) => candidate.id === itemId)
         if (!item) return
-        const media = item.media.map(
-          ({ assetId, fileName, bytes, uploadAssetId }, at): BatchMedia =>
-            at === index
-              ? entry
-              : assetId
-                ? { assetId, ...(fileName ? { fileName } : {}) }
-                : {
-                    fileName: fileName!,
-                    bytes: bytes!,
-                    ...(uploadAssetId ? { uploadAssetId } : {}),
-                  }
-        )
         const next = await call<BatchItem>(`${base}/items/${encodeURIComponent(itemId)}`, {
-          body: { media },
+          body: body(item),
           method: 'PATCH',
         })
         itemsRef.current = itemsRef.current.map((candidate) =>
@@ -361,6 +350,19 @@ export function BatchWorkspace({
       return queued
     },
     [base]
+  )
+  const patchMedia = React.useCallback(
+    (itemId: string, index: number, entry: BatchMedia) =>
+      saveItem(itemId, (item) => ({
+        media: item.media.map(({ assetId, fileName, bytes, uploadAssetId }, at): BatchMedia =>
+          at === index
+            ? entry
+            : assetId
+              ? { assetId, ...(fileName ? { fileName } : {}) }
+              : { fileName: fileName!, bytes: bytes!, ...(uploadAssetId ? { uploadAssetId } : {}) }
+        ),
+      })),
+    [saveItem]
   )
 
   /**
@@ -487,6 +489,8 @@ export function BatchWorkspace({
     accounts.map((account) => account.id)
   )
   const [preview, setPreview] = React.useState<{
+    /** The files this preview matched; Add uploads these, not a later selection. */
+    files: File[]
     mapping: ImportMapping | null
     staged: Staged[]
     unused: string[]
@@ -555,7 +559,12 @@ export function BatchWorkspace({
         throw new Error(
           `A batch holds up to ${ITEM_LIMIT} posts; this would make ${items.length + staged.length}.`
         )
-      setPreview({ mapping, staged, unused: csv.trim() ? unusedFiles(rows, chosen) : [] })
+      setPreview({
+        files: chosen,
+        mapping,
+        staged,
+        unused: csv.trim() ? unusedFiles(rows, chosen) : [],
+      })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not read this import.')
     }
@@ -572,7 +581,7 @@ export function BatchWorkspace({
         method: 'POST',
       })
       // Hold each chosen file for the attachments it was matched to.
-      const byName = new Map(chosen.map((file) => [safeAssetFileName(file.name), file]))
+      const byName = new Map(preview.files.map((file) => [safeAssetFileName(file.name), file]))
       const added = new Set(valid.map((row) => row.input.importKey))
       for (const item of next.items ?? []) {
         if (!added.has(item.importKey)) continue
@@ -585,7 +594,11 @@ export function BatchWorkspace({
       itemsRef.current = next.items ?? []
       // Rows that were not added stay listed with their problems, so none is lost unseen.
       const left = preview.staged.filter((row) => row.problems.length > 0)
-      setPreview(left.length ? { mapping: preview.mapping, staged: left, unused: [] } : null)
+      setPreview(
+        left.length
+          ? { files: preview.files, mapping: preview.mapping, staged: left, unused: [] }
+          : null
+      )
       setCSV('')
       setChosen([])
       startUploads()
@@ -606,18 +619,10 @@ export function BatchWorkspace({
     setUploads((current) => ({ ...current }))
   }
 
-  const updateItem = async (item: BatchItem, body: Record<string, unknown>) => {
-    try {
-      replaceItem(
-        await call<BatchItem>(`${base}/items/${encodeURIComponent(item.id)}`, {
-          body,
-          method: 'PATCH',
-        })
-      )
-    } catch (error) {
+  const updateItem = (item: BatchItem, body: Record<string, unknown>) =>
+    saveItem(item.id, () => body).catch((error: unknown) => {
       toast.error(error instanceof Error ? error.message : 'The item could not be saved.')
-    }
-  }
+    })
 
   // Bulk actions on staged items, with each item's own values kept unless asked.
   const applyShared = async (what: 'caption' | 'accounts') => {
@@ -677,6 +682,8 @@ export function BatchWorkspace({
   // Drafts: each finished item becomes its own draft; a retry returns the same one.
   const saveDrafts = async () => {
     setBusy('drafts')
+    // An edit still being saved, such as a caption left by clicking here, goes first.
+    await Promise.all([...saving.current.values()].map((pending) => pending.catch(() => undefined)))
     let failed = 0
     for (const item of itemsRef.current) {
       if (item.draftId || item.media.some((entry) => !entry.assetId)) continue

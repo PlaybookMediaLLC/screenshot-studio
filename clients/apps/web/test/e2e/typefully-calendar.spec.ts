@@ -117,7 +117,8 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
       // A confirmed provider receipt is seeded; no real network is published to.
       await db.query(
         'UPDATE scheduled_post SET status=\'PUBLISHED\', "remotePostId"=\'123456789\', "scheduledFor"=$2, metrics=$3, "metricsAt"=now() WHERE "contentDraftId"=$1 AND status=\'SCHEDULED\'',
-        [two, past, { likes: 12, replies: 3 }]
+        // ISO, not a Date: node-postgres writes Dates in the host's time zone.
+        [two, past.toISOString(), { likes: 12, replies: 3 }]
       )
       await page.goto(`/write/plan?view=month&week=${anchor.toISOString().slice(0, 10)}`)
       await page

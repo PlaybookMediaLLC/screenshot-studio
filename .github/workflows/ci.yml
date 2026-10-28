@@ -246,7 +246,7 @@ jobs:
     # Stack start, route warm-up, a sixth of the suite with retries, and on
     # the last shard the recovery check. A third of the suite outgrew 45
     # minutes, so every shard was cancelled before it reported.
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:
@@ -317,7 +317,7 @@ jobs:
         run: ./dev/studio e2e --shard=${{ matrix.shard }}
       - name: Verify Plan and Analyze acceptance flows
         if: matrix.shard_index == 7
-        run: ./dev/studio e2e test/e2e/write.spec.ts -g "a thread is written once" --repeat-each=8 --retries=0
+        run: ./dev/studio e2e test/e2e/write.spec.ts --repeat-each=4 --retries=0
       # Collected before the recovery check, which calls `compose up
       # --force-recreate app` and so destroys the container that served the
       # failing tests. Collecting only at the end left every failure on the

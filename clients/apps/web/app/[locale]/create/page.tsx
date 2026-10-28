@@ -54,7 +54,7 @@ export default async function CreatePage({
                       title: 'Polish a screenshot',
                       description:
                         'Frame a screen, adjust the background and export a finished image.',
-                      href: '/',
+                      href: '/?start=new',
                       scope: 'Screenshot · Save as a workspace project',
                       pages: [{ kind: 'screen', ratio: '16:9' }],
                     },

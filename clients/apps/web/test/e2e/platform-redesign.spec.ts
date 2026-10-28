@@ -208,6 +208,65 @@ test(
     await expect(
       page.getByRole('textbox', { name: 'Draft body' }).locator(`img[src*="${kept}"]`)
     ).toBeVisible()
+
+    // From the Library, the same asset starts a new post without being uploaded again.
+    await app.open('/library?view=assets')
+    await page
+      .getByRole('button', { name: new RegExp(`^Actions for .* ${kept.slice(0, 8)}$`) })
+      .click()
+    await page.getByRole('menuitem', { name: 'Use in a new post' }).click()
+    await expect(page.getByRole('textbox', { name: 'New draft text' })).toBeFocused()
+    await page.waitForURL(
+      (url) => /^\/write\/[a-z0-9]+$/.test(url.pathname) && !url.pathname.endsWith(draftId)
+    )
+    const postId = new URL(page.url()).pathname.split('/').pop()!
+    await expect(
+      page.getByRole('textbox', { name: 'Draft body' }).locator(`img[src*="${kept}"]`)
+    ).toBeVisible({ timeout: 60_000 })
+    const post = await browserRequest(page, `/api/v1/content-drafts/${postId}`)
+    expect(JSON.stringify(post.body)).toContain(kept)
+  }
+)
+
+test(
+  'saved work shows on Home right away and search finds it by name, with failures named',
+  { tag: '@journey' },
+  async ({ app, page }) => {
+    await app.open('/home')
+    const recent = page.getByRole('region', { name: 'Continue working' })
+    await expect(recent.getByText('Your work will appear here')).toBeVisible()
+    const created = await trpcMutation(page, 'project.create', {
+      name: 'Harbor launch hero',
+      document: { version: 2, image: { src: null } },
+    })
+    const id = (created.body as { id: string }).id
+    // Leaving and coming back within the list's cache time still shows the new work.
+    const sidebar = page.getByRole('complementary', { name: 'Primary navigation' })
+    await sidebar.getByRole('link', { name: 'Library', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Library', exact: true })).toBeVisible()
+    await sidebar.getByRole('link', { name: 'Home', exact: true }).click()
+    await expect(recent.getByRole('link', { name: /Harbor launch hero/ })).toBeVisible()
+
+    // An empty search offers recent work; words find work by name, not only places.
+    await page.keyboard.press('Control+k')
+    const results = page.getByRole('navigation', { name: 'Search results' })
+    await expect(results.getByRole('link', { name: 'Harbor launch hero Screenshot' })).toBeVisible()
+    const box = page.getByRole('searchbox', { name: 'Search destinations' })
+    await box.fill('harbor')
+    await expect(
+      results.getByRole('link', { name: 'Harbor launch hero Screenshot' })
+    ).toHaveAttribute('href', `/?project=${id}`)
+    await box.fill('qzxj nothing')
+    await expect(results.getByRole('status')).toContainText(
+      'Search finds places in Shots and posts, screenshots, and canvases by name or words.'
+    )
+    // A collection that cannot be searched says so instead of looking empty.
+    await page.route('**/api/v1/content-drafts?*', (route) =>
+      route.fulfill({ status: 500, body: '{}' })
+    )
+    await box.fill('harbor launch')
+    await expect(results).toContainText('Some work could not be searched right now.')
+    await expect(results.getByRole('link', { name: 'Harbor launch hero Screenshot' })).toBeVisible()
   }
 )
 

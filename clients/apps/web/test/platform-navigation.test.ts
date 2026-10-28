@@ -166,6 +166,11 @@ test('the plan page names the paid capability a free workspace asked for', () =>
   assert.equal(paidCapability('/activity'), 'Activity')
   assert.equal(paidCapability('/workflows/new'), 'Automate')
   assert.equal(paidCapability('/'), 'The screenshot editor')
+  // New → Screenshot and Use template name the editor, so the plan page can send them back.
+  assert.equal(
+    paidCapability('/?start=new&template=template-violet-showcase'),
+    'The screenshot editor'
+  )
   assert.equal(paidCapability('/?editor=app-store'), 'Store screenshots')
   assert.equal(paidCapability('/canvas/new'), 'Canvas')
   assert.equal(paidCapability('/compress-image'), 'Image tools')

@@ -305,7 +305,9 @@ test(
     await expectPreview()
 
     // Scheduling renders the table and the equation and attaches them.
-    await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
+    const scheduleDialog = await openSchedule(page)
+    await scheduleDialog.getByLabel('Open a new draft after scheduling').uncheck()
+    await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
     await expect(page.getByTestId('draft-post')).toHaveCount(1, { timeout: 30_000 })
     const post = await db.row<{ assetIds: string[]; caption: string }>(
       `SELECT "assetIds", caption FROM scheduled_post WHERE "contentDraftId" = $1`,
@@ -346,7 +348,9 @@ test('a thread schedules to X as a post and its replies', async ({ app, page, st
     )
     await expect(await previewOf(page, 'x')).toContainText('Second post')
   })
-  await (await openSchedule(page)).getByRole('button', { name: 'Confirm schedule' }).click()
+  const scheduleDialog = await openSchedule(page)
+  await scheduleDialog.getByLabel('Open a new draft after scheduling').uncheck()
+  await scheduleDialog.getByRole('button', { name: 'Confirm schedule' }).click()
   await expect(page.getByTestId('draft-post')).toHaveCount(2, { timeout: 30_000 })
 
   const rows = await db.rows<{ caption: string; platform: string; replies: unknown }>(

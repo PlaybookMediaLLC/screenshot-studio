@@ -170,6 +170,9 @@ Duplicate observations increment a counter. Status history is append-only; later
 receipts do not replace earlier facts. An older observation cannot start automation
 if a newer provider occurrence for that operation is already known. Relational
 ordering compares stored PostgreSQL timestamps at the migration’s millisecond precision, avoiding nanosecond rounding bugs.
+Contradictory states at the same stored timestamp require review, including
+distinct provider timestamps that round to one millisecond. Status IDs and arrival
+order do not establish provider ordering. Matching success statuses still deduplicate.
 A later failure does not erase a previously observed success or undo an existing run.
 
 One policy selects one canonical signal. Multiple status successes for one deployment

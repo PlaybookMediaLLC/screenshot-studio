@@ -193,6 +193,65 @@ func TestProductionOperationsOrderingAndHistoricalSafety(t *testing.T) {
 		t.Fatal(row)
 	}
 }
+
+func TestProductionConflictingTimestampsRequireReview(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		otherState   string
+		otherOffset  time.Duration
+		failureFirst bool
+		wantStatus   string
+		wantRuns     int
+	}{
+		{"equal timestamps", "failure", 100 * time.Microsecond, false, "needs_attention", 0},
+		{"failure delivered first", "failure", 100 * time.Microsecond, true, "needs_attention", 0},
+		{"timestamps round to the same millisecond", "failure", 400 * time.Microsecond, false, "needs_attention", 0},
+		{"matching success statuses", "success", 100 * time.Microsecond, false, "matched", 1},
+		{"older failure", "failure", -time.Millisecond, false, "matched", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, _, _, _ := productionWorkspace(t)
+			base := time.Now().Add(time.Second).Truncate(time.Millisecond)
+			success := productionDelivery(t, f, 501, 601, "success", "tied-success", base.Add(100*time.Microsecond))
+			other := productionDelivery(t, f, 501, 602, tc.otherState, "tied-other", base.Add(tc.otherOffset))
+			inputs := []AcceptGitHubEventInput{success, other}
+			if tc.failureFirst {
+				inputs[0], inputs[1] = inputs[1], inputs[0]
+			}
+			for _, input := range inputs {
+				if _, err := f.repo.AcceptGitHubEvent(f.ctx, input); err != nil {
+					t.Fatal(err)
+				}
+			}
+			successRow := f.db.Client.GitHubObservation.Query().Where(githubobservation.OrganizationID(f.org), githubobservation.DeliveryID(success.DeliveryID)).OnlyX(f.ctx)
+			otherRow := f.db.Client.GitHubObservation.Query().Where(githubobservation.OrganizationID(f.org), githubobservation.DeliveryID(other.DeliveryID)).OnlyX(f.ctx)
+			if tc.otherOffset >= 0 && !successRow.OccurredAt.Equal(*otherRow.OccurredAt) {
+				t.Fatal("fixture timestamps must share their persisted millisecond")
+			}
+			// Both statuses are known before the success can dispatch, regardless of
+			// their receipt order. A higher status ID is not an ordering guarantee.
+			for _, row := range []*ent.GitHubObservation{successRow, otherRow} {
+				if err := f.repo.processGitHubObservation(f.ctx, f.org, row.ID); err != nil {
+					t.Fatal(err)
+				}
+			}
+			successRow = f.db.Client.GitHubObservation.GetX(f.ctx, successRow.ID)
+			if successRow.Status != tc.wantStatus {
+				t.Fatalf("success status=%s, want %s: %+v", successRow.Status, tc.wantStatus, successRow.Decision)
+			}
+			if n := f.db.Client.ReleaseAutomationRun.Query().Where(releaseautomationrun.OrganizationID(f.org)).CountX(f.ctx); n != tc.wantRuns {
+				t.Fatalf("automation runs=%d, want %d", n, tc.wantRuns)
+			}
+			if n := f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx); n != tc.wantRuns {
+				t.Fatalf("dispatch intents=%d, want %d", n, tc.wantRuns)
+			}
+			if tc.wantRuns == 0 && (successRow.EventID != nil || !strings.Contains(successRow.Decision.Reason, "same-time")) {
+				t.Fatalf("ambiguous success created an event or lacks its ordering explanation: %+v", successRow)
+			}
+		})
+	}
+}
+
 func TestProductionRecoveryIsBoundedAndSuppressesLiveEffects(t *testing.T) {
 	f, _, _, reader := productionWorkspace(t)
 	now := time.Now()

@@ -409,16 +409,29 @@ func (c *Configuration) processGitHubObservation(ctx context.Context, org, id st
 	}
 	// Compare stored timestamps at PostgreSQL's precision and exclude this row;
 	// nanosecond JSON timestamps can round upward on the relational projection.
+	// Distinct states sharing a stored timestamp have no supported ordering.
+	// Status IDs and arrival order cannot break that tie safely.
 	occurred := evidence.OccurredAt
 	if observation.OccurredAt != nil {
 		occurred = *observation.OccurredAt
 	}
-	newer, err := tx.GitHubObservation.Query().Where(githubobservation.IDNEQ(observation.ID), githubobservation.OrganizationID(org), githubobservation.SourceAppID(source.ID), githubobservation.ObjectKey(evidence.ObjectKey), githubobservation.OccurredAtGT(occurred)).Exist(ctx)
+	orderingConflict, err := tx.GitHubObservation.Query().Where(
+		githubobservation.IDNEQ(observation.ID),
+		githubobservation.OrganizationID(org),
+		githubobservation.SourceAppID(source.ID),
+		githubobservation.ObjectKey(evidence.ObjectKey),
+		githubobservation.Or(
+			githubobservation.OccurredAtGT(occurred),
+			githubobservation.And(githubobservation.OccurredAtEQ(occurred), func(s *sql.Selector) {
+				s.Where(sqljson.ValueNEQ(githubobservation.FieldEvidence, evidence.State, sqljson.Path("state")))
+			}),
+		),
+	).Exist(ctx)
 	if err != nil {
 		return err
 	}
-	if newer {
-		attention("A newer observation of this operation is already known; this delayed status cannot start automation.")
+	if orderingConflict {
+		attention("A newer or conflicting same-time observation of this operation is already known; this delayed or ambiguously ordered status cannot start automation.")
 	}
 	if decision.Status == "matched" && evidence.RunID > 0 && evidence.RunAttempt > 0 && evidence.Association != "" {
 		// Policies choose one canonical signal. A policy edit can overlap an

@@ -18,6 +18,7 @@ import {
 } from './framework'
 import { createDecoder, readVarString, readVarUint } from 'lib0/decoding'
 import { z } from 'zod'
+import { importedBody } from '@/lib/write/import-text'
 import * as Y from 'yjs'
 
 /** The collaboration server as the browser reaches it. */
@@ -352,5 +353,49 @@ test(
     } finally {
       await context.close()
     }
+  }
+)
+
+test(
+  'a draft opened for the first time shows its stored body even when its browser copy loads last',
+  { tag: '@dev-server' },
+  async ({ page, startWorkspace }) => {
+    await startWorkspace()
+    // Plate seeds a never-opened live document from the stored body only while no
+    // local copy is still loading, and never retries. IndexedDB opening after the
+    // server sync once left a recovered backup's editor empty, so every open here
+    // is held past the sync and Plate's five-second timeout.
+    await page.addInitScript(() => {
+      const open = IDBFactory.prototype.open
+      IDBFactory.prototype.open = function (this: IDBFactory, ...args: [string, number?]) {
+        const request = open.apply(this, args)
+        let onsuccess: IDBOpenDBRequest['onsuccess'] = null
+        Object.defineProperty(request, 'onsuccess', {
+          configurable: true,
+          get: () => onsuccess,
+          set: (handler: IDBOpenDBRequest['onsuccess']) => {
+            onsuccess = handler
+          },
+        })
+        request.addEventListener('success', (event) => {
+          setTimeout(() => onsuccess?.call(request, event), 8_000)
+        })
+        return request
+      }
+    })
+    const created = await apiRequest(page, '/api/v1/content-drafts', {
+      method: 'POST',
+      body: {
+        title: 'Opened late',
+        plainText: 'Stored before anyone opened it',
+        body: importedBody(['Stored before anyone opened it']),
+      },
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(201)
+    const { id } = z.object({ id: z.string() }).parse(created.body)
+    await page.goto(`/write/${id}`)
+    await expect(draftEditor(page)).toContainText('Stored before anyone opened it', {
+      timeout: 60_000,
+    })
   }
 )

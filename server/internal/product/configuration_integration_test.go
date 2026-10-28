@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -33,6 +34,8 @@ type recordingAssetObjects struct {
 	exists  bool
 	key     string
 	written []byte
+	// Uploads are signed concurrently in TestConcurrentUploadsCannotExceedStorage.
+	mu sync.Mutex
 }
 
 type recordingQuotaCounter struct{ count int }
@@ -56,6 +59,8 @@ func (m *recordingMonthlyMeter) Meter(_ context.Context, key string, amount, lim
 }
 
 func (o *recordingAssetObjects) SignUpload(_ context.Context, key, _ string) (string, error) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
 	o.key = key
 	return "https://storage.example.test/upload", nil
 }

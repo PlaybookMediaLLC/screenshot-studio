@@ -172,6 +172,9 @@ test('A: a manual product announcement survives reload and exports what was comp
   const chooser = page.waitForEvent('filechooser')
   await page.getByRole('button', { name: 'Replace screenshot' }).click()
   await (await chooser).setFiles(SCREENSHOT)
+  // The file is checked before it lands, and framing an artboard with no screenshot
+  // yet is refused, so the frame waits for the screenshot.
+  await expect(page.locator('#image-render-card [data-main-image-layer]')).toBeVisible()
   await page.getByRole('button', { name: 'Browser window', exact: true }).click()
   await page.locator('#image-render-card [data-text-overlay-id]').first().click()
   await page.getByLabel('Text content').fill('Approvals in one place')

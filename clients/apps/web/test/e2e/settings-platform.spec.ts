@@ -69,7 +69,8 @@ test('personal settings are addressable, saved on the server and survive a reloa
       ? route.fulfill({ body: '{"error":"Refused for the test."}', status: 500 })
       : route.continue()
   )
-  await page.getByRole('radio', { name: /^Dark/ }).check()
+  // click, not check: the refusal can put the choice back before check() reads it.
+  await page.getByRole('radio', { name: /^Dark/ }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Not saved' }).first()).toBeVisible()
   await expect(page.getByRole('radio', { name: /^Light/ })).toBeChecked()
   await expect(page.locator('html')).toHaveClass(/\blight\b/)

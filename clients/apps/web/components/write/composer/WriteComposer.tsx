@@ -94,7 +94,7 @@ import {
   tabChannels,
 } from './platforms'
 import { PostSettingsTools } from './post-tools'
-import { PreviewPanel, type PreviewItem } from './preview'
+import { PreviewPanel, type PreviewItem, type PreviewSelection } from './preview'
 import { PropertiesPanel } from './properties'
 import { PublishReview, ScheduleDialog, type ScheduleContext } from './schedule'
 import { BackupsBrowser, ShareDialog } from './share-backups'
@@ -298,6 +298,10 @@ export function WriteComposer({
             : null
   )
   const [focus, setFocus] = React.useState(false)
+  const [previewSelection, setPreviewSelection] = React.useState<PreviewSelection>({
+    channel: null,
+    device: 'desktop',
+  })
   const focusRoot = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     if (!focus || !focusRoot.current) return
@@ -745,6 +749,8 @@ export function WriteComposer({
       <PreviewPanel
         initialChannel={active}
         onDescribe={canEdit ? (media) => setDescription(media) : undefined}
+        onSelect={setPreviewSelection}
+        selection={previewSelection}
         items={
           items.length
             ? items

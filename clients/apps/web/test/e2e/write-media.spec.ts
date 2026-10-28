@@ -636,6 +636,12 @@ test('TF-057 TF-074 TF-078 TF-085 TF-100: live preview, expansion and scaled mob
       animations: 'disabled',
       maxDiffPixelRatio: 0.01,
     })
+    // The picked platform and device survive the panel moving between layouts.
+    await expect(panel.getByRole('button', { name: 'Threads', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    await expect(panel.getByRole('combobox', { name: 'Preview device' })).toContainText('iPhone SE')
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     await expectSaved(page)
     await page.keyboard.press('ControlOrMeta+k')

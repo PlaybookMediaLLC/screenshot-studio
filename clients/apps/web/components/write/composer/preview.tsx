@@ -40,6 +40,16 @@ const DEVICES = [
 export type PreviewItem = { account: ComposerAccount; publication: Publication }
 
 /**
+ * The platform and device a person picked. The composer keeps it: switching
+ * between the side panel and the sheet remounts the panel, which reset it.
+ */
+export type PreviewSelection = {
+  /** Null follows the composer's active channel. */
+  channel: DraftChannel | null
+  device: 'desktop' | (typeof DEVICES)[number]['label']
+}
+
+/**
  * The realistic preview (RFC 025): each destination laid out as its
  * platform shows it, from the same publication the schedule sends, on a
  * desktop column or a chosen phone. It shows no engagement numbers: nothing
@@ -49,19 +59,19 @@ export function PreviewPanel({
   items,
   target,
   onDescribe,
+  onSelect,
   initialChannel,
+  selection,
 }: {
   initialChannel?: DraftChannel
   onDescribe?: (media: SerializedMedia) => void
+  onSelect: (selection: PreviewSelection) => void
   items: PreviewItem[]
+  selection: PreviewSelection
   target: DraftTarget | null
 }) {
-  const [channel, setChannel] = React.useState<DraftChannel | null>(
-    initialChannel ?? items[0]?.account.channel ?? null
-  )
-  const [device, setDevice] = React.useState<'desktop' | (typeof DEVICES)[number]['label']>(
-    'desktop'
-  )
+  const channel = selection.channel ?? initialChannel ?? items[0]?.account.channel ?? null
+  const { device } = selection
   const item = items.find((entry) => entry.account.channel === channel) ?? items[0]
   const size = DEVICES.find((entry) => entry.label === device)
   if (!item) {
@@ -83,7 +93,7 @@ export function PreviewPanel({
                 : 'border-border text-muted-foreground'
             )}
             key={entry.account.id}
-            onClick={() => setChannel(entry.account.channel)}
+            onClick={() => onSelect({ ...selection, channel: entry.account.channel })}
             size={null}
             type="button"
             variant="custom"
@@ -92,7 +102,12 @@ export function PreviewPanel({
             {CHANNEL_META[entry.account.channel].label}
           </Button>
         ))}
-        <Select onValueChange={(value) => setDevice(value as typeof device)} value={device}>
+        <Select
+          onValueChange={(value) =>
+            onSelect({ ...selection, device: value as PreviewSelection['device'] })
+          }
+          value={device}
+        >
           <SelectTrigger aria-label="Preview device" className="ml-auto h-7 w-auto text-xs">
             <SelectValue />
           </SelectTrigger>

@@ -40,6 +40,15 @@ destination, and schedules through the web. It verifies:
 4. A cancelled post makes no provider request.
 5. HTTP 429 and 500 responses retry into one remote post each.
 6. An expired provider credential fails without publishing.
+7. Content drafts publish their media through the same worker. A second flow
+   uploads a PNG, an MP4 and two more images through the signed-upload flow,
+   then schedules three drafts to the fake destination, which takes drafts
+   under X's rules only in the gate (`PLATFORM_E2E_DRAFT_PLATFORM`): a photo
+   with a Unicode caption, a video, and three images in an order that is not
+   their upload order. The fake receives each post once with its caption, and
+   each item's content type, SHA-256 in order, and a 24-hour
+   (`X-Amz-Expires=86400`) signature; each `scheduled_post` is `PUBLISHED`
+   with one successful `publication_attempt`.
 
 `test/e2e/social-scheduling.spec.ts` checks the web callback and scheduling facade
 with a mock social API, including cross-workspace isolation, X, LinkedIn, and

@@ -144,18 +144,23 @@ export const enablePublishingTwoFactor = setupStep(
   enablePublishingTwoFactorSteps
 )
 
-export async function createUploadedAsset(page: Page): Promise<string> {
-  const sha256 = createHash('sha256').update(png).digest('hex')
+export async function createUploadedAsset(
+  page: Page,
+  bytes: Buffer = png,
+  contentType = 'image/png',
+  fileName = 'launch.png'
+): Promise<string> {
+  const sha256 = createHash('sha256').update(bytes).digest('hex')
   const signedResponse = await requestJson(page, '/api/tenant/assets/upload-url', {
-    bytes: png.byteLength,
+    bytes: bytes.byteLength,
     classification: 'input',
-    contentType: 'image/png',
-    fileName: 'launch.png',
+    contentType,
+    fileName,
     sha256,
   })
   expect(signedResponse.status).toBe(201)
   const signed = signedAssetSchema.parse(signedResponse.body)
-  expect(await uploadSignedAsset(page, signed.uploadUrl, [...png], 'image/png')).toBe(200)
+  expect(await uploadSignedAsset(page, signed.uploadUrl, [...bytes], contentType)).toBe(200)
   const complete = await requestJson(page, `/api/tenant/assets/${signed.asset.id}/complete`, {
     sha256,
   })

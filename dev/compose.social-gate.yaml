@@ -6,6 +6,8 @@ services:
       BETTER_AUTH_URL: http://localhost:3010
       BETTER_AUTH_TRUSTED_ORIGINS: http://localhost:3010
       NEXT_PUBLIC_APP_URL: http://localhost:3010
+      # Drafts may target the fake destination under X's rules, as on publishing-backend.
+      PLATFORM_E2E_DRAFT_PLATFORM: enabled
     ports: !override
       - '127.0.0.1:3010:3000'
 
@@ -32,6 +34,8 @@ services:
     # Channels connect in process (no SOCIAL_API_URL) to the fake provider.
     environment:
       BETTER_AUTH_URL: http://localhost:3010
+      # The fake destination takes content drafts under X's rules.
+      PLATFORM_E2E_DRAFT_PLATFORM: enabled
       R2_BROWSER_ENDPOINT: http://localhost:9013
       SOCIAL_API_URL: ''
       SOCIAL_E2E_URL: http://fake-social:8080

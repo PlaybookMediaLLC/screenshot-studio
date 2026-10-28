@@ -50,6 +50,8 @@ export const githubEvidenceSchema = z
     installationId: z.number().int().positive(),
     repositoryId: z.string().max(64),
     repositoryName: z.string().max(255),
+    defaultBranch: z.string().max(255).optional(),
+    actorLogin: z.string().max(255).optional(),
     occurredAt: z.string(),
     state: z.string().max(255),
     environment: z.string().max(255),

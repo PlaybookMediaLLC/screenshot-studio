@@ -3,6 +3,7 @@ package releaseautomation
 import (
 	"encoding/json"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -154,6 +155,80 @@ func TestGitHubObservationIdentitiesAndBounds(t *testing.T) {
 		t.Fatal("provider time lost")
 	}
 }
+
+func TestProductionEventPreservesDeploymentGraphFields(t *testing.T) {
+	p, _ := productionFixture(t)
+	body, err := os.ReadFile("testdata/deployment-status.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		edit func(map[string]any)
+	}{
+		{"common metadata", func(map[string]any) {}},
+		{"missing metadata stays missing", func(payload map[string]any) {
+			delete(payload, "sender")
+			delete(payload["repository"].(map[string]any), "full_name")
+			delete(payload["repository"].(map[string]any), "default_branch")
+			delete(payload["deployment"].(map[string]any), "sha")
+		}},
+		{"implicit success action", func(payload map[string]any) { delete(payload, "action") }},
+		{"target URL fallback", func(payload map[string]any) {
+			status := payload["deployment_status"].(map[string]any)
+			delete(status, "environment_url")
+			status["target_url"] = "https://app.example.com/deployment?token=private"
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var payload map[string]any
+			if err := json.Unmarshal(body, &payload); err != nil {
+				t.Fatal(err)
+			}
+			tc.edit(payload)
+			modified, err := json.Marshal(payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, legacy, err := NormalizeGitHub("deployment_status", modified)
+			if err != nil {
+				t.Fatal(err)
+			}
+			evidence, err := NormalizeGitHubEvidence("deployment_status", modified)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// The observation is persisted before the graph adapter reads it.
+			stored, err := json.Marshal(evidence)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var restored GitHubEvidence
+			if err := json.Unmarshal(stored, &restored); err != nil {
+				t.Fatal(err)
+			}
+			event := ProductionEvent(restored, p)
+			if err := ValidateEvent(event); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(event.Fields, legacy.Fields) || event.DefaultBranch != legacy.DefaultBranch || event.URL != SafeEvidenceURL(legacy.URL) {
+				t.Errorf("qualified event lost deployment metadata: got %+v, legacy %+v", event, legacy)
+			}
+			for _, field := range []string{"repository.name", "actor.login", "deployment.sha"} {
+				condition := Condition{Field: field, Operator: "eq", Values: []string{"unknown"}}
+				observed, present := legacy.Fields[field]
+				if present {
+					condition.Values = observed.Values
+				}
+				decision := Evaluate(condition, event)
+				if present && (decision.Status != "evaluated" || !decision.Match) || !present && decision.Status != "missing" {
+					t.Errorf("graph condition %s lost its evidence: %+v", field, decision)
+				}
+			}
+		})
+	}
+}
+
 func TestRepositoryWorkflowsCanSucceedWithoutDeploying(t *testing.T) {
 	for _, file := range []string{"web-image.yml", "social-backend-image.yml"} {
 		body, err := os.ReadFile("../../../.github/workflows/" + file)

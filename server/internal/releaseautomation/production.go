@@ -52,6 +52,8 @@ type GitHubEvidence struct {
 	InstallationID        int64          `json:"installationId"`
 	RepositoryID          string         `json:"repositoryId"`
 	RepositoryName        string         `json:"repositoryName"`
+	DefaultBranch         string         `json:"defaultBranch,omitempty"`
+	ActorLogin            string         `json:"actorLogin,omitempty"`
 	OccurredAt            time.Time      `json:"occurredAt"`
 	State                 string         `json:"state"`
 	Environment           string         `json:"environment"`
@@ -302,6 +304,7 @@ func NormalizeGitHubEvidence(name string, body json.RawMessage) (*GitHubEvidence
 			State       string    `json:"state"`
 			Environment string    `json:"environment"`
 			URL         string    `json:"environment_url"`
+			TargetURL   string    `json:"target_url"`
 			Created     time.Time `json:"created_at"`
 			App         struct {
 				ID int64 `json:"id"`
@@ -329,7 +332,7 @@ func NormalizeGitHubEvidence(name string, body json.RawMessage) (*GitHubEvidence
 	if json.Unmarshal(body, &p) != nil || p.Installation.ID <= 0 || p.Repository.ID <= 0 {
 		return nil, ErrPayload
 	}
-	e := &GitHubEvidence{SchemaVersion: 1, EventName: name, Action: p.Action, InstallationID: p.Installation.ID, RepositoryID: strconv.FormatInt(p.Repository.ID, 10), RepositoryName: p.Repository.FullName}
+	e := &GitHubEvidence{SchemaVersion: 1, EventName: name, Action: p.Action, InstallationID: p.Installation.ID, RepositoryID: strconv.FormatInt(p.Repository.ID, 10), RepositoryName: p.Repository.FullName, DefaultBranch: p.Repository.DefaultBranch, ActorLogin: p.Sender.Login}
 	e.Workflow = GitHubWorkflow{ID: p.Workflow.ID, Name: p.Workflow.Name, Path: p.Workflow.Path}
 	if p.Run.ID > 0 {
 		e.RunID, e.RunAttempt = p.Run.ID, p.Run.Attempt
@@ -359,6 +362,9 @@ func NormalizeGitHubEvidence(name string, body json.RawMessage) (*GitHubEvidence
 		}
 		e.DeploymentEnvironment, e.Production = p.Deployment.Environment, p.Deployment.Production
 		e.Ref, e.SHA, e.URL, e.AppID = p.Deployment.Ref, p.Deployment.SHA, SafeEvidenceURL(p.Status.URL), p.Status.App.ID
+		if p.Status.URL == "" {
+			e.URL = SafeEvidenceURL(p.Status.TargetURL)
+		}
 		e.ReceiptAppID = p.Deployment.App.ID
 		e.JobID, e.JobName = p.Check.ID, p.Check.Name
 		if e.JobID > 0 || e.Workflow.ID > 0 {
@@ -408,7 +414,7 @@ func NormalizeGitHubEvidence(name string, body json.RawMessage) (*GitHubEvidence
 		e.RunID, e.RunAttempt, e.JobID, e.JobName = p.Job.RunID, p.Job.Attempt, p.Job.ID, p.Job.Name
 		e.Key = e.ObjectKey + ":" + p.Action + ":" + e.State
 	}
-	for _, s := range []string{e.RepositoryName, e.Environment, e.DeploymentEnvironment, e.Ref, e.SHA, e.Workflow.Path, e.Workflow.Name, e.JobName, e.ReceiptRevision, e.State, e.Action} {
+	for _, s := range []string{e.RepositoryName, e.DefaultBranch, e.ActorLogin, e.Environment, e.DeploymentEnvironment, e.Ref, e.SHA, e.Workflow.Path, e.Workflow.Name, e.JobName, e.ReceiptRevision, e.State, e.Action} {
 		if len(s) > 255 || strings.ContainsRune(s, 0) {
 			return nil, ErrPayload
 		}
@@ -439,7 +445,20 @@ func ProductionEvent(e GitHubEvidence, p ProductionPolicy) Event {
 	if environment == "" && len(p.Environments) == 1 {
 		environment = p.Environments[0]
 	}
-	event := Event{Family: Deployed, SemanticKey: e.ObjectKey + ":qualified", RepositoryID: e.RepositoryID, RepositoryName: e.RepositoryName, ObjectID: e.ObjectID, OccurredAt: e.OccurredAt, Origin: "live", Title: "Production-qualified deployment evidence", Notes: "Configured production evidence matched. A reported outcome does not prove a new live revision or customer availability.", URL: e.URL, Fields: map[string]Value{"repository.id": StringValue(e.RepositoryID), "event.family": StringValue(string(Deployed)), "event.action": StringValue("success"), "deployment.state": StringValue("success"), "deployment.environment": StringValue(environment), "deployment.sha": StringValue(e.SHA)}}
+	action := "success"
+	if e.EventName == "deployment_status" && e.Action != "" {
+		action = e.Action
+	}
+	event := Event{Family: Deployed, SemanticKey: e.ObjectKey + ":qualified", RepositoryID: e.RepositoryID, RepositoryName: e.RepositoryName, DefaultBranch: e.DefaultBranch, ObjectID: e.ObjectID, OccurredAt: e.OccurredAt, Origin: "live", Title: "Production-qualified deployment evidence", Notes: "Configured production evidence matched. A reported outcome does not prove a new live revision or customer availability.", URL: e.URL, Fields: map[string]Value{"repository.id": StringValue(e.RepositoryID), "event.family": StringValue(string(Deployed)), "event.action": StringValue(action), "deployment.state": StringValue("success"), "deployment.environment": StringValue(environment)}}
+	if e.RepositoryName != "" {
+		event.Fields["repository.name"] = StringValue(e.RepositoryName)
+	}
+	if e.ActorLogin != "" {
+		event.Fields["actor.login"] = StringValue(e.ActorLogin)
+	}
+	if e.SHA != "" {
+		event.Fields["deployment.sha"] = StringValue(e.SHA)
+	}
 	if e.EventName != "deployment_status" {
 		// Downstream capture/release association also uses ObjectID. Keep the
 		// attempt and provider namespace there, so reruns cannot collapse later.

@@ -728,6 +728,14 @@
                                 "type": "string",
                                 "maxLength": 255
                               },
+                              "defaultBranch": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
+                              "actorLogin": {
+                                "type": "string",
+                                "maxLength": 255
+                              },
                               "occurredAt": {
                                 "type": "string"
                               },
@@ -1577,6 +1585,14 @@
                         "maxLength": 64
                       },
                       "repositoryName": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "defaultBranch": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "actorLogin": {
                         "type": "string",
                         "maxLength": 255
                       },

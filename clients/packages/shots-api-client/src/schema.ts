@@ -4100,6 +4100,8 @@ export interface operations {
                                 installationId: number;
                                 repositoryId: string;
                                 repositoryName: string;
+                                defaultBranch?: string;
+                                actorLogin?: string;
                                 occurredAt: string;
                                 state: string;
                                 environment: string;
@@ -4342,6 +4344,8 @@ export interface operations {
                         installationId: number;
                         repositoryId: string;
                         repositoryName: string;
+                        defaultBranch?: string;
+                        actorLogin?: string;
                         occurredAt: string;
                         state: string;
                         environment: string;

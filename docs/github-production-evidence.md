@@ -173,6 +173,9 @@ ordering compares stored PostgreSQL timestamps at the migration’s millisecond 
 Contradictory states at the same stored timestamp require review, including
 distinct provider timestamps that round to one millisecond. Status IDs and arrival
 order do not establish provider ordering. Matching success statuses still deduplicate.
+Qualified deployment events preserve the existing graph's repository, actor,
+deployment and action fields, plus the default branch and sanitized provider URL.
+Missing optional metadata remains missing when downstream conditions evaluate it.
 A later failure does not erase a previously observed success or undo an existing run.
 
 One policy selects one canonical signal. Multiple status successes for one deployment

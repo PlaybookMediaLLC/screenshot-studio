@@ -7,6 +7,7 @@ import { usePrivateCreativeSurface } from './use-private-surface'
 import { useRouter } from 'next/navigation'
 import { TRPCClientError } from '@trpc/client'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -587,7 +588,9 @@ function SetWorkspace({
               </p>
               {state.document.stories.map((item, index) => (
                 <div key={item.id} className="flex items-center gap-1">
-                  <button
+                  <Button
+                    variant="custom"
+                    size={null}
                     className={`min-w-0 flex-1 truncate rounded-md px-3 py-2.5 text-left text-sm ${item.id === story.id ? 'bg-foreground/[0.06] text-foreground' : 'text-muted-foreground hover:bg-foreground/[0.04]'}`}
                     aria-current={item.id === story.id ? 'true' : undefined}
                     onClick={() => {
@@ -602,7 +605,7 @@ function SetWorkspace({
                     }}
                   >
                     {index + 1}. {item.headline}
-                  </button>
+                  </Button>
                   {canEdit && index > 0 ? (
                     <Button
                       variant="ghost"
@@ -716,7 +719,7 @@ function SetWorkspace({
                     Updates linked copy in every format. Custom wording stays yours.
                   </p>
                   {(['headline', 'supporting'] as ContentField[]).map((field) => (
-                    <label
+                    <Label
                       key={`${story.id}:${field}:${story[field]}`}
                       className="grid gap-1.5 text-xs text-muted-foreground"
                     >
@@ -738,7 +741,7 @@ function SetWorkspace({
                         }}
                         className="text-foreground"
                       />
-                    </label>
+                    </Label>
                   ))}
                 </fieldset>
                 <Button
@@ -815,7 +818,7 @@ function SetWorkspace({
                     stay.
                   </p>
 
-                  <label className="grid gap-1 text-xs">
+                  <Label className="grid gap-1 text-xs">
                     Motion · this format
                     <Select
                       disabled={!canEdit || !ready}
@@ -843,7 +846,7 @@ function SetWorkspace({
                         ))}
                       </SelectContent>
                     </Select>
-                  </label>
+                  </Label>
                   {active.document.timeline ? (
                     <Button
                       size="sm"
@@ -997,14 +1000,16 @@ function SetWorkspace({
               aria-label="Formats"
             >
               {storyOutputs.map((output) => (
-                <button
+                <Button
+                  variant="custom"
+                  size={null}
                   key={output.id}
                   aria-pressed={active.id === output.id}
                   onClick={() => {
                     flushActive()
                     setActiveId(output.id)
                   }}
-                  className={`w-40 shrink-0 rounded-lg border p-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${active.id === output.id ? 'border-emerald-500/70 bg-emerald-500/[0.04]' : 'border-transparent hover:bg-foreground/[0.04]'}`}
+                  className={`w-40 shrink-0 rounded-lg border p-2 text-left transition-colors focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring ${active.id === output.id ? 'border-emerald-500/70 bg-emerald-500/[0.04]' : 'border-transparent hover:bg-foreground/[0.04]'}`}
                 >
                   <div className="h-20">
                     <ProjectPreview
@@ -1023,7 +1028,7 @@ function SetWorkspace({
                           ? 'Custom copy'
                           : 'Linked copy'}
                   </p>
-                </button>
+                </Button>
               ))}
             </div>
           </section>
@@ -1079,7 +1084,7 @@ function SetWorkspace({
                   const value = layer?.visible === false ? '' : (layer?.text ?? '')
                   return (
                     <div key={`${active.id}:${field}:${value}`} className="space-y-2">
-                      <label className="grid gap-1.5 text-xs">
+                      <Label className="grid gap-1.5 text-xs">
                         {field === 'headline'
                           ? 'This format headline'
                           : 'This format supporting line'}
@@ -1105,7 +1110,7 @@ function SetWorkspace({
                               })
                           }}
                         />
-                      </label>
+                      </Label>
                       <p className="text-xs text-muted-foreground">
                         {layer?.visible === false
                           ? 'Not shown on this format'

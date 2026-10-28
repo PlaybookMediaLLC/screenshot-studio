@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -91,7 +92,7 @@ export function CampaignHandoffDialog({
           </div>
         ) : (
           <>
-            <label className="grid gap-1 text-sm">
+            <Label className="grid gap-1 text-sm">
               Campaign
               <Select value={campaignId} onValueChange={setCampaignId}>
                 <SelectTrigger aria-label="Campaign" className="w-full">
@@ -105,8 +106,8 @@ export function CampaignHandoffDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </label>
-            <label className="grid gap-1 text-sm">
+            </Label>
+            <Label className="grid gap-1 text-sm">
               Immutable delivered file
               <Select value={deliveryId} onValueChange={setDeliveryId}>
                 <SelectTrigger aria-label="Immutable delivered file" className="w-full">
@@ -120,11 +121,11 @@ export function CampaignHandoffDialog({
                   ))}
                 </SelectContent>
               </Select>
-            </label>
+            </Label>
             {!delivered.length ? (
               <p className="text-sm">Export a format and save it to workspace assets first.</p>
             ) : null}
-            <label className="grid gap-1 text-sm">
+            <Label className="grid gap-1 text-sm">
               Post channel
               <Select value={channel} onValueChange={setChannel}>
                 <SelectTrigger aria-label="Post channel" className="w-full">
@@ -136,15 +137,15 @@ export function CampaignHandoffDialog({
                   <SelectItem value="instagram">Instagram</SelectItem>
                 </SelectContent>
               </Select>
-            </label>
-            <label className="grid gap-1 text-sm">
+            </Label>
+            <Label className="grid gap-1 text-sm">
               Draft post
               <Textarea
                 value={copy}
                 maxLength={channel === 'x' ? 280 : channel === 'instagram' ? 2200 : 3000}
                 onChange={(event) => setCopy(event.target.value)}
               />
-            </label>
+            </Label>
             <Button
               disabled={busy || !campaignId || !deliveryId || !copy.trim()}
               onClick={() => void attach()}

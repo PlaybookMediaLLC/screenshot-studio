@@ -10,6 +10,7 @@ import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Group, Page, Pill, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table'
 import { getErrorMessage } from '@/components/workspace/settings-client'
 import type {
   AutomationOverview,
@@ -445,18 +446,20 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
         title="Event evidence"
       >
         <div className="overflow-x-auto rounded-2xl ring-1 ring-border">
-          <table aria-label="Event fields" className="w-full text-left text-sm">
-            <tbody>
+          <Table aria-label="Event fields" className="w-full text-left text-sm">
+            <TableBody>
               {Object.entries(fields).map(([field, value]) => (
-                <tr className="border-t border-border first:border-t-0" key={field}>
-                  <th
+                <TableRow className="border-t border-border first:border-t-0" key={field}>
+                  <TableHead
                     className="px-4 py-2 font-mono text-xs font-normal text-muted-foreground"
                     scope="row"
                   >
                     {field}
-                  </th>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">{value.state}</td>
-                  <td className="px-4 py-2 text-xs break-all text-foreground">
+                  </TableHead>
+                  <TableCell className="px-4 py-2 text-xs text-muted-foreground">
+                    {value.state}
+                  </TableCell>
+                  <TableCell className="px-4 py-2 text-xs break-all whitespace-normal text-foreground">
                     {value.boolean !== undefined
                       ? String(value.boolean)
                       : value.values?.length
@@ -465,11 +468,11 @@ export function WorkflowRunDetail({ canManage, id }: { canManage: boolean; id: s
                         : value.state === 'available'
                           ? '(empty)'
                           : '—'}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
         {event.snapshot.notes ? (
           <div>

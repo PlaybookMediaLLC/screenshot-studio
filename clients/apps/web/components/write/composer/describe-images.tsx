@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { postRanges } from '@/components/drafts/thread'
 import { call } from '@/lib/content-drafts/client'
@@ -138,7 +139,7 @@ export function DescribeImages({
               <li className="flex gap-3" key={`${image.assetId}-${index}`}>
                 {/* biome-ignore lint/performance/noImgElement: a workspace asset URL */}
                 <img alt="" className="size-16 shrink-0 rounded-md object-cover" src={image.url} />
-                <label className="grid flex-1 gap-1 text-xs text-muted-foreground">
+                <Label className="grid flex-1 gap-1 text-xs text-muted-foreground">
                   Post {image.post}
                   <Textarea
                     aria-label={`Description of image ${index + 1}`}
@@ -164,7 +165,7 @@ export function DescribeImages({
                       Suggest with AI
                     </Button>
                   )}
-                </label>
+                </Label>
               </li>
             ))}
           </ul>

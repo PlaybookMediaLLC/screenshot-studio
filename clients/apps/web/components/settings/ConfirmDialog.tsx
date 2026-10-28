@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 /**
  * A confirmation for a sensitive or destructive action. It stays open while
@@ -88,12 +89,12 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         {children}
         {confirmText !== undefined ? (
-          <label className="grid gap-1 text-sm" htmlFor={`${id}-confirm`}>
+          <Label className="grid gap-1 text-sm" htmlFor={`${id}-confirm`}>
             <span className="text-foreground">
               Type <strong className="font-medium">{confirmText}</strong> to confirm
             </span>
             <Input autoComplete="off" id={`${id}-confirm`} onChange={(event) => setTyped(event.target.value)} value={typed} />
-          </label>
+          </Label>
         ) : null}
         {error ? (
           <p className="text-sm text-red-700 dark:text-red-300" role="alert">

@@ -10,6 +10,7 @@ import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { socialSetHref } from '@/components/workspace/settings-sections'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { draftPlatformSchema } from '@/lib/api/contracts/social-sets'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
@@ -198,7 +199,7 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
       >
         <fieldset className="grid gap-2" disabled={!canManage || !hasX || state === 'saving'}>
           <legend className="sr-only">Auto-Retweet</legend>
-          <label className="flex items-center gap-3 text-sm">
+          <Label className="flex items-center gap-3 text-sm">
             <Switch
               aria-label="Auto-Retweet"
               checked={draft.autoRepost.enabled}
@@ -230,11 +231,11 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
               value={draft.autoRepost.atLikes || ''}
             />
             <span className="text-muted-foreground">likes</span>
-          </label>
+          </Label>
         </fieldset>
         <fieldset className="grid gap-2" disabled={!canManage || !hasX || state === 'saving'}>
           <legend className="sr-only">Auto-Plug</legend>
-          <label className="flex flex-wrap items-center gap-3 text-sm">
+          <Label className="flex flex-wrap items-center gap-3 text-sm">
             <Switch
               aria-label="Auto-Plug"
               checked={draft.autoPlug.enabled}
@@ -262,7 +263,7 @@ function EngagementDefaults({ canManage, set }: { canManage: boolean; set: Socia
               value={draft.autoPlug.atLikes || ''}
             />
             <span className="text-muted-foreground">likes, with</span>
-          </label>
+          </Label>
           <Input
             aria-label="Auto-Plug reply text"
             maxLength={280}

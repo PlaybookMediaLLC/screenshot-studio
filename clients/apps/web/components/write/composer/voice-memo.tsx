@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { call } from '@/lib/content-drafts/client'
 import { validateVoiceMemo } from '@/lib/write/voice-memo'
@@ -34,7 +35,7 @@ export function VoiceMemo({draftId,channel,onUse}: {draftId:string;channel:Draft
   return <details className="rounded-lg border border-border p-3">
     <summary className="cursor-pointer">Voice memo</summary>
     <p className="my-2 text-xs text-muted-foreground">Upload up to 10 MB of audio. Transcription uses workspace AI credits. Review the text before sending it to the assistant.</p>
-    <input aria-label="Voice memo audio" type="file" accept=".mp3,.wav,.m4a,.ogg" disabled={busy} className="max-w-full text-xs" onChange={event => {setFile(event.target.files?.[0] ?? null);setTranscript('');setError('')}} />
+    <Input aria-label="Voice memo audio" type="file" accept=".mp3,.wav,.m4a,.ogg" disabled={busy} className="max-w-full text-xs" onChange={event => {setFile(event.target.files?.[0] ?? null);setTranscript('');setError('')}} />
     <Button type="button" size="sm" className="mt-2" disabled={!file || busy} onClick={() => void transcribe()}>{busy ? 'Transcribing…' : 'Transcribe audio'}</Button>
     {error && <p role="alert" className="mt-2 text-xs">{error}</p>}
     {transcript && <div className="mt-3 grid gap-2">

@@ -10,7 +10,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
@@ -51,6 +51,8 @@ export function SocialAnalytics({
   const [channel, setChannel] = useState('all')
   const [period, setPeriod] = useState<'week' | 'month'>('week')
   const [metric, setMetric] = useState('likes')
+  const [from, setFrom] = useState(range.start)
+  const [to, setTo] = useState(range.end)
   const rows = useMemo(
     () => observations.filter((row) => channel === 'all' || row.platform === channel),
     [observations, channel]
@@ -97,24 +99,12 @@ export function SocialAnalytics({
       <form className="flex flex-wrap items-end gap-3" method="get">
         {socialSetId ? <input type="hidden" name="set" value={socialSetId} /> : null}
         <Label className="grid gap-1.5">
-          From{' '}
-          <Input
-            aria-label="Analytics from"
-            name="from"
-            type="date"
-            defaultValue={range.start}
-            required
-          />
+          From <DatePicker aria-label="Analytics from" value={from} onChange={setFrom} />
+          <input type="hidden" name="from" value={from} />
         </Label>
         <Label className="grid gap-1.5">
-          Through{' '}
-          <Input
-            aria-label="Analytics through"
-            name="to"
-            type="date"
-            defaultValue={range.end}
-            required
-          />
+          Through <DatePicker aria-label="Analytics through" value={to} onChange={setTo} />
+          <input type="hidden" name="to" value={to} />
         </Label>
         <Button variant="outline" type="submit">
           Apply dates

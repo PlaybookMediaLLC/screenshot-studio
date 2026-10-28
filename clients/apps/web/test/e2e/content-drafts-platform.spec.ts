@@ -68,7 +68,7 @@ async function untilPosted(page: Page, suffix: string, act: () => Promise<void>)
 
 test(
   'the queue takes the next slot, and the calendar moves a post to another day',
-  { tag: '@journey' },
+  { tag: ['@journey', '@smoke'] },
   async ({ app, page, startWorkspace }) => {
     await startWorkspace({ channels: ['x'] })
 

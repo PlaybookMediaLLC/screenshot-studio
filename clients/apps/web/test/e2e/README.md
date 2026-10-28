@@ -34,6 +34,19 @@ comment when it is not the AI model. Each lane is a
 Playwright project, so `npx playwright test --project=production` runs one
 lane against a server that you started yourself.
 
+## When the suite runs
+
+| Event                            | Browser tests                                                      |
+| -------------------------------- | ------------------------------------------------------------------ |
+| Pull request into `develop`      | The `@smoke` tests, one shard (none when the PR changes only docs) |
+| Push to `develop`                | The full suite, 3 shards                                           |
+| Release pull request into `main` | The full suite, 3 shards, as required checks                       |
+
+Tag a test `@smoke` only when it guards a critical path that every pull
+request must keep working: sign-up and sessions, tenant and permission
+boundaries, publishing, the editor, or sharing. Keep the smoke set small and
+fast; it runs in the production lane.
+
 ## Write a spec
 
 Every spec imports from one place, `./framework`, and declares the state it

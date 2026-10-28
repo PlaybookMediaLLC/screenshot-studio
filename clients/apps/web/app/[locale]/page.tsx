@@ -99,9 +99,9 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
   const search = new URLSearchParams()
   for (const [key, value] of Object.entries(query))
     for (const item of [value].flat()) if (item !== undefined) search.append(key, item)
-  // Signed out, the bare address is the public homepage. Its query goes along,
-  // so campaign (UTM) tags on shared links survive; sign-in is one click away.
-  if (!access) redirect(getLocalizedPath(locale, `/landing${search.size ? `?${search}` : ''}`))
+  // Signed out, the bare address opens sign-in. Its query goes along, so
+  // campaign (UTM) tags on shared links survive the redirect.
+  if (!access) redirect(getLocalizedPath(locale, `/sign-in${search.size ? `?${search}` : ''}`))
   if (!access.hasOrganization) redirect(getLocalizedPath(locale, '/onboarding'))
   if (!access.isWorkspaceOperational) redirect(getLocalizedPath(locale, '/workspace'))
   if (!access.hasPaidPlan) {

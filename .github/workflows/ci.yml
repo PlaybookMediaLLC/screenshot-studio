@@ -253,9 +253,11 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
       run: ${{ steps.plan.outputs.run }}
     steps:
+      # A pull request's merge commit has its base as the first parent, so two
+      # commits of history are enough to list what the pull request changes.
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
       - id: plan
         env:
           BASE: ${{ github.base_ref }}
@@ -272,7 +274,7 @@ jobs:
             run=true
             matrix="$full"
           else
-            git diff --name-only "origin/$BASE...HEAD" | grep -qvE '^docs/|\.md$' && run=true || run=false
+            git diff --name-only HEAD^1 HEAD | grep -qvE '^docs/|\.md$' && run=true || run=false
             matrix="$smoke"
           fi
           echo "run=$run" >> "$GITHUB_OUTPUT"
@@ -283,8 +285,8 @@ jobs:
     needs: e2e-plan
     if: needs.e2e-plan.outputs.run == 'true'
     runs-on: ubuntu-latest
-    # Stack start, the production image, a third of the suite on 4 workers,
-    # and on the second shard the recovery check.
+    # Stack start (the production image builds beside it), a third of the
+    # suite, and on the second shard the recovery check.
     timeout-minutes: 45
     env:
       E2E_DOCKER_HOST_GATEWAY: 'true'
@@ -295,6 +297,14 @@ jobs:
         include: ${{ fromJSON(needs.e2e-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+      # The production web image (dev/compose.e2e.yaml) takes about 10 minutes
+      # on this runner. Build it in the background while the stack starts, so
+      # the browser step waits only for what is left.
+      - name: Start the production web image build
+        run: |
+          nohup docker build --file clients/apps/web/Dockerfile --tag screenshot-studio-web-e2e . \
+            >"$RUNNER_TEMP/web-image.log" 2>&1 &
+          echo $! >"$RUNNER_TEMP/web-image.pid"
       - uses: actions/setup-node@v4
         with:
           node-version: 22.23.4
@@ -347,18 +357,13 @@ jobs:
         run: VERIFY_BASE_URL=http://127.0.0.1:3000 npm run verify:agents
       - name: Verify tenant isolation
         run: ./dev/studio tenant-isolation
-      # The production lane's web image (dev/compose.e2e.yaml), built once
-      # with the layer cache the validation job fills from the same Dockerfile.
-      - uses: docker/setup-buildx-action@v3
-      - name: Build the production web image for the browser flows
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: clients/apps/web/Dockerfile
-          tags: screenshot-studio-web-e2e
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Wait for the production web image
+        timeout-minutes: 20
+        run: |
+          pid="$(cat "$RUNNER_TEMP/web-image.pid")"
+          while kill -0 "$pid" 2>/dev/null; do sleep 5; done
+          tail -n 30 "$RUNNER_TEMP/web-image.log"
+          docker image inspect screenshot-studio-web-e2e >/dev/null
       - name: Verify browser end-to-end flows
         env:
           E2E_APP_IMAGE_READY: 'true'

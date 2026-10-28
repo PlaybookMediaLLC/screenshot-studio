@@ -57,10 +57,13 @@ rerun it after changing those paths.
 
 ## Remaining release gates
 
-- Inject lost provider responses, malformed replies, media fetch failure,
-  worker restart, approval revocation, and wrong-tenant access through the
-  isolated full stack. Prove no duplicate remote post and the intended
-  canonical status for each case.
+- Inject malformed replies and wrong-tenant access through the isolated full
+  stack. Lost responses, missing media, a worker that vanished before
+  sending, a lost receipt write, approval revocation, the late window and a
+  cancel racing the provider call are covered against real PostgreSQL and
+  Temporal with an in-process fake provider (`TestSchedulingThroughTemporal`,
+  see [scheduling reliability](scheduling/reliability.md)); repeat them
+  through `./dev/social-gate` with the web and the published SDK.
 - Hold a post for more than 24 real hours, then verify the worker signs its
   private media only when it publishes. Moving a future timestamp forward in
   a test proves scheduling behavior, but not elapsed URL expiry.

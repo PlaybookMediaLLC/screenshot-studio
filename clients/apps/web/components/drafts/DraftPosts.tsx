@@ -8,6 +8,7 @@ import { type DraftPostWire, draftsApi } from '@/lib/content-drafts/client'
 import { writeApi } from '@/lib/write/client'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { postFailureReason, postState } from '@/lib/content-drafts/post-status'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
 import { cn } from '@/lib/utils'
 import { CHANNEL_META, ChannelIcon } from './channel-meta'
@@ -99,6 +100,8 @@ export function DraftPosts({
             post.threadProgress.total > 0 &&
             post.threadProgress.posted < post.threadProgress.total
           const counts = METRICS.filter(([key]) => post.metrics?.[key] !== undefined)
+          const overdue = postState(post.status, post.scheduledFor) === 'Overdue'
+          const reason = postFailureReason(post.failureCode)
           return (
             <li className="flex flex-col gap-2 px-4 py-3" data-testid="draft-post" key={post.id}>
               <div className="flex items-center justify-between gap-4">
@@ -107,12 +110,17 @@ export function DraftPosts({
                     {channel ? <ChannelIcon channel={channel} /> : null}
                     {channel ? CHANNEL_META[channel].label : post.platform} ·{' '}
                     <LocalTime value={post.scheduledFor} />
+                    {post.naturalOffsetSeconds ? (
+                      <span className="text-xs text-muted-foreground">
+                        (natural time; slot <LocalTime value={post.slotAt ?? post.scheduledFor} />)
+                      </span>
+                    ) : null}
                   </p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{post.caption}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <Pill tone={POST_TONES[post.status] ?? 'gray'}>
-                    {STATUS_LABELS[post.status] ?? post.status}
+                  <Pill tone={overdue ? 'yellow' : (POST_TONES[post.status] ?? 'gray')}>
+                    {overdue ? 'Overdue' : (STATUS_LABELS[post.status] ?? post.status)}
                   </Pill>
                   {post.url ? (
                     <a
@@ -171,9 +179,26 @@ export function DraftPosts({
                   ) : null}
                 </div>
               </div>
+              {overdue ? (
+                <p className="text-xs text-amber-700 dark:text-amber-300" role="status">
+                  Its time passed and publishing has not started yet. It still goes out if it starts
+                  within an hour of its time; after that it is not sent and shows as failed.
+                </p>
+              ) : null}
+              {post.status === 'PUBLISHED' && post.publishedAt ? (
+                <p className="text-xs text-muted-foreground">
+                  Confirmed live <LocalTime value={post.publishedAt} />
+                </p>
+              ) : null}
+              {post.status === 'CANCELLED' && reason ? (
+                <p className="text-xs text-muted-foreground" role="status">
+                  Cancelled before sending. {reason}
+                </p>
+              ) : null}
               {post.status === 'FAILED' ? (
                 <p className="flex flex-wrap items-center gap-2 text-xs text-red-700 dark:text-red-300" role="status">
-                  This destination did not publish; the draft’s other posts are unaffected.
+                  {reason ? `${reason} ` : ''}This destination did not publish; the draft’s other
+                  posts are unaffected.
                   {canSchedule ? (
                     <Button
                       disabled={busy === post.id}

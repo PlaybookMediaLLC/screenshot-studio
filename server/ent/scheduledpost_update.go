@@ -184,6 +184,26 @@ func (_u *ScheduledPostUpdate) ClearTriggerRunID() *ScheduledPostUpdate {
 	return _u
 }
 
+// SetFailureCode sets the "failure_code" field.
+func (_u *ScheduledPostUpdate) SetFailureCode(v string) *ScheduledPostUpdate {
+	_u.mutation.SetFailureCode(v)
+	return _u
+}
+
+// SetNillableFailureCode sets the "failure_code" field if the given value is not nil.
+func (_u *ScheduledPostUpdate) SetNillableFailureCode(v *string) *ScheduledPostUpdate {
+	if v != nil {
+		_u.SetFailureCode(*v)
+	}
+	return _u
+}
+
+// ClearFailureCode clears the value of the "failure_code" field.
+func (_u *ScheduledPostUpdate) ClearFailureCode() *ScheduledPostUpdate {
+	_u.mutation.ClearFailureCode()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ScheduledPostUpdate) SetUpdatedAt(v time.Time) *ScheduledPostUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -378,6 +398,15 @@ func (_u *ScheduledPostUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if _u.mutation.ScheduleTimeZoneCleared() {
 		_spec.ClearField(scheduledpost.FieldScheduleTimeZone, field.TypeString)
+	}
+	if _u.mutation.ScheduleIntentCleared() {
+		_spec.ClearField(scheduledpost.FieldScheduleIntent, field.TypeString)
+	}
+	if value, ok := _u.mutation.FailureCode(); ok {
+		_spec.SetField(scheduledpost.FieldFailureCode, field.TypeString, value)
+	}
+	if _u.mutation.FailureCodeCleared() {
+		_spec.ClearField(scheduledpost.FieldFailureCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(scheduledpost.FieldUpdatedAt, field.TypeTime, value)
@@ -598,6 +627,26 @@ func (_u *ScheduledPostUpdateOne) SetNillableTriggerRunID(v *string) *ScheduledP
 // ClearTriggerRunID clears the value of the "trigger_run_id" field.
 func (_u *ScheduledPostUpdateOne) ClearTriggerRunID() *ScheduledPostUpdateOne {
 	_u.mutation.ClearTriggerRunID()
+	return _u
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (_u *ScheduledPostUpdateOne) SetFailureCode(v string) *ScheduledPostUpdateOne {
+	_u.mutation.SetFailureCode(v)
+	return _u
+}
+
+// SetNillableFailureCode sets the "failure_code" field if the given value is not nil.
+func (_u *ScheduledPostUpdateOne) SetNillableFailureCode(v *string) *ScheduledPostUpdateOne {
+	if v != nil {
+		_u.SetFailureCode(*v)
+	}
+	return _u
+}
+
+// ClearFailureCode clears the value of the "failure_code" field.
+func (_u *ScheduledPostUpdateOne) ClearFailureCode() *ScheduledPostUpdateOne {
+	_u.mutation.ClearFailureCode()
 	return _u
 }
 
@@ -825,6 +874,15 @@ func (_u *ScheduledPostUpdateOne) sqlSave(ctx context.Context) (_node *Scheduled
 	}
 	if _u.mutation.ScheduleTimeZoneCleared() {
 		_spec.ClearField(scheduledpost.FieldScheduleTimeZone, field.TypeString)
+	}
+	if _u.mutation.ScheduleIntentCleared() {
+		_spec.ClearField(scheduledpost.FieldScheduleIntent, field.TypeString)
+	}
+	if value, ok := _u.mutation.FailureCode(); ok {
+		_spec.SetField(scheduledpost.FieldFailureCode, field.TypeString, value)
+	}
+	if _u.mutation.FailureCodeCleared() {
+		_spec.ClearField(scheduledpost.FieldFailureCode, field.TypeString)
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(scheduledpost.FieldUpdatedAt, field.TypeTime, value)

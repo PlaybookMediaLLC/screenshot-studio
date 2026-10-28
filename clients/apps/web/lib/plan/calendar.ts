@@ -3,6 +3,7 @@ import { addDays, dayOfWeek, zonedDayKey } from '@/lib/settings/zoned-time'
 import { isTimeZone, resolveLocalTime } from '@/lib/write/zoned-time'
 import { availableDaySlots } from '@/lib/write/calendar'
 import { wallTime } from '@/lib/write/zoned-time'
+import { statusGroup } from '@/lib/content-drafts/post-status'
 
 export const planPreferencesSchema = z.object({
   view: z.enum(['flex', 'month', 'week']).default('flex'),
@@ -29,8 +30,12 @@ export type PlanItem = {
   accountId?: string
   platform: string
   at: string
+  /** A post's publication instant: its slot (`at`) plus any natural offset. */
+  publishAt?: string
   zone: string
   deliveryStatus?: string
+  /** Why a post did not publish, as its backend records it. */
+  failureCode?: string | null
   status: string
   title: string
   text: string
@@ -81,7 +86,7 @@ export function visibleItems(items: PlanItem[], p: PlanPreferences): PlanItem[] 
   return items.filter(
     (item) =>
       (p.visible === null || p.visible.includes(item.setId)) &&
-      (!p.statuses.length || p.statuses.includes(item.status)) &&
+      (!p.statuses.length || p.statuses.includes(statusGroup(item.status))) &&
       (!p.providers.length || p.providers.includes(item.platform)) &&
       (!p.tagIds.length || p.tagIds.some((id) => item.tagIds.includes(id)))
   )

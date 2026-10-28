@@ -3,6 +3,12 @@ import test from 'node:test'
 import { analyticsReportSchema, analyticsQuerySchema } from '../lib/api/contracts/plan-analyze'
 import { draftPlanInputSchema } from '../lib/api/contracts/write'
 import {
+  OVERDUE_AFTER_MS,
+  postFailureReason,
+  postState,
+  STATUS_GROUPS,
+} from '../lib/content-drafts/post-status'
+import {
   displayDaySlots,
   calendarDays,
   shiftAnchor,
@@ -401,4 +407,61 @@ test('A17 missing null and invalid series fail locally while valid zero metrics 
   assert.equal(result.metrics.impressions.status, 'failed')
   assert.equal(result.metrics.profileClicks.status, 'failed')
   assert.equal(result.metrics.engagements.status, 'insufficient')
+})
+
+test('a destination reads as overdue, publishing, needing a check or failed, never just scheduled', () => {
+  const now = Date.parse('2026-11-02T09:00:00Z')
+  const at = (offset: number) => new Date(now + offset).toISOString()
+  assert.equal(postState('SCHEDULED', at(60_000), now), 'Scheduled')
+  assert.equal(postState('SCHEDULED', at(-OVERDUE_AFTER_MS + 1_000), now), 'Scheduled')
+  assert.equal(postState('SCHEDULED', at(-OVERDUE_AFTER_MS - 1_000), now), 'Overdue')
+  assert.equal(postState('PROCESSING', at(-3_600_000), now), 'Publishing')
+  assert.equal(postState('UNKNOWN_DELIVERY', at(0), now), 'Needs check')
+  assert.equal(postState('FAILED', at(0), now), 'Failed')
+  assert.equal(postState('PUBLISHED', at(0), now), 'Published')
+  assert.equal(postState('CANCELLED', at(0), now), 'Cancelled')
+})
+
+test('every recorded failure code reads as something a person can act on', () => {
+  assert.equal(postFailureReason(null), null)
+  assert.match(postFailureReason('MEDIA_UNAVAILABLE') ?? '', /nothing was sent/)
+  assert.match(postFailureReason('MISSED_WINDOW') ?? '', /not sent.*Publish it now or reschedule/)
+  assert.match(postFailureReason('APPROVAL_REQUIRED') ?? '', /approved/)
+  assert.match(postFailureReason('CHANGES_REQUESTED') ?? '', /asked for changes/)
+  assert.match(postFailureReason('NOT_LIVE') ?? '', /not published\. Retry/)
+  assert.match(postFailureReason('ACCOUNT_UNAVAILABLE') ?? '', /Reconnect/)
+  assert.match(postFailureReason('UNKNOWN_DELIVERY') ?? '', /may already be live/)
+  assert.match(postFailureReason('503') ?? '', /platform had an error/)
+  assert.match(postFailureReason('400') ?? '', /rejected/)
+  assert.match(postFailureReason('SOCIAL_ERROR') ?? '', /SOCIAL_ERROR/)
+})
+
+test('a status filter saved before the finer states still shows every post in its group', () => {
+  const base = {
+    draftId: 'd',
+    version: 1,
+    calendarVersion: 1,
+    setId: 's',
+    platform: 'x',
+    at: '2026-11-02T09:00:00Z',
+    zone: 'UTC',
+    title: '',
+    text: '',
+    tagIds: [],
+  }
+  const items: PlanItem[] = [
+    'Scheduled',
+    'Overdue',
+    'Publishing',
+    'Published',
+    'Failed',
+    'Needs check',
+    'Planned',
+  ].map((status) => ({ ...base, id: status, status }))
+  const shown = (statuses: string[]) =>
+    visibleItems(items, planPreferencesSchema.parse({ statuses })).map((item) => item.id)
+  assert.deepEqual(STATUS_GROUPS, ['Planned', 'Scheduled', 'Published', 'Failed'])
+  assert.deepEqual(shown(['Scheduled']), ['Scheduled', 'Overdue', 'Publishing'])
+  assert.deepEqual(shown(['Failed']), ['Failed', 'Needs check'])
+  assert.equal(shown([]).length, items.length)
 })

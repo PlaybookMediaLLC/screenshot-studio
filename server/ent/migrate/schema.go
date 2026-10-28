@@ -2726,6 +2726,8 @@ var (
 		{Name: "slotAt", Type: field.TypeTime, Nullable: true},
 		{Name: "naturalOffsetSeconds", Type: field.TypeInt, Nullable: true},
 		{Name: "scheduleTimeZone", Type: field.TypeString, Nullable: true},
+		{Name: "scheduleIntent", Type: field.TypeString, Nullable: true},
+		{Name: "failureCode", Type: field.TypeString, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 		{Name: "channelConnectionId", Type: field.TypeString},
@@ -2738,7 +2740,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "scheduled_post_channel_connection_scheduled_posts",
-				Columns:    []*schema.Column{ScheduledPostColumns[28]},
+				Columns:    []*schema.Column{ScheduledPostColumns[30]},
 				RefColumns: []*schema.Column{ChannelConnectionColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2747,7 +2749,7 @@ var (
 			{
 				Name:    "scheduledpost_channelConnectionId_idempotencyKey",
 				Unique:  true,
-				Columns: []*schema.Column{ScheduledPostColumns[28], ScheduledPostColumns[19]},
+				Columns: []*schema.Column{ScheduledPostColumns[30], ScheduledPostColumns[19]},
 			},
 			{
 				Name:    "scheduledpost_organizationId_status_scheduledFor",
@@ -2757,7 +2759,7 @@ var (
 			{
 				Name:    "scheduledpost_status_updatedAt",
 				Unique:  false,
-				Columns: []*schema.Column{ScheduledPostColumns[17], ScheduledPostColumns[27]},
+				Columns: []*schema.Column{ScheduledPostColumns[17], ScheduledPostColumns[29]},
 			},
 			{
 				Name:    "scheduledpost_contentDraftId",

@@ -25673,6 +25673,7 @@ type ContentBatchItemMutation struct {
 	batch_id                     *string
 	organization_id              *string
 	import_key                   *string
+	fingerprint                  *string
 	position                     *int
 	addposition                  *int
 	caption                      *string
@@ -25900,6 +25901,42 @@ func (m *ContentBatchItemMutation) OldImportKey(ctx context.Context) (v string, 
 // ResetImportKey resets all changes to the "import_key" field.
 func (m *ContentBatchItemMutation) ResetImportKey() {
 	m.import_key = nil
+}
+
+// SetFingerprint sets the "fingerprint" field.
+func (m *ContentBatchItemMutation) SetFingerprint(s string) {
+	m.fingerprint = &s
+}
+
+// Fingerprint returns the value of the "fingerprint" field in the mutation.
+func (m *ContentBatchItemMutation) Fingerprint() (r string, exists bool) {
+	v := m.fingerprint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFingerprint returns the old "fingerprint" field's value of the ContentBatchItem entity.
+// If the ContentBatchItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ContentBatchItemMutation) OldFingerprint(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFingerprint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFingerprint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFingerprint: %w", err)
+	}
+	return oldValue.Fingerprint, nil
+}
+
+// ResetFingerprint resets all changes to the "fingerprint" field.
+func (m *ContentBatchItemMutation) ResetFingerprint() {
+	m.fingerprint = nil
 }
 
 // SetPosition sets the "position" field.
@@ -26287,7 +26324,7 @@ func (m *ContentBatchItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ContentBatchItemMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 12)
 	if m.batch_id != nil {
 		fields = append(fields, contentbatchitem.FieldBatchID)
 	}
@@ -26296,6 +26333,9 @@ func (m *ContentBatchItemMutation) Fields() []string {
 	}
 	if m.import_key != nil {
 		fields = append(fields, contentbatchitem.FieldImportKey)
+	}
+	if m.fingerprint != nil {
+		fields = append(fields, contentbatchitem.FieldFingerprint)
 	}
 	if m.position != nil {
 		fields = append(fields, contentbatchitem.FieldPosition)
@@ -26335,6 +26375,8 @@ func (m *ContentBatchItemMutation) Field(name string) (ent.Value, bool) {
 		return m.OrganizationID()
 	case contentbatchitem.FieldImportKey:
 		return m.ImportKey()
+	case contentbatchitem.FieldFingerprint:
+		return m.Fingerprint()
 	case contentbatchitem.FieldPosition:
 		return m.Position()
 	case contentbatchitem.FieldCaption:
@@ -26366,6 +26408,8 @@ func (m *ContentBatchItemMutation) OldField(ctx context.Context, name string) (e
 		return m.OldOrganizationID(ctx)
 	case contentbatchitem.FieldImportKey:
 		return m.OldImportKey(ctx)
+	case contentbatchitem.FieldFingerprint:
+		return m.OldFingerprint(ctx)
 	case contentbatchitem.FieldPosition:
 		return m.OldPosition(ctx)
 	case contentbatchitem.FieldCaption:
@@ -26411,6 +26455,13 @@ func (m *ContentBatchItemMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetImportKey(v)
+		return nil
+	case contentbatchitem.FieldFingerprint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFingerprint(v)
 		return nil
 	case contentbatchitem.FieldPosition:
 		v, ok := value.(int)
@@ -26549,6 +26600,9 @@ func (m *ContentBatchItemMutation) ResetField(name string) error {
 		return nil
 	case contentbatchitem.FieldImportKey:
 		m.ResetImportKey()
+		return nil
+	case contentbatchitem.FieldFingerprint:
+		m.ResetFingerprint()
 		return nil
 	case contentbatchitem.FieldPosition:
 		m.ResetPosition()

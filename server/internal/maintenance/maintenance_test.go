@@ -436,7 +436,7 @@ func TestAssetCleanupRetiresOnlyUnneededMedia(t *testing.T) {
 	post("p3", "CANCELLED", "cancelled-copy")
 	exec(t, s.DB, `INSERT INTO social_set (id,"organizationId",name,"publicSlug") VALUES ('set','a','Set','set-a')`)
 	exec(t, s.DB, `INSERT INTO content_batch (id,"organizationId","socialSetId",title) VALUES ('batch','a','set','Batch')`)
-	exec(t, s.DB, `INSERT INTO content_batch_item (id,"batchId","organizationId","importKey",position,media) VALUES ('item','batch','a','batch-item-import-key',0,'[{"assetId":"batch-copy"}]')`)
+	exec(t, s.DB, `INSERT INTO content_batch_item (id,"batchId","organizationId","importKey",fingerprint,position,media) VALUES ('item','batch','a','batch-item-import-key','f',0,'[{"assetId":"batch-copy"}]')`)
 	if n, err := s.Run(ctx, "asset-cleanup"); err != nil || n != 4 {
 		t.Fatalf("cleaned %d err=%v", n, err)
 	}

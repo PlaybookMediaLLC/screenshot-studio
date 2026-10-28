@@ -73,6 +73,8 @@ func (ContentBatchItem) Fields() []ent.Field {
 		field.String("organization_id").StorageKey("organizationId").Immutable(),
 		// ImportKey is the client's retry key for the item and its draft.
 		field.String("import_key").StorageKey("importKey").Immutable(),
+		// Fingerprint is the creation input's digest: a reused key must match it.
+		field.String("fingerprint").Immutable(),
 		field.Int("position"),
 		field.String("caption").Default(""),
 		field.JSON("media", []BatchMedia{}).StorageKey("media"),

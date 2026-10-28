@@ -93,7 +93,7 @@ func TestDeletingAnAssetKeepsMediaThatIsStillNeeded(t *testing.T) {
 		t.Fatal(err)
 	}
 	w.exec(t, `INSERT INTO content_batch (id,"organizationId","socialSetId",title) VALUES ($1,$2,$3,'Batch')`, "batch-"+w.id, w.org, set.ID)
-	w.exec(t, `INSERT INTO content_batch_item (id,"batchId","organizationId","importKey",position,media) VALUES ($1,$2,$3,'retention-import-key',0,jsonb_build_array(jsonb_build_object('assetId',$4::text)))`,
+	w.exec(t, `INSERT INTO content_batch_item (id,"batchId","organizationId","importKey",fingerprint,position,media) VALUES ($1,$2,$3,'retention-import-key','f',0,jsonb_build_array(jsonb_build_object('assetId',$4::text)))`,
 		"item-"+w.id, "batch-"+w.id, w.org, inBatch)
 	for name, id := range map[string]string{"draft": inDraft, "queued post": inPost, "batch": inBatch} {
 		if result, err := repo.DeleteAsset(w.ctx, w.owner, id); err != nil || result != AssetInUse {

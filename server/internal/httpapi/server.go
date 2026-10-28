@@ -66,6 +66,7 @@ type ConfigurationStore interface {
 	CreativeSetStore
 	ContentDraftStore
 	ContentDraftPlatformStore
+	ContentBatchStore
 	SettingsPlatformStore
 	WebhookStore
 	LibraryStore

@@ -19,6 +19,8 @@ const (
 	FieldOrganizationID = "organizationId"
 	// FieldImportKey holds the string denoting the import_key field in the database.
 	FieldImportKey = "importKey"
+	// FieldFingerprint holds the string denoting the fingerprint field in the database.
+	FieldFingerprint = "fingerprint"
 	// FieldPosition holds the string denoting the position field in the database.
 	FieldPosition = "position"
 	// FieldCaption holds the string denoting the caption field in the database.
@@ -45,6 +47,7 @@ var Columns = []string{
 	FieldBatchID,
 	FieldOrganizationID,
 	FieldImportKey,
+	FieldFingerprint,
 	FieldPosition,
 	FieldCaption,
 	FieldMedia,
@@ -97,6 +100,11 @@ func ByOrganizationID(opts ...sql.OrderTermOption) OrderOption {
 // ByImportKey orders the results by the import_key field.
 func ByImportKey(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldImportKey, opts...).ToFunc()
+}
+
+// ByFingerprint orders the results by the fingerprint field.
+func ByFingerprint(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFingerprint, opts...).ToFunc()
 }
 
 // ByPosition orders the results by the position field.

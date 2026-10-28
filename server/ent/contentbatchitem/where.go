@@ -79,6 +79,11 @@ func ImportKey(v string) predicate.ContentBatchItem {
 	return predicate.ContentBatchItem(sql.FieldEQ(FieldImportKey, v))
 }
 
+// Fingerprint applies equality check predicate on the "fingerprint" field. It's identical to FingerprintEQ.
+func Fingerprint(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldEQ(FieldFingerprint, v))
+}
+
 // Position applies equality check predicate on the "position" field. It's identical to PositionEQ.
 func Position(v int) predicate.ContentBatchItem {
 	return predicate.ContentBatchItem(sql.FieldEQ(FieldPosition, v))
@@ -297,6 +302,71 @@ func ImportKeyEqualFold(v string) predicate.ContentBatchItem {
 // ImportKeyContainsFold applies the ContainsFold predicate on the "import_key" field.
 func ImportKeyContainsFold(v string) predicate.ContentBatchItem {
 	return predicate.ContentBatchItem(sql.FieldContainsFold(FieldImportKey, v))
+}
+
+// FingerprintEQ applies the EQ predicate on the "fingerprint" field.
+func FingerprintEQ(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldEQ(FieldFingerprint, v))
+}
+
+// FingerprintNEQ applies the NEQ predicate on the "fingerprint" field.
+func FingerprintNEQ(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldNEQ(FieldFingerprint, v))
+}
+
+// FingerprintIn applies the In predicate on the "fingerprint" field.
+func FingerprintIn(vs ...string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldIn(FieldFingerprint, vs...))
+}
+
+// FingerprintNotIn applies the NotIn predicate on the "fingerprint" field.
+func FingerprintNotIn(vs ...string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldNotIn(FieldFingerprint, vs...))
+}
+
+// FingerprintGT applies the GT predicate on the "fingerprint" field.
+func FingerprintGT(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldGT(FieldFingerprint, v))
+}
+
+// FingerprintGTE applies the GTE predicate on the "fingerprint" field.
+func FingerprintGTE(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldGTE(FieldFingerprint, v))
+}
+
+// FingerprintLT applies the LT predicate on the "fingerprint" field.
+func FingerprintLT(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldLT(FieldFingerprint, v))
+}
+
+// FingerprintLTE applies the LTE predicate on the "fingerprint" field.
+func FingerprintLTE(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldLTE(FieldFingerprint, v))
+}
+
+// FingerprintContains applies the Contains predicate on the "fingerprint" field.
+func FingerprintContains(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldContains(FieldFingerprint, v))
+}
+
+// FingerprintHasPrefix applies the HasPrefix predicate on the "fingerprint" field.
+func FingerprintHasPrefix(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldHasPrefix(FieldFingerprint, v))
+}
+
+// FingerprintHasSuffix applies the HasSuffix predicate on the "fingerprint" field.
+func FingerprintHasSuffix(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldHasSuffix(FieldFingerprint, v))
+}
+
+// FingerprintEqualFold applies the EqualFold predicate on the "fingerprint" field.
+func FingerprintEqualFold(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldEqualFold(FieldFingerprint, v))
+}
+
+// FingerprintContainsFold applies the ContainsFold predicate on the "fingerprint" field.
+func FingerprintContainsFold(v string) predicate.ContentBatchItem {
+	return predicate.ContentBatchItem(sql.FieldContainsFold(FieldFingerprint, v))
 }
 
 // PositionEQ applies the EQ predicate on the "position" field.

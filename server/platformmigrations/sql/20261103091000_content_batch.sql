@@ -19,6 +19,8 @@ CREATE TABLE content_batch_item (
  "batchId" text NOT NULL REFERENCES content_batch(id) ON DELETE CASCADE,
  "organizationId" text NOT NULL REFERENCES organization(id) ON DELETE CASCADE,
  "importKey" text NOT NULL CHECK (length("importKey") BETWEEN 16 AND 128),
+ -- What the key first created, so reusing it for different content is refused.
+ fingerprint text NOT NULL,
  position integer NOT NULL CHECK (position >= 0),
  caption text NOT NULL DEFAULT '',
  media jsonb NOT NULL DEFAULT '[]' CHECK (jsonb_typeof(media) = 'array'),

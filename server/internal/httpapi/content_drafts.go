@@ -38,6 +38,7 @@ func (s *Server) registerContentDrafts(mux *http.ServeMux) {
 	mux.Handle("POST /v1/content-drafts/{id}/collab-token", s.authenticateProduct(http.HandlerFunc(s.issueCollabToken)))
 	s.registerCollab(mux)
 	s.registerContentDraftPlatform(mux)
+	s.registerContentBatches(mux)
 	s.registerWrite(mux)
 }
 

@@ -64,6 +64,26 @@ test('vendor handlers receive the original method, headers, and body after bound
   assert.equal(await bounded.text(), '{ "value": "unchanged" }')
 })
 
+test('bounded vendor requests support the framework Request proxy', async () => {
+  const request = new Request('https://studio.test/api/auth/sign-in/email', {
+    method: 'POST',
+    headers: { cookie: 'session=test' },
+    body: 'original',
+    redirect: 'manual',
+  })
+  const proxy = new Proxy(request, {
+    get(target, key) {
+      const value: unknown = Reflect.get(target, key, target)
+      return typeof value === 'function' ? value.bind(target) : value
+    },
+  })
+  const bounded = await withBoundedBody(proxy)
+  assert.equal(bounded.url, request.url)
+  assert.equal(bounded.headers.get('cookie'), 'session=test')
+  assert.equal(bounded.redirect, 'manual')
+  assert.equal(await bounded.text(), 'original')
+})
+
 test('oversized route bodies return 413 without reaching the mutation handler', async (t) => {
   t.mock.method(console, 'info', () => undefined)
   const contract = defineContract({
@@ -87,4 +107,14 @@ test('oversized route bodies return 413 without reaching the mutation handler', 
   assert.equal((await response.json()).code, 'invalid_request')
   assert.equal(handler.mock.callCount(), 0)
   assert.equal(response.headers.get('cache-control'), 'private, no-store')
+})
+
+test('signature text preserves a UTF-8 BOM and refuses lossy decoding', async () => {
+  const text = '\uFEFF{"release":"café 🚀"}'
+  const bytes = new TextEncoder().encode(text)
+  assert.equal(await readBoundedText(streamed([bytes]).request), text)
+  await assert.rejects(
+    readBoundedText(streamed([new Uint8Array([0xff, 0xfe])]).request),
+    SyntaxError
+  )
 })

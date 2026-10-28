@@ -187,6 +187,8 @@ export function verifyGitHubAppDelivery(body: string, signature: string | null):
 /** App events the platform acts on; any other is acknowledged and ignored. */
 export const githubAppEventSchema = z.enum([
   'deployment_status',
+  'workflow_run',
+  'workflow_job',
   'installation',
   'installation_repositories',
   'milestone',

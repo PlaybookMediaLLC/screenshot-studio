@@ -10,6 +10,7 @@ const installation = {
   account: { login: 'release-fixture', type: 'Organization' },
   repository_selection: 'selected',
   suspended_at: null,
+  permissions: { actions: 'read', deployments: 'read', contents: 'read', pull_requests: 'read' },
 }
 let mailCount = 0
 let modelCalls = 0
@@ -104,6 +105,16 @@ const server = createServer(async (request, response) => {
     return json({ installations: [installation] })
   }
   if (url.pathname === '/app/installations/77') return json(installation)
+  if (url.pathname === '/app') return json({ events: ['deployment_status', 'workflow_run', 'workflow_job', 'release', 'pull_request', 'push', 'milestone'] })
+  const workflow = { id: 301, name: 'Web image', path: '.github/workflows/web-image.yml', state: 'active' }
+  if (url.pathname === '/repositories/1001/actions/workflows') return json({total_count:1,workflows:[workflow]})
+  const attempt = url.pathname.match(/^\/repositories\/1001\/actions\/runs\/(\d+)\/attempts\/(\d+)(\/jobs)?$/)
+  if (attempt) {
+    const runId = Number(attempt[1]), runAttempt = Number(attempt[2])
+    if (attempt[3]) return json({total_count:1,jobs:[{id:701,run_id:runId,run_attempt:runAttempt,name:'deploy',status:'completed',conclusion:'success'}]})
+    return json({id:runId,run_attempt:runAttempt,workflow_id:workflow.id,name:workflow.name,path:workflow.path,repository})
+  }
+  if (url.pathname === '/app/hook/deliveries') return json([])
   if (url.pathname === '/app/installations/77/access_tokens')
     return json({
       token: 'fixture-installation-token',

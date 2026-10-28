@@ -20,7 +20,7 @@ var ErrPayload = errors.New("invalid supported GitHub event")
 // closed milestones. Ignored actions need no full payload; malformed supported
 // actions must fail visibly. Delivery IDs never contribute to semantic identity.
 func NormalizeGitHub(eventName string, body json.RawMessage) (int64, *Event, error) {
-	if len(body) > 1<<20 {
+	if len(body) > MaxGitHubPayloadBytes {
 		return 0, nil, ErrPayload
 	}
 	switch eventName {

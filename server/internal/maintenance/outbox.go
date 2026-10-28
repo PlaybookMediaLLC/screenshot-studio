@@ -16,7 +16,10 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 	}
 	// Legacy review intents stay pending until their recipient migration commits.
 	// Outbound webhook events (webhook.*) belong to the webhooks job.
-	candidates, err := ids(ctx, s.DB, `SELECT id FROM outbox_event WHERE "deliveredAt" IS NULL AND type NOT LIKE 'webhook.%' AND NOT (notification_version=0 AND type IN ('campaign_posts.submitted','campaign_posts.decided')) AND "deadLetteredAt" IS NULL AND "processingAt" IS NULL ORDER BY "createdAt" LIMIT 100`)
+	// GitHub enrichment retries at exponentially spaced offsets from acceptance
+	// (1, 2, 4, ... 64 minutes), independent of worker restarts. Other event
+	// families retain their existing retry behavior.
+	candidates, err := ids(ctx, s.DB, `SELECT id FROM outbox_event WHERE "deliveredAt" IS NULL AND type NOT LIKE 'webhook.%' AND NOT (notification_version=0 AND type IN ('campaign_posts.submitted','campaign_posts.decided')) AND "deadLetteredAt" IS NULL AND "processingAt" IS NULL AND (type <> 'github.observation' OR attempts=0 OR "createdAt" <= now() - power(2,LEAST(attempts,8))*interval '30 seconds') ORDER BY "createdAt" LIMIT 100`)
 	if err != nil {
 		return 0, err
 	}
@@ -24,7 +27,7 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 	for _, id := range candidates {
 		var org, kind, aggregate, resource string
 		var attempts int
-		err = s.DB.QueryRowContext(ctx, `UPDATE outbox_event e SET "processingAt"=now(),attempts=attempts+1 WHERE id=$1 AND "deliveredAt" IS NULL AND type NOT LIKE 'webhook.%' AND NOT (notification_version=0 AND type IN ('campaign_posts.submitted','campaign_posts.decided')) AND "deadLetteredAt" IS NULL AND "processingAt" IS NULL AND (("aggregateType"='asset' AND type='asset.deleted') OR NOT EXISTS(SELECT 1 FROM workspace_deletion w WHERE w."organizationId"=e."organizationId" AND w.status <> 'CANCELLED')) RETURNING "organizationId",type,"aggregateType","aggregateId",attempts`, id).Scan(&org, &kind, &aggregate, &resource, &attempts)
+		err = s.DB.QueryRowContext(ctx, `UPDATE outbox_event e SET "processingAt"=now(),attempts=attempts+1 WHERE id=$1 AND "deliveredAt" IS NULL AND type NOT LIKE 'webhook.%' AND NOT (notification_version=0 AND type IN ('campaign_posts.submitted','campaign_posts.decided')) AND "deadLetteredAt" IS NULL AND "processingAt" IS NULL AND (type <> 'github.observation' OR attempts=0 OR "createdAt" <= now() - power(2,LEAST(attempts,8))*interval '30 seconds') AND (("aggregateType"='asset' AND type='asset.deleted') OR NOT EXISTS(SELECT 1 FROM workspace_deletion w WHERE w."organizationId"=e."organizationId" AND w.status <> 'CANCELLED')) RETURNING "organizationId",type,"aggregateType","aggregateId",attempts`, id).Scan(&org, &kind, &aggregate, &resource, &attempts)
 		if errors.Is(err, sql.ErrNoRows) {
 			continue
 		}
@@ -89,7 +92,7 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 func productEvent(kind string) bool {
 	switch kind {
 	case "source_change.collected", "release.ingested", "source_app.connected", "deployment.succeeded",
-		"campaign_posts.submitted", "campaign_posts.decided", "release_automation.dispatch", "release_automation.cancel":
+		"campaign_posts.submitted", "campaign_posts.decided", "release_automation.dispatch", "release_automation.cancel", "github.observation":
 		return true
 	}
 	return false

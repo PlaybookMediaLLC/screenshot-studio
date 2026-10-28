@@ -52,8 +52,12 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubproductionpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubrecoveryscan"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
@@ -225,8 +229,12 @@ func checkColumn(t, c string) error {
 			deploymentevent.Table:                 deploymentevent.ValidColumn,
 			design.Table:                          design.ValidColumn,
 			enrichmentrecord.Table:                enrichmentrecord.ValidColumn,
+			githubdeliveryrecovery.Table:          githubdeliveryrecovery.ValidColumn,
 			githubinstallstart.Table:              githubinstallstart.ValidColumn,
 			githubinstallation.Table:              githubinstallation.ValidColumn,
+			githubobservation.Table:               githubobservation.ValidColumn,
+			githubproductionpolicy.Table:          githubproductionpolicy.ValidColumn,
+			githubrecoveryscan.Table:              githubrecoveryscan.ValidColumn,
 			idealcustomerprofile.Table:            idealcustomerprofile.ValidColumn,
 			integrationconnection.Table:           integrationconnection.ValidColumn,
 			invitation.Table:                      invitation.ValidColumn,

@@ -46,8 +46,12 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubproductionpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubrecoveryscan"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
@@ -656,6 +660,26 @@ func init() {
 	enrichmentrecord.DefaultUpdatedAt = enrichmentrecordDescUpdatedAt.Default.(func() time.Time)
 	// enrichmentrecord.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	enrichmentrecord.UpdateDefaultUpdatedAt = enrichmentrecordDescUpdatedAt.UpdateDefault.(func() time.Time)
+	githubdeliveryrecoveryFields := schema.GitHubDeliveryRecovery{}.Fields()
+	_ = githubdeliveryrecoveryFields
+	// githubdeliveryrecoveryDescRecovery is the schema descriptor for recovery field.
+	githubdeliveryrecoveryDescRecovery := githubdeliveryrecoveryFields[7].Descriptor()
+	// githubdeliveryrecovery.DefaultRecovery holds the default value on creation for the recovery field.
+	githubdeliveryrecovery.DefaultRecovery = githubdeliveryrecoveryDescRecovery.Default.(bool)
+	// githubdeliveryrecoveryDescAttempts is the schema descriptor for attempts field.
+	githubdeliveryrecoveryDescAttempts := githubdeliveryrecoveryFields[8].Descriptor()
+	// githubdeliveryrecovery.DefaultAttempts holds the default value on creation for the attempts field.
+	githubdeliveryrecovery.DefaultAttempts = githubdeliveryrecoveryDescAttempts.Default.(int)
+	// githubdeliveryrecoveryDescStatus is the schema descriptor for status field.
+	githubdeliveryrecoveryDescStatus := githubdeliveryrecoveryFields[9].Descriptor()
+	// githubdeliveryrecovery.DefaultStatus holds the default value on creation for the status field.
+	githubdeliveryrecovery.DefaultStatus = githubdeliveryrecoveryDescStatus.Default.(string)
+	// githubdeliveryrecoveryDescUpdatedAt is the schema descriptor for updated_at field.
+	githubdeliveryrecoveryDescUpdatedAt := githubdeliveryrecoveryFields[11].Descriptor()
+	// githubdeliveryrecovery.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	githubdeliveryrecovery.DefaultUpdatedAt = githubdeliveryrecoveryDescUpdatedAt.Default.(func() time.Time)
+	// githubdeliveryrecovery.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	githubdeliveryrecovery.UpdateDefaultUpdatedAt = githubdeliveryrecoveryDescUpdatedAt.UpdateDefault.(func() time.Time)
 	githubinstallstartFields := schema.GitHubInstallStart{}.Fields()
 	_ = githubinstallstartFields
 	// githubinstallstartDescCreatedAt is the schema descriptor for created_at field.
@@ -678,6 +702,58 @@ func init() {
 	githubinstallation.DefaultUpdatedAt = githubinstallationDescUpdatedAt.Default.(func() time.Time)
 	// githubinstallation.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	githubinstallation.UpdateDefaultUpdatedAt = githubinstallationDescUpdatedAt.UpdateDefault.(func() time.Time)
+	githubobservationFields := schema.GitHubObservation{}.Fields()
+	_ = githubobservationFields
+	// githubobservationDescOrigin is the schema descriptor for origin field.
+	githubobservationDescOrigin := githubobservationFields[10].Descriptor()
+	// githubobservation.DefaultOrigin holds the default value on creation for the origin field.
+	githubobservation.DefaultOrigin = githubobservationDescOrigin.Default.(string)
+	// githubobservationDescStatus is the schema descriptor for status field.
+	githubobservationDescStatus := githubobservationFields[11].Descriptor()
+	// githubobservation.DefaultStatus holds the default value on creation for the status field.
+	githubobservation.DefaultStatus = githubobservationDescStatus.Default.(string)
+	// githubobservationDescDecision is the schema descriptor for decision field.
+	githubobservationDescDecision := githubobservationFields[12].Descriptor()
+	// githubobservation.DefaultDecision holds the default value on creation for the decision field.
+	githubobservation.DefaultDecision = githubobservationDescDecision.Default.(releaseautomation.ProductionDecision)
+	// githubobservationDescDuplicateCount is the schema descriptor for duplicate_count field.
+	githubobservationDescDuplicateCount := githubobservationFields[14].Descriptor()
+	// githubobservation.DefaultDuplicateCount holds the default value on creation for the duplicate_count field.
+	githubobservation.DefaultDuplicateCount = githubobservationDescDuplicateCount.Default.(int)
+	// githubobservationDescReceivedAt is the schema descriptor for received_at field.
+	githubobservationDescReceivedAt := githubobservationFields[16].Descriptor()
+	// githubobservation.DefaultReceivedAt holds the default value on creation for the received_at field.
+	githubobservation.DefaultReceivedAt = githubobservationDescReceivedAt.Default.(func() time.Time)
+	githubproductionpolicyFields := schema.GitHubProductionPolicy{}.Fields()
+	_ = githubproductionpolicyFields
+	// githubproductionpolicyDescCreatedAt is the schema descriptor for created_at field.
+	githubproductionpolicyDescCreatedAt := githubproductionpolicyFields[6].Descriptor()
+	// githubproductionpolicy.DefaultCreatedAt holds the default value on creation for the created_at field.
+	githubproductionpolicy.DefaultCreatedAt = githubproductionpolicyDescCreatedAt.Default.(func() time.Time)
+	githubrecoveryscanFields := schema.GitHubRecoveryScan{}.Fields()
+	_ = githubrecoveryscanFields
+	// githubrecoveryscanDescCursor is the schema descriptor for cursor field.
+	githubrecoveryscanDescCursor := githubrecoveryscanFields[3].Descriptor()
+	// githubrecoveryscan.DefaultCursor holds the default value on creation for the cursor field.
+	githubrecoveryscan.DefaultCursor = githubrecoveryscanDescCursor.Default.(string)
+	// githubrecoveryscanDescStatus is the schema descriptor for status field.
+	githubrecoveryscanDescStatus := githubrecoveryscanFields[4].Descriptor()
+	// githubrecoveryscan.DefaultStatus holds the default value on creation for the status field.
+	githubrecoveryscan.DefaultStatus = githubrecoveryscanDescStatus.Default.(string)
+	// githubrecoveryscanDescReason is the schema descriptor for reason field.
+	githubrecoveryscanDescReason := githubrecoveryscanFields[5].Descriptor()
+	// githubrecoveryscan.DefaultReason holds the default value on creation for the reason field.
+	githubrecoveryscan.DefaultReason = githubrecoveryscanDescReason.Default.(string)
+	// githubrecoveryscanDescGap is the schema descriptor for gap field.
+	githubrecoveryscanDescGap := githubrecoveryscanFields[6].Descriptor()
+	// githubrecoveryscan.DefaultGap holds the default value on creation for the gap field.
+	githubrecoveryscan.DefaultGap = githubrecoveryscanDescGap.Default.(bool)
+	// githubrecoveryscanDescUpdatedAt is the schema descriptor for updated_at field.
+	githubrecoveryscanDescUpdatedAt := githubrecoveryscanFields[10].Descriptor()
+	// githubrecoveryscan.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	githubrecoveryscan.DefaultUpdatedAt = githubrecoveryscanDescUpdatedAt.Default.(func() time.Time)
+	// githubrecoveryscan.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	githubrecoveryscan.UpdateDefaultUpdatedAt = githubrecoveryscanDescUpdatedAt.UpdateDefault.(func() time.Time)
 	idealcustomerprofileFields := schema.IdealCustomerProfile{}.Fields()
 	_ = idealcustomerprofileFields
 	// idealcustomerprofileDescPersonas is the schema descriptor for personas field.

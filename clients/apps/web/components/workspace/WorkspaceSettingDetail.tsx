@@ -26,121 +26,110 @@ import { WorkspaceProductSurfaces } from './WorkspaceProductSurfaces'
 import { WorkspaceRolesSettings } from './WorkspaceRolesSettings'
 import { WorkspaceSecuritySettings } from './WorkspaceSecuritySettings'
 import { WorkspaceSharedLinks } from './WorkspaceSharedLinks'
-import { hasPermission } from '@/lib/auth/permissions'
+import { hasPermission, type Permission } from '@/lib/auth/permissions'
 import type { WorkspaceSettingsProps } from './WorkspaceSettings'
 import type { SettingId } from './settings-sections'
 
-type WorkspaceSettingContentProps = {
-  email: string
-  mcpUrl: string
-  name: string
-  organization: WorkspaceSettingsProps['organization']
-  role: string
-  socialSet?: WorkspaceSettingsProps['socialSet']
-  twoFactorEnabled: boolean
-  userId: string
+/** What each section's content reads: the person, the workspace, and what their role may do. */
+type SettingsContext = Omit<WorkspaceSettingsProps, 'section'> & {
+  can: (permission: Permission) => boolean
 }
 
-function getDetailContent({
-  email,
-  mcpUrl,
-  name,
-  organization,
-  role,
-  socialSet,
-  twoFactorEnabled,
-  userId,
-}: WorkspaceSettingContentProps): Record<SettingId, ReactNode> {
-  const canManage = hasPermission(role, 'workspace:update')
-  return {
-    appearance: <AppearanceSettings />,
-    experimental: <ExperimentalSettings canManage={canManage} />,
-    install: <InstallSettings />,
-    'new-team': <NewTeamSettings email={email} userId={userId} />,
-    'social-sets': socialSet ? (
+/**
+ * The body of every section, in registry order. `satisfies` makes TypeScript
+ * ask for content when a section is added, and only the open section renders.
+ */
+const SETTINGS_CONTENT = {
+  profile: ({ email, name }) => <AccountSettings email={email} name={name} />,
+  notifications: () => <WorkspaceNotifications />,
+  appearance: () => <AppearanceSettings />,
+  security: ({ twoFactorEnabled }) => (
+    <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />
+  ),
+  install: () => <InstallSettings />,
+  general: ({ can, organization, userId }) => (
+    <WorkspaceGeneralSettings
+      canDelete={can('workspace:delete')}
+      canManage={can('workspace:update')}
+      organization={organization}
+      userId={userId}
+      key={`${userId}:${organization.id}`}
+    />
+  ),
+  billing: ({ can }) => <WorkspaceBilling canManage={can('billing:manage')} />,
+  members: ({ can, userId }) => (
+    <WorkspaceMembersSettings
+      canInvite={can('member:invite')}
+      canManageMembers={can('member:update_role')}
+      canRead={can('member:read')}
+      canTransferOwnership={can('workspace:transfer_ownership')}
+      currentUserId={userId}
+    />
+  ),
+  roles: () => <WorkspaceRolesSettings />,
+  'new-team': ({ email, userId }) => <NewTeamSettings email={email} userId={userId} />,
+  brand: ({ can }) => <WorkspaceBrandSettings canManage={can('workspace:update')} />,
+  product: ({ can }) => (
+    <>
+      <WorkspaceProductProfile canManage={can('brand:manage')} />
+      <WorkspaceIdealCustomerProfile canManage={can('brand:manage')} />
+    </>
+  ),
+  surfaces: ({ can }) => <WorkspaceProductSurfaces canManage={can('brand:manage')} />,
+  sharing: ({ can }) => <WorkspaceSharedLinks canEdit={can('artifact:edit')} />,
+  'social-sets': ({ can, socialSet }) =>
+    socialSet ? (
       <SocialSetSettings
         id={socialSet.id}
         key={`${socialSet.id}:${socialSet.page}`}
         page={socialSet.page}
         permissions={{
-          canManage,
-          canWrite: hasPermission(role, 'artifact:edit'),
-          isAdmin: canManage,
+          canManage: can('workspace:update'),
+          canWrite: can('artifact:edit'),
+          isAdmin: can('workspace:update'),
         }}
       />
     ) : (
-      <SocialSetList canManage={canManage} />
+      <SocialSetList canManage={can('workspace:update')} />
     ),
-    agents: (
-      <WorkspaceAgentSettings canManage={hasPermission(role, 'brand:manage')} mcpUrl={mcpUrl} />
-    ),
-    api: (
-      <>
-        <WorkspaceDeveloperSettings canManage={canManage} />
-        <WebhookSettings canManage={canManage} />
-        <DeveloperTools />
-      </>
-    ),
-    audit: (
-      <WorkspaceAuditSettings
-        canManage={canManage}
-        canRead={canManage}
-        organizationId={organization.id}
-      />
-    ),
-    billing: <WorkspaceBilling canManage={hasPermission(role, 'billing:manage')} />,
-    brand: <WorkspaceBrandSettings canManage={canManage} />,
-    channels: <ChannelConnections canManage={hasPermission(role, 'connection:manage')} />,
-    general: (
-      <WorkspaceGeneralSettings
-        canDelete={hasPermission(role, 'workspace:delete')}
-        canManage={canManage}
-        organization={organization}
-        userId={userId}
-        key={`${userId}:${organization.id}`}
-      />
-    ),
-    integrations: (
-      <>
-        <IntegrationCatalog canManage={canManage} />
-        <WorkspaceIntegrations canManage={canManage} />
-      </>
-    ),
-    notifications: <WorkspaceNotifications />,
-    members: (
-      <WorkspaceMembersSettings
-        canInvite={hasPermission(role, 'member:invite')}
-        canManageMembers={hasPermission(role, 'member:update_role')}
-        canRead={hasPermission(role, 'member:read')}
-        canTransferOwnership={hasPermission(role, 'workspace:transfer_ownership')}
-        currentUserId={userId}
-      />
-    ),
-    product: (
-      <>
-        <WorkspaceProductProfile canManage={hasPermission(role, 'brand:manage')} />
-        <WorkspaceIdealCustomerProfile canManage={hasPermission(role, 'brand:manage')} />
-      </>
-    ),
-    profile: <AccountSettings email={email} name={name} />,
-    roles: <WorkspaceRolesSettings />,
-    security: <WorkspaceSecuritySettings twoFactorEnabled={twoFactorEnabled} />,
-    sharing: <WorkspaceSharedLinks canEdit={hasPermission(role, 'artifact:edit')} />,
-    sso: (
-      <WorkspaceIdentitySettings
-        canManage={canManage}
-        isOwner={role === 'owner'}
-        organizationId={organization.id}
-      />
-    ),
-    surfaces: <WorkspaceProductSurfaces canManage={hasPermission(role, 'brand:manage')} />,
-  }
-}
+  channels: ({ can }) => <ChannelConnections canManage={can('connection:manage')} />,
+  integrations: ({ can }) => (
+    <>
+      <IntegrationCatalog canManage={can('workspace:update')} />
+      <WorkspaceIntegrations canManage={can('workspace:update')} />
+    </>
+  ),
+  agents: ({ can, mcpUrl }) => (
+    <WorkspaceAgentSettings canManage={can('brand:manage')} mcpUrl={mcpUrl} />
+  ),
+  sso: ({ can, organization, role }) => (
+    <WorkspaceIdentitySettings
+      canManage={can('workspace:update')}
+      isOwner={role === 'owner'}
+      organizationId={organization.id}
+    />
+  ),
+  audit: ({ can, organization }) => (
+    <WorkspaceAuditSettings
+      canManage={can('workspace:update')}
+      canRead={can('workspace:update')}
+      organizationId={organization.id}
+    />
+  ),
+  api: ({ can }) => (
+    <>
+      <WorkspaceDeveloperSettings canManage={can('workspace:update')} />
+      <WebhookSettings canManage={can('workspace:update')} />
+      <DeveloperTools />
+    </>
+  ),
+  experimental: ({ can }) => <ExperimentalSettings canManage={can('workspace:update')} />,
+} satisfies Record<SettingId, (context: SettingsContext) => ReactNode>
 
 /** The body of one settings section. */
-export function WorkspaceSettingContent({
-  section,
-  ...props
-}: WorkspaceSettingContentProps & { section: SettingId }) {
-  return getDetailContent(props)[section]
+export function WorkspaceSettingContent({ section, ...props }: WorkspaceSettingsProps) {
+  return SETTINGS_CONTENT[section]({
+    ...props,
+    can: (permission) => hasPermission(props.role, permission),
+  })
 }

@@ -1,6 +1,5 @@
 import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
-import { Page, Section } from '@/components/platform-ui'
-import { SettingsNav } from '@/components/settings/SettingsNav'
+import { Page } from '@/components/platform-ui'
 import { WorkspaceDeletionRecovery } from './WorkspaceDeletionSettings'
 import { WorkspaceSettingContent } from './WorkspaceSettingDetail'
 import { SETTINGS_SECTIONS, type SettingId, type SocialSetPage } from './settings-sections'
@@ -33,12 +32,11 @@ export type WorkspaceSettingsProps = {
 }
 
 /**
- * One settings section beside the grouped settings navigation. Each section
- * is its own route, linked from the sidebar under Settings and from the list
- * here, so the address always says where you are.
+ * One settings section, after Polar: the sidebar lists the sections, and the
+ * page is titled for the open one, so the address always says where you are.
  */
-export function WorkspaceSettings({ section, ...props }: WorkspaceSettingsProps) {
-  const { organization, userId } = props
+export function WorkspaceSettings(props: WorkspaceSettingsProps) {
+  const { organization, section, userId } = props
   if (
     organization.workspaceDeletion?.status === 'PENDING' ||
     organization.workspaceDeletion?.status === 'PROCESSING'
@@ -55,16 +53,9 @@ export function WorkspaceSettings({ section, ...props }: WorkspaceSettingsProps)
 
   const current = SETTINGS_SECTIONS.find((item) => item.id === section) ?? SETTINGS_SECTIONS[0]!
   return (
-    <Page title="Settings" tagline="Your account, workspace and publishing.">
+    <Page description={current.description} title={current.title}>
       <ReturnToWork />
-      <div className="flex flex-col gap-6 lg:flex-row lg:gap-10">
-        <SettingsNav />
-        <div className="min-w-0 max-w-[880px] flex-1">
-          <Section description={current.description} title={current.title}>
-            <WorkspaceSettingContent section={section} {...props} />
-          </Section>
-        </div>
-      </div>
+      <WorkspaceSettingContent {...props} />
     </Page>
   )
 }

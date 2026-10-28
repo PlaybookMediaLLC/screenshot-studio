@@ -327,7 +327,7 @@ function InviteForm({
       <Group>
         <Row>
           <div>
-            <h3 className="text-sm font-medium text-foreground">Invite a member</h3>
+            <h2 className="text-sm font-medium text-foreground">Invite a member</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Send an email invitation and choose the role they join with.
             </p>

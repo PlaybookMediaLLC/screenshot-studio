@@ -1,111 +1,144 @@
 'use client'
 
-import { SidebarLink as Link } from '@/components/platform-shell/SidebarLink'
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { ChevronDownIcon as ChevronDown } from '@/components/platform-shell/icons'
-import { useState } from 'react'
-import { Input } from '@/components/ui/input'
+import { useTranslations } from 'next-intl'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
+import {
+  AddBusinessIcon,
+  AdminIcon,
+  AgentIcon,
+  ArrowBackIcon,
+  BrushIcon,
+  CodeIcon,
+  ContrastIcon,
+  CreditCardIcon,
+  ExtensionIcon,
+  GearIcon,
+  GroupIcon,
+  HubIcon,
+  InstallIcon,
+  InventoryIcon,
+  LinkIcon,
+  LockIcon,
+  LoginIcon,
+  NotificationsIcon,
+  PersonIcon,
+  ReceiptIcon,
+  ScienceIcon,
+  VoiceIcon,
+  WebIcon,
+} from '@/components/platform-shell/icons'
+import { type NavIcon, NavRow } from '@/components/platform-shell/NavRow'
+import { Input } from '@/components/ui/input'
 import {
   SETTING_GROUPS,
   SETTINGS_SECTIONS,
   type SettingId,
   settingsHref,
+  settingsSectionAt,
 } from '@/components/workspace/settings-sections'
 import { withoutLocale } from '@/lib/settings/appearance'
-import { cn } from '@/lib/utils'
 
-function activeSection(pathname: string): SettingId | undefined {
-  const path = withoutLocale(pathname)
-  return [...SETTINGS_SECTIONS]
-    .sort((a, b) => b.slug.length - a.slug.length)
-    .find((section) => {
-      const href = settingsHref(section)
-      return section.slug === ''
-        ? path === '/workspace'
-        : path === href || path.startsWith(`${href}/`)
-    })?.id
-}
+const ICONS = {
+  profile: PersonIcon,
+  notifications: NotificationsIcon,
+  appearance: ContrastIcon,
+  security: LockIcon,
+  install: InstallIcon,
+  general: GearIcon,
+  billing: CreditCardIcon,
+  members: GroupIcon,
+  roles: AdminIcon,
+  'new-team': AddBusinessIcon,
+  brand: BrushIcon,
+  product: InventoryIcon,
+  surfaces: WebIcon,
+  sharing: LinkIcon,
+  'social-sets': VoiceIcon,
+  channels: HubIcon,
+  integrations: ExtensionIcon,
+  agents: AgentIcon,
+  sso: LoginIcon,
+  audit: ReceiptIcon,
+  api: CodeIcon,
+  experimental: ScienceIcon,
+} satisfies Record<SettingId, NavIcon>
 
-/** Searchable settings destinations grouped by task, with links at every screen size. */
-export function SettingsNav() {
+/**
+ * Polar's settings sidebar, shown in place of the destinations on every
+ * settings page: a way back, a search, and the sections grouped by owner.
+ * The compact rail keeps the icons, with each name in a tooltip.
+ */
+export function SettingsNav({
+  collapsed,
+  onNavigate,
+}: {
+  collapsed: boolean
+  onNavigate?: () => void
+}) {
+  const t = useTranslations('platformNavigation')
   const pathname = usePathname()
   const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
-  const current = activeSection(pathname ?? '/workspace')
+  const current = settingsSectionAt(withoutLocale(pathname))?.id
+  // The compact rail has no search box, so it always lists every section.
+  const search = collapsed ? '' : query.trim().toLowerCase()
   const sections = SETTINGS_SECTIONS.filter(
     (section) =>
+      // Create workspace lives in the account menu.
       section.id !== 'new-team' &&
       `${section.title} ${section.description} ${section.keywords ?? ''}`
         .toLowerCase()
-        .includes(query.trim().toLowerCase())
+        .includes(search)
   )
-  const links = (
-    <nav aria-label="Settings sections" className="w-full shrink-0 lg:w-56">
-      <div className="grid gap-5 lg:sticky lg:top-6">
-        <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-          Search settings
+  return (
+    <div className="flex min-h-full flex-col gap-4">
+      <div data-platform-back>
+        <NavRow
+          active={false}
+          collapsed={collapsed}
+          href="/home"
+          icon={ArrowBackIcon}
+          label={t('settings')}
+          name={t('leaveSettings')}
+          onNavigate={onNavigate}
+        />
+      </div>
+      <nav aria-label="Settings sections" className="grid gap-4">
+        {collapsed ? null : (
           <Input
+            aria-label="Search settings"
+            className="h-8"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search settings"
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name or topic"
           />
-        </label>
+        )}
         {sections.length === 0 ? (
-          <p className="text-sm text-muted-foreground" role="status">
+          <p className="px-3 text-sm text-muted-foreground" role="status">
             No settings match your search.
           </p>
         ) : null}
-        <div className="grid max-h-[70dvh] gap-5 overflow-y-auto lg:max-h-[calc(100vh-12rem)]">
-          {SETTING_GROUPS.map((group) => {
-            const matches = sections.filter((section) => section.group === group.id)
-            return matches.length ? (
-              <div className="grid gap-0.5" key={group.id}>
-                <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">{group.title}</p>
-                {matches.map((section) => (
-                  <Link
-                    data-platform-nav
-                    aria-current={section.id === current ? 'page' : undefined}
-                    className={cn(
-                      'rounded-md px-2 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      section.id === current
-                        ? 'bg-foreground/[0.06] font-medium text-foreground'
-                        : 'text-muted-foreground hover:bg-foreground/[0.03] hover:text-foreground'
-                    )}
-                    href={settingsHref(section)}
-                    key={section.id}
-                    onClick={() => setOpen(false)}
-                  >
-                    {section.title}
-                  </Link>
-                ))}
-              </div>
-            ) : null
-          })}
-        </div>
-      </div>
-    </nav>
-  )
-  return (
-    <>
-      <div className="hidden lg:block">{links}</div>
-      <div className="lg:hidden">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" className="h-11 w-full justify-between">
-              Settings /{' '}
-              {SETTINGS_SECTIONS.find((section) => section.id === current)?.title ?? 'General'}
-              <ChevronDown size={16} aria-hidden="true" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="overflow-y-auto p-5 pt-12">
-            <SheetTitle>Choose a settings section</SheetTitle>
-            {links}
-          </SheetContent>
-        </Sheet>
-      </div>
-    </>
+        {SETTING_GROUPS.map((group) => {
+          const matches = sections.filter((section) => section.group === group.id)
+          return matches.length ? (
+            <div className="grid gap-0.5" key={group.id}>
+              {collapsed ? null : <p className="platform-eyebrow mb-1 px-3">{group.title}</p>}
+              {matches.map((section) => (
+                <NavRow
+                  active={section.id === current}
+                  collapsed={collapsed}
+                  href={settingsHref(section)}
+                  icon={ICONS[section.id]}
+                  key={section.id}
+                  label={section.title}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          ) : null
+        })}
+      </nav>
+    </div>
   )
 }

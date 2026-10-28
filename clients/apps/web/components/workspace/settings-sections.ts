@@ -1,35 +1,14 @@
 /**
  * Settings sections, each its own route under /workspace; shared by the
- * sidebar, the in-page settings navigation and the page (RFC 024). Sections
- * are grouped by who owns what they change: the person, the workspace, or a
+ * settings sidebar, the page and its content map (RFC 024). Sections are
+ * grouped by who owns what they change: the person, the workspace, or a
  * publishing identity (a brand).
+ *
+ * To add a section, add it here. TypeScript then asks for its icon in
+ * `SettingsNav.tsx` and its content in `WorkspaceSettingDetail.tsx`.
  */
 
 import { z } from 'zod'
-
-export type SettingId =
-  | 'agents'
-  | 'api'
-  | 'appearance'
-  | 'audit'
-  | 'billing'
-  | 'brand'
-  | 'channels'
-  | 'experimental'
-  | 'general'
-  | 'install'
-  | 'integrations'
-  | 'members'
-  | 'new-team'
-  | 'notifications'
-  | 'product'
-  | 'profile'
-  | 'roles'
-  | 'security'
-  | 'sharing'
-  | 'social-sets'
-  | 'sso'
-  | 'surfaces'
 
 /** Who a section's settings belong to. */
 export const settingGroupSchema = z.enum([
@@ -44,10 +23,10 @@ export const settingGroupSchema = z.enum([
 /** One of {@link settingGroupSchema}'s values. */
 export type SettingGroup = z.infer<typeof settingGroupSchema>
 
-export type SettingSection = {
+type SettingSectionDefinition = {
   description: string
   group: SettingGroup
-  id: SettingId
+  id: string
   /** Extra search terms the settings search matches but the page does not show. */
   keywords?: string
   /** URL segment under /workspace; General lives at /workspace itself. */
@@ -65,7 +44,8 @@ export const SETTING_GROUPS: { id: SettingGroup; title: string }[] = [
   { id: 'advanced', title: 'Advanced' },
 ]
 
-export const SETTINGS_SECTIONS: SettingSection[] = [
+/** Every section, in the order the navigation lists them within their group. */
+const SECTIONS = [
   {
     description: 'Your profile, sign-in email, time zone, sessions, and account deletion.',
     group: 'personal',
@@ -74,11 +54,11 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     title: 'Account',
   },
   {
-    id: 'notifications',
+    description: 'Activity preferences, delivery channels, and Slack notifications.',
     group: 'personal',
+    id: 'notifications',
     slug: 'notifications',
     title: 'Notifications',
-    description: 'Activity preferences, delivery channels, and Slack notifications.',
   },
   {
     description: 'Theme, navigation, calendar, and editor direction.',
@@ -131,18 +111,11 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     title: 'Roles',
   },
   {
-    description: 'Single sign-on and SCIM provisioning controls.',
-    group: 'advanced',
-    id: 'sso',
-    slug: 'sso',
-    title: 'SSO',
-  },
-  {
-    description: 'Searchable events, retention, and SIEM log drains.',
-    group: 'advanced',
-    id: 'audit',
-    slug: 'audit-log',
-    title: 'Audit log',
+    description: 'Start a separate workspace for a team, project, or client.',
+    group: 'workspace',
+    id: 'new-team',
+    slug: 'new-team',
+    title: 'Create workspace',
   },
   {
     description: 'Brand voice for AI copy, plus colors and typography for visuals.',
@@ -166,46 +139,11 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     title: 'Product pages',
   },
   {
-    description: 'Every agent and app Shots connects to, what each needs, and how to set it up.',
-    group: 'integrations',
-    id: 'integrations',
-    slug: 'integrations',
-    title: 'Integrations',
-  },
-  {
-    description: 'Connect Claude, ChatGPT, Cursor, and other AI agents to this workspace over MCP.',
-    group: 'integrations',
-    id: 'agents',
-    slug: 'ai-agents',
-    title: 'AI agents',
-  },
-  {
     description: 'Every design published at a link: copy, restrict, or revoke.',
     group: 'publishing',
     id: 'sharing',
     slug: 'shared-links',
     title: 'Shared links',
-  },
-  {
-    description: 'API keys, outbound webhooks, development mode, and debug logs.',
-    group: 'advanced',
-    id: 'api',
-    slug: 'developers',
-    title: 'Developer API',
-  },
-  {
-    description: 'Try features before they ship to everyone.',
-    group: 'advanced',
-    id: 'experimental',
-    slug: 'experimental',
-    title: 'Experimental',
-  },
-  {
-    description: 'Start a separate workspace for a team, project, or client.',
-    group: 'workspace',
-    id: 'new-team',
-    slug: 'new-team',
-    title: 'Create workspace',
   },
   {
     description:
@@ -222,7 +160,56 @@ export const SETTINGS_SECTIONS: SettingSection[] = [
     slug: 'channels',
     title: 'Channels',
   },
-]
+  {
+    description: 'Every agent and app Shots connects to, what each needs, and how to set it up.',
+    group: 'integrations',
+    id: 'integrations',
+    slug: 'integrations',
+    title: 'Integrations',
+  },
+  {
+    description: 'Connect Claude, ChatGPT, Cursor, and other AI agents to this workspace over MCP.',
+    group: 'integrations',
+    id: 'agents',
+    slug: 'ai-agents',
+    title: 'AI agents',
+  },
+  {
+    description: 'Single sign-on and SCIM provisioning controls.',
+    group: 'advanced',
+    id: 'sso',
+    slug: 'sso',
+    title: 'SSO',
+  },
+  {
+    description: 'Searchable events, retention, and SIEM log drains.',
+    group: 'advanced',
+    id: 'audit',
+    slug: 'audit-log',
+    title: 'Audit log',
+  },
+  {
+    description: 'API keys, outbound webhooks, development mode, and debug logs.',
+    group: 'advanced',
+    id: 'api',
+    slug: 'developers',
+    title: 'Developer API',
+  },
+  {
+    description: 'Try features before they ship to everyone.',
+    group: 'advanced',
+    id: 'experimental',
+    slug: 'experimental',
+    title: 'Experimental',
+  },
+] as const satisfies readonly SettingSectionDefinition[]
+
+/** A section's stable id, from {@link SETTINGS_SECTIONS}. */
+export type SettingId = (typeof SECTIONS)[number]['id']
+
+export type SettingSection = SettingSectionDefinition & { id: SettingId }
+
+export const SETTINGS_SECTIONS: readonly SettingSection[] = SECTIONS
 
 /** The pages of one brand's settings, in display order. */
 export const SOCIAL_SET_PAGES = [
@@ -247,6 +234,15 @@ export function socialSetHref(id: string, page: SocialSetPage = 'general'): stri
 
 export function findSettingsSection(slug: string | undefined): SettingSection | undefined {
   return SETTINGS_SECTIONS.find((section) => section.slug === (slug ?? ''))
+}
+
+/**
+ * The section a pathname shows, from its first segment under /workspace, so a
+ * brand's own pages light Publishing brands. Pass the pathname without a locale.
+ */
+export function settingsSectionAt(pathname: string): SettingSection | undefined {
+  const [area, slug] = pathname.split('/').filter(Boolean)
+  return area === 'workspace' ? findSettingsSection(slug) : undefined
 }
 
 /** A brand settings page by its slug; General when omitted. */

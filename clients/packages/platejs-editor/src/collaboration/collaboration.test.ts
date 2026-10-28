@@ -1,6 +1,11 @@
 import { createPlateEditor } from "platejs/react";
 import { expect, test } from "../../test/bun-test-compat";
-import { assertPrivateSignaling, createYjsPlugin, YjsPlugin } from "./index";
+import {
+  assertPrivateSignaling,
+  createYjsPlugin,
+  throttleCursor,
+  YjsPlugin,
+} from "./index";
 
 const refuses = (signaling: string[]): boolean => {
   try {
@@ -39,4 +44,27 @@ test("a write session's browser copy is not one of Plate's providers", () => {
   expect(
     providers.map((provider) => ("type" in provider ? provider.type : ""))
   ).toEqual(["hocuspocus"]);
+});
+
+test("cursor moves are throttled, the last one always sent, other fields at once", async () => {
+  const sent: [string, unknown][] = [];
+  const awareness = {
+    setLocalStateField(field: string, value: unknown) {
+      sent.push([field, value]);
+    },
+  };
+  const restore = throttleCursor(awareness, 40);
+  for (let index = 0; index < 10; index += 1)
+    awareness.setLocalStateField("selection", index);
+  awareness.setLocalStateField("data", "Writer");
+  expect(sent).toEqual([
+    ["selection", 0],
+    ["data", "Writer"],
+  ]);
+  await new Promise((resolve) => setTimeout(resolve, 80));
+  expect(sent.at(-1)).toEqual(["selection", 9]);
+  expect(sent.length).toBe(3);
+  restore();
+  awareness.setLocalStateField("selection", "after");
+  expect(sent.at(-1)).toEqual(["selection", "after"]);
 });

@@ -20,6 +20,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/postoptions"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	socialdatabase "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database"
+	socialintegration "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/database/integration"
 	socialent "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent/integration"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
@@ -50,6 +51,9 @@ type Publisher struct {
 	signer       MediaSigner
 	resolve      func(string) poster
 	now          func() time.Time
+	// channels and refresh renew expiring credentials (RefreshSocialTokens).
+	channels *socialent.Client
+	refresh  *socialintegration.RefreshIntegrationService
 }
 
 func New(bindings BindingLookup, socialClient *socialent.Client, signer MediaSigner, lifecycle ...managedslack.Lifecycle) *Publisher {
@@ -57,6 +61,7 @@ func New(bindings BindingLookup, socialClient *socialent.Client, signer MediaSig
 	return &Publisher{
 		bindings: bindings, integrations: EntIntegrationLookup{Client: socialClient},
 		signer: signer, resolve: func(platform string) poster { return manager.GetSocialIntegration(platform) }, now: time.Now,
+		channels: socialClient, refresh: newRefresh(socialClient, manager),
 	}
 }
 

@@ -1,29 +1,29 @@
 # Publishing services
 
-This directory contains Screenshot Studio's Go product API, Temporal workers,
-and social provider services. The combined backend image runs them together in
-production; Compose can start the social API separately for local testing.
+This directory contains Screenshot Studio's Go product API, its Temporal
+worker, and the social provider adapters both use in process. The combined
+backend image runs the API and worker together in production.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
-| `cmd/product-api` | The product API (`:8080`). The web calls it through the SDK. |
+| `cmd/product-api` | The product API (`:8080`). The web calls it through the SDK. With `PUBLIC_PORT` it also serves the MCP server there. |
 | `cmd/product-worker` | The tenant Temporal worker for publishing, onboarding, and maintenance (`:8081`). |
-| `cmd/social-api` | The social API (`:3000`), the MCP server, and the social workers when `RUN_WORKER=true`. |
-| `cmd/combined` | The production entry point. It starts the three processes above in one container. |
+| `cmd/combined` | The production entry point. It starts the two processes above in one container and serves the MCP server on `:3000`. |
 | `cmd/platform-migrate` | The one migration command for the product and social SQL. |
 | `cmd/social-migrate` | The social SQL only, for isolated social tests. |
 | `internal/httpapi` | The product API's HTTP handlers. |
 | `internal/<domain>` | The product domain packages. |
-| `internal/social` | The Go port of the original social app: social controllers, workers, and provider adapters. |
+| `internal/socialconnect` | Channel connections (OAuth start and exchange, identity checks) in process. |
+| `internal/social` | The social provider adapters and integration storage the API and worker use. |
 | `ent`, `internal/social/ent` | The product and social Ent clients. |
 | `platformmigrations`, `internal/social/migrations` | The reviewed product and social SQL. |
 
 `Dockerfile` builds one image for every environment. Production runs its
 default entry point, `/combined-backend`. Compose and kind run one binary for
-each service: `/publishing-backend`, `/publishing-orchestrator`,
-`/screenshot-studio-backend`, or `/platform-migrate`.
+each service: `/publishing-backend`, `/publishing-orchestrator`, or
+`/platform-migrate`.
 
 ## Architecture
 
@@ -121,6 +121,9 @@ orchestrator also requires:
   (and optional `R2_REGION`, `R2_BROWSER_ENDPOINT`) for private tenant media
 - `SOCIAL_API_URL` and an allow-listed API key reference for social OAuth and
   destination verification. They are held by the product backend, not the web.
+  Without `SOCIAL_API_URL` the product API connects channels in process
+  (`internal/socialconnect`) with the social provider settings,
+  `PLATFORM_SOCIAL_ENCRYPTION_KEY`, `REDIS_URL`, and `STORAGE_PROVIDER`.
   The publishing worker reads social integration rows from the shared database
   and signs the canonical private asset when due.
 
@@ -156,10 +159,12 @@ The image uses the `server` directory as its Docker build context.
 
 ## MCP server
 
-The social backend serves the Shots MCP server (RFC 026,
-`internal/social/chat/mcp`) on `/mcp` and the OAuth mounts
-`/mcp-oauth-claude`, `/mcp-oauth-chatgpt`, and `/mcp-oauth-dynamic`. Its tools
-call `internal/product`, the same domain the `/v1` API serves, with the caller's
+The product API serves the Shots MCP server (RFC 026, `internal/mcp`) on a
+second listener, `PUBLIC_PORT`, that serves nothing else: `/mcp`, the OAuth
+mounts `/mcp-oauth-claude`, `/mcp-oauth-chatgpt`, and `/mcp-oauth-dynamic`,
+their `/.well-known` documents, and `POST /oauth/register` and
+`POST /oauth/token` (`httpapi.NewAgentOAuth`). Its tools call
+`internal/product`, the same domain the `/v1` API serves, with the caller's
 workspace API key as the actor:
 
 - `internal/shotsapi/openapi.json` is the web's OpenAPI document (`npm run
@@ -171,95 +176,41 @@ workspace API key as the actor:
   Every call logs one `shots.mcp_call` line with the request ID, client, and
   workspace.
 - Scheduling tools need the opt-in `post:schedule` scope and take only
-  approved posts and variants. This process has no tenant Temporal client: the
-  orchestrator's once-a-minute `scheduled-posts` dispatcher starts the
-  workflow of a post an agent scheduled, and a cancelled post is never claimed.
+  approved posts and variants. The orchestrator's once-a-minute
+  `scheduled-posts` dispatcher starts the workflow of a post an agent
+  scheduled, and a cancelled post is never claimed.
 - OAuth consent happens on the web (`/oauth/authorize`), recorded through
   `POST /v1/agent-authorizations`; `/oauth/token` exchanges the `shc_` code for
-  a workspace API key with the approved scopes.
+  a workspace API key with the approved scopes. Clients register in the social
+  `OAuthApp` table (`internal/agentclients`), their secrets sealed with
+  `JWT_SECRET`; `DCR_VERIFIED_DOMAINS` limits web callbacks.
 
-It reads `DATABASE_URL`, `R2_*` (in production the combined backend copies the
-tenant's `TENANT_R2_*`), `PLATFORM_QUOTA_REDIS_URL` (default `REDIS_URL`),
-`PLATFORM_CAMPAIGN_WORKFLOW`, `SCREENSHOT_API_URL`, and `PLATFORM_MCP_URL`, the
-public MCP URL, which must sit at a host root for OAuth discovery: production
-is `https://shots-mcp.playbookmedia.io/mcp`. Locally, `./dev/studio
-social-up` serves it at `http://localhost:3100/mcp`.
+Besides the product API's settings it reads `PUBLIC_PORT`, `PLATFORM_MCP_URL`
+(required with `PUBLIC_PORT`), the public MCP URL, which must sit at a host
+root for OAuth discovery: production is
+`https://shots-mcp.playbookmedia.io/mcp`; `JWT_SECRET` (required, the social
+backend's value), `FRONTEND_URL`, `SCREENSHOT_API_URL`, `SCREENSHOT_API_KEY`,
+`DCR_VERIFIED_DOMAINS`, `OPENAI_OAUTH_CLIENT_ID`, and `OPENAI_APP_CHALLANGE`.
+Per-key call limits use the product API's `REDIS_URL`.
 
-## Social services (`internal/social`)
+## Social code (`internal/social`)
 
-`internal/social` is Screenshot Studio's Go social backend and its Temporal
-workers. It serves the social HTTP API and the Temporal contracts that the
-provider adapters use, while Screenshot Studio customer publishing uses the
-canonical product post state.
+`internal/social` is a library, not a service: the provider adapters, the
+social integration storage and its Ent client. The product API connects
+channels through it (`internal/socialconnect`) and the product worker
+publishes, reads analytics and refreshes channel tokens through it
+(`internal/social/tenantpublishing`). There is no separate social API or
+social Temporal worker.
 
-Layout:
-
-- `cmd/social-api`: the HTTP entry point. CORS, MCP, the controllers in
-  registration order (honors `MCP_ONLY`), the search-attribute and
-  `missingPostWorkflow` registration, the configuration check, and `/docs`.
-  With `RUN_WORKER=true` it also runs the workers (`main` plus one queue per
-  provider, `email`, `email-bulk`) and `GET /health/status`.
-- `internal/social/app`: builds the service graph once from the environment.
-  Consumer-interface adapters live in `adapters.go`.
-- `internal/social/{auth,api/*,publicapi}`: the controllers, guards and auth.
-- `internal/social/{workflows,activities,worker}`: the Temporal side.
-- `internal/social/database/<domain>`: the social Ent repositories and services.
 - `internal/social/integrations/social/<provider>`: one package per provider.
-- `internal/social/*`: the support libraries.
-- `internal/social/ent`: the generated Ent client.
-- `internal/social/migrations`: the DDL.
+- `internal/social/database/<domain>`: the social Ent repositories and services.
+- `internal/social/ent`: the generated Ent client; `internal/social/migrations`: the DDL.
 
-**Environment.** The services read these variables: `DATABASE_URL`, `REDIS_URL`
-(unset = in-memory), `TEMPORAL_*`, `JWT_SECRET`, `FRONTEND_URL`, `MAIN_URL`,
-`NEXT_PUBLIC_BACKEND_URL`, `BACKEND_INTERNAL_URL`,
-`STORAGE_PROVIDER`/`UPLOAD_DIRECTORY`/`CLOUDFLARE_*`,
-`NOT_SECURED`, `STRIPE_*`, provider keys, `RUN_CRON`, `EXCLUDE_QUEUE`,
-`WORKER_CONCURRENCY_DIVIDER`, `PORT` (default 3000), and `ORCHESTRATOR_PORT`
-(default 3002). Each process forces `time.Local = time.UTC`.
-
-**Migrations.** Run `/platform-migrate` before the API and workers. It applies
-both Ent-backed SQL sets to one database, records their history, and adopts
-compatible tables from the earlier Prisma deployment. `/social-migrate`
-remains in the image for isolated social backend tests; it is not a second
-production migration job. See [the deployment guide](../docs/social-backend-deployment.md)
-for the local and App Platform configuration.
+**Migrations.** Run `/platform-migrate` before the API and worker. It applies
+both Ent-backed SQL sets to one database and records their history.
+`/social-migrate` remains in the image for isolated social tests; it is not a
+second production migration job.
 
 ```sh
-go build ./cmd/social-api
 SOCIAL_TEST_DATABASE_URL=postgresql://postgres@localhost:55432/social_test?sslmode=disable go test ./internal/social/...
-temporal server start-dev   # then run cmd/social-api with RUN_WORKER=true and the variables above
 ```
-
-**Implementation notes:**
-
-- **Temporal.** Workflow names, IDs and arguments match the earlier TypeScript
-  deployment, but Go workers cannot replay workflows that a TypeScript worker
-  started (Go has different `patched` markers). Drain or cut over the `main`
-  workflow workers. Activity workers are interchangeable with the TypeScript
-  ones. `cancellationType: ABANDON` is not available in Go. `SignalWithStart`
-  sends one `null` argument.
-- **HTTP.**
-  - Response compression is supported (Brotli, gzip, and deflate).
-  - Cookies use `Max-Age=0` and Go's attribute order.
-  - JSON type mismatches fail at decode with a 400.
-  - `/docs` serves Swagger UI with a minimal OpenAPI document that lists every
-    route (method and path) without schemas. `/docs-json` serves the same
-    document.
-- **AI.** OpenAI is called with chat completions over HTTP. The Mastra and
-  LangGraph event and memory tables are supported, not their internals.
-  CopilotKit 1.72 is spoken through its single-route envelope.
-- **Libraries.**
-  - Google APIs, Neynar, Facebook, Transloadit, RSS, HTML, and audio metadata:
-    plain HTTP or the standard library.
-  - HTML sanitizing, HTML parsing, tag stripping, tweet text, and Markdown
-    removal: Go implementations verified against golden outputs.
-  - Stripe uses stripe-go v84, with API version `2026-02-25.clover`.
-- **Data.**
-  - Ent returns its in-memory timestamps, while Prisma returns the stored
-    `timestamp(3)` values. The two can differ by 1 ms of rounding.
-  - Some internal lookups load full rows where Prisma selected a few columns.
-    Sensitive columns are never serialized.
-- **Bounded recursion.** The Go code caps recursion that has no natural bound:
-  - the `getMissingContent` refresh retry runs once
-  - the random draft time search stops after 10,000 tries
-  - a negative `intervalInDays` shows the post once

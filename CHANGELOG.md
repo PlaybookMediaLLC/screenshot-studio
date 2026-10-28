@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.38.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.38.0...v2.38.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **ci:** check the web IndexNow key at its new path ([#328](https://github.com/PlaybookMediaLLC/shots/issues/328)) ([df14c02](https://github.com/PlaybookMediaLLC/shots/commit/df14c0211d81a6893db15ef947f575902d28a2ba))
+
 ## [2.38.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.37.0...v2.38.0) (2026-10-27)
 
 

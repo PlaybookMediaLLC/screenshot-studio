@@ -62,157 +62,158 @@ async function deleteOAuthStart(state: string): Promise<void> {
 // (server/internal/temporalpublishing) and are covered by its tests. These
 // flows cover what the web still owns: verified destinations, idempotent
 // scheduling, cancellation, tenant isolation, and the OAuth callbacks.
-test('an approved variant schedules once to a verified Go destination and can be cancelled', async ({
-  identity,
-  page,
-}) => {
-  let organizationId: string | null = null
-  const provider = await startHttpMockServer((request) => {
-    if (request.url === '/api/public/v1/me') {
-      return { body: { organization: { id: `go-${organizationId}` } } }
+test(
+  'an approved variant schedules once to a verified Go destination and can be cancelled',
+  { tag: '@smoke' },
+  async ({ identity, page }) => {
+    let organizationId: string | null = null
+    const provider = await startHttpMockServer((request) => {
+      if (request.url === '/api/public/v1/me') {
+        return { body: { organization: { id: `go-${organizationId}` } } }
+      }
+      if (request.url === '/api/public/v1/integrations/social-x-integration/identity') {
+        return verifiedXIdentity('social-x-integration')
+      }
+      return { body: { error: 'Not found.' }, status: 404 }
+    }, socialMockPort)
+
+    try {
+      await createWorkspace(identity, page)
+      await enableTwoFactor(page, identity.password)
+      const variantId = await createApprovedVariant(page)
+      const unbound = await trpcMutation(page, 'channelConnection.create', {
+        externalAccountId: 'social-x-integration',
+        platform: 'x',
+        secretReference: e2eSecretReference,
+      })
+      expect(unbound.status).toBe(409)
+      expect(provider.calls).toHaveLength(0)
+
+      organizationId = await bindTestGoOrganization(page)
+      const wrongCredential = await trpcMutation(page, 'channelConnection.create', {
+        externalAccountId: 'social-x-integration',
+        platform: 'x',
+        secretReference: 'SOCIAL_API_KEY',
+      })
+      expect(wrongCredential.status).toBe(409)
+      expect(provider.calls).toHaveLength(0)
+      // The router drops a call with another credential, so prove there was none.
+      expect(
+        (await unroutedSocialRequests()).filter((call) => call.url.includes('social-x-integration'))
+      ).toEqual([])
+      const foreignDestination = await trpcMutation(page, 'channelConnection.create', {
+        externalAccountId: 'another-organizations-destination',
+        platform: 'x',
+        secretReference: e2eSecretReference,
+      })
+      expect(foreignDestination.status).toBe(404)
+      expect(provider.calls.map((call) => call.url)).toEqual([
+        '/api/public/v1/me',
+        '/api/public/v1/integrations/another-organizations-destination/identity',
+      ])
+      const connectionResponse = await trpcMutation(page, 'channelConnection.create', {
+        externalAccountId: 'social-x-integration',
+        platform: 'x',
+        providerSettings: { who_can_reply_post: 'everyone' },
+        secretReference: e2eSecretReference,
+      })
+      expect(connectionResponse.status).toBe(200)
+      const connectionId = connectionSchema.parse(connectionResponse.body).connection.id
+
+      const first = await createScheduledPost(page, connectionId, 'social-launch', variantId)
+      expect(first.response.status).toBe(200)
+      expect(scheduledPostSchema.parse(first.response.body).created).toBe(true)
+      const duplicate = await createScheduledPost(page, connectionId, 'social-launch', variantId)
+      expect(duplicate.response.status).toBe(200)
+      expect(scheduledPostSchema.parse(duplicate.response.body).created).toBe(false)
+      expect(duplicate.scheduledPost.id).toBe(first.scheduledPost.id)
+
+      const cancelResponse = await trpcMutation(page, 'scheduledPost.cancel', {
+        scheduledPostId: first.scheduledPost.id,
+      })
+      expect(cancelResponse).toMatchObject({
+        body: { scheduledPost: { status: 'CANCELLED' } },
+        status: 200,
+      })
+    } finally {
+      await provider.close()
+      await unbindTestGoOrganization(organizationId)
     }
-    if (request.url === '/api/public/v1/integrations/social-x-integration/identity') {
-      return verifiedXIdentity('social-x-integration')
-    }
-    return { body: { error: 'Not found.' }, status: 404 }
-  }, socialMockPort)
-
-  try {
-    await createWorkspace(identity, page)
-    await enableTwoFactor(page, identity.password)
-    const variantId = await createApprovedVariant(page)
-    const unbound = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: 'social-x-integration',
-      platform: 'x',
-      secretReference: e2eSecretReference,
-    })
-    expect(unbound.status).toBe(409)
-    expect(provider.calls).toHaveLength(0)
-
-    organizationId = await bindTestGoOrganization(page)
-    const wrongCredential = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: 'social-x-integration',
-      platform: 'x',
-      secretReference: 'SOCIAL_API_KEY',
-    })
-    expect(wrongCredential.status).toBe(409)
-    expect(provider.calls).toHaveLength(0)
-    // The router drops a call with another credential, so prove there was none.
-    expect(
-      (await unroutedSocialRequests()).filter((call) => call.url.includes('social-x-integration'))
-    ).toEqual([])
-    const foreignDestination = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: 'another-organizations-destination',
-      platform: 'x',
-      secretReference: e2eSecretReference,
-    })
-    expect(foreignDestination.status).toBe(404)
-    expect(provider.calls.map((call) => call.url)).toEqual([
-      '/api/public/v1/me',
-      '/api/public/v1/integrations/another-organizations-destination/identity',
-    ])
-    const connectionResponse = await trpcMutation(page, 'channelConnection.create', {
-      externalAccountId: 'social-x-integration',
-      platform: 'x',
-      providerSettings: { who_can_reply_post: 'everyone' },
-      secretReference: e2eSecretReference,
-    })
-    expect(connectionResponse.status).toBe(200)
-    const connectionId = connectionSchema.parse(connectionResponse.body).connection.id
-
-    const first = await createScheduledPost(page, connectionId, 'social-launch', variantId)
-    expect(first.response.status).toBe(200)
-    expect(scheduledPostSchema.parse(first.response.body).created).toBe(true)
-    const duplicate = await createScheduledPost(page, connectionId, 'social-launch', variantId)
-    expect(duplicate.response.status).toBe(200)
-    expect(scheduledPostSchema.parse(duplicate.response.body).created).toBe(false)
-    expect(duplicate.scheduledPost.id).toBe(first.scheduledPost.id)
-
-    const cancelResponse = await trpcMutation(page, 'scheduledPost.cancel', {
-      scheduledPostId: first.scheduledPost.id,
-    })
-    expect(cancelResponse).toMatchObject({
-      body: { scheduledPost: { status: 'CANCELLED' } },
-      status: 200,
-    })
-  } finally {
-    await provider.close()
-    await unbindTestGoOrganization(organizationId)
   }
-})
+)
 
-test('another workspace cannot attach or control a bound Go destination', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  let organizationId: string | null = null
-  const backend = await startHttpMockServer(
-    (request) =>
-      request.url === '/api/public/v1/me'
-        ? { body: { organization: { id: `go-${organizationId}` } } }
-        : request.url === '/api/public/v1/integrations/tenant-a-destination/identity'
-          ? verifiedXIdentity('tenant-a-destination')
-          : { body: { error: 'Unexpected request.' }, status: 500 },
-    socialMockPort
-  )
-  const secondContext = await browser.newContext()
-  try {
-    await createWorkspace(identity, page)
-    await enableTwoFactor(page, identity.password)
-    organizationId = await bindTestGoOrganization(page)
-    const variantId = await createApprovedVariant(page)
-    const connection = connectionSchema.parse(
-      (
-        await trpcMutation(page, 'channelConnection.create', {
-          externalAccountId: 'tenant-a-destination',
-          platform: 'x',
-          secretReference: e2eSecretReference,
-        })
-      ).body
-    ).connection
-    const post = await createScheduledPost(page, connection.id, 'tenant-a-post', variantId)
-    const providerCallCount = backend.calls.length
+test(
+  'another workspace cannot attach or control a bound Go destination',
+  { tag: '@smoke' },
+  async ({ browser, identity, page }) => {
+    let organizationId: string | null = null
+    const backend = await startHttpMockServer(
+      (request) =>
+        request.url === '/api/public/v1/me'
+          ? { body: { organization: { id: `go-${organizationId}` } } }
+          : request.url === '/api/public/v1/integrations/tenant-a-destination/identity'
+            ? verifiedXIdentity('tenant-a-destination')
+            : { body: { error: 'Unexpected request.' }, status: 500 },
+      socialMockPort
+    )
+    const secondContext = await browser.newContext()
+    try {
+      await createWorkspace(identity, page)
+      await enableTwoFactor(page, identity.password)
+      organizationId = await bindTestGoOrganization(page)
+      const variantId = await createApprovedVariant(page)
+      const connection = connectionSchema.parse(
+        (
+          await trpcMutation(page, 'channelConnection.create', {
+            externalAccountId: 'tenant-a-destination',
+            platform: 'x',
+            secretReference: e2eSecretReference,
+          })
+        ).body
+      ).connection
+      const post = await createScheduledPost(page, connection.id, 'tenant-a-post', variantId)
+      const providerCallCount = backend.calls.length
 
-    const secondPage = await secondContext.newPage()
-    const secondIdentity = {
-      ...identity,
-      email: `foreign-${identity.email}`,
-      workspaceName: `Foreign ${identity.workspaceName}`,
+      const secondPage = await secondContext.newPage()
+      const secondIdentity = {
+        ...identity,
+        email: `foreign-${identity.email}`,
+        workspaceName: `Foreign ${identity.workspaceName}`,
+      }
+      await createWorkspace(secondIdentity, secondPage)
+      await enableTwoFactor(secondPage, secondIdentity.password)
+      expect(
+        (
+          await trpcMutation(secondPage, 'channelConnection.create', {
+            externalAccountId: 'tenant-a-destination',
+            platform: 'x',
+            secretReference: e2eSecretReference,
+          })
+        ).status
+      ).toBe(409)
+      const foreignSchedule = await trpcMutation(secondPage, 'scheduledPost.create', {
+        caption: 'A foreign post',
+        channelConnectionId: connection.id,
+        idempotencyKey: 'foreign-schedule',
+        scheduledFor: new Date(Date.now() + 60_000).toISOString(),
+        variantId,
+      })
+      expect(foreignSchedule.status, JSON.stringify(foreignSchedule.body)).toBe(404)
+      expect(
+        (
+          await trpcMutation(secondPage, 'scheduledPost.cancel', {
+            scheduledPostId: post.scheduledPost.id,
+          })
+        ).status
+      ).toBe(404)
+      expect(backend.calls).toHaveLength(providerCallCount)
+    } finally {
+      await secondContext.close()
+      await unbindTestGoOrganization(organizationId)
+      await backend.close()
     }
-    await createWorkspace(secondIdentity, secondPage)
-    await enableTwoFactor(secondPage, secondIdentity.password)
-    expect(
-      (
-        await trpcMutation(secondPage, 'channelConnection.create', {
-          externalAccountId: 'tenant-a-destination',
-          platform: 'x',
-          secretReference: e2eSecretReference,
-        })
-      ).status
-    ).toBe(409)
-    const foreignSchedule = await trpcMutation(secondPage, 'scheduledPost.create', {
-      caption: 'A foreign post',
-      channelConnectionId: connection.id,
-      idempotencyKey: 'foreign-schedule',
-      scheduledFor: new Date(Date.now() + 60_000).toISOString(),
-      variantId,
-    })
-    expect(foreignSchedule.status, JSON.stringify(foreignSchedule.body)).toBe(404)
-    expect(
-      (
-        await trpcMutation(secondPage, 'scheduledPost.cancel', {
-          scheduledPostId: post.scheduledPost.id,
-        })
-      ).status
-    ).toBe(404)
-    expect(backend.calls).toHaveLength(providerCallCount)
-  } finally {
-    await secondContext.close()
-    await unbindTestGoOrganization(organizationId)
-    await backend.close()
   }
-})
+)
 
 test('X OAuth start binds its one-use callback to the active workspace', async ({
   app,

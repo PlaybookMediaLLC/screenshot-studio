@@ -49,61 +49,59 @@ async function switchWorkspace(
   ])
 }
 
-test('a member can switch workspaces without crossing tenant data', async ({
-  app,
-  browser,
-  identity,
-  page,
-  workspace,
-}) => {
-  const firstTitle = 'First workspace release'
-  const secondIdentity: E2EIdentity = {
-    ...identity,
-    email: `second-owner-${identity.email}`,
-    workspaceName: `Second ${identity.workspaceName}`,
+test(
+  'a member can switch workspaces without crossing tenant data',
+  { tag: '@smoke' },
+  async ({ app, browser, identity, page, workspace }) => {
+    const firstTitle = 'First workspace release'
+    const secondIdentity: E2EIdentity = {
+      ...identity,
+      email: `second-owner-${identity.email}`,
+      workspaceName: `Second ${identity.workspaceName}`,
+    }
+    const firstOrganizationId = workspace.id
+    await createRelease(page, firstTitle)
+    const secondContext = await browser.newContext()
+    const secondPage = await secondContext.newPage()
+
+    try {
+      await createWorkspace(secondIdentity, secondPage)
+      const secondOrganizationId = await getActiveOrganizationId(secondPage)
+      const secondTitle = 'Second workspace release'
+      await createRelease(secondPage, secondTitle)
+      const invitation = invitationSchema.parse(
+        (
+          await requestJson(secondPage, '/api/auth/organization/invite-member', {
+            email: identity.email,
+            organizationId: secondOrganizationId,
+            role: 'viewer',
+          })
+        ).body
+      )
+
+      await acceptInvitation(page, invitation.id)
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
+      await app.open('/')
+      await assertReleaseIsolation(page, secondTitle, firstTitle)
+
+      await switchWorkspace(page, identity.workspaceName)
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
+      await assertReleaseIsolation(page, firstTitle, secondTitle)
+
+      await switchWorkspace(page, secondIdentity.workspaceName)
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
+      await assertReleaseIsolation(page, secondTitle, firstTitle)
+
+      await page.getByRole('button', { name: 'Open account menu' }).click()
+      await page.getByRole('button', { name: 'Sign out' }).click()
+      await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
+      await page.getByLabel('Email', { exact: true }).fill(identity.email)
+      await page.getByLabel('Password').fill(identity.password)
+      await page.getByRole('button', { name: 'Sign in' }).click()
+      await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
+      await assertReleaseIsolation(page, firstTitle, secondTitle)
+    } finally {
+      await secondContext.close()
+    }
   }
-  const firstOrganizationId = workspace.id
-  await createRelease(page, firstTitle)
-  const secondContext = await browser.newContext()
-  const secondPage = await secondContext.newPage()
-
-  try {
-    await createWorkspace(secondIdentity, secondPage)
-    const secondOrganizationId = await getActiveOrganizationId(secondPage)
-    const secondTitle = 'Second workspace release'
-    await createRelease(secondPage, secondTitle)
-    const invitation = invitationSchema.parse(
-      (
-        await requestJson(secondPage, '/api/auth/organization/invite-member', {
-          email: identity.email,
-          organizationId: secondOrganizationId,
-          role: 'viewer',
-        })
-      ).body
-    )
-
-    await acceptInvitation(page, invitation.id)
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
-    await app.open('/')
-    await assertReleaseIsolation(page, secondTitle, firstTitle)
-
-    await switchWorkspace(page, identity.workspaceName)
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
-    await assertReleaseIsolation(page, firstTitle, secondTitle)
-
-    await switchWorkspace(page, secondIdentity.workspaceName)
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(secondOrganizationId)
-    await assertReleaseIsolation(page, secondTitle, firstTitle)
-
-    await page.getByRole('button', { name: 'Open account menu' }).click()
-    await page.getByRole('button', { name: 'Sign out' }).click()
-    await expect.poll(() => new URL(page.url()).pathname).toBe('/sign-in')
-    await page.getByLabel('Email', { exact: true }).fill(identity.email)
-    await page.getByLabel('Password').fill(identity.password)
-    await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect.poll(() => findActiveOrganizationId(page)).toBe(firstOrganizationId)
-    await assertReleaseIsolation(page, firstTitle, secondTitle)
-  } finally {
-    await secondContext.close()
-  }
-})
+)

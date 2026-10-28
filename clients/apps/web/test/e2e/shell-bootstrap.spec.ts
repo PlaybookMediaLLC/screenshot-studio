@@ -124,65 +124,65 @@ test('organization switching goes through membership checks', async ({
   }
 })
 
-test('a cached permission can show an action, but the server denies it after a role change', async ({
-  browser,
-  identity,
-  page,
-}) => {
-  const organizationId = await getActiveOrganizationId(page)
-  const member: E2EIdentity = {
-    ...identity,
-    email: `creator-${identity.email}`,
-    name: 'E2E creator',
-  }
-  const invitation = invitationSchema.parse(
-    (
-      await requestJson(page, '/api/auth/organization/invite-member', {
-        email: member.email,
-        organizationId,
-        role: 'creator',
-      })
-    ).body
-  )
-  const memberContext = await browser.newContext()
-  const memberPage = await memberContext.newPage()
-  try {
-    await signUp(member, memberPage)
-    // Accepting navigates to /workspace; a request sent before that lands is aborted.
-    await acceptInvitation(memberPage, invitation.id)
-    await expect
-      .poll(async () => (await browserRequest(memberPage, '/api/v1/bootstrap')).status)
-      .toBe(200)
-
-    const cached = (await getBootstrap(memberPage)).body
-    expect(cached.organization.id).toBe(organizationId)
-    expect(cached.membership.permissions).toContain('release:create')
-
-    const members = membersSchema.parse(
-      (await browserRequest(page, `/api/v1/organizations/${organizationId}/members`)).body
-    ).members
-    const memberId = members.find((entry) => entry.user.email === member.email)?.id
-    expect(memberId).toBeTruthy()
-    expect(
+test(
+  'a cached permission can show an action, but the server denies it after a role change',
+  { tag: '@smoke' },
+  async ({ browser, identity, page }) => {
+    const organizationId = await getActiveOrganizationId(page)
+    const member: E2EIdentity = {
+      ...identity,
+      email: `creator-${identity.email}`,
+      name: 'E2E creator',
+    }
+    const invitation = invitationSchema.parse(
       (
-        await requestJson(page, '/api/auth/organization/update-member-role', {
-          memberId,
+        await requestJson(page, '/api/auth/organization/invite-member', {
+          email: member.email,
           organizationId,
-          role: 'viewer',
+          role: 'creator',
         })
-      ).status
-    ).toBe(200)
+      ).body
+    )
+    const memberContext = await browser.newContext()
+    const memberPage = await memberContext.newPage()
+    try {
+      await signUp(member, memberPage)
+      // Accepting navigates to /workspace; a request sent before that lands is aborted.
+      await acceptInvitation(memberPage, invitation.id)
+      await expect
+        .poll(async () => (await browserRequest(memberPage, '/api/v1/bootstrap')).status)
+        .toBe(200)
 
-    // The shell still holds the old bootstrap; the server does not care.
-    const denied = await trpcMutation(memberPage, 'release.create', {
-      benefitStatement: 'Should be refused.',
-      title: 'Stale permission release',
-    })
-    expect(denied.status).toBe(403)
-    const refreshed = (await getBootstrap(memberPage)).body
-    expect(refreshed.membership.role).toBe('viewer')
-    expect(refreshed.membership.permissions).not.toContain('release:create')
-  } finally {
-    await memberContext.close()
+      const cached = (await getBootstrap(memberPage)).body
+      expect(cached.organization.id).toBe(organizationId)
+      expect(cached.membership.permissions).toContain('release:create')
+
+      const members = membersSchema.parse(
+        (await browserRequest(page, `/api/v1/organizations/${organizationId}/members`)).body
+      ).members
+      const memberId = members.find((entry) => entry.user.email === member.email)?.id
+      expect(memberId).toBeTruthy()
+      expect(
+        (
+          await requestJson(page, '/api/auth/organization/update-member-role', {
+            memberId,
+            organizationId,
+            role: 'viewer',
+          })
+        ).status
+      ).toBe(200)
+
+      // The shell still holds the old bootstrap; the server does not care.
+      const denied = await trpcMutation(memberPage, 'release.create', {
+        benefitStatement: 'Should be refused.',
+        title: 'Stale permission release',
+      })
+      expect(denied.status).toBe(403)
+      const refreshed = (await getBootstrap(memberPage)).body
+      expect(refreshed.membership.role).toBe('viewer')
+      expect(refreshed.membership.permissions).not.toContain('release:create')
+    } finally {
+      await memberContext.close()
+    }
   }
-})
+)

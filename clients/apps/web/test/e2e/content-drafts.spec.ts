@@ -80,7 +80,7 @@ async function draftPosts(draftId: string): Promise<PostRow[]> {
 // for later, so the social API mock only answers the destination checks.
 test(
   'a draft is written, saved, scheduled to two channels once, and one post is cancelled',
-  { tag: '@journey' },
+  { tag: ['@journey', '@smoke'] },
   async ({ app, browser, identity, page, startWorkspace }) => {
     const workspace = await startWorkspace({ channels: ['x', 'linkedin'] })
     const draftId = await openNewDraft(page)

@@ -240,27 +240,59 @@ jobs:
   # share no outputs, and the serial order added the whole validate
   # duration to every release. The cost is integration runner minutes
   # on changes that fail validation.
-  integration:
+  # Which browser tests run (test/e2e/README.md, "When the suite runs"):
+  # a pull request into develop runs the @smoke tests, and a push to develop
+  # or a release pull request into main runs the full suite in 3 shards. A
+  # pull request that changes only docs runs none.
+  e2e-plan:
+    name: Plan browser tests
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
-    # Stack start, route warm-up, a third of the suite on 4 workers, and on
-    # the last shard the recovery check.
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      run: ${{ steps.plan.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: plan
+        env:
+          BASE: ${{ github.base_ref }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          full='[{"shard":"1/3","shard_index":1,"args":"--shard=1/3"},{"shard":"2/3","shard_index":2,"args":"--shard=2/3"},{"shard":"3/3","shard_index":3,"args":"--shard=3/3"}]'
+          smoke='[{"shard":"smoke","shard_index":1,"args":"--grep=@smoke"}]'
+          if [[ "$EVENT" == push ]]; then
+            # A push to main follows a release pull request, which ran the full suite.
+            [[ "$REF" == refs/heads/develop ]] && run=true || run=false
+            matrix="$full"
+          elif [[ "$BASE" == main ]]; then
+            run=true
+            matrix="$full"
+          else
+            git diff --name-only "origin/$BASE...HEAD" | grep -qvE '^docs/|\.md$' && run=true || run=false
+            matrix="$smoke"
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  integration:
+    name: integration (${{ matrix.shard }})
+    needs: e2e-plan
+    if: needs.e2e-plan.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    # Stack start, the production image, a third of the suite on 4 workers,
+    # and on the second shard the recovery check.
     timeout-minutes: 45
     env:
       E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:
       fail-fast: false
-      # Each shard runs its third of the suite on 4 Playwright workers
-      # (playwright.config.ts). The framework isolates every test, so the
-      # Plan/Analyze journeys run in the suite, not in a separate job.
+      # Each shard runs on 4 Playwright workers (playwright.config.ts).
       matrix:
-        include:
-          - shard: '1/3'
-            shard_index: 1
-          - shard: '2/3'
-            shard_index: 2
-          - shard: '3/3'
-            shard_index: 3
+        include: ${{ fromJSON(needs.e2e-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -330,7 +362,7 @@ jobs:
       - name: Verify browser end-to-end flows
         env:
           E2E_APP_IMAGE_READY: 'true'
-        run: ./dev/studio e2e --shard=${{ matrix.shard }}
+        run: ./dev/studio e2e ${{ matrix.args }}
       # The suite's time baseline: per-test and setup durations. Before the
       # recovery check, which runs Playwright again and rewrites the report.
       - if: always() && hashFiles('clients/apps/web/playwright-report/results-*.json') != ''

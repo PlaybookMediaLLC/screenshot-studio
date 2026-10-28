@@ -117,6 +117,19 @@ export async function listContentDraftPosts(context: TenantContext, id: string) 
 }
 
 /**
+ * The channel a connection's draft is built for. dev/social-gate's fake "e2e"
+ * destination takes drafts under X's rules, as the backend's
+ * PLATFORM_E2E_DRAFT_PLATFORM allows; a production build never does.
+ */
+function draftChannel(platform: string): DraftChannel | null {
+  if (platform !== 'e2e') return channelForPlatform(platform)
+  return process.env.NODE_ENV !== 'production' &&
+    process.env.PLATFORM_E2E_DRAFT_PLATFORM === 'enabled'
+    ? 'x'
+    : null
+}
+
+/**
  * Schedule the draft to channels, or publish it now. Each destination's
  * payload is built here from the stored draft (its primary body, platform
  * versions, kind and target) with the same function the composer previews
@@ -167,7 +180,7 @@ export async function prepareContentDraftSchedule(
   )
   const targets = input.channelConnectionIds.map((channelConnectionId) => {
     const platform = platforms.get(channelConnectionId)
-    const channel = platform ? channelForPlatform(platform) : null
+    const channel = platform ? draftChannel(platform) : null
     if (!channel) throw new ScheduledPostError('A selected channel cannot take this draft.', 404)
     const { problems, target } = buildPublication(
       { ...draft, platformVersions: versions },

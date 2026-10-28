@@ -286,7 +286,7 @@ export function BulkScheduleDialog({
                   ? 'Scheduling…'
                   : rows.some((row) => row.status === 'Retry same request')
                     ? 'Retry unconfirmed rows'
-                    : `Schedule ${submittable} ${submittable === 1 ? 'draft' : 'drafts'}`}
+                    : `Schedule valid drafts (${submittable})`}
               </Button>
               {blocked > 0 ? (
                 <Button disabled={busy} onClick={() => void preview()} variant="outline">

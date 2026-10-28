@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { StoreIcon as DeviceMobileIcon } from '@/components/platform-shell/icons'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
-import { CreateScene } from '@/components/platform-ui/empty-scenes'
 import { EmptyState } from '@/components/platform-ui'
 import { listProjects, type ProjectSummary } from '@/lib/store-screenshots/persistence/projects'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
@@ -92,7 +91,6 @@ export function LocalStoreProjects() {
         </ul>
       ) : (
         <EmptyState
-          scene={query ? undefined : <CreateScene />}
           icon={DeviceMobileIcon}
           title={query ? 'No matching store projects' : 'No store projects on this browser'}
           description={

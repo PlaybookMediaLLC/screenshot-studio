@@ -1,6 +1,5 @@
 import { AreaNavigation, CAMPAIGN_LINKS } from '@/components/platform-hub/AreaNavigation'
 import { CampaignsIcon as MegaphoneIcon } from '@/components/platform-shell/icons'
-import { CampaignsScene } from '@/components/platform-ui/empty-scenes'
 import { CalendarIcon as Calendar03Icon } from '@/components/platform-shell/icons'
 import { CampaignsIcon as Megaphone01Icon } from '@/components/platform-shell/icons'
 import { RocketIcon as Rocket01Icon } from '@/components/platform-shell/icons'
@@ -54,7 +53,6 @@ function CampaignWorkflows() {
   return (
     <section aria-label="Start your first campaign" className="flex flex-col gap-6">
       <EmptyState
-        scene={<CampaignsScene />}
         icon={MegaphoneIcon}
         title="Start your first campaign"
         description="Each one ends with posts you review and approve before anything publishes."
@@ -105,7 +103,7 @@ export default async function CampaignsPage({ params }: CampaignsPageProps) {
     <PlatformShell campaignsEnabled organizationName={access.organization.name}>
       <Page
         actions={<ButtonLink href="/campaigns/new">New campaign</ButtonLink>}
-        tagline="From release brief to launch."
+        description="From release brief to launch."
         title="Campaigns"
       >
         <AreaNavigation label="Campaigns" items={CAMPAIGN_LINKS} />

@@ -1,5 +1,4 @@
 import { PostIcon as Note01Icon } from '@/components/platform-shell/icons'
-import { HomeScene } from '@/components/platform-ui/empty-scenes'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
@@ -68,7 +67,6 @@ export default async function CampaignCopyPage({ params }: CampaignCopyPageProps
         : { tab: 'assets', label: 'Produce the campaign' }
     return (
       <EmptyState
-        scene={<HomeScene />}
         action={
           <ButtonLink href={`/campaigns/${campaign.id}/${next.tab}`} variant="outline">
             {next.label}

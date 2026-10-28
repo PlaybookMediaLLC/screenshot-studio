@@ -1,7 +1,6 @@
 'use client'
 
 import { SearchIcon as Search01Icon } from '@/components/platform-shell/icons'
-import { AutomateScene } from '@/components/platform-ui/empty-scenes'
 import { AutomateIcon as WorkflowSquare03Icon } from '@/components/platform-shell/icons'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -215,7 +214,6 @@ export function WorkflowsDashboard({ canManage }: { canManage: boolean }) {
       >
         {overview.definitions.length === 0 ? (
           <EmptyState
-            scene={<AutomateScene />}
             action={
               overview.sources.length === 0 ? (
                 <ButtonLink href={`${pathname}?view=sources#sources`} variant="outline">

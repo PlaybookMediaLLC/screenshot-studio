@@ -29,8 +29,7 @@ export default async function ActivityPage({ params }: ActivityPageProps) {
     >
       <Page
         title="Activity"
-        tagline="Everything moving in this workspace."
-        description="Releases, campaigns, announcements, and scheduled posts."
+        description="Everything moving in this workspace: releases, campaigns, announcements, and scheduled posts."
       >
         <WorkspaceActivity />
       </Page>

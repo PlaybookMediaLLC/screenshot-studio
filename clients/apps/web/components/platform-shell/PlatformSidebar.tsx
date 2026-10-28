@@ -16,7 +16,13 @@ import {
   SettingsIcon,
   SidebarIcon,
 } from './icons'
-import { PLATFORM_DESTINATIONS, platformArea, withPublishAccess } from '@/lib/platform/navigation'
+import {
+  PLATFORM_DESTINATIONS,
+  platformArea,
+  publishLinks,
+  withPublishAccess,
+} from '@/lib/platform/navigation'
+import { AREA_LINKS, type AreaLink, AreaSubNav } from '@/components/platform-hub/AreaNavigation'
 import { SearchButton, ShellActions, ShellSearch } from './ShellActions'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -73,33 +79,42 @@ function NavLink({
   item: { href, icon, key },
   onNavigate,
   paidPlan,
+  subs,
 }: {
   collapsed: boolean
   item: NavItem
   onNavigate?: () => void
   paidPlan: boolean
+  /** The area's pages, listed under the row while the area is open (Polar's NavList). */
+  subs?: AreaLink[]
 }) {
   const t = useTranslations('platformNavigation')
   const locked = !paidPlan && PAID_AREAS.has(key)
   const pathname = usePathname()
+  const active = platformArea(pathname) === platformArea(href)
   return (
-    <NavRow
-      active={platformArea(pathname) === platformArea(href)}
-      badge={
-        locked ? (
-          <span aria-hidden="true" className="platform-pro-badge ms-auto">
-            Pro
-          </span>
-        ) : null
-      }
-      collapsed={collapsed}
-      // Locked areas open the plan page directly instead of bouncing off a server redirect.
-      href={locked ? `/upgrade?from=${encodeURIComponent(href)}` : href}
-      icon={icon}
-      label={t(key)}
-      name={locked ? `${t(key)} (Pro)` : undefined}
-      onNavigate={onNavigate}
-    />
+    <>
+      <NavRow
+        active={active}
+        badge={
+          locked ? (
+            <span aria-hidden="true" className="platform-pro-badge ms-auto">
+              Pro
+            </span>
+          ) : null
+        }
+        collapsed={collapsed}
+        // Locked areas open the plan page directly instead of bouncing off a server redirect.
+        href={locked ? `/upgrade?from=${encodeURIComponent(href)}` : href}
+        icon={icon}
+        label={t(key)}
+        name={locked ? `${t(key)} (Pro)` : undefined}
+        onNavigate={onNavigate}
+      />
+      {active && subs && !collapsed && !locked ? (
+        <AreaSubNav items={subs} label={t(key)} onNavigate={onNavigate} />
+      ) : null}
+    </>
   )
 }
 
@@ -148,6 +163,13 @@ function Navigation({
                 key={item.href}
                 onNavigate={onNavigate}
                 paidPlan={paidPlan}
+                subs={
+                  item.key === 'publish'
+                    ? draftsEnabled
+                      ? publishLinks('', undefined, campaignsEnabled)
+                      : undefined
+                    : AREA_LINKS[item.key]
+                }
               />
             ))}
         </div>

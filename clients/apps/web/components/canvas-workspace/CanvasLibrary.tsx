@@ -5,7 +5,6 @@ import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { CanvasIcon as StackIcon, GridIcon } from '@/components/platform-shell/icons'
 import { CanvasPages } from './CanvasPages'
 import { EmptyState } from '@/components/platform-ui'
-import { CreateScene } from '@/components/platform-ui/empty-scenes'
 import { PageSpread, type SpreadPage } from '@/components/platform-ui/page-spread'
 import { Stage } from '@/components/platform-landing/primitives'
 import Link from 'next/link'
@@ -352,7 +351,6 @@ export function CanvasLibrary({
       ) : null}
       {!loading && !items.length ? (
         <EmptyState
-          scene={search || archived ? undefined : <CreateScene />}
           icon={StackIcon}
           title={
             search ? 'No matching canvases' : archived ? 'No archived canvases' : 'No canvases yet'

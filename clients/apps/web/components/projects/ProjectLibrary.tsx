@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { LibraryScene } from '@/components/platform-ui/empty-scenes'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { ImageIcon } from '@/components/platform-shell/icons'
@@ -234,7 +233,6 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
 
       {empty ? (
         <EmptyState
-          scene={<LibraryScene />}
           action={
             canEdit && !query ? (
               <Button

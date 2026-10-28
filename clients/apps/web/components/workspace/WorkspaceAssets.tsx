@@ -1,7 +1,6 @@
 'use client'
 
 import { Input } from '@/components/ui/input'
-import { LibraryScene } from '@/components/platform-ui/empty-scenes'
 import { LibraryIcon as Album02Icon } from '@/components/platform-shell/icons'
 import { MoreIcon as MoreHorizontalIcon } from '@/components/platform-shell/icons'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -333,7 +332,6 @@ export function WorkspaceAssets() {
         </ul>
       ) : assets.length === 0 && !query.error ? (
         <EmptyState
-          scene={<LibraryScene />}
           action={<ButtonLink href="/">Open the editor</ButtonLink>}
           description={
             typeFilter === 'video'

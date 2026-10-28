@@ -92,6 +92,14 @@
   color: var(--foreground);
 }
 
+/* The expanded sidebar lists the open area's pages (Polar's NavList), so the
+   page's own tabs for them leave. The compact rail and phones keep the tabs. */
+@media (min-width: 768px) {
+  .platform-shell:has([data-platform-sidebar][data-navigation='expanded']) [data-area-tabs] {
+    display: none;
+  }
+}
+
 /* Polar's way out of settings reads as the sidebar's title. */
 [data-platform-sidebar] [data-platform-back] [data-platform-nav] {
   color: var(--foreground);

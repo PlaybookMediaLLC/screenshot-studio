@@ -24,7 +24,7 @@ export function NewBatchButton({
   const [busy, setBusy] = React.useState(false)
   return (
     <form
-      className="flex flex-wrap items-end gap-2"
+      className="flex flex-wrap items-end gap-3"
       onSubmit={(event) => {
         event.preventDefault()
         setBusy(true)

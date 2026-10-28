@@ -38,7 +38,7 @@ test(
     })
     await page.getByRole('button', { name: 'Save ready items as drafts', exact: true }).click()
     await expect(page.getByText('Review the rejected caption.')).toBeVisible()
-    await expect(items.first()).toContainText('Not saved as a draft yet')
+    await expect(items.first().getByText('Not saved', { exact: true })).toBeVisible()
     const caption = page.getByLabel('Caption for item 1', { exact: true })
     const saved = page.waitForResponse(
       (response) => response.request().method() === 'PATCH' && response.ok()
@@ -54,7 +54,7 @@ test(
     loseResponse = true
     await page.getByRole('button', { name: 'Save ready items as drafts', exact: true }).click()
     await expect.poll(() => acceptedId).not.toBe('')
-    await expect(items.nth(1)).toContainText('Not saved as a draft yet')
+    await expect(items.nth(1).getByText('Not saved', { exact: true })).toBeVisible()
     // A retry returns the draft the lost response created, never a second one.
     expect(await saveBatchDrafts(page)).toEqual([first, acceptedId])
     await app.reload()
@@ -117,7 +117,7 @@ test(
       page.getByRole('button', { name: 'Save ready items as drafts', exact: true })
     ).toBeDisabled()
     await page.getByLabel('Select the files again').setInputFiles(file)
-    await expect(item).toContainText('image/png', { timeout: 60_000 })
+    await expect(item).toContainText('PNG · 1×1', { timeout: 60_000 })
     const [id] = await saveBatchDrafts(page)
     const draft = await apiRequest(page, `/api/v1/content-drafts/${id}`)
     expect((draft.body as { assetIds: string[] }).assetIds).toHaveLength(1)

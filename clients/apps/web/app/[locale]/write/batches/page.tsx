@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { Page } from '@/components/platform-ui'
+import { EmptyState, Group, Page, Pill, Row, Section } from '@/components/platform-ui'
+import { LibraryIcon } from '@/components/platform-shell/icons'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
 import { NewBatchButton } from '@/components/write/batch/NewBatchButton'
@@ -33,34 +34,59 @@ export default async function BatchesPage({
     >
       <Page
         title="Bulk scheduling"
-        description="Prepare up to 50 separate posts at once from photos, videos or a CSV. Each becomes its own draft; review and scheduling work as they do for one draft. A batch is saved as you go."
+        description="Prepare up to 50 separate posts at once from photos, videos or a CSV. Each becomes its own draft, so review and scheduling work as they do for one draft. A batch saves as you go."
       >
-        {canEdit && sets.length ? (
-          <NewBatchButton
-            sets={sets.map((set) => ({ id: set.id, name: set.name }))}
-            defaultSetId={query.set}
-          />
-        ) : canEdit ? (
-          <Button asChild variant="outline" className="w-fit">
-            <Link href="/workspace/social-sets">Connect a social account to start a batch</Link>
-          </Button>
+        {canEdit ? (
+          <Section
+            title="Start a batch"
+            description="Name it and choose the publishing brand whose accounts its posts go to."
+          >
+            {sets.length ? (
+              <Group>
+                <Row>
+                  <NewBatchButton
+                    sets={sets.map((set) => ({ id: set.id, name: set.name }))}
+                    defaultSetId={query.set}
+                  />
+                </Row>
+              </Group>
+            ) : (
+              <Button asChild variant="outline" className="w-fit">
+                <Link href="/workspace/social-sets">Connect a social account to start a batch</Link>
+              </Button>
+            )}
+          </Section>
         ) : null}
-        <ul className="divide-y rounded-xl border">
-          {batches.map((batch) => (
-            <li key={batch.id} className="flex items-center justify-between p-4 text-sm">
-              <SidebarLink className="font-medium underline" href={`/write/batches/${batch.id}`}>
-                {batch.title}
-              </SidebarLink>
-              <span className="text-muted-foreground">
-                {batch.itemCount} items ·{' '}
-                {sets.find((set) => set.id === batch.socialSetId)?.name ?? 'Publishing brand'}
-              </span>
-            </li>
-          ))}
-          {batches.length === 0 ? (
-            <li className="p-4 text-sm text-muted-foreground">No open batches.</li>
-          ) : null}
-        </ul>
+        <Section title="Open batches">
+          {batches.length ? (
+            <Group>
+              {batches.map((batch) => (
+                <Row
+                  key={batch.id}
+                  layout="inline"
+                  label={
+                    <SidebarLink className="hover:underline" href={`/write/batches/${batch.id}`}>
+                      {batch.title}
+                    </SidebarLink>
+                  }
+                  description={
+                    sets.find((set) => set.id === batch.socialSetId)?.name ?? 'Publishing brand'
+                  }
+                >
+                  <Pill>
+                    {batch.itemCount} {batch.itemCount === 1 ? 'post' : 'posts'}
+                  </Pill>
+                </Row>
+              ))}
+            </Group>
+          ) : (
+            <EmptyState
+              icon={LibraryIcon}
+              title="No open batches"
+              description="A batch turns up to 50 photos, videos or CSV rows into separate drafts you can review and schedule together."
+            />
+          )}
+        </Section>
       </Page>
     </PlatformShell>
   )

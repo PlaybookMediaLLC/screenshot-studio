@@ -307,7 +307,7 @@ export async function addBatchRows(
 export async function saveBatchDrafts(page: Page): Promise<string[]> {
   const items = page.getByTestId('batch-item')
   await page.getByRole('button', { name: 'Save ready items as drafts', exact: true }).click()
-  await expect(items.filter({ hasText: 'Not saved as a draft yet' })).toHaveCount(0, {
+  await expect(items.filter({ has: page.getByText('Not saved', { exact: true }) })).toHaveCount(0, {
     timeout: 60_000,
   })
   return (

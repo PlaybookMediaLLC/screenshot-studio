@@ -243,7 +243,11 @@ the two asset columns in a new reviewed migration.
 
 ## Evidence
 
-Run on this branch, against local PostgreSQL (Docker was unavailable):
+Run on this branch, against local PostgreSQL (Docker was unavailable). The
+full Go suite and its race set pass except
+`TestFetcherRefusesWhatOnboardingNeverReads`, which fails the same way on
+`develop` in this sandbox; the platform migrations apply to a fresh database,
+re-apply idempotently and pass their upgrade tests.
 
 - Go: `TestMediaScheduling`, `TestContentBatches` (50 photos, 50 videos and a
   mixed batch into 100 posts each; reload and retry; partial scheduling and
@@ -266,6 +270,12 @@ Run on this branch, against local PostgreSQL (Docker was unavailable):
   mapping preview, MP4/MOV/PNG uploads with probed facts, reload persistence,
   drafts and review requests. It found the lost-save bug fixed above. It could
   not schedule: no social account can be connected locally.
+- A Chromium run on the same stack uploaded a 40 MiB MP4 from the batch page
+  in three parts with part 3 failing: the browser sent parts 1 and 2, tried
+  part 3 three times, and reported the failure. After a reload and selecting
+  the file again it sent only part 3, and the server joined, checked and
+  probed the video (3 s, 320×180). The in-memory S3 does not verify
+  signatures, so R2's handling of the signed part URLs is not proven.
 
 Not run: the Playwright suite (four specs were rewritten for the batch page),
 `make tenant-isolation`, `./dev/social-gate`, real R2 multipart uploads, a

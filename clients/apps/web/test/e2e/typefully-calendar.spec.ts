@@ -85,8 +85,16 @@ test('month moves and swaps persist, failed moves stay put, and publish now requ
     const queued = page
       .getByTestId('draft-post')
       .filter({ has: page.getByRole('button', { name: 'Publish now', exact: true }) })
-    await queued.getByRole('button', { name: 'Publish now', exact: true }).click()
-    await expect(page.getByRole('alertdialog')).toContainText('Later draft edits are not included')
+    // The page renders the trigger before React attaches its handler, so an early
+    // click is dropped; the proof of a handled click is the open dialog.
+    const confirm = page.getByRole('alertdialog')
+    await expect(async () => {
+      if (!(await confirm.isVisible())) {
+        await queued.getByRole('button', { name: 'Publish now', exact: true }).click()
+      }
+      await expect(confirm).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 60_000 })
+    await expect(confirm).toContainText('Later draft edits are not included')
     await page.getByRole('button', { name: 'Keep scheduled' }).click()
     await queued.getByRole('button', { name: 'Publish now', exact: true }).click()
     const publishing = page.waitForResponse(

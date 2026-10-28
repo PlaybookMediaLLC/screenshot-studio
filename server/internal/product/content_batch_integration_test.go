@@ -215,6 +215,15 @@ func TestContentBatches(t *testing.T) {
 		if _, err := repo.UpdateContentBatchItem(ctx, owner, batch.ID, reloaded.Items[0].ID, ContentBatchItemUpdate{Caption: &caption}); !errors.Is(err, publishing.ErrConflict) {
 			t.Fatalf("staged edit after drafting: %v", err)
 		}
+		// An attachment swapped in the composer is what the batch shows from then on.
+		swapped := []string{photos[1]}
+		if _, err := repo.UpdateContentDraft(ctx, owner, *first.DraftID, ContentDraftUpdate{BaseVersion: first.Draft.Version, AssetIDs: &swapped}); err != nil {
+			t.Fatal(err)
+		}
+		if reloaded, err = repo.GetContentBatch(ctx, owner, batch.ID); err != nil || len(reloaded.Items[0].Media) != 1 ||
+			reloaded.Items[0].Media[0].AssetID != photos[1] || reloaded.Items[0].Media[0].MediaType != "image/jpeg" || reloaded.Items[0].Media[0].Status != "UPLOADED" {
+			t.Fatalf("drafted item media: %+v %v", reloaded.Items[0].Media, err)
+		}
 		over := make([]ContentBatchItemInput, 49)
 		for i := range over {
 			over[i] = item("over", i, photos[0])

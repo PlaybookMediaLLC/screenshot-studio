@@ -94,10 +94,12 @@ const importKey = () => `batch-${crypto.randomUUID()}`
 
 /** A local time, YYYY-MM-DDTHH:mm, as a day and a time; a day picked first starts at 09:00. */
 function LocalTimeFields({
+  disabled,
   label,
   onChange,
   value,
 }: {
+  disabled?: boolean
   label: string
   onChange: (value: string) => void
   value: string
@@ -110,12 +112,14 @@ function LocalTimeFields({
     <span className="flex items-center gap-1">
       <DatePicker
         aria-label={`${label} day`}
+        disabled={disabled}
         value={day}
         onChange={(next) => set(next, time || '09:00')}
       />
       <Input
         aria-label={`${label} time`}
         className="w-36"
+        disabled={disabled}
         type="time"
         value={time}
         onChange={(event) => set(day, event.target.value)}
@@ -351,6 +355,9 @@ export function BatchWorkspace({
     },
     [base]
   )
+  /** Wait for every save in flight, failed or not. */
+  const settled = () =>
+    Promise.all([...saving.current.values()].map((pending) => pending.catch(() => undefined)))
   const patchMedia = React.useCallback(
     (itemId: string, index: number, entry: BatchMedia) =>
       saveItem(itemId, (item) => ({
@@ -619,10 +626,17 @@ export function BatchWorkspace({
     setUploads((current) => ({ ...current }))
   }
 
-  const updateItem = (item: BatchItem, body: Record<string, unknown>) =>
-    saveItem(item.id, () => body).catch((error: unknown) => {
+  const updateItem = (item: BatchItem, body: Record<string, unknown>) => {
+    // A new time or account set needs a new check before the item can be scheduled.
+    if ('timing' in body || 'channelConnectionIds' in body) {
+      const stale = ([key]: [string, unknown]) => !key.startsWith(`${item.id}/`)
+      setVerdicts((current) => Object.fromEntries(Object.entries(current).filter(stale)))
+      setSelected((current) => Object.fromEntries(Object.entries(current).filter(stale)))
+    }
+    return saveItem(item.id, () => body).catch((error: unknown) => {
       toast.error(error instanceof Error ? error.message : 'The item could not be saved.')
     })
+  }
 
   // Bulk actions on staged items, with each item's own values kept unless asked.
   const applyShared = async (what: 'caption' | 'accounts') => {
@@ -683,7 +697,7 @@ export function BatchWorkspace({
   const saveDrafts = async () => {
     setBusy('drafts')
     // An edit still being saved, such as a caption left by clicking here, goes first.
-    await Promise.all([...saving.current.values()].map((pending) => pending.catch(() => undefined)))
+    await settled()
     let failed = 0
     for (const item of itemsRef.current) {
       if (item.draftId || item.media.some((entry) => !entry.assetId)) continue
@@ -759,7 +773,9 @@ export function BatchWorkspace({
   const check = async () => {
     setBusy('check')
     try {
-      const requests = items.flatMap((item) => {
+      // The server checks each item's stored time, so edits on their way land first.
+      await settled()
+      const requests = itemsRef.current.flatMap((item) => {
         const { remaining } = pendingAccounts(item, itemAccounts(item))
         return remaining.length ? [{ itemId: item.id, channelConnectionIds: remaining }] : []
       })
@@ -800,8 +816,10 @@ export function BatchWorkspace({
 
   const schedule = async () => {
     setBusy('schedule')
+    // Schedule each item at its saved time: a time changed since the check already dropped its verdicts.
+    await settled()
     const results: Record<string, string> = {}
-    for (const item of items) {
+    for (const item of itemsRef.current) {
       if (!item.draftId || !item.draft) continue
       const ids = Object.entries(selected)
         .filter(([key, on]) => on && key.startsWith(`${item.id}/`) && verdicts[key]?.valid)
@@ -1300,6 +1318,7 @@ export function BatchWorkspace({
                             {item.timing.timeZone || zone}
                           </span>
                           <LocalTimeFields
+                            disabled={busy !== null}
                             label={`Item ${index + 1}`}
                             value={item.timing.mode === 'time' ? (item.timing.localTime ?? '') : ''}
                             onChange={(localTime) =>
@@ -1316,6 +1335,7 @@ export function BatchWorkspace({
                             ? (['earlier', 'later'] as const).map((choice) => (
                                 <Button
                                   key={choice}
+                                  disabled={busy !== null}
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>

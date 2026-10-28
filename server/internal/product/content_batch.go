@@ -205,13 +205,28 @@ func (c *Configuration) GetContentBatch(ctx context.Context, actor Actor, id str
 	if err != nil {
 		return nil, err
 	}
-	var assetIDs, draftIDs []string
+	var draftIDs []string
 	for _, item := range items {
-		for _, media := range item.Media {
-			assetIDs = append(assetIDs, media.AssetID, media.UploadAssetID)
-		}
 		if item.DraftID != nil {
 			draftIDs = append(draftIDs, *item.DraftID)
+		}
+	}
+	drafts, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), contentdraft.IDIn(draftIDs...)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	draftsByID := map[string]*ent.ContentDraft{}
+	for _, draft := range drafts {
+		draftsByID[draft.ID] = draft
+	}
+	var assetIDs []string
+	for _, item := range items {
+		// Once drafted, the draft's attachments are the item's: the composer may have changed them.
+		if item.DraftID != nil && draftsByID[*item.DraftID] != nil {
+			item.Media = draftMedia(item.Media, draftsByID[*item.DraftID].AssetIds)
+		}
+		for _, media := range item.Media {
+			assetIDs = append(assetIDs, media.AssetID, media.UploadAssetID)
 		}
 	}
 	assets, err := c.client.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID), asset.IDIn(assetIDs...)).All(ctx)
@@ -221,14 +236,6 @@ func (c *Configuration) GetContentBatch(ctx context.Context, actor Actor, id str
 	assetsByID := map[string]*ent.Asset{}
 	for _, row := range assets {
 		assetsByID[row.ID] = row
-	}
-	drafts, err := c.client.ContentDraft.Query().Where(contentdraft.OrganizationID(actor.OrganizationID), contentdraft.IDIn(draftIDs...)).All(ctx)
-	if err != nil {
-		return nil, err
-	}
-	draftsByID := map[string]*ent.ContentDraft{}
-	for _, draft := range drafts {
-		draftsByID[draft.ID] = draft
 	}
 	posts, err := c.client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(actor.OrganizationID), scheduledpost.ContentDraftIDIn(draftIDs...)).
 		WithChannelConnection().Order(ent.Asc(scheduledpost.FieldCreatedAt), ent.Asc(scheduledpost.FieldID)).All(ctx)
@@ -272,6 +279,19 @@ func (c *Configuration) GetContentBatch(ctx context.Context, actor Actor, id str
 		record.Items = append(record.Items, entry)
 	}
 	return &record, nil
+}
+
+// draftMedia lists a draft's attachments, keeping the file names they were staged with.
+func draftMedia(staged []schema.BatchMedia, assetIDs []string) []schema.BatchMedia {
+	names := map[string]string{}
+	for _, media := range staged {
+		names[media.AssetID] = media.FileName
+	}
+	media := make([]schema.BatchMedia, len(assetIDs))
+	for i, id := range assetIDs {
+		media[i] = schema.BatchMedia{AssetID: id, FileName: names[id]}
+	}
+	return media
 }
 
 // checkBatchTiming checks an intended time without resolving the queue.

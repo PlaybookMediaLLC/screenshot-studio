@@ -162,6 +162,8 @@ The repository's separate GitHub production-policy history is also retained.
 Once a frontend policy is selected, new GitHub observations explain that the
 frontend is authoritative and do not enqueue a second deployment workflow.
 GitHub observations queued before that selection keep their pinned processing.
+Archiving or disabling the selected workflow stops new dispatches while deployment
+evidence and alerts continue, including activations waiting for required checks.
 Deliveries marked as recovered by the GitHub recovery UI remain review-only in
 both webhook intake and frontend polling. GitHub uses its existing 25 MiB intake
 budget; hosting-provider bodies and API responses remain limited to 1 MiB.
@@ -301,6 +303,9 @@ Pre-merge review added database regressions for late production checks after a
 staging/preview activation and for eligible sources behind more than 200 sources
 in backoff or unavailable workspaces. They verify alert/workflow delivery,
 production-alias supersession, stable pagination and the 20-source polling budget.
+Archiving or disabling a linked workflow is covered both before activation and
+while required checks are pending; evidence and one alert survive retries without
+dispatching the inactive workflow.
 
 Earlier local test failures were resolved: Node 24 was replaced by the pinned
 Node 22 runtime, and integration fixture cleanup was corrected so retained test

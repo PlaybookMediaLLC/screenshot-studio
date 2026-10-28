@@ -19,6 +19,7 @@ import (
 	fd "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/frontenddeploy"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	ra "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 )
 
 type frontendTransport func(*http.Request) (*http.Response, error)
@@ -60,6 +61,91 @@ func frontendSignature(body []byte) string {
 func frontendAlerts(t *testing.T, w *testWorkspace) int {
 	t.Helper()
 	return w.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(w.org), outboxevent.TypeHasPrefix("activity.frontend.")).CountX(w.ctx)
+}
+
+func TestFrontendInactiveWorkflowPreservesEvidenceAndAlerts(t *testing.T) {
+	for _, archived := range []bool{false, true} {
+		for _, pending := range []bool{false, true} {
+			name := "disabled"
+			if archived {
+				name = "archived"
+			}
+			if pending {
+				name += "_while_checks_pending"
+			}
+			t.Run(name, func(t *testing.T) {
+				f := newAutomationFixture(t)
+				frontendFixtureCleanup(t, f.testWorkspace)
+				f.graph.Family = ra.Deployed
+				f.graph.Qualification = ra.Condition{Field: "deployment.environment", Operator: "eq", Values: []string{"production"}}
+				f.graph.Nodes[1].Condition = &ra.Condition{Field: "deployment.state", Operator: "eq", Values: []string{"success"}}
+				active := f.activate(t)
+				policy := frontendPolicy()
+				policy.WorkflowVersionID = *active.ActiveVersionID
+				if pending {
+					policy.Checks = []fd.CheckRule{{Source: "github_check", Name: "ci", AppID: "44", Scope: "commit", Passing: []string{"success"}, MaxAgeSeconds: 3600}}
+				}
+				f.repo.WithWebhooks(make([]byte, 32), nil).WithFrontendHTTP(&http.Client{Transport: frontendTransport(func(*http.Request) (*http.Response, error) {
+					return frontendResponse(`{"id":"prj_web","accountId":"team1"}`), nil
+				})})
+				s, err := f.repo.SaveFrontendSource(f.ctx, f.owner, FrontendSourceInput{Name: "Web", GitHubSourceID: f.source.ID, Provider: "vercel", AccountID: "team1", ProjectID: "prj_web", Token: "fixture", Secret: "test-only-signing-secret", Enabled: true, Policy: policy})
+				if err != nil {
+					t.Fatal(err)
+				}
+				f.exec(t, `UPDATE frontend_source SET "effectiveAt"=now()-interval '1 hour' WHERE id=$1`, s.ID)
+				at := time.Now().UTC()
+				body := frontendVercel("deployment.promoted", "promotion", "deployment", at)
+				if pending {
+					if err := f.repo.AcceptFrontendWebhook(f.ctx, s.ID, frontendSignature(body), body); err != nil {
+						t.Fatal(err)
+					}
+					if frontendAlerts(t, f.testWorkspace) != 0 {
+						t.Fatal("alert before the required check")
+					}
+				}
+				if archived {
+					err = f.repo.ArchiveReleaseAutomation(f.ctx, f.owner, active.ID, active.Revision, true)
+				} else {
+					err = f.repo.DisableReleaseAutomation(f.ctx, f.owner, active.ID, active.Revision)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				check := fd.Observation{Provider: "vercel", Kind: "checks.observed", Key: "check", OccurredAt: at, Checks: []fd.Check{{Source: "github_check", Name: "ci", AppID: "44", ID: "c1", RepositoryID: "1001", Revision: "revision1", Status: "completed", Conclusion: "success", OccurredAt: at}}}
+				for i := 0; i < 2; i++ {
+					if err := f.repo.AcceptFrontendWebhook(f.ctx, s.ID, frontendSignature(body), body); err != nil {
+						t.Fatal(err)
+					}
+					if pending {
+						if err := f.repo.acceptFrontendObservation(f.ctx, f.org, s.ID, check, false); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+				activation := f.db.Client.FrontendActivation.Query().Where(frontendactivation.SourceID(s.ID)).OnlyX(f.ctx)
+				if activation.Decision.State != "matched" || activation.Policy.WorkflowVersionID != *active.ActiveVersionID {
+					t.Fatalf("lost activation or pinned policy: %+v", activation)
+				}
+				wantObservations := 1
+				if pending {
+					wantObservations++
+				}
+				if n := f.db.Client.FrontendObservation.Query().Where(frontendobservation.SourceID(s.ID)).CountX(f.ctx); n != wantObservations {
+					t.Fatalf("observations=%d, want %d", n, wantObservations)
+				}
+				if n := frontendAlerts(t, f.testWorkspace); n != 1 {
+					t.Fatalf("alerts=%d, want 1", n)
+				}
+				history, err := f.repo.ListAutomationHistory(f.ctx, f.owner, AutomationHistoryFilter{})
+				if err != nil || len(history) != 0 {
+					t.Fatalf("inactive workflow started: %+v %v", history, err)
+				}
+				if n := f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx); n != 0 {
+					t.Fatalf("inactive workflow dispatches=%d", n)
+				}
+			})
+		}
+	}
 }
 
 func TestFrontendPromotedChecksConcurrentDeliveryAndReceipts(t *testing.T) {

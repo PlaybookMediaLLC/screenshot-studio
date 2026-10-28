@@ -587,11 +587,11 @@ func (c *Configuration) frontendWorkflow(ctx context.Context, tx *ent.Tx, s *ent
 	if err != nil {
 		return err
 	}
-	d, err := tx.ReleaseAutomation.Query().Where(releaseautomation.ID(v.DefinitionID), releaseautomation.OrganizationID(s.OrganizationID), releaseautomation.SourceAppID(frontendGitHubSourceID(s)), releaseautomation.Archived(false)).Only(ctx)
+	d, err := tx.ReleaseAutomation.Query().Where(releaseautomation.ID(v.DefinitionID), releaseautomation.OrganizationID(s.OrganizationID), releaseautomation.SourceAppID(frontendGitHubSourceID(s))).Only(ctx)
 	if err != nil {
 		return err
 	}
-	if !d.Enabled {
+	if d.Archived || !d.Enabled {
 		return nil
 	}
 	e := ra.Event{Family: ra.Deployed, SemanticKey: "frontend:" + a.ID, RepositoryID: a.Snapshot.RepositoryID, ObjectID: a.Snapshot.DeploymentID, OccurredAt: a.Snapshot.OccurredAt, Origin: "live", Title: "Production deployment reported successful", Notes: a.Decision.Reason, URL: a.Snapshot.URL, Fields: map[string]ra.Value{"deployment.environment": ra.StringValue(a.Snapshot.Environment), "deployment.state": ra.StringValue("success"), "deployment.production": ra.BoolValue(true), "deployment.sha": ra.StringValue(a.Snapshot.Revision), "event.family": ra.StringValue(string(ra.Deployed))}}

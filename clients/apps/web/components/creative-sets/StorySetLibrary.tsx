@@ -7,7 +7,6 @@ import { MagnifyingGlassIcon as Search01Icon } from '@phosphor-icons/react/dist/
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/platform-ui'
-import { PageSpread } from '@/components/platform-ui/page-spread'
 import { CanvasIcon as StackIcon } from '@/components/platform-shell/icons'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -168,19 +167,6 @@ export function StorySetLibrary({
               : canCreate && canEdit
                 ? 'Start with a screenshot and the benefit it proves.'
                 : 'Your saved Story Sets will appear here.'
-          }
-          scene={
-            // One benefit in its three connected formats: wide, square and portrait.
-            <span className="block w-96">
-              <PageSpread
-                frame={16 / 9}
-                pages={[
-                  { kind: 'hero', ratio: '16:9' },
-                  { kind: 'hero', ratio: '1:1' },
-                  { kind: 'hero', ratio: '4:5' },
-                ]}
-              />
-            </span>
           }
           action={
             query ? (

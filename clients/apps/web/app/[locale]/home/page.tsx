@@ -86,7 +86,7 @@ export default async function HomePage({
     >
       <Page
         title="Home"
-        tagline="What will you make today?"
+        description="What will you make today?"
         actions={
           paid ? (
             <ButtonLink href="/library?view=templates" variant="outline" className="gap-2">

@@ -69,6 +69,8 @@ function TabRow({
   return (
     <nav
       aria-label={label}
+      // The expanded sidebar lists Publish's pages, so the shell hides this first row there.
+      data-area-tabs={secondary ? undefined : true}
       className={cn(
         'flex shrink-0 gap-1 overflow-x-auto px-3 [scrollbar-width:none]',
         secondary ? 'py-2' : 'border-b border-border py-2'

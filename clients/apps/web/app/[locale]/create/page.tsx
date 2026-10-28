@@ -1,7 +1,7 @@
 import { headers } from 'next/headers'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page } from '@/components/platform-ui'
-import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
+import { AreaNavigation, CREATE_LINKS } from '@/components/platform-hub/AreaNavigation'
 import { ResourceCards } from '@/components/platform-hub/ResourceCards'
 import { TemplateBrowser } from '@/components/platform-hub/TemplateBrowser'
 import { requirePaidPageAccess } from '@/lib/auth/page-access'
@@ -21,16 +21,8 @@ export default async function CreatePage({
       campaignsEnabled={access.campaignWorkflowEnabled}
       organizationName={access.organization?.name}
     >
-      <Page title="Create" tagline="Turn a screenshot into a finished visual.">
-        <AreaNavigation
-          label="Create"
-          items={[
-            { href: '/create', label: 'Start' },
-            { href: '/library', label: 'Recent' },
-            { href: '/create?view=templates', label: 'Templates' },
-            { href: '/create?view=tools', label: 'Tools' },
-          ]}
-        />
+      <Page title="Create" description="Turn a screenshot into a finished visual.">
+        <AreaNavigation label="Create" items={CREATE_LINKS} />
         {view === 'templates' ? (
           <TemplateBrowser />
         ) : (

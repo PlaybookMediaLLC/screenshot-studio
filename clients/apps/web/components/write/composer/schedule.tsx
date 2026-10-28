@@ -24,8 +24,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Switch } from '@/components/ui/switch'
 import { CHANNEL_META, ChannelIcon } from '@/components/drafts/channel-meta'
 import { LocalTime } from '@/components/drafts/local-time'
-import { DraftRequestError, type DraftWire, draftsApi } from '@/lib/content-drafts/client'
-import type { BlockImages } from '@/lib/content-drafts/serialize'
+import {
+  call,
+  DraftRequestError,
+  type DraftPostWire,
+  type DraftWire,
+  draftsApi,
+} from '@/lib/content-drafts/client'
+import { type BlockImages, channelForPlatform } from '@/lib/content-drafts/serialize'
 import { followUpLines } from '@/lib/write/automation'
 import { writeApi } from '@/lib/write/client'
 import type { AutoDm, Automation, Community } from '@/lib/write/document'
@@ -54,6 +60,8 @@ export type ScheduleContext = {
   onDone: (result: { draft: DraftWire; newDraft?: boolean }) => void
   onToggle: (accountId: string, on: boolean) => void
   requireApproval: boolean
+  /** The draft's queued posts: a new schedule or Publish now replaces every one. */
+  scheduled?: DraftPostWire[]
   setTimeZone: string | null
   versionRef: React.MutableRefObject<number>
   /** Render the draft's tables and math as uploaded images, in body order. */
@@ -138,6 +146,10 @@ export function ScheduleDialog({
   const [when, setWhen] = React.useState('')
   const [disambiguation, setDisambiguation] = React.useState<'earlier' | 'later' | null>(null)
   const [bestTimes, setBestTimes] = React.useState<{ at: string; reason: string }[]>([])
+  // The queue slot the backend offers; scheduling reserves exactly this one.
+  const [queueSlot, setQueueSlot] = React.useState<string | null>(null)
+  const [slotNotice, setSlotNotice] = React.useState('')
+  const [slotRequest, setSlotRequest] = React.useState(0)
   const [browsing, setBrowsing] = React.useState(false)
   // Which button is working, so only that one says so.
   const [action, setAction] = React.useState<'clear' | 'plan' | 'schedule' | null>(null)
@@ -149,6 +161,26 @@ export function ScheduleDialog({
       .then(({ items }) => setBestTimes(items))
       .catch(() => setBestTimes([]))
   }, [setId, data.advancedScheduling])
+  React.useEffect(() => {
+    if (!data.advancedScheduling || !setId) return
+    let active = true
+    void call<{ times: string[] }>('/api/v1/content-draft-batch/times', {
+      body: { count: 1, mode: 'queue', seed: crypto.randomUUID(), socialSetId: setId },
+      method: 'POST',
+    })
+      .then(({ times }) => {
+        if (active) setQueueSlot(times[0] ?? null)
+      })
+      .catch((error) => {
+        if (active) {
+          setQueueSlot(null)
+          setSlotNotice(error instanceof Error ? error.message : 'The queue could not be read.')
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [setId, data.advancedScheduling, slotRequest])
   const local = `${day}T${time}`
   const resolution = resolveLocalTime(local, zone)
   const instant =
@@ -180,7 +212,6 @@ export function ScheduleDialog({
     zone,
     data.queue.map((item) => item.at)
   )
-  const nextSlot = slots.find((slot) => !slot.busy)
   const schedule = async () => {
     setAction('schedule')
     try {
@@ -189,7 +220,7 @@ export function ScheduleDialog({
         blockImages: await context.renderBlocks(),
         channelConnectionIds: context.items.map((item) => item.account.id),
         ...(queue
-          ? { queue: true }
+          ? { queue: true, expectedQueueSlot: queueSlot ?? undefined }
           : { disambiguation: disambiguation ?? undefined, localTime: local, timeZone: zone }),
         naturalPostingTime: natural,
         version: context.versionRef.current,
@@ -205,9 +236,18 @@ export function ScheduleDialog({
       )
       onClose()
     } catch (error) {
-      toast.error(
-        error instanceof DraftRequestError ? error.message : 'The draft could not be scheduled.'
-      )
+      const next = error instanceof DraftRequestError ? error.details.nextQueueSlot : undefined
+      if (queue && typeof next === 'string') {
+        // Another schedule took the reviewed slot: show the next one; never move silently.
+        setQueueSlot(next)
+        setSlotNotice(
+          'That slot was just taken. Review the next free slot below and confirm again.'
+        )
+      } else {
+        toast.error(
+          error instanceof DraftRequestError ? error.message : 'The draft could not be scheduled.'
+        )
+      }
     } finally {
       setAction(null)
     }
@@ -232,8 +272,11 @@ export function ScheduleDialog({
       setAction(null)
     }
   }
+  const reviewedSlot = queueSlot ? new Date(queueSlot) : null
   const summary = queue
-    ? 'At the next free queue slot'
+    ? reviewedSlot
+      ? `Next free slot: ${reviewedSlot.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short', timeZone: zone })} · ${zone} (${offsetLabel(reviewedSlot, zone)})`
+      : 'Finding the next free queue slot…'
     : instant
       ? `${instant.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short', timeZone: zone })} · ${zone} (${offsetLabel(instant, zone)})`
       : resolution.kind === 'gap'
@@ -357,11 +400,33 @@ export function ScheduleDialog({
             variant="outline"
           >
             Next free slot
-            {nextSlot
-              ? ` · ${new Date(nextSlot.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}`
+            {reviewedSlot
+              ? ` · ${reviewedSlot.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: zone, timeZoneName: 'short' })}`
               : ' · none available'}
           </Button>
         </div>
+        {slotNotice ? (
+          <p
+            className="flex flex-wrap items-center gap-2 text-xs text-amber-700 dark:text-amber-300"
+            data-testid="queue-slot-notice"
+            role="alert"
+          >
+            {slotNotice}
+            {!reviewedSlot ? (
+              <Button
+                onClick={() => {
+                  setSlotNotice('')
+                  setSlotRequest((value) => value + 1)
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                Check again
+              </Button>
+            ) : null}
+          </p>
+        ) : null}
         {data.advancedScheduling ? (
           <details
             className="rounded-lg border border-border p-3"
@@ -506,8 +571,11 @@ export function ScheduleDialog({
               · {localZone.replaceAll('_', ' ')}
             </span>
           ) : null}
-          {natural && instant ? <span className="text-muted-foreground"> ± up to 4 minutes</span> : null}
+          {natural && (queue ? reviewedSlot : instant) ? (
+            <span className="text-muted-foreground"> ± up to 4 minutes</span>
+          ) : null}
         </p>
+        <ReplacedPosts context={context} />
         {past && !queue ? <p className="text-xs text-red-700 dark:text-red-300">That time has passed.</p> : null}
         <Problems problems={problems} />
         <label className="flex items-center gap-2 text-xs">
@@ -552,7 +620,7 @@ export function ScheduleDialog({
             {action === 'plan' ? 'Saving…' : 'Save as planned'}
           </Button>
           <Button
-            disabled={busy || problems.length > 0 || (!queue && (!instant || past))}
+            disabled={busy || problems.length > 0 || (queue ? !reviewedSlot : !instant || past)}
             onClick={() => void schedule()}
             type="button"
           >
@@ -704,6 +772,61 @@ function Destinations({
   )
 }
 
+/**
+ * The draft's queued posts that confirming replaces, one line per
+ * destination: a schedule replaces them all, so a destination switched off
+ * here is cancelled rather than left at its old time.
+ */
+function ReplacedPosts({ context }: { context: ScheduleContext }) {
+  const { data } = useWrite()
+  const scheduled = context.scheduled ?? []
+  if (scheduled.length === 0) return null
+  const selected = new Set(context.items.map((item) => item.account.id))
+  const accounts = new Map(
+    data.sets.flatMap((set) => set.accounts.map((account) => [account.id, account] as const))
+  )
+  return (
+    <div
+      className="grid gap-1 rounded-md border border-amber-400/40 p-2 text-xs"
+      data-testid="replaced-posts"
+    >
+      <p className="text-foreground">
+        Confirming replaces{' '}
+        {scheduled.length === 1 ? 'the queued post' : `all ${scheduled.length} queued posts`} of
+        this draft:
+      </p>
+      <ul className="grid gap-0.5">
+        {scheduled.map((post) => {
+          const channel = channelForPlatform(post.platform)
+          const account = accounts.get(post.channelConnectionId)
+          return (
+            <li className="flex flex-wrap items-center gap-1.5" key={post.id}>
+              {channel ? <ChannelIcon channel={channel} className="size-3.5" /> : null}
+              {account?.displayName ??
+                account?.handle ??
+                (channel ? CHANNEL_META[channel].label : post.platform)}
+              <span className="text-muted-foreground">
+                ·{' '}
+                {new Date(post.scheduledFor).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}
+              </span>
+              {selected.has(post.channelConnectionId) ? (
+                <span className="text-muted-foreground">→ moves to the new time</span>
+              ) : (
+                <span className="text-amber-700 dark:text-amber-300">
+                  → cancelled: not selected
+                </span>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 /** A list of blocking problems, or nothing. */
 function Problems({ problems }: { problems: string[] }) {
   if (problems.length === 0) return null
@@ -835,6 +958,7 @@ export function PublishReview({
             )
           })}
         </ul>
+        <ReplacedPosts context={context} />
         <CommunityTimeline context={context} />
         {context.items.some((item) => item.account.channel === 'x') ? (
           <AutoDmDraft

@@ -3,8 +3,10 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
@@ -48,6 +50,13 @@ func writeContentDraftError(w http.ResponseWriter, err error) {
 	if errors.As(err, &stale) {
 		writeJSON(w, http.StatusConflict, map[string]any{
 			"code": "content_draft_version_conflict", "currentVersion": stale.Current, "error": err.Error(),
+		})
+		return
+	}
+	var taken *product.QueueSlotTakenError
+	if errors.As(err, &taken) {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"code": "queue_slot_taken", "nextQueueSlot": taken.Next.UTC().Format(time.RFC3339), "error": err.Error(),
 		})
 		return
 	}
@@ -158,8 +167,10 @@ func (s *Server) deleteContentDraft(w http.ResponseWriter, r *http.Request) {
 }
 
 // scheduleContentDraft queues the draft to its channels, then stops the
-// workflows of posts a reschedule replaced and starts the new ones. Starting
-// is idempotent, so a replay after a failed start finishes the job.
+// workflows of posts a reschedule replaced and starts the new ones. The
+// committed posts are the result: a cancelled post is never claimed, and the
+// once-a-minute dispatcher starts a due post whose wakeup failed here, so a
+// Temporal error is logged rather than reported as a failed schedule.
 func (s *Server) scheduleContentDraft(w http.ResponseWriter, r *http.Request) {
 	id, ok := contentDraftID(w, r)
 	if !ok {
@@ -177,16 +188,14 @@ func (s *Server) scheduleContentDraft(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, postID := range result.Cancelled {
 		if err := s.scheduler.Cancel(r.Context(), postID); err != nil {
-			writeError(w, http.StatusServiceUnavailable, "could not stop a replaced publishing workflow")
-			return
+			slog.WarnContext(r.Context(), "replaced post workflow was not signalled", "post", postID, "error", err)
 		}
 	}
 	for _, post := range result.Scheduled {
 		if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
 			OrganizationID: post.OrganizationID, PostID: post.ID, ScheduledFor: post.ScheduledFor,
 		}); err != nil {
-			writeError(w, http.StatusServiceUnavailable, "could not start publishing workflow")
-			return
+			slog.WarnContext(r.Context(), "post workflow not started; the dispatcher starts it when due", "post", post.ID, "error", err)
 		}
 	}
 	status := http.StatusOK

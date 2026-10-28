@@ -324,6 +324,34 @@ func (_c *ScheduledPostCreate) SetNillableScheduleTimeZone(v *string) *Scheduled
 	return _c
 }
 
+// SetScheduleIntent sets the "schedule_intent" field.
+func (_c *ScheduledPostCreate) SetScheduleIntent(v string) *ScheduledPostCreate {
+	_c.mutation.SetScheduleIntent(v)
+	return _c
+}
+
+// SetNillableScheduleIntent sets the "schedule_intent" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableScheduleIntent(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetScheduleIntent(*v)
+	}
+	return _c
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (_c *ScheduledPostCreate) SetFailureCode(v string) *ScheduledPostCreate {
+	_c.mutation.SetFailureCode(v)
+	return _c
+}
+
+// SetNillableFailureCode sets the "failure_code" field if the given value is not nil.
+func (_c *ScheduledPostCreate) SetNillableFailureCode(v *string) *ScheduledPostCreate {
+	if v != nil {
+		_c.SetFailureCode(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *ScheduledPostCreate) SetCreatedAt(v time.Time) *ScheduledPostCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -605,6 +633,14 @@ func (_c *ScheduledPostCreate) createSpec() (*ScheduledPost, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.ScheduleTimeZone(); ok {
 		_spec.SetField(scheduledpost.FieldScheduleTimeZone, field.TypeString, value)
 		_node.ScheduleTimeZone = &value
+	}
+	if value, ok := _c.mutation.ScheduleIntent(); ok {
+		_spec.SetField(scheduledpost.FieldScheduleIntent, field.TypeString, value)
+		_node.ScheduleIntent = &value
+	}
+	if value, ok := _c.mutation.FailureCode(); ok {
+		_spec.SetField(scheduledpost.FieldFailureCode, field.TypeString, value)
+		_node.FailureCode = &value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(scheduledpost.FieldCreatedAt, field.TypeTime, value)

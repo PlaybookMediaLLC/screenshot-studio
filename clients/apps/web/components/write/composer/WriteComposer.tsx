@@ -451,6 +451,7 @@ export function WriteComposer({
     },
     onToggle: toggle,
     requireApproval,
+    scheduled: posts.filter((post) => post.status === 'SCHEDULED'),
     setTimeZone: set?.timeZone ?? null,
     versionRef: version,
     renderBlocks,

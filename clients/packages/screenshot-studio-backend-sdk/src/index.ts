@@ -1175,6 +1175,9 @@ export type BackendContentDraftPost = {
   scheduleTimeZone: string | null
   slotAt: string | null
   socialSetId: string | null
+  /** Why it did not publish (a provider status or a code such as `MEDIA_UNAVAILABLE`), and when its provider confirmed it. */
+  failureCode?: string | null
+  publishedAt?: string | null
 }
 
 /** One channel of a draft schedule and the caption serialized for it. */

@@ -88,6 +88,32 @@ type PublishJob struct {
 	Connection      *ent.ChannelConnection
 	Post            *ent.ScheduledPost
 	WorkspaceActive bool
+	// Ineligible says why a job may not publish when WorkspaceActive is false.
+	Ineligible string
+}
+
+// Why a post did not publish, kept as its failure code. Provider failures
+// keep the provider's status (see ProviderFailureCode).
+const (
+	// The workspace is being deleted, or the post's content was removed.
+	FailureWorkspaceInactive = "WORKSPACE_INACTIVE"
+	// The account was disconnected or removed from the workspace.
+	FailureAccountUnavailable = "ACCOUNT_UNAVAILABLE"
+	// The workspace approves posts and this version is not approved.
+	FailureApprovalRequired = "APPROVAL_REQUIRED"
+	// An image, video or document was deleted before the post went out.
+	FailureMediaUnavailable = "MEDIA_UNAVAILABLE"
+	// The post could not start within the late publication window.
+	FailureMissedWindow = "MISSED_WINDOW"
+	// The provider may have received it; a person reconciles before a retry.
+	FailureUnknownDelivery = "UNKNOWN_DELIVERY"
+)
+
+// StalledPost is a claimed post that has made no progress for a while.
+type StalledPost struct {
+	ID             string
+	OrganizationID string
+	RunID          string
 }
 
 type Attempt struct {

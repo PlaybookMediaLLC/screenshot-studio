@@ -184,6 +184,13 @@ const entitlementErrorSchema = z.union([
     .transform(({ details, message }) => ({ ...details, message })),
 ])
 
+// A reviewed queue slot another schedule took: the backend names the next free slot.
+const queueSlotTakenSchema = z.object({
+  details: z.object({ code: z.literal('queue_slot_taken'), nextQueueSlot: z.iso.datetime() }),
+  message: z.string(),
+  name: z.literal('BackendSDKError'),
+})
+
 // Better Auth reports an unreachable backend auth store with this body code.
 const sessionStoreUnavailableSchema = z.object({
   body: z.object({ code: z.literal('FAILED_TO_GET_SESSION') }),
@@ -246,6 +253,13 @@ function getEntitlementFailure(error: unknown): ApiFailure | null {
   }
 }
 
+function getQueueSlotFailure(error: unknown): ApiFailure | null {
+  const parsed = queueSlotTakenSchema.safeParse(error)
+  if (!parsed.success) return null
+  const { details, message } = parsed.data
+  return { ...failureForStatus(409, message), extra: { nextQueueSlot: details.nextQueueSlot } }
+}
+
 function getNamedFailure(error: unknown): ApiFailure | null {
   const named = namedErrorSchema.safeParse(error)
   if (!named.success) return null
@@ -269,5 +283,10 @@ export function toApiFailure(error: unknown): ApiFailure | null {
   if (sessionStoreUnavailableSchema.safeParse(error).success) {
     return failureForStatus(503, DEPENDENCY_UNAVAILABLE)
   }
-  return getQuotaFailure(error) ?? getEntitlementFailure(error) ?? getNamedFailure(error)
+  return (
+    getQuotaFailure(error) ??
+    getEntitlementFailure(error) ??
+    getQueueSlotFailure(error) ??
+    getNamedFailure(error)
+  )
 }

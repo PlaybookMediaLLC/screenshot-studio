@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 )
 
 type contentDraftFake struct {
@@ -94,5 +96,49 @@ func TestCreateScheduledPostRequiresExactlyOneSource(t *testing.T) {
 		if response.Code != http.StatusBadRequest {
 			t.Fatalf("source %q status=%d", source, response.Code)
 		}
+	}
+}
+
+type unreachableScheduler struct{ fakeScheduler }
+
+func (*unreachableScheduler) Start(context.Context, temporalpublishing.ScheduleInput) error {
+	return errors.New("temporal unavailable")
+}
+func (*unreachableScheduler) Cancel(context.Context, string) error {
+	return errors.New("temporal unavailable")
+}
+
+// A committed schedule is the result even when Temporal cannot be reached:
+// the dispatcher starts the due post, and a replaced post is never claimed.
+func TestScheduleContentDraftReportsCommittedPostsWhenWorkflowWakeupFails(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &unreachableScheduler{}, &fakeVerifier{}, "secret", &draftScheduleFake{})
+	at := time.Now().Add(time.Hour).UTC().Truncate(time.Second)
+	response := configurationRequest(handler, http.MethodPost, "/v1/content-drafts/c123456789012345678901234/schedule",
+		fmt.Sprintf(`{"scheduledFor":%q,"targets":[{"caption":"Hi","channelConnectionId":"c123456789012345678901235"}],"version":2}`, at.Format(time.RFC3339)))
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+}
+
+type takenSlotFake struct{ fakeConfiguration }
+
+func (*takenSlotFake) ScheduleContentDraft(context.Context, product.Actor, string, product.ScheduleContentDraftInput) (*product.ScheduleContentDraftResult, error) {
+	return nil, &product.QueueSlotTakenError{Next: time.Date(2026, 11, 2, 9, 0, 0, 0, time.UTC)}
+}
+
+// A reviewed queue slot that was taken answers 409 with the next free slot.
+func TestScheduleContentDraftNamesNextFreeSlotOnConflict(t *testing.T) {
+	handler := NewWithConfiguration(&fakeStore{}, &fakeScheduler{}, &fakeVerifier{}, "secret", &takenSlotFake{})
+	response := configurationRequest(handler, http.MethodPost, "/v1/content-drafts/c123456789012345678901234/schedule",
+		`{"queue":true,"expectedQueueSlot":"2026-11-01T09:00:00Z","targets":[{"caption":"Hi","channelConnectionId":"c123456789012345678901235"}],"version":2}`)
+	var body struct {
+		Code          string `json:"code"`
+		NextQueueSlot string `json:"nextQueueSlot"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusConflict || body.Code != "queue_slot_taken" || body.NextQueueSlot != "2026-11-02T09:00:00Z" {
+		t.Fatalf("status=%d body=%+v", response.Code, body)
 	}
 }

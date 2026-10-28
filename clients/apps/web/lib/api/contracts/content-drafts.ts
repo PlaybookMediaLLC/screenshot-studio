@@ -301,6 +301,13 @@ export const contentDraftPostSchema = z.object({
   scheduleTimeZone: z.string().nullable().default(null),
   slotAt: timestampSchema.nullable().default(null),
   socialSetId: z.string().nullable().default(null),
+  /**
+   * Why it did not publish once failed, unconfirmed or cancelled by the
+   * publisher (a provider status or a code such as `MEDIA_UNAVAILABLE`), and
+   * when its provider confirmed it.
+   */
+  failureCode: z.string().nullable().default(null),
+  publishedAt: timestampSchema.nullable().default(null),
 })
 
 /**

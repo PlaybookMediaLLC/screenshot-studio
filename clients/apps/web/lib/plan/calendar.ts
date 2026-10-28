@@ -29,8 +29,12 @@ export type PlanItem = {
   accountId?: string
   platform: string
   at: string
+  /** A post's publication instant: its slot (`at`) plus any natural offset. */
+  publishAt?: string
   zone: string
   deliveryStatus?: string
+  /** Why a post did not publish, as its backend records it. */
+  failureCode?: string | null
   status: string
   title: string
   text: string

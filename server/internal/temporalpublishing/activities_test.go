@@ -14,6 +14,10 @@ import (
 type activityStore struct {
 	retryAt *time.Time
 	unknown bool
+	// job is what LoadPublishJob returns; unsent and cancelled record the
+	// failure code of a post that was never sent.
+	job               publishing.PublishJob
+	unsent, cancelled string
 }
 
 type quoteReceiptStore struct {
@@ -39,7 +43,12 @@ func TestSinglePostQuoteReceiptIsRecordedWithoutRetryingPublication(t *testing.T
 	}
 }
 
-func (s *activityStore) CancelIneligible(context.Context, *ent.ScheduledPost, string, string) error {
+func (s *activityStore) CancelIneligible(_ context.Context, _ *ent.ScheduledPost, reason, _ string) error {
+	s.cancelled = reason
+	return nil
+}
+func (s *activityStore) FailUnsent(_ context.Context, _ *ent.ScheduledPost, code, _ string) error {
+	s.unsent = code
 	return nil
 }
 func (s *activityStore) Claim(context.Context, string, string, time.Time) (bool, error) {
@@ -57,7 +66,7 @@ func (s *activityStore) FailUnknown(context.Context, string, string, int) error 
 	return nil
 }
 func (s *activityStore) LoadPublishJob(context.Context, string, string) (publishing.PublishJob, error) {
-	return publishing.PublishJob{}, nil
+	return s.job, nil
 }
 func (s *activityStore) StartAttempt(context.Context, *ent.ScheduledPost, string, int) (publishing.Attempt, error) {
 	return publishing.Attempt{ID: "attempt-1", Number: 1}, nil
@@ -136,5 +145,38 @@ func TestSubmitActivityLeavesRateLimitRetryToWorkflow(t *testing.T) {
 	}
 	if result.Outcome != OutcomeRetry || result.FailureCode != "429" {
 		t.Fatalf("result=%#v", result)
+	}
+}
+
+// A claimed post is sent only when it is eligible and on time: missing media
+// fails it as unsent, an ineligible one is cancelled with its reason, and one
+// that could not start within the late window fails as MISSED_WINDOW. None of
+// them reaches the provider.
+func TestPrepareSendsOnlyEligibleOnTimePosts(t *testing.T) {
+	now := time.Date(2026, 11, 2, 9, 0, 0, 0, time.UTC)
+	connection := &ent.ChannelConnection{Platform: "x"}
+	cases := []struct {
+		name              string
+		job               publishing.PublishJob
+		ready             bool
+		unsent, cancelled string
+	}{
+		{"on time", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-time.Minute)}, Connection: connection, WorkspaceActive: true}, true, "", ""},
+		{"late within the window", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-LatePublicationWindow)}, Connection: connection, WorkspaceActive: true}, true, "", ""},
+		{"past the window", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-LatePublicationWindow - time.Second)}, Connection: connection, WorkspaceActive: true}, false, publishing.FailureMissedWindow, ""},
+		{"media deleted", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now}, Connection: connection, Ineligible: publishing.FailureMediaUnavailable}, false, publishing.FailureMediaUnavailable, ""},
+		{"approval withdrawn", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now}, Connection: connection, Ineligible: publishing.FailureApprovalRequired}, false, "", publishing.FailureApprovalRequired},
+		{"account disconnected, even when late", publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-48 * time.Hour)}, Connection: connection, Ineligible: publishing.FailureAccountUnavailable}, false, "", publishing.FailureAccountUnavailable},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			store := &activityStore{job: test.job}
+			activities := NewActivities(store, directProvider{})
+			activities.now = func() time.Time { return now }
+			prepared, err := activities.Prepare(context.Background(), PrepareInput{PostID: "p", RunID: "run-1"})
+			if err != nil || prepared.Ready != test.ready || store.unsent != test.unsent || store.cancelled != test.cancelled {
+				t.Fatalf("prepared=%#v unsent=%q cancelled=%q err=%v", prepared, store.unsent, store.cancelled, err)
+			}
+		})
 	}
 }

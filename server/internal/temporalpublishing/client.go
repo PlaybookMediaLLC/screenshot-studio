@@ -93,6 +93,22 @@ func (s *Scheduler) Cancel(ctx context.Context, postID string) error {
 	return err
 }
 
+// Running reports whether a post's workflow run is still open. A run Temporal
+// no longer knows, or a run ID it never issued (a pre-Temporal publisher's),
+// is not running.
+func (s *Scheduler) Running(ctx context.Context, postID, runID string) (bool, error) {
+	described, err := s.client.DescribeWorkflowExecution(ctx, WorkflowID(postID), runID)
+	var notFound *serviceerror.NotFound
+	var invalid *serviceerror.InvalidArgument
+	if errors.As(err, &notFound) || errors.As(err, &invalid) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return described.GetWorkflowExecutionInfo().GetStatus() == enumspb.WORKFLOW_EXECUTION_STATUS_RUNNING, nil
+}
+
 func (s *Scheduler) Ping(ctx context.Context) error {
 	_, err := s.client.WorkflowService().DescribeNamespace(ctx, &workflowservice.DescribeNamespaceRequest{Namespace: s.config.Namespace})
 	return err

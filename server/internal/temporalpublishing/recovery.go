@@ -2,6 +2,7 @@ package temporalpublishing
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
@@ -10,6 +11,9 @@ import (
 const (
 	recoveryBatchSize = 100
 	recoveryLookback  = 48 * time.Hour
+	// stalledAfter is how long a claimed post may make no progress before the
+	// sweep asks Temporal whether its workflow still runs.
+	stalledAfter = 15 * time.Minute
 )
 
 type RecoveryActivities struct {
@@ -26,10 +30,47 @@ func (a *RecoveryActivities) Recover(ctx context.Context) (int, error) {
 	return a.dispatch(ctx, now.Add(-recoveryLookback), now)
 }
 
-// DispatchDue replaces the former minute TypeScript publisher. It only starts
-// stable post workflows; all provider sends remain in the publishing worker.
+// DispatchDue replaces the former minute TypeScript publisher. It first
+// settles posts whose workflow stopped mid-publication, then starts stable
+// post workflows; all provider sends remain in the publishing worker.
 func (a *RecoveryActivities) DispatchDue(ctx context.Context) (int, error) {
-	return a.dispatch(ctx, time.Time{}, time.Now().UTC())
+	// A failed sweep must not stop due posts from starting.
+	released, err := a.ReleaseStalled(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "stalled publication sweep failed", "error", err)
+	}
+	started, err := a.dispatch(ctx, time.Time{}, time.Now().UTC())
+	return released + started, err
+}
+
+// ReleaseStalled settles claimed posts whose workflow run has closed without
+// recording an outcome (for example after exhausting its database retries).
+// A post that may have reached its provider becomes UNKNOWN_DELIVERY; one
+// that never did is queued again. A running workflow is left alone.
+func (a *RecoveryActivities) ReleaseStalled(ctx context.Context) (int, error) {
+	posts, err := a.store.ListStalledPosts(ctx, time.Now().Add(-stalledAfter), recoveryBatchSize)
+	if err != nil {
+		return 0, err
+	}
+	released := 0
+	for _, post := range posts {
+		running, err := a.scheduler.Running(ctx, post.ID, post.RunID)
+		if err != nil {
+			return released, err
+		}
+		if running {
+			continue
+		}
+		outcome, err := a.store.ReleaseStalled(ctx, post.ID, post.RunID)
+		if err != nil {
+			return released, err
+		}
+		if outcome != "" {
+			released++
+			slog.WarnContext(ctx, "stalled publication released", "post", post.ID, "organization", post.OrganizationID, "outcome", outcome)
+		}
+	}
+	return released, nil
 }
 
 func (a *RecoveryActivities) dispatch(ctx context.Context, since, now time.Time) (int, error) {

@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { call, draftsApi } from '@/lib/content-drafts/client'
+import { call, DraftRequestError, draftsApi } from '@/lib/content-drafts/client'
 import type { contentDraftScheduleSchema } from '@/lib/api/contracts/content-drafts'
 import { zonedDayKey } from '@/lib/settings/zoned-time'
 import { useWrite, useWriteRouter } from './write-context'
@@ -20,12 +20,19 @@ type Row = {
   id: string
   title: string
   at: string
+  /** The accounts this draft publishes to, as the person knows them. */
+  destinations: string[]
   input: z.input<typeof contentDraftScheduleSchema>
-  status: string
+  status: 'Blocked' | 'Ready' | 'Scheduled' | 'Retry same request'
   error?: string
 }
 
-/** Preflight every selected draft; submit valid rows through ordinary scheduling. */
+/**
+ * Preflight every selected draft; submit valid rows through ordinary
+ * scheduling, one draft (and one post per destination) at a time. A row
+ * whose response was lost retries the same request, which replays rather
+ * than duplicates; a refused row is corrected and previewed again.
+ */
 export function BulkScheduleDialog({
   selected,
   onClose,
@@ -45,19 +52,32 @@ export function BulkScheduleDialog({
   const [shift, setShift] = useState(0)
   const [seed] = useState(() => crypto.randomUUID())
   const [rows, setRows] = useState<Row[] | null>(null)
+  const [skipBlocked, setSkipBlocked] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const accounts = new Map(
+    data.sets.flatMap((item) =>
+      item.accounts.map(
+        (account) =>
+          [account.id, account.displayName ?? account.handle ?? account.platform] as const
+      )
+    )
+  )
+  // Rows already scheduled are kept; the rest are validated and timed again.
   const preview = async () => {
     if (!set) return
     setBusy(true)
     setError('')
+    setSkipBlocked(false)
     try {
       await beforeLeaveRef.current?.()
+      const kept = (rows ?? []).filter((row) => row.status === 'Scheduled')
+      const pending = selected.filter((id) => !kept.some((row) => row.id === id))
       const { times } = await call<{ times: string[] }>('/api/v1/content-draft-batch/times', {
         method: 'POST',
         body: {
           socialSetId: set.id,
-          count: selected.length,
+          count: pending.length,
           mode,
           localTime: start,
           postsPerDay: perDay,
@@ -67,16 +87,20 @@ export function BulkScheduleDialog({
         },
       })
       const result: Row[] = []
-      for (const [index, id] of selected.entries()) {
+      for (const [index, id] of pending.entries()) {
         const row: Row = {
           id,
           title: data.library.find((draft) => draft.id === id)?.title ?? id,
           at: times[index],
+          destinations: [],
           input: { channelConnectionIds: [], version: 1 },
           status: 'Blocked',
         }
         try {
           const draft = await draftsApi.get(id)
+          row.destinations = draft.channelConnectionIds.map(
+            (account) => accounts.get(account) ?? account
+          )
           if (draft.socialSetId !== set.id) throw new Error('Use one publishing brand per batch.')
           row.input = {
             channelConnectionIds: draft.channelConnectionIds,
@@ -107,7 +131,7 @@ export function BulkScheduleDialog({
           row.input.expectedQueueSlot = row.at
         })
       }
-      setRows(result)
+      setRows([...kept, ...result])
     } catch (error) {
       setError(error instanceof Error ? error.message : 'The batch could not be prepared.')
     } finally {
@@ -124,10 +148,15 @@ export function BulkScheduleDialog({
         await draftsApi.schedule(row.id, row.input)
         next[index] = { ...row, status: 'Scheduled', error: undefined }
       } catch (error) {
+        // A refusal needs a correction and a new preview; only an unanswered
+        // request is retried as is, which replays instead of duplicating.
+        const refused = error instanceof DraftRequestError && error.status < 500
         next[index] = {
           ...row,
-          status: 'Retry same request',
-          error: error instanceof Error ? error.message : 'No confirmation received.',
+          status: refused ? 'Blocked' : 'Retry same request',
+          error: refused
+            ? `${error.message} Correct it, then preview the remaining drafts again.`
+            : 'No confirmation was received. Retrying sends the same request, so it cannot schedule twice.',
         }
       }
       setRows([...next])
@@ -135,6 +164,9 @@ export function BulkScheduleDialog({
     setBusy(false)
     router.refresh()
   }
+  const blocked = rows?.filter((row) => row.status === 'Blocked').length ?? 0
+  const submittable =
+    rows?.filter((row) => row.status === 'Ready' || row.status === 'Retry same request').length ?? 0
   return (
     <Dialog open onOpenChange={(open) => !open && !busy && onClose()}>
       <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto">
@@ -220,28 +252,48 @@ export function BulkScheduleDialog({
                     {new Date(row.at).toLocaleString(undefined, { timeZone: set?.timeZone })} ·{' '}
                     {row.status}
                   </p>
+                  {row.destinations.length > 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      To {row.destinations.join(', ')}: one post each, at this time.
+                    </p>
+                  ) : null}
                   {row.error && <p role="alert">{row.error}</p>}
                 </li>
               ))}
             </ol>
             <p className="text-xs text-muted-foreground">
-              A changed queue or draft is rejected. Retrying keeps the original version and request,
-              so it cannot create a duplicate. Close and preview again only after checking the
-              result.
+              A changed queue or draft is refused, never moved silently. Retrying an unconfirmed row
+              keeps its version and request, so it cannot create a duplicate. Scheduled rows stay
+              scheduled when you preview the rest again.
             </p>
-            <Button
-              disabled={
-                busy ||
-                !rows.some((row) => row.status === 'Ready' || row.status === 'Retry same request')
-              }
-              onClick={() => void schedule()}
-            >
-              {busy
-                ? 'Scheduling…'
-                : rows.some((row) => row.status === 'Retry same request')
-                  ? 'Retry unconfirmed rows'
-                  : 'Schedule valid drafts'}
-            </Button>
+            {blocked > 0 && submittable > 0 ? (
+              <label className="flex items-center gap-2 text-sm" data-testid="skip-blocked">
+                <input
+                  checked={skipBlocked}
+                  onChange={(event) => setSkipBlocked(event.target.checked)}
+                  type="checkbox"
+                />
+                Schedule the {submittable} valid {submittable === 1 ? 'draft' : 'drafts'} and leave
+                the {blocked} blocked {blocked === 1 ? 'one' : 'ones'} unscheduled
+              </label>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={busy || submittable === 0 || (blocked > 0 && !skipBlocked)}
+                onClick={() => void schedule()}
+              >
+                {busy
+                  ? 'Scheduling…'
+                  : rows.some((row) => row.status === 'Retry same request')
+                    ? 'Retry unconfirmed rows'
+                    : `Schedule ${submittable} ${submittable === 1 ? 'draft' : 'drafts'}`}
+              </Button>
+              {blocked > 0 ? (
+                <Button disabled={busy} onClick={() => void preview()} variant="outline">
+                  Preview the remaining drafts again
+                </Button>
+              ) : null}
+            </div>
           </>
         )}
         {error && <p role="alert">{error}</p>}

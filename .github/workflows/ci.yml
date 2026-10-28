@@ -79,12 +79,18 @@ jobs:
       - run: go test -race ./internal/notifications ./internal/authstore ./internal/httpapi ./internal/socialapi ./internal/publishing ./internal/temporalpublishing ./internal/maintenance ./internal/temporalmaintenance ./internal/onboarding ./internal/temporalonboarding ./internal/enrichment ./internal/social/tenantpublishing
       - run: go test -race ./internal/socialconnect ./internal/agentclients ./internal/mcp ./internal/shotsapi
       - run: go vet ./...
+      - uses: docker/setup-buildx-action@v3
       - name: Build the backend image
-        working-directory: .
-        run: docker build --tag screenshot-studio-backend:${{ github.sha }} server
+        uses: docker/build-push-action@v6
+        with:
+          context: server
+          load: true
+          tags: screenshot-studio-backend:${{ github.sha }}
+          cache-from: type=gha,scope=social-backend
+          cache-to: type=gha,mode=max,scope=social-backend
 
-  validate:
-    name: CI validation
+  quality:
+    name: Client quality
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -120,35 +126,6 @@ jobs:
         run: |
           ./dev/studio status
           docker compose --env-file .local/dev.env --file dev/compose.yaml config --quiet
-      # The Docker build runs `npm run build` inside the image, so a bare
-      # `npm run build` here would validate the same thing twice. The
-      # GitHub Actions layer cache keeps the dependency and build layers
-      # warm between runs.
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: clients/apps/web/Dockerfile
-          tags: screenshot-studio:${{ github.sha }}
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: Smoke test production container
-        run: |
-          # No database: the web reaches all data through the Go backend.
-          docker run --detach --rm --name screenshot-studio-smoke \
-            --publish 3000:3000 \
-            screenshot-studio:${{ github.sha }}
-          trap 'docker logs screenshot-studio-smoke || true; docker stop screenshot-studio-smoke || true' EXIT
-          for attempt in $(seq 1 20); do
-            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
-              curl --fail --silent --show-error http://127.0.0.1:3000/indexnow-key.txt > /tmp/indexnow-key.txt
-              diff clients/apps/web/public/indexnow-key.txt /tmp/indexnow-key.txt
-              exit 0
-            fi
-            sleep 1
-          done
-          exit 1
       - name: Build and smoke test the collaboration server image
         run: |
           docker build --file clients/apps/collab-server/Dockerfile --tag screenshot-studio-collab:${{ github.sha }} .
@@ -156,7 +133,7 @@ jobs:
             --env COLLAB_BACKEND_URL=http://127.0.0.1:9 --env COLLAB_SERVICE_TOKEN=smoke \
             screenshot-studio-collab:${{ github.sha }}
           trap 'docker logs collab-smoke || true; docker stop collab-smoke || true' EXIT
-          for attempt in $(seq 1 20); do
+          for _ in $(seq 1 20); do
             if curl --fail --silent --show-error http://127.0.0.1:1234/health; then
               exit 0
             fi
@@ -167,6 +144,61 @@ jobs:
       - run: helm template screenshot-studio infra/charts/screenshot-studio > /dev/null
       - run: helm lint infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
       - run: helm template screenshot-studio infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
+
+  web-image:
+    name: Build web image
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: clients/apps/web/Dockerfile
+          tags: screenshot-studio:${{ github.sha }}
+          load: true
+          cache-from: type=gha,scope=screenshot-studio-web
+          cache-to: type=gha,mode=max,scope=screenshot-studio-web
+      - name: Smoke test production container
+        run: |
+          # No database: the web reaches all data through the Go backend.
+          docker run --detach --rm --name screenshot-studio-smoke \
+            --publish 3000:3000 \
+            screenshot-studio:${{ github.sha }}
+          trap 'docker logs screenshot-studio-smoke || true; docker stop screenshot-studio-smoke || true' EXIT
+          for _ in $(seq 1 20); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health; then
+              curl --fail --silent --show-error http://127.0.0.1:3000/indexnow-key.txt > /tmp/indexnow-key.txt
+              diff clients/apps/web/public/indexnow-key.txt /tmp/indexnow-key.txt
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - name: Export the tested image
+        run: docker save screenshot-studio:${{ github.sha }} | gzip -1 > "$RUNNER_TEMP/web-image.tar.gz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-web-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/web-image.tar.gz
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  validate:
+    name: CI validation
+    needs: [quality, web-image]
+    if: always() && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require client checks and the production image
+        env:
+          QUALITY: ${{ needs.quality.result }}
+          IMAGE: ${{ needs.web-image.result }}
+        run: test "$QUALITY" = success && test "$IMAGE" = success
 
   native-clients:
     if: github.event.action != 'closed'
@@ -236,10 +268,7 @@ jobs:
             --fail-on ERR --format githubactions \
             --err-ignore server/internal/shotsapi/breaking-changes-allowed.txt
 
-  # Runs in parallel with validate rather than after it. The two jobs
-  # share no outputs, and the serial order added the whole validate
-  # duration to every release. The cost is integration runner minutes
-  # on changes that fail validation.
+  # Stack setup and quality checks start beside the shared image build.
   # Which browser tests run (test/e2e/README.md, "When the suite runs"):
   # a pull request into develop runs the @smoke tests, and a push to develop
   # or a release pull request into main runs the full suite in 3 shards. A
@@ -285,9 +314,11 @@ jobs:
     needs: e2e-plan
     if: needs.e2e-plan.outputs.run == 'true'
     runs-on: ubuntu-latest
-    # Stack start (the production image builds beside it), a third of the
-    # suite, and on the second shard the recovery check.
+    # Stack setup overlaps the shared image build, then the suite and recovery.
     timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
     env:
       E2E_DOCKER_HOST_GATEWAY: 'true'
     strategy:
@@ -297,14 +328,6 @@ jobs:
         include: ${{ fromJSON(needs.e2e-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      # The production web image (dev/compose.e2e.yaml) takes about 10 minutes
-      # on this runner. Build it in the background while the stack starts, so
-      # the browser step waits only for what is left.
-      - name: Start the production web image build
-        run: |
-          nohup docker build --file clients/apps/web/Dockerfile --tag screenshot-studio-web-e2e . \
-            >"$RUNNER_TEMP/web-image.log" 2>&1 &
-          echo $! >"$RUNNER_TEMP/web-image.pid"
       - uses: actions/setup-node@v4
         with:
           node-version: 22.23.4
@@ -357,13 +380,24 @@ jobs:
         run: VERIFY_BASE_URL=http://127.0.0.1:3000 npm run verify:agents
       - name: Verify tenant isolation
         run: ./dev/studio tenant-isolation
-      - name: Wait for the production web image
-        timeout-minutes: 20
+      # Setup overlaps the one shared build; no per-shard build competes for CPU.
+      - name: Wait for the tested production image
+        id: image
+        timeout-minutes: 21
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { waitForImage } = require('./dev/ci-image.cjs');
+            await waitForImage({ github, context, core });
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.image.outputs.name }}
+          path: ${{ runner.temp }}/ci-web
+      - name: Load the tested production image
         run: |
-          pid="$(cat "$RUNNER_TEMP/web-image.pid")"
-          while kill -0 "$pid" 2>/dev/null; do sleep 5; done
-          tail -n 30 "$RUNNER_TEMP/web-image.log"
-          docker image inspect screenshot-studio-web-e2e >/dev/null
+          docker load --input "$RUNNER_TEMP/ci-web/web-image.tar.gz"
+          docker image inspect screenshot-studio:${{ github.sha }} >/dev/null
+          docker tag screenshot-studio:${{ github.sha }} screenshot-studio-web-e2e
       - name: Verify browser end-to-end flows
         env:
           E2E_APP_IMAGE_READY: 'true'

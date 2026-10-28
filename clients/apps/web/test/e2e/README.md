@@ -14,6 +14,13 @@ Run one file, with Playwright options after the path:
 
 New specs in `test/e2e/` run automatically in local `make e2e` and in CI.
 
+CI builds and smoke-tests one production web image while each shard starts
+its dependencies. Shards download that run's image, named with the exact
+commit SHA, instead of compiling Next.js again. Failed-job reruns can reuse
+an earlier successful attempt's image until its one-day artifact retention
+expires; after that, rerun the build job too. A failed build or missing image
+fails the browser job, rather than falling back to another revision.
+
 ## Two lanes
 
 Next.js recommends browser tests against a production build, and a
@@ -140,15 +147,20 @@ Playwright runs 4 workers in CI. The framework isolates each test:
 
 ## Durations
 
-CI writes `playwright-report/results.json` and adds a duration table to the
+CI writes `playwright-report/results-production.json` and
+`playwright-report/results-dev-server.json` and adds a duration table to the
 job summary. To make the table locally, run:
 
 ```sh
-node scripts/e2e-durations.mjs playwright-report/results.json
+node scripts/e2e-durations.mjs playwright-report/results-*.json
 ```
 
-Setup helpers record their time as `setup-ms` annotations, so the table
-shows how much of each test is setup.
+Setup helpers record their time as `setup-ms` annotations. The table counts
+setup from every attempt, reports retry overhead, preserves flaky status,
+and ranks tests by total time including retries. Each report's wall time
+includes Playwright setup and teardown; summed test time is worker time,
+not elapsed job time. Docker setup, image transfer, and route warmup appear
+in the Actions step timings, outside the Playwright report.
 
 ## Failures
 

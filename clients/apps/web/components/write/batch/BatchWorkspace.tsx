@@ -28,6 +28,7 @@ import {
   channelProblem,
   type ImportMapping,
   type ImportRow,
+  isAssetId,
   matchRowMedia,
   parseBatchCSV,
   unusedFiles,
@@ -115,6 +116,25 @@ export function BatchWorkspace({
     [base]
   )
 
+  /**
+   * Finish an attachment whose upload this tab or an earlier one reserved,
+   * when its bytes are all stored. Completion is idempotent, and refuses an
+   * upload whose bytes did not all arrive or that was sent in parts.
+   */
+  const recover = React.useCallback(
+    async (itemId: string, index: number, entry: BatchItem['media'][number]) => {
+      if (!entry.uploadAssetId || !entry.fileName) return false
+      const done = await trpc.asset.completeUpload.mutate({ assetId: entry.uploadAssetId }).then(
+        () => true,
+        () => false
+      )
+      if (done)
+        await patchMedia(itemId, index, { assetId: entry.uploadAssetId, fileName: entry.fileName })
+      return done
+    },
+    [patchMedia, trpc]
+  )
+
   const pump = React.useCallback(() => {
     while (running.current < UPLOAD_CONCURRENCY && queue.current.length > 0) {
       const job = queue.current.shift()!
@@ -122,26 +142,38 @@ export function BatchWorkspace({
       const entry = item?.media[job.index]
       const file = entry?.fileName ? files.current.get(entry.fileName) : undefined
       if (!item || !entry?.fileName || !file || entry.assetId) continue
+      const fileName = entry.fileName
       const key = `${job.itemId}/${job.index}`
       running.current += 1
       setUploads((current) => ({ ...current, [key]: { progress: 0 } }))
-      void saveExportToWorkspace({
-        blob: file,
-        fileName: entry.fileName,
-        trpcClient: trpc,
-        // Record the reservation first: after a reload it tells an upload
-        // that was cut short from one that never started.
-        onReserved: (assetId) =>
-          patchMedia(job.itemId, job.index, {
-            fileName: entry.fileName!,
-            bytes: file.size,
-            uploadAssetId: assetId,
-          }),
-        onProgress: (progress) => setUploads((current) => ({ ...current, [key]: { progress } })),
-      })
-        .then(({ assetId }) =>
-          patchMedia(job.itemId, job.index, { assetId, fileName: entry.fileName })
-        )
+      const upload = (resumeAssetId?: string) =>
+        saveExportToWorkspace({
+          blob: file,
+          fileName,
+          trpcClient: trpc,
+          resumeAssetId,
+          // Record the reservation first: after a reload it tells an upload
+          // that was cut short from one that never started.
+          onReserved: (assetId) =>
+            patchMedia(job.itemId, job.index, {
+              fileName,
+              bytes: file.size,
+              uploadAssetId: assetId,
+            }),
+          onProgress: (progress) => setUploads((current) => ({ ...current, [key]: { progress } })),
+        })
+      void (async () => {
+        if (await recover(job.itemId, job.index, entry)) return
+        // A large file sent in parts resumes from what storage holds; anything else starts again.
+        const resumable =
+          entry.uploadAssetId &&
+          (await trpc.asset.uploadParts.mutate({ assetId: entry.uploadAssetId, parts: [] }).then(
+            () => true,
+            () => false
+          ))
+        const { assetId } = await upload(resumable ? entry.uploadAssetId : undefined)
+        await patchMedia(job.itemId, job.index, { assetId, fileName })
+      })()
         .then(() => setUploads(({ [key]: _done, ...rest }) => rest))
         .catch((error: unknown) =>
           setUploads((current) => ({
@@ -157,7 +189,14 @@ export function BatchWorkspace({
           pump()
         })
     }
-  }, [patchMedia, trpc])
+  }, [patchMedia, recover, trpc])
+
+  /** Send an attachment whose upload failed in this tab again, finishing it first if it can. */
+  const retryUpload = (itemId: string, index: number) => {
+    setUploads(({ [`${itemId}/${index}`]: _failed, ...rest }) => rest)
+    queue.current.push({ itemId, index })
+    pump()
+  }
 
   /** Queue every attachment whose file this tab holds and that is not stored yet. */
   const startUploads = React.useCallback(() => {
@@ -173,27 +212,21 @@ export function BatchWorkspace({
     pump()
   }, [pump, uploads])
 
-  // After a reload, finish uploads whose bytes arrived before the page closed.
+  // After a reload, finish uploads whose bytes all arrived before the page closed.
   React.useEffect(() => {
-    for (const item of initial.items ?? []) {
+    for (const item of initial.items ?? [])
       item.media.forEach((entry, index) => {
-        if (entry.status !== 'PENDING' || !entry.uploadAssetId || !entry.fileName) return
-        void trpc.asset.completeUpload
-          .mutate({ assetId: entry.uploadAssetId })
-          .then(() =>
-            patchMedia(item.id, index, { assetId: entry.uploadAssetId!, fileName: entry.fileName })
-          )
-          .catch(() =>
-            // Its bytes never arrived: forget the reservation and ask for the file again.
-            patchMedia(item.id, index, { fileName: entry.fileName!, bytes: entry.bytes! })
-          )
+        if (!entry.assetId && entry.status !== 'FAILED') void recover(item.id, index, entry)
       })
-    }
-  }, [initial.items, patchMedia, trpc])
+  }, [initial.items, recover])
 
   const missingFiles = items.flatMap((item) =>
     item.media.filter(
-      (entry) => !entry.assetId && entry.fileName && !files.current.has(entry.fileName)
+      (entry) =>
+        !entry.assetId &&
+        entry.status !== 'UPLOADED' &&
+        entry.fileName &&
+        !files.current.has(entry.fileName)
     )
   )
 
@@ -226,7 +259,7 @@ export function BatchWorkspace({
         rows = parsed.rows
         // Confirm each asset ID the CSV names belongs to this workspace.
         const ids = [...new Set(rows.flatMap((row) => row.assets))].filter(
-          (token) => !chosen.some((file) => file.name === token)
+          (token) => isAssetId(token) && !chosen.some((file) => file.name === token)
         )
         await Promise.all(
           ids.map(async (id) => {
@@ -345,12 +378,15 @@ export function BatchWorkspace({
   const [spread, setSpread] = React.useState({ start: '', perDay: 2, spacing: 240, shift: 0 })
   const [seed] = React.useState(() => crypto.randomUUID())
   const planTimes = async () => {
-    const targets = items.filter(
-      (item) =>
-        pendingAccounts(item, item.draft?.channelConnectionIds ?? item.channelConnectionIds)
-          .remaining.length > 0
-    )
-    if (!targets.length) return
+    // Items with nothing scheduled yet on some account, or no accounts chosen yet.
+    const targets = items.filter((item) => {
+      const ids = item.draft?.channelConnectionIds ?? item.channelConnectionIds
+      return !ids.length || pendingAccounts(item, ids).remaining.length > 0
+    })
+    if (!targets.length) {
+      toast.info('Every item is already scheduled on its accounts.')
+      return
+    }
     setBusy('times')
     try {
       const { times } = await call<{ times: string[] }>('/api/v1/content-draft-batch/times', {
@@ -402,7 +438,10 @@ export function BatchWorkspace({
           await call<BatchItem>(`${base}/items/${encodeURIComponent(item.id)}/draft`, {
             method: 'POST',
             body: {
-              title: item.caption.trim().slice(0, 80) || item.media[0]?.fileName || 'Batch post',
+              title:
+                item.caption.trim().split('\n')[0].slice(0, 80) ||
+                item.media[0]?.fileName ||
+                'Batch post',
               body,
               plainText: item.caption,
               assetIds: item.media.map((entry) => entry.assetId!),
@@ -463,6 +502,9 @@ export function BatchWorkspace({
       })
       if (!requests.length) {
         setVerdicts({})
+        toast.info(
+          'No saved draft has an account left to schedule. Choose accounts on the items, then save them as drafts.'
+        )
         return
       }
       const { results } = await call<{ results: BatchValidation[] }>(`${base}/validate`, {
@@ -838,6 +880,16 @@ export function BatchWorkspace({
                               : entry.status === 'FAILED'
                                 ? 'Refused at upload; remove it or select a valid file'
                                 : 'Waiting to upload'}
+                      {upload?.error ? (
+                        <Button
+                          size="sm"
+                          variant="link"
+                          className="h-auto p-0 pl-1 text-xs"
+                          onClick={() => retryUpload(item.id, at)}
+                        >
+                          Try again
+                        </Button>
+                      ) : null}
                     </li>
                   )
                 })}

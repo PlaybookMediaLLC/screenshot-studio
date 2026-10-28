@@ -45,14 +45,20 @@ export function channelProblem(channels: string[], connected: readonly string[])
     return `No connected ${missing.join(', ')} account in this publishing brand. Connect it, or remove it from this row's channels.`
 }
 
-/** Split quoted CSV into rows, including embedded newlines and escaped quotes. */
-function csvRows(input: string): string[][] {
+/**
+ * Split quoted CSV into rows, including embedded newlines and escaped quotes.
+ * Each row keeps the file line it starts on, so a caption with a line break
+ * does not shift the lines named after it.
+ */
+function csvRows(input: string): { line: number; values: string[] }[] {
   if (input.length > 1_000_000) throw new Error('CSV files must be smaller than 1 MB.')
-  const rows: string[][] = []
+  const rows: { line: number; values: string[] }[] = []
   let row: string[] = [],
     field = '',
     quoted = false,
-    closed = false
+    closed = false,
+    line = 1,
+    start = 1
   const fieldEnd = () => {
     row.push(field)
     field = ''
@@ -60,12 +66,14 @@ function csvRows(input: string): string[][] {
   }
   const rowEnd = () => {
     fieldEnd()
-    if (row.some((value) => value.trim())) rows.push(row)
+    if (row.some((value) => value.trim())) rows.push({ line: start, values: row })
     row = []
+    start = line
   }
   const text = input.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
   for (let i = 0; i < text.length; i++) {
     const char = text[i]
+    if (char === '\n') line++
     if (quoted) {
       if (char === '"') {
         if (text[i + 1] === '"') {
@@ -102,7 +110,7 @@ const list = (value: string | undefined) =>
  */
 export function parseBatchCSV(input: string): { mapping: ImportMapping; rows: ImportRow[] } {
   const rows = csvRows(input)
-  const headers = rows.shift()?.map((value) => value.trim()) ?? []
+  const headers = rows.shift()?.values.map((value) => value.trim()) ?? []
   const mapping: ImportMapping = headers.map((header) => {
     const name = header.toLowerCase().replace(/[\s_-]+/g, '')
     const field = name === 'timezone' ? 'timezone' : FIELDS.find((item) => item === name)
@@ -115,8 +123,7 @@ export function parseBatchCSV(input: string): { mapping: ImportMapping; rows: Im
   if (!rows.length || rows.length > 50) throw new Error('Import between 1 and 50 rows.')
   return {
     mapping,
-    rows: rows.map((values, index) => {
-      const line = index + 2
+    rows: rows.map(({ line, values }) => {
       const problems: string[] = []
       if (values.length !== headers.length)
         problems.push(`Line ${line} has the wrong number of fields.`)
@@ -151,6 +158,9 @@ export function parseBatchCSV(input: string): { mapping: ImportMapping; rows: Im
 const ASSET_ID =
   /^(?:[a-z0-9]{10,32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/
 
+/** Whether a CSV media token names a workspace asset rather than a file. */
+export const isAssetId = (token: string) => ASSET_ID.test(token)
+
 /** An attachment of a row: a workspace asset, or a selected file to upload. */
 export type MatchedMedia = { assetId: string } | { fileName: string; bytes: number }
 
@@ -173,7 +183,7 @@ export function matchRowMedia(
       problems.push(`Two selected files are named ${token}. Rename one and select the files again.`)
     } else if (named.length === 1) {
       media.push({ fileName: token, bytes: named[0].size })
-    } else if (ASSET_ID.test(token)) {
+    } else if (isAssetId(token)) {
       if (assets.has(token)) media.push({ assetId: token })
       else problems.push(`Line ${row.line}: asset ${token} is not in this workspace's library.`)
     } else {

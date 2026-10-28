@@ -101,12 +101,12 @@ test(
     await page.getByRole('button', { name: /^Add 1 ready rows/ }).click()
     await reserved
     await page.unrouteAll({ behavior: 'ignoreErrors' })
-    // After the reload the page tries to finish the upload, finds no bytes, and forgets it.
-    const forgotten = page.waitForResponse(
-      (response) => response.request().method() === 'PATCH' && response.ok()
+    // After the reload the page tries to finish the upload and finds no bytes.
+    const refused = page.waitForResponse((response) =>
+      response.url().includes('asset.completeUpload')
     )
     await app.reload()
-    await forgotten
+    await refused
 
     const item = page.getByTestId('batch-item')
     await expect(

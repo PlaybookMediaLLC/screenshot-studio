@@ -16,8 +16,22 @@ test('CSV preserves quoted commas, line breaks, Unicode, literal formulas, and e
       channels: ['x', 'linkedin'],
       problems: [],
     },
-    { line: 3, caption: '=SUM(1)', assets: [], channels: ['x'], problems: [] },
+    // The caption above spans two lines, so this row starts on line 4.
+    { line: 4, caption: '=SUM(1)', assets: [], channels: ['x'], problems: [] },
   ])
+})
+
+test('rows are named by the file line they start on, past captions with line breaks', () => {
+  const { rows } = parseBatchCSV('caption,asset\n"First\nsecond line",a.png\n\nNext,b.png\nLast,')
+  assert.deepEqual(
+    rows.map((row) => [row.line, row.caption]),
+    [
+      [2, 'First\nsecond line'],
+      [5, 'Next'],
+      [6, 'Last'],
+    ]
+  )
+  assert.match(matchRowMedia(rows[1], [], new Set()).problems[0], /^Line 5:/)
 })
 
 test('the mapping is shown: unknown columns are listed as ignored, times and zones are read', () => {

@@ -1,6 +1,8 @@
+import Link from 'next/link'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page } from '@/components/platform-ui'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
+import { Button } from '@/components/ui/button'
 import { NewBatchButton } from '@/components/write/batch/NewBatchButton'
 import { hasPermission } from '@/lib/auth/permissions'
 import { listContentBatches } from '@/lib/tenant/content-batches'
@@ -33,11 +35,15 @@ export default async function BatchesPage({
         title="Bulk scheduling"
         description="Prepare up to 50 separate posts at once from photos, videos or a CSV. Each becomes its own draft; review and scheduling work as they do for one draft. A batch is saved as you go."
       >
-        {canEdit ? (
+        {canEdit && sets.length ? (
           <NewBatchButton
             sets={sets.map((set) => ({ id: set.id, name: set.name }))}
             defaultSetId={query.set}
           />
+        ) : canEdit ? (
+          <Button asChild variant="outline" className="w-fit">
+            <Link href="/workspace/social-sets">Connect a social account to start a batch</Link>
+          </Button>
         ) : null}
         <ul className="divide-y rounded-xl border">
           {batches.map((batch) => (

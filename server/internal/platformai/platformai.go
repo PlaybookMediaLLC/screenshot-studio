@@ -119,17 +119,19 @@ func (c *Client) Structured(ctx context.Context, request Request, out any) (Usag
 	// The schema is ours, so it may sit in the system prompt; a provider that
 	// ignores response_format still knows the shape to answer in.
 	system := request.System + "\n\nReply with only a JSON object that matches this JSON Schema:\n" + string(request.Schema)
+	// No temperature: Claude 5.5 models reject any but the default. Low effort
+	// keeps their default thinking, which counts toward max_tokens, short.
 	body, err := json.Marshal(map[string]any{
 		"max_tokens": maxTokens,
 		"messages": []map[string]string{
 			{"content": system, "role": "system"},
 			{"content": request.Prompt, "role": "user"},
 		},
-		"model": model,
+		"model":     model,
+		"reasoning": map[string]string{"effort": "low"},
 		"response_format": map[string]any{"type": "json_schema", "json_schema": map[string]any{
 			"name": request.SchemaName, "schema": request.Schema, "strict": true}},
-		"temperature": 0,
-		"usage":       map[string]bool{"include": true},
+		"usage": map[string]bool{"include": true},
 	})
 	if err != nil {
 		return Usage{}, err

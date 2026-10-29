@@ -33,6 +33,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatch"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatchitem"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
@@ -46,6 +48,9 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
@@ -211,11 +216,11 @@ func init() {
 	assetFields := schema.Asset{}.Fields()
 	_ = assetFields
 	// assetDescCreatedAt is the schema descriptor for created_at field.
-	assetDescCreatedAt := assetFields[12].Descriptor()
+	assetDescCreatedAt := assetFields[15].Descriptor()
 	// asset.DefaultCreatedAt holds the default value on creation for the created_at field.
 	asset.DefaultCreatedAt = assetDescCreatedAt.Default.(func() time.Time)
 	// assetDescUpdatedAt is the schema descriptor for updated_at field.
-	assetDescUpdatedAt := assetFields[13].Descriptor()
+	assetDescUpdatedAt := assetFields[16].Descriptor()
 	// asset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	asset.DefaultUpdatedAt = assetDescUpdatedAt.Default.(func() time.Time)
 	// asset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -448,6 +453,34 @@ func init() {
 	contentangle.DefaultUpdatedAt = contentangleDescUpdatedAt.Default.(func() time.Time)
 	// contentangle.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	contentangle.UpdateDefaultUpdatedAt = contentangleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	contentbatchFields := schema.ContentBatch{}.Fields()
+	_ = contentbatchFields
+	// contentbatchDescCreatedAt is the schema descriptor for created_at field.
+	contentbatchDescCreatedAt := contentbatchFields[6].Descriptor()
+	// contentbatch.DefaultCreatedAt holds the default value on creation for the created_at field.
+	contentbatch.DefaultCreatedAt = contentbatchDescCreatedAt.Default.(func() time.Time)
+	// contentbatchDescUpdatedAt is the schema descriptor for updated_at field.
+	contentbatchDescUpdatedAt := contentbatchFields[7].Descriptor()
+	// contentbatch.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	contentbatch.DefaultUpdatedAt = contentbatchDescUpdatedAt.Default.(func() time.Time)
+	// contentbatch.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	contentbatch.UpdateDefaultUpdatedAt = contentbatchDescUpdatedAt.UpdateDefault.(func() time.Time)
+	contentbatchitemFields := schema.ContentBatchItem{}.Fields()
+	_ = contentbatchitemFields
+	// contentbatchitemDescCaption is the schema descriptor for caption field.
+	contentbatchitemDescCaption := contentbatchitemFields[6].Descriptor()
+	// contentbatchitem.DefaultCaption holds the default value on creation for the caption field.
+	contentbatchitem.DefaultCaption = contentbatchitemDescCaption.Default.(string)
+	// contentbatchitemDescCreatedAt is the schema descriptor for created_at field.
+	contentbatchitemDescCreatedAt := contentbatchitemFields[11].Descriptor()
+	// contentbatchitem.DefaultCreatedAt holds the default value on creation for the created_at field.
+	contentbatchitem.DefaultCreatedAt = contentbatchitemDescCreatedAt.Default.(func() time.Time)
+	// contentbatchitemDescUpdatedAt is the schema descriptor for updated_at field.
+	contentbatchitemDescUpdatedAt := contentbatchitemFields[12].Descriptor()
+	// contentbatchitem.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	contentbatchitem.DefaultUpdatedAt = contentbatchitemDescUpdatedAt.Default.(func() time.Time)
+	// contentbatchitem.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	contentbatchitem.UpdateDefaultUpdatedAt = contentbatchitemDescUpdatedAt.UpdateDefault.(func() time.Time)
 	contentdraftFields := schema.ContentDraft{}.Fields()
 	_ = contentdraftFields
 	// contentdraftDescDiscussions is the schema descriptor for discussions field.
@@ -660,6 +693,72 @@ func init() {
 	enrichmentrecord.DefaultUpdatedAt = enrichmentrecordDescUpdatedAt.Default.(func() time.Time)
 	// enrichmentrecord.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	enrichmentrecord.UpdateDefaultUpdatedAt = enrichmentrecordDescUpdatedAt.UpdateDefault.(func() time.Time)
+	frontendactivationFields := schema.FrontendActivation{}.Fields()
+	_ = frontendactivationFields
+	// frontendactivationDescCommitSha is the schema descriptor for commit_sha field.
+	frontendactivationDescCommitSha := frontendactivationFields[4].Descriptor()
+	// frontendactivation.DefaultCommitSha holds the default value on creation for the commit_sha field.
+	frontendactivation.DefaultCommitSha = frontendactivationDescCommitSha.Default.(string)
+	// frontendactivationDescCreatedAt is the schema descriptor for created_at field.
+	frontendactivationDescCreatedAt := frontendactivationFields[10].Descriptor()
+	// frontendactivation.DefaultCreatedAt holds the default value on creation for the created_at field.
+	frontendactivation.DefaultCreatedAt = frontendactivationDescCreatedAt.Default.(func() time.Time)
+	// frontendactivationDescUpdatedAt is the schema descriptor for updated_at field.
+	frontendactivationDescUpdatedAt := frontendactivationFields[11].Descriptor()
+	// frontendactivation.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	frontendactivation.DefaultUpdatedAt = frontendactivationDescUpdatedAt.Default.(func() time.Time)
+	frontendobservationFields := schema.FrontendObservation{}.Fields()
+	_ = frontendobservationFields
+	// frontendobservationDescReceivedAt is the schema descriptor for received_at field.
+	frontendobservationDescReceivedAt := frontendobservationFields[10].Descriptor()
+	// frontendobservation.DefaultReceivedAt holds the default value on creation for the received_at field.
+	frontendobservation.DefaultReceivedAt = frontendobservationDescReceivedAt.Default.(func() time.Time)
+	// frontendobservationDescProcessedAt is the schema descriptor for processed_at field.
+	frontendobservationDescProcessedAt := frontendobservationFields[11].Descriptor()
+	// frontendobservation.DefaultProcessedAt holds the default value on creation for the processed_at field.
+	frontendobservation.DefaultProcessedAt = frontendobservationDescProcessedAt.Default.(func() time.Time)
+	frontendsourceFields := schema.FrontendSource{}.Fields()
+	_ = frontendsourceFields
+	// frontendsourceDescGithubSourceID is the schema descriptor for github_source_id field.
+	frontendsourceDescGithubSourceID := frontendsourceFields[5].Descriptor()
+	// frontendsource.DefaultGithubSourceID holds the default value on creation for the github_source_id field.
+	frontendsource.DefaultGithubSourceID = frontendsourceDescGithubSourceID.Default.(string)
+	// frontendsourceDescRevision is the schema descriptor for revision field.
+	frontendsourceDescRevision := frontendsourceFields[7].Descriptor()
+	// frontendsource.DefaultRevision holds the default value on creation for the revision field.
+	frontendsource.DefaultRevision = frontendsourceDescRevision.Default.(int)
+	// frontendsourceDescEnabled is the schema descriptor for enabled field.
+	frontendsourceDescEnabled := frontendsourceFields[8].Descriptor()
+	// frontendsource.DefaultEnabled holds the default value on creation for the enabled field.
+	frontendsource.DefaultEnabled = frontendsourceDescEnabled.Default.(bool)
+	// frontendsourceDescEncryptedToken is the schema descriptor for encrypted_token field.
+	frontendsourceDescEncryptedToken := frontendsourceFields[9].Descriptor()
+	// frontendsource.DefaultEncryptedToken holds the default value on creation for the encrypted_token field.
+	frontendsource.DefaultEncryptedToken = frontendsourceDescEncryptedToken.Default.(string)
+	// frontendsourceDescEncryptedSecret is the schema descriptor for encrypted_secret field.
+	frontendsourceDescEncryptedSecret := frontendsourceFields[10].Descriptor()
+	// frontendsource.DefaultEncryptedSecret holds the default value on creation for the encrypted_secret field.
+	frontendsource.DefaultEncryptedSecret = frontendsourceDescEncryptedSecret.Default.(string)
+	// frontendsourceDescBaselineAt is the schema descriptor for baseline_at field.
+	frontendsourceDescBaselineAt := frontendsourceFields[11].Descriptor()
+	// frontendsource.DefaultBaselineAt holds the default value on creation for the baseline_at field.
+	frontendsource.DefaultBaselineAt = frontendsourceDescBaselineAt.Default.(func() time.Time)
+	// frontendsourceDescEffectiveAt is the schema descriptor for effective_at field.
+	frontendsourceDescEffectiveAt := frontendsourceFields[12].Descriptor()
+	// frontendsource.DefaultEffectiveAt holds the default value on creation for the effective_at field.
+	frontendsource.DefaultEffectiveAt = frontendsourceDescEffectiveAt.Default.(func() time.Time)
+	// frontendsourceDescHealth is the schema descriptor for health field.
+	frontendsourceDescHealth := frontendsourceFields[14].Descriptor()
+	// frontendsource.DefaultHealth holds the default value on creation for the health field.
+	frontendsource.DefaultHealth = frontendsourceDescHealth.Default.(string)
+	// frontendsourceDescCheckpoint is the schema descriptor for checkpoint field.
+	frontendsourceDescCheckpoint := frontendsourceFields[15].Descriptor()
+	// frontendsource.DefaultCheckpoint holds the default value on creation for the checkpoint field.
+	frontendsource.DefaultCheckpoint = frontendsourceDescCheckpoint.Default.(map[string]string)
+	// frontendsourceDescUpdatedAt is the schema descriptor for updated_at field.
+	frontendsourceDescUpdatedAt := frontendsourceFields[16].Descriptor()
+	// frontendsource.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	frontendsource.DefaultUpdatedAt = frontendsourceDescUpdatedAt.Default.(func() time.Time)
 	githubdeliveryrecoveryFields := schema.GitHubDeliveryRecovery{}.Fields()
 	_ = githubdeliveryrecoveryFields
 	// githubdeliveryrecoveryDescRecovery is the schema descriptor for recovery field.

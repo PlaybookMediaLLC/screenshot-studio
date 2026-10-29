@@ -1,11 +1,17 @@
 package media
 
 import (
+	"bytes"
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/johannesboyne/gofakes3"
+	"github.com/johannesboyne/gofakes3/backend/s3mem"
 )
 
 func TestPrivateMediaSigningAndObjectExistence(t *testing.T) {
@@ -65,5 +71,61 @@ func TestTenantObjectAccessRejectsForeignAndUnsafeKeys(t *testing.T) {
 		if _, err := objects.SignDelivery(context.Background(), "org-1", key); err == nil {
 			t.Errorf("unsafe object delivery accepted: %q", key)
 		}
+	}
+}
+
+// A large file goes in parts through signed URLs; the server lists and
+// completes them, and an abort after completion is not an error.
+func TestMultipartUploadThroughSignedParts(t *testing.T) {
+	server := httptest.NewServer(gofakes3.New(s3mem.New(), gofakes3.WithAutoBucket(true)).Server())
+	defer server.Close()
+	store, err := NewS3Store(server.URL, server.URL, "us-east-1", "tenant-assets", "test-key", "test-secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	key := "org/org-1/input/asset-1/1/clip.mp4"
+	uploadID, err := store.CreateMultipartUpload(ctx, key, "video/mp4")
+	if err != nil || uploadID == "" {
+		t.Fatalf("upload=%q err=%v", uploadID, err)
+	}
+	parts := [][]byte{bytes.Repeat([]byte("a"), 5<<20), []byte("tail")}
+	put := func(number int, body []byte) {
+		t.Helper()
+		url, err := store.SignUploadPart(ctx, key, uploadID, number, int64(len(body)))
+		if err != nil || !strings.Contains(url, "partNumber="+strconv.Itoa(number)) || !strings.Contains(url, "content-length") {
+			t.Fatalf("part URL=%q err=%v", url, err)
+		}
+		request, _ := http.NewRequest(http.MethodPut, url, bytes.NewReader(body))
+		response, err := http.DefaultClient.Do(request)
+		if err != nil || response.StatusCode != http.StatusOK {
+			t.Fatalf("part %d: %v %v", number, response, err)
+		}
+		response.Body.Close()
+	}
+	put(2, parts[1])
+	put(1, []byte("a part sent before a dropped connection"))
+	put(1, parts[0]) // sent again; storage keeps the latest
+	listed, err := store.ListUploadedParts(ctx, key, uploadID)
+	if err != nil || len(listed) != 2 || listed[0].Number != 1 || listed[0].Bytes != 5<<20 || listed[1].Bytes != 4 || listed[0].ETag == "" {
+		t.Fatalf("parts=%+v err=%v", listed, err)
+	}
+	if exists, _ := store.Exists(ctx, key); exists {
+		t.Fatal("an unfinished upload is not an object")
+	}
+	if err := store.CompleteMultipartUpload(ctx, key, uploadID, listed); err != nil {
+		t.Fatal(err)
+	}
+	object, err := store.Open(ctx, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, _ := io.ReadAll(object)
+	object.Close()
+	if !bytes.Equal(stored, append(append([]byte{}, parts[0]...), parts[1]...)) {
+		t.Fatalf("stored %d bytes", len(stored))
+	}
+	if err := store.AbortMultipartUpload(ctx, key, uploadID); err != nil {
+		t.Fatalf("abort after completion: %v", err)
 	}
 }

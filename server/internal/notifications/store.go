@@ -442,7 +442,7 @@ func audit(ctx context.Context, tx *sql.Tx, p Principal, action, id string) erro
 	return nil
 }
 
-var resourceTables = map[string]string{"campaign": "campaign", "release": "release", "source_change": "source_change", "source_app": "source_app", "deployment_event": "deployment_event", "asset": "asset", "creative_variant": "creative_variant", "release_spec": "release_spec", "campaign_plan": "campaign_plan", "launch_run": "launch_run", "content_draft": "content_draft", "store_review": "store_review", "product_surface": "product_surface", "scheduled_post": "scheduled_post", "project": "project", "release_automation_run": "release_automation_run"}
+var resourceTables = map[string]string{"frontend_source": "frontend_source", "frontend_activation": "frontend_activation", "campaign": "campaign", "release": "release", "source_change": "source_change", "source_app": "source_app", "deployment_event": "deployment_event", "asset": "asset", "creative_variant": "creative_variant", "release_spec": "release_spec", "campaign_plan": "campaign_plan", "launch_run": "launch_run", "content_draft": "content_draft", "store_review": "store_review", "product_surface": "product_surface", "scheduled_post": "scheduled_post", "project": "project", "release_automation_run": "release_automation_run"}
 
 func (s *Service) resource(ctx context.Context, org, user, kind, id string) (bool, map[string]any, error) {
 	var role string
@@ -521,6 +521,10 @@ func href(kind, id string, row map[string]any) string {
 		return ""
 	case "campaign":
 		return "/campaigns/" + id + "/copy"
+	case "frontend_source":
+		return "/workflows/deployments?source=" + url.QueryEscape(id)
+	case "frontend_activation":
+		return "/workflows/deployments?source=" + url.QueryEscape(textValue(row, "sourceId"))
 	case "release_automation_run":
 		return "/workflows/runs/" + id
 	case "content_draft":
@@ -564,7 +568,11 @@ func appURL(path string) string {
 	if err != nil || u.Host == "" || u.User != nil || (u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1"))) || !strings.HasPrefix(path, "/") || strings.HasPrefix(path, "//") {
 		return ""
 	}
-	u.Path, u.RawQuery, u.Fragment = path, "", ""
+	target, err := url.ParseRequestURI(path)
+	if err != nil || target.Host != "" || target.Scheme != "" {
+		return ""
+	}
+	u.Path, u.RawPath, u.RawQuery, u.Fragment = target.Path, target.RawPath, target.RawQuery, ""
 	return u.String()
 }
 func textValue(m map[string]any, k string) string { s, _ := m[k].(string); return s }

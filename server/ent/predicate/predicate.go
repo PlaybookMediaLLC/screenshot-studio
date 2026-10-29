@@ -87,6 +87,12 @@ type CommunicationRecipient func(*sql.Selector)
 // ContentAngle is the predicate function for contentangle builders.
 type ContentAngle func(*sql.Selector)
 
+// ContentBatch is the predicate function for contentbatch builders.
+type ContentBatch func(*sql.Selector)
+
+// ContentBatchItem is the predicate function for contentbatchitem builders.
+type ContentBatchItem func(*sql.Selector)
+
 // ContentDraft is the predicate function for contentdraft builders.
 type ContentDraft func(*sql.Selector)
 
@@ -125,6 +131,15 @@ type Design func(*sql.Selector)
 
 // EnrichmentRecord is the predicate function for enrichmentrecord builders.
 type EnrichmentRecord func(*sql.Selector)
+
+// FrontendActivation is the predicate function for frontendactivation builders.
+type FrontendActivation func(*sql.Selector)
+
+// FrontendObservation is the predicate function for frontendobservation builders.
+type FrontendObservation func(*sql.Selector)
+
+// FrontendSource is the predicate function for frontendsource builders.
+type FrontendSource func(*sql.Selector)
 
 // GitHubDeliveryRecovery is the predicate function for githubdeliveryrecovery builders.
 type GitHubDeliveryRecovery func(*sql.Selector)

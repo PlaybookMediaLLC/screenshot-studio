@@ -93,6 +93,14 @@ func (Asset) Fields() []ent.Field {
 		field.Int("bytes").StorageKey("bytes"),
 		field.Int("width").StorageKey("width").Optional().Nillable(),
 		field.Int("height").StorageKey("height").Optional().Nillable(),
+		// A video's length and sample entry codecs (avc1,mp4a), read from its
+		// container when the upload completes; empty for other media and for
+		// videos uploaded before scheduling checked them.
+		field.Int("duration_ms").StorageKey("durationMs").Optional().Nillable(),
+		field.String("codecs").StorageKey("codecs").Optional().Nillable(),
+		// The storage multipart upload of a large file still being sent;
+		// cleared once the server completes it.
+		field.String("upload_id").StorageKey("uploadId").Optional().Nillable(),
 		field.Enum("status").StorageKey("status").Values("PENDING", "UPLOADED", "FAILED", "DELETED").Default("PENDING"),
 		// AltText describes an image for people who cannot see it (RFC 025);
 		// it goes out with the image wherever it is posted.

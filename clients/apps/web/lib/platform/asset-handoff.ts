@@ -16,6 +16,8 @@ export function draftAssetNode(asset: { id: string; mediaType: string }) {
   return {
     type: IMAGES.has(asset.mediaType) ? 'img' : 'video',
     assetId: id,
+    // The stored type lets the composer check each destination's formats.
+    mimeType: asset.mediaType,
     url: `/api/v1/assets/${encodeURIComponent(id)}/content`,
     children: [{ text: '' }],
   }

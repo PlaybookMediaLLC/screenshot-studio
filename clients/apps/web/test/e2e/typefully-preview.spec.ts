@@ -2,13 +2,16 @@ import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import sharp from 'sharp'
 import {
+  addBatchRows,
   apiRequest,
   chooseOption,
   draftEditor,
   expect,
   expectSaved,
+  openNewBatch,
   openNewDraft,
   type Page,
+  saveBatchDrafts,
   signedAssetSchema,
   test,
   uploadSignedAsset,
@@ -95,22 +98,13 @@ test(
     const errors: string[] = []
     page.on('pageerror', (e) => errors.push(e.message))
     await startWorkspace({ channels: ['x', 'linkedin'] })
-    await app.open('/write')
-    await page.getByRole('button', { name: 'Bulk import', exact: true }).click()
-    await page
-      .getByLabel('Batch media files')
-      .setInputFiles([fixture('preview.mp4'), fixture('preview.pdf')])
-    await page
-      .getByLabel('Batch CSV', { exact: true })
-      .fill(
-        'caption,asset,channels\nMoving picture,preview.mp4,x\nTwo-page document,preview.pdf,linkedin'
-      )
-    await page.getByRole('button', { name: 'Review import', exact: true }).click()
-    await page.getByRole('button', { name: 'Create remaining drafts', exact: true }).click()
-    const links = page.getByRole('link', { name: 'Draft created', exact: true })
-    await expect(links).toHaveCount(2, { timeout: 60_000 })
-    const videoURL = (await links.nth(0).getAttribute('href'))!,
-      pdfURL = (await links.nth(1).getAttribute('href'))!
+    await openNewBatch(page, app)
+    await addBatchRows(
+      page,
+      'caption,asset,channels\nMoving picture,preview.mp4,x\nTwo-page document,preview.pdf,linkedin',
+      [fixture('preview.mp4'), fixture('preview.pdf')]
+    )
+    const [videoURL, pdfURL] = (await saveBatchDrafts(page)).map((id) => `/write/${id}`)
     await page.goto(videoURL)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     const video = page.getByTestId('preview-x').getByLabel('Attached video')

@@ -122,7 +122,7 @@ func (f *fakeConfiguration) DeleteAsset(context.Context, product.Actor, string) 
 func (f *fakeConfiguration) SignAssetUpload(context.Context, product.Actor, product.AssetUploadInput) (*product.AssetUploadResult, error) {
 	return &product.AssetUploadResult{Asset: product.AssetRecord{ID: "asset-1", Status: "PENDING"}, UploadURL: "https://media.example.test/upload"}, nil
 }
-func (f *fakeConfiguration) CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error) {
+func (f *fakeConfiguration) CompleteAssetUpload(context.Context, product.Actor, string, *string, ...string) (*product.AssetRecord, error) {
 	return &product.AssetRecord{ID: "asset-1", Status: "UPLOADED"}, nil
 }
 func (f *fakeConfiguration) SignAssetDownload(context.Context, product.Actor, string) (string, error) {

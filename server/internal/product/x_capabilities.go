@@ -89,7 +89,7 @@ func checkXTarget(ctx context.Context, tx *ent.Tx, connection *ent.ChannelConnec
 				if mediaresize.Static(row.MediaType) && size <= mediaresize.MaxSourceBytes {
 					size = min(size, caps.ImageMaxBytes)
 				}
-				media = append(media, socialidentity.XMedia{MIME: row.MediaType, Bytes: size})
+				media = append(media, socialidentity.XMedia{MIME: row.MediaType, Bytes: size, DurationMs: derefInt(row.DurationMs)})
 			}
 		}
 		if options != nil && len(options.PhotoTagIDs) > 0 {

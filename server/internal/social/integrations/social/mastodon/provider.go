@@ -241,7 +241,11 @@ func (p *Provider) UploadFile(ctx context.Context, instanceURL, fileURL, accessT
 		if filename == "" || filename == "/" {
 			filename = "file"
 		}
-		partType := mime.TypeByExtension(path.Ext(filename))
+		// The stored object's type is authoritative; a minimal image may lack a MIME table.
+		partType := fileRes.Header.Get("Content-Type")
+		if !strings.HasPrefix(partType, "image/") && !strings.HasPrefix(partType, "video/") && !strings.HasPrefix(partType, "audio/") {
+			partType = mime.TypeByExtension(path.Ext(filename))
+		}
 		if partType == "" {
 			partType = "application/octet-stream"
 		}

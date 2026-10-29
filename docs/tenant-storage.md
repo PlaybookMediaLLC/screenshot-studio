@@ -16,23 +16,41 @@ authority; it asks the backend for a short-lived signed URL.
 
 There is no separate storage metadata database or Storage API service. The
 `asset` row is the canonical record: its organization, object key, media
-type, size, hash, and status (`PENDING`, `UPLOADED`, `DELETED`).
+type, size, hash, status (`PENDING`, `UPLOADED`, `FAILED`, `DELETED`), the
+dimensions and video length and codecs read at completion, and the multipart
+upload a large file is still being sent in (`uploadId`).
 
 ## Flow
 
 1. The web calls `signAssetUpload`. The backend checks the caller's role and
-   the workspace storage quota, inserts a `PENDING` asset, and returns a PUT
-   URL for its object key.
+   the workspace storage quota under a per-workspace lock, inserts a
+   `PENDING` asset, and returns a PUT URL for its object key. A browser file
+   over 16 MiB goes through `signAssetUploadInParts` instead: the backend
+   starts a multipart upload and the browser asks `signAssetUploadParts` for
+   one 15-minute URL per 16 MiB part, and for the parts storage already
+   holds when it resumes.
 2. The browser uploads directly to the bucket.
-3. The web calls `completeAssetUpload`. The backend confirms the object
-   exists, optionally checks its SHA-256, and marks the asset `UPLOADED`.
+3. The web calls `completeAssetUpload`. For a multipart upload the backend
+   lists the stored parts and joins them once each is whole. It then streams
+   the object once: exact length, SHA-256 (of the whole file, or of each part
+   as the browser read it), content signature, and image or video container,
+   and marks the asset `UPLOADED` or, for bytes that are not what they claim,
+   `FAILED`.
 4. Browser downloads call `signAssetDownload`. Rendering and AI tools call
    `readAsset` through the SDK so the backend reads the object and returns its
    bytes. Both operations require an `UPLOADED` asset in the caller's workspace.
 
 Object keys are namespaced `org/<organizationId>/...`, and the backend
 refuses a key outside the caller's organization. Signed URLs expire after
-two minutes, long enough to finish one transfer and no longer.
+two minutes, long enough to start one transfer and no longer; part URLs last
+15 minutes. Publishing signs a 24-hour read only when a post is due.
+
+The hourly `asset-cleanup` job retires a `PENDING` reservation after 24
+hours, a `FAILED` one after an hour, and a provider derivative nothing has
+used for 30 days, through the `asset.deleted` outbox, which also aborts an
+unfinished multipart upload's parts. Neither cleanup nor deletion touches an
+asset a draft, an unfinished post or an open bulk batch still references
+(`platform_asset_in_use_v1`). See [media scheduling](media-scheduling.md).
 
 ## Configuration
 
@@ -44,7 +62,10 @@ renderer strips every storage and database key from the web service, and
 `test/web-database-boundary.test.ts` keeps database clients out of web code.
 
 The bucket's CORS policy must allow `PUT` and `GET` from the web origin, with
-the `Content-Type` and `If-None-Match` request headers. Upload URLs are signed
+the `Content-Type` and `If-None-Match` request headers. Part uploads need
+nothing more: the backend, not the browser, reads each part's `ETag`. Keep the
+bucket's default lifecycle rule that aborts unfinished multipart uploads
+after 7 days. Upload URLs are signed
 write-once (`If-None-Match: *`): a replayed PUT gets `412` and cannot replace
 bytes the backend already verified. The Compose RustFS initializer applies the
 policy locally. The production policy is versioned in
@@ -87,8 +108,13 @@ code that references it. Never attach a public domain to the tenant bucket.
 ## Verification
 
 - `server/internal/media`: `TestPrivateMediaSigningAndObjectExistence`
-  covers signing, and `TestS3StoreRoundTrip` exercises a real bucket when
-  `MEDIA_TEST_ENDPOINT` and the `R2_*` variables are set.
+  covers signing, `TestMultipartUploadThroughSignedParts` sends parts through
+  signed URLs to an in-process S3 implementation, and `TestLocalS3RoundTrip`
+  exercises a local bucket when `PUBLISHING_TEST_LOCAL_OBJECT_STORE` and the
+  `R2_*` variables are set.
+- `server/internal/product`: `TestLargeUploadsGoInParts` (resume, missing and
+  short parts, part digests, tenant scope), `TestConcurrentUploadsCannotExceedStorage`
+  and `TestDeletingAnAssetKeepsMediaThatIsStillNeeded`.
 - `server/internal/product`: the asset integration tests cover upload
   completion, duplicate completion, generated images, outbox events, and
   cross-tenant key rejection against a disposable database.

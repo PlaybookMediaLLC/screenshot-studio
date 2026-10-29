@@ -37,4 +37,12 @@ func TestXContentUsesVerifiedLimitsWithoutChangingContent(t *testing.T) {
 	if CheckXMedia(standard, []XMedia{{MIME: "image/png", Bytes: 5000000}, {MIME: "image/webp", Bytes: 1}}) != nil || CheckXMedia(standard, []XMedia{{MIME: "image/gif", Bytes: 15000000}}) != nil {
 		t.Fatal("supported original images refused")
 	}
+	// A verified account's video allowance bounds the recorded length; an unknown length is left to the publisher.
+	none := "None"
+	twenty := XVerifiedAccountLimits("read-write", &none)
+	if CheckXMedia(twenty, []XMedia{{MIME: "video/mp4", Bytes: 1, DurationMs: 1_200_000}}) != nil ||
+		CheckXMedia(twenty, []XMedia{{MIME: "video/mp4", Bytes: 1}}) != nil ||
+		CheckXMedia(twenty, []XMedia{{MIME: "video/mp4", Bytes: 1, DurationMs: 1_200_001}}) == nil {
+		t.Fatal("video length was not checked against the account allowance")
+	}
 }

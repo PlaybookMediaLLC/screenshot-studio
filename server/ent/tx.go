@@ -66,6 +66,10 @@ type Tx struct {
 	CommunicationRecipient *CommunicationRecipientClient
 	// ContentAngle is the client for interacting with the ContentAngle builders.
 	ContentAngle *ContentAngleClient
+	// ContentBatch is the client for interacting with the ContentBatch builders.
+	ContentBatch *ContentBatchClient
+	// ContentBatchItem is the client for interacting with the ContentBatchItem builders.
+	ContentBatchItem *ContentBatchItemClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
 	// ContentDraftFinisher is the client for interacting with the ContentDraftFinisher builders.
@@ -92,6 +96,12 @@ type Tx struct {
 	Design *DesignClient
 	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
 	EnrichmentRecord *EnrichmentRecordClient
+	// FrontendActivation is the client for interacting with the FrontendActivation builders.
+	FrontendActivation *FrontendActivationClient
+	// FrontendObservation is the client for interacting with the FrontendObservation builders.
+	FrontendObservation *FrontendObservationClient
+	// FrontendSource is the client for interacting with the FrontendSource builders.
+	FrontendSource *FrontendSourceClient
 	// GitHubDeliveryRecovery is the client for interacting with the GitHubDeliveryRecovery builders.
 	GitHubDeliveryRecovery *GitHubDeliveryRecoveryClient
 	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
@@ -402,6 +412,8 @@ func (tx *Tx) init() {
 	tx.CommunicationAttempt = NewCommunicationAttemptClient(tx.config)
 	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
 	tx.ContentAngle = NewContentAngleClient(tx.config)
+	tx.ContentBatch = NewContentBatchClient(tx.config)
+	tx.ContentBatchItem = NewContentBatchItemClient(tx.config)
 	tx.ContentDraft = NewContentDraftClient(tx.config)
 	tx.ContentDraftFinisher = NewContentDraftFinisherClient(tx.config)
 	tx.ContentDraftRevision = NewContentDraftRevisionClient(tx.config)
@@ -415,6 +427,9 @@ func (tx *Tx) init() {
 	tx.DeploymentEvent = NewDeploymentEventClient(tx.config)
 	tx.Design = NewDesignClient(tx.config)
 	tx.EnrichmentRecord = NewEnrichmentRecordClient(tx.config)
+	tx.FrontendActivation = NewFrontendActivationClient(tx.config)
+	tx.FrontendObservation = NewFrontendObservationClient(tx.config)
+	tx.FrontendSource = NewFrontendSourceClient(tx.config)
 	tx.GitHubDeliveryRecovery = NewGitHubDeliveryRecoveryClient(tx.config)
 	tx.GitHubInstallStart = NewGitHubInstallStartClient(tx.config)
 	tx.GitHubInstallation = NewGitHubInstallationClient(tx.config)

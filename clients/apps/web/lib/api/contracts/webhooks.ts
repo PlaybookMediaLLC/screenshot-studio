@@ -50,3 +50,17 @@ export const stripeWebhookContract = defineContract({
   path: '/api/webhooks/stripe',
   summary: 'Sync a workspace plan from a Stripe subscription event',
 })
+
+/** Provider signature verification happens in the backend before JSON normalization. */
+export const frontendWebhookContract = defineContract({
+  body: z.string(),
+  bodyFormat: 'text',
+  maxBodyBytes: 1024 * 1024,
+  method: 'POST',
+  name: 'webhooks.frontend',
+  path: '/api/webhooks/frontends/{id}',
+  status: 202,
+  params: z.object({ id: z.string().min(1).max(100) }),
+  output: z.object({ accepted: z.literal(true) }),
+  summary: 'Durably accept a provider-signed frontend deployment observation',
+})

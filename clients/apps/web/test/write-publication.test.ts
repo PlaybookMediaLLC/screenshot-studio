@@ -567,3 +567,17 @@ test('synced Bluesky and Instagram versions cannot silently discard a primary po
     )
   }
 })
+
+test('an uploaded file blocks scheduling unless it is the LinkedIn document', () => {
+  const pdf = 'cpdf00000001'
+  const filed = draft({
+    body: [p('Deck'), { assetId: pdf, children: [{ text: '' }], name: 'deck.pdf', type: 'file' }],
+  })
+  assert.match(buildPublication(filed, linkedin).problems.join(), /uploaded file or audio/)
+  const versions = withOptions(readVersions(undefined), 'linkedin', {
+    document: { assetId: pdf, title: 'Deck' },
+  })
+  const document = draft({ ...filed, platformVersions: versions })
+  assert.deepEqual(buildPublication(document, linkedin).problems, [])
+  assert.match(buildPublication(document, x).problems.join(), /uploaded file or audio/)
+})

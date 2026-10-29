@@ -370,7 +370,7 @@ func TestVideoUpload(t *testing.T) {
 		n++
 		w.Header().Set("etag", "e"+strconv.Itoa(n))
 	}
-	up, err := New().uploadPicture(context.Background(), srv.URL+"/media/v.mp4", "tok", "p1", nil, Personal)
+	up, err := New().uploadPicture(context.Background(), srv.URL+"/media/v.mp4", "tok", "p1", nil, Personal, true)
 	if err != nil {
 		t.Fatal(err)
 	}

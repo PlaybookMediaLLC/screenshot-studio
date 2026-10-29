@@ -764,6 +764,8 @@ export function BatchWorkspace({
 
   const requestReviews = async () => {
     setBusy('review')
+    // A draft that could not go to review says why on its item; the others still go.
+    const failed: Record<string, string> = {}
     for (const item of items) {
       if (
         !item.draftId ||
@@ -771,8 +773,14 @@ export function BatchWorkspace({
         item.draft?.reviewStatus === 'pending'
       )
         continue
-      await draftsApi.review(item.draftId, { action: 'request' }).catch(() => null)
+      await draftsApi.review(item.draftId, { action: 'request' }).catch((error: unknown) => {
+        failed[item.id] =
+          `Review not requested: ${error instanceof Error ? error.message : 'try again.'}`
+      })
     }
+    setOutcomes((current) => ({ ...current, ...failed }))
+    const count = Object.keys(failed).length
+    if (count) toast.error(`${count} draft${count === 1 ? '' : 's'} could not be sent for review.`)
     await reload()
     setBusy(null)
   }

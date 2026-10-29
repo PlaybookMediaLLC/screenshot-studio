@@ -30,8 +30,8 @@ const (
 )
 
 var defaultModels = map[Role]string{
-	RoleDeep: "anthropic/claude-haiku-5.5", RoleDrafting: "anthropic/claude-haiku-5.5",
-	RoleFast: "anthropic/claude-haiku-5.5", RoleNano: "anthropic/claude-haiku-5.5",
+	RoleDeep: "anthropic/claude-opus-5.5", RoleDrafting: "anthropic/claude-sonnet-5.5",
+	RoleFast: "anthropic/claude-haiku-4.5", RoleNano: "anthropic/claude-haiku-4.5",
 }
 
 var modelEnv = map[Role]string{

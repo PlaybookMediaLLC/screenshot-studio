@@ -5,7 +5,7 @@ import { createDraftWorkspace } from './content-drafts'
 import { createIdentity, type E2EIdentity, waitForHydration } from './flow'
 import { getActiveOrganizationId } from './auth'
 import { createPublishingWorkspace, unbindTestGoOrganization } from './publishing'
-import { closeSharedDatabase, grantWorkspacePlan } from './services'
+import { closeSharedDatabase } from './services'
 
 /**
  * The end-to-end test framework. Every spec imports `test` and `expect` from
@@ -33,8 +33,8 @@ export { expect }
 export type WorkspaceOptions = {
   /** Connect these social channels. Brings two-factor and the social API binding. */
   channels?: readonly string[]
-  /** Pro by default; free covers the free basic scheduling plan. */
-  plan?: 'free' | 'pro'
+  /** Pro; there is no free plan. */
+  plan?: 'pro'
   /** The X identity reports standard (not Premium) video limits. */
   verifiedStandardVideo?: boolean
 }
@@ -85,7 +85,6 @@ async function buildWorkspace(
   }
   await createPublishingWorkspace(identity, page)
   const id = await getActiveOrganizationId(page)
-  if (plan === 'free') await grantWorkspacePlan(id, 'free')
   return { channels: {}, id }
 }
 

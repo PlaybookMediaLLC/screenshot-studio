@@ -138,10 +138,10 @@ test('provider readiness fails closed, recovers, and rechecks before authorizati
       await anonymous.close()
     }
     expect(reads()).toHaveLength(before)
-    // Drafts, and so connection readiness, are part of the free plan.
+    // There is no free plan: without a subscription, readiness is refused before any provider read.
     await grantWorkspacePlan(organizationId, 'free')
-    expect((await apiRequest(page, '/api/v1/social-connection-availability')).status).toBe(200)
-    expect(reads()).toHaveLength(before + 1)
+    expect((await apiRequest(page, '/api/v1/social-connection-availability')).status).toBe(403)
+    expect(reads()).toHaveLength(before)
   } finally {
     await unbindTestGoOrganization(organizationId)
     await provider.close()

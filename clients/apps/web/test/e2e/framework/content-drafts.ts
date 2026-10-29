@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
-import { db, grantWorkspacePlan } from './services'
+import { db } from './services'
 import { type E2EIdentity, setupStep } from './flow'
 import { type HttpMockServer, startHttpMockServer } from './http-server'
 import { socialWorkerPort } from './social-mock'
@@ -115,9 +115,8 @@ async function createDraftWorkspaceSteps(
   identity: E2EIdentity,
   page: Page,
   platforms: readonly string[] = ['x', 'linkedin'],
-  planOrOptions: 'free' | 'pro' | { verifiedStandardVideo?: boolean } = 'pro'
+  planOrOptions: 'pro' | { verifiedStandardVideo?: boolean } = 'pro'
 ): Promise<DraftWorkspace> {
-  const plan = typeof planOrOptions === 'string' ? planOrOptions : 'pro'
   const options = typeof planOrOptions === 'object' ? planOrOptions : {}
   let organizationId = ''
   const verifiedX = options.verifiedStandardVideo
@@ -175,7 +174,6 @@ async function createDraftWorkspaceSteps(
   // Connecting a channel and cancelling a post are sensitive actions.
   await enablePublishingTwoFactor(page, identity.password)
   organizationId = await bindTestGoOrganization(page)
-  if (plan === 'free') await grantWorkspacePlan(organizationId, plan)
   // The product checks actual provider credentials in the shared database.
   // The HTTP fixture still owns destination verification; neither path bypasses health.
   await db.query(

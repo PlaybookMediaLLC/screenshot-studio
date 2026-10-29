@@ -78,7 +78,7 @@ Shell operations (\`/api/v1/me\`, \`/api/v1/bootstrap\`, \`/api/v1/organizations
 
 ## Plans and limits
 
-Free includes basic content drafts and explicit scheduling for one seat and one connected account, with 10 posts per UTC month and no AI. Paid operations and advanced queue features require a subscription. Each gated operation publishes its gate in \`x-shots-entitlement\`: the \`feature\` it needs, the \`minimumPlan\` that includes it, and the \`quota\` it consumes.
+There is no free plan: every operation here needs a Pro, Business or Enterprise subscription, and a workspace without one can only sign in and choose a plan. Each gated operation publishes its gate in \`x-shots-entitlement\`: the \`feature\` it needs, the \`minimumPlan\` that includes it, and the \`quota\` it consumes.
 
 - A workspace without the feature gets \`403\` with code \`workspace_feature_not_entitled\`, plus \`feature\`, \`currentPlan\`, and \`requiredPlan\`.
 - A metered write past its quota gets \`429\` with code \`workspace_quota_exceeded\`, plus \`Retry-After\` and \`X-RateLimit-*\` headers.

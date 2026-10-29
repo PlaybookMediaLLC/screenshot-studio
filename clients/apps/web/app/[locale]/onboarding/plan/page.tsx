@@ -1,5 +1,4 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { ONBOARDING_STEPS, OnboardingShell } from '@/components/auth/OnboardingShell'
@@ -14,7 +13,7 @@ type OnboardingPlanPageProps = {
   params: Promise<{ locale: string }>
 }
 
-/** A new workspace chooses basic scheduling or a paid plan before continuing. */
+/** A new workspace chooses a plan before continuing; there is no free plan. */
 export default async function OnboardingPlanPage({ params }: OnboardingPlanPageProps) {
   const [{ locale }, requestHeaders] = await Promise.all([params, headers()])
   const access = await getPageAccess(requestHeaders)
@@ -45,24 +44,9 @@ export default async function OnboardingPlanPage({ params }: OnboardingPlanPageP
         <div>
           <h1 className="text-xl font-medium text-white">Choose a plan</h1>
           <p className="mt-1.5 text-neutral-400">
-            Start with free scheduling, or choose a paid plan for media, AI and the full product.
+            Pick Pro or Business to start using Shots. Change or cancel any time.
           </p>
         </div>
-        {access.hasBasicScheduling ? (
-          <div className="rounded-lg border border-white/15 p-5 text-sm text-neutral-300">
-            <h2 className="font-medium text-white">Free basic scheduling</h2>
-            <p className="mt-2">
-              One seat, one connected account, and 10 text or link posts each month. Media uploads,
-              AI and advanced queue features are included in paid plans.
-            </p>
-            <Link
-              href={getLocalizedPath(locale, '/write')}
-              className="mt-3 inline-block text-white underline"
-            >
-              Continue with free scheduling
-            </Link>
-          </div>
-        ) : null}
         <PlanCards location="onboarding_plan" withExtras={false} />
       </div>
     </OnboardingShell>

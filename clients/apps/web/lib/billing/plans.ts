@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 /**
- * Workspace plans. Free includes basic text/link scheduling for one account;
- * paid plans add media, AI, automation and advanced queue controls.
+ * Workspace plans. There is no free plan: `free` is the state of a workspace
+ * without a subscription, which keeps its owner's seat and grants nothing else.
  */
 export const workspacePlanSchema = z.enum(['free', 'pro', 'business', 'enterprise'])
 export type WorkspacePlan = z.infer<typeof workspacePlanSchema>
@@ -110,7 +110,7 @@ export const featureOverrideSchema = z
   .default({})
 
 const planFeatures = {
-  free: ['workspace:use', 'content:drafts'],
+  free: [],
   pro: [
     'asset:create',
     'asset:read',
@@ -165,14 +165,14 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'asset:delete': 'pro',
   'release:create': 'pro',
   'source-app:create': 'pro',
-  'workspace:use': 'free',
+  'workspace:use': 'pro',
   'workspace:paid': 'pro',
   'content:scheduling-advanced': 'pro',
   'enterprise:audit-drain': 'enterprise',
   'enterprise:sso': 'enterprise',
   'enterprise:scim': 'enterprise',
   'campaign:workflow': 'pro',
-  'content:drafts': 'free',
+  'content:drafts': 'pro',
   'onboarding:agent': 'pro',
 }
 
@@ -180,10 +180,10 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
 const planQuotas = {
   free: {
     'ai:credits:monthly': 0,
-    'api:write:minute': 60,
+    'api:write:minute': 0,
     'emails:monthly': 0,
     'jobs:concurrent': 0,
-    'posts:monthly': 10,
+    'posts:monthly': 0,
     'storage:bytes': 0,
   },
   pro: {
@@ -217,7 +217,7 @@ const planQuotas = {
  * unlimited. A pending invitation holds a seat; only active social channels count.
  */
 const planLimits = {
-  free: { channels: 1, seats: 1 },
+  free: { channels: 0, seats: 1 },
   pro: { channels: 15, seats: 10 },
   business: { channels: 100, seats: null },
   enterprise: { channels: null, seats: null },

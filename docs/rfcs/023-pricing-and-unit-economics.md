@@ -6,8 +6,8 @@
 > See the [current execution order](README.md). Older decision text is
 > historical wherever it conflicts with that order or the audited architecture.
 
-**Status:** Implemented; limited free scheduling approved on 2026-10-24 (see below)
-**Historical status (2026-10-16):** The Free plan was removed. This decision is superseded by the limited scheduling amendment below.
+**Status:** Implemented; there is no free plan (2026-10-29)
+**Historical status (2026-10-16):** The Free plan was removed. The 2026-10-24 limited scheduling amendment below reopened it; the product owner withdrew it on 2026-10-29.
 **Phase 0 update (2026-10-16):** Checkout returns to `/api/billing/checkout/return` and applies the plan immediately; `/pricing` shows why a visitor is there; onboarding has a plan step; workspace settings have a Billing section; credit packs require a subscription. No trial.  
 **Packaging update (2026-10-17):** Seat and social channel limits are enforced; Billing settings show every monthly allowance and the pack balance; launch agents send a smaller design schema and skip visuals a re-run already finished.
 **Repricing (2026-10-29):** Paid plans are repriced against Typefully, Postiz and Post Bridge: Pro $39, Business $99, Enterprise from $999, 10 seats on Pro and unlimited seats above it, and more channels and posts. See [Competitor benchmark](#competitor-benchmark-2026-10-29) and [Stripe cutover](#stripe-cutover-for-the-2026-10-29-prices).
@@ -20,8 +20,7 @@
 
 Sell three paid plans at social-scheduler prices, protected by a cost-based
 meter, at a 50% gross margin when a workspace uses 30% of its allowance, where
-customers usually sit. A limited free scheduling tier is available as approved
-for TF-002 on 2026-10-24.
+customers usually sit. There is no free plan.
 
 | Plan       | Monthly   | Billed annually | Included each month                                                                                  |
 | ---------- | --------- | --------------- | ---------------------------------------------------------------------------------------------------- |
@@ -43,9 +42,20 @@ configured.
 consumes credits in proportion to what it costs. With prompt caching and the
 visuals agent on Sonnet, a launch is about 430 credits.
 
-### Limited free scheduling (approved 2026-10-24)
+### No free plan (2026-10-29)
 
-The product owner explicitly approved a free tier while implementing TF-002:
+The product owner withdrew the limited free scheduling tier on 2026-10-29.
+`free` is again only the state of a workspace without a subscription: it keeps
+its owner's seat, its data and nothing else. It has no features (`workspace:use`
+and `content:drafts` need Pro), no allowance, and no social channel. Onboarding
+ends by choosing Pro, Business or Enterprise, and a cancelled subscription
+returns the workspace to this state with its data kept. Workspaces that used
+free scheduling before the change keep their drafts and scheduled posts but
+must subscribe to write or schedule again.
+
+### Limited free scheduling (approved 2026-10-24, withdrawn 2026-10-29)
+
+Historical. The product owner explicitly approved a free tier while implementing TF-002:
 **one seat, one connected social account, ten scheduled posts per UTC month,
 no AI, with advanced queue features remaining paid**. This amendment supersedes
 the previous paid-only decision for this narrow workflow. Paid prices and their
@@ -82,7 +92,7 @@ expired, suspended or unknown entitlement records still fail closed.
 | Concurrent jobs         | 5     | 25       | 250        |
 | Storage                 | 50 GB | 250 GB   | 5 TB       |
 
-A free workspace gets ten scheduled posts/month and 60 API writes/minute; all other allowances in this table are zero.
+A workspace without a subscription has every allowance in this table at zero.
 
 ## What the customer is buying
 
@@ -228,12 +238,8 @@ payment processing is about 1.2%.
   X share per workspace; metering X posts separately removes this loss.
 - The 2026-10-15 prices cleared 75% at half use and 62% at full use. The
   repricing trades that margin for prices buyers accept next to schedulers.
-- The limited free tier adds provider and infrastructure cost outside these
-  paid-plan margins. At the listed X link-post price, ten such posts cost up to
-  $2/month per fully used free workspace, before infrastructure and support.
-  It cannot run AI or send email. Retained data for a lapsed Pro workspace can
-  additionally cost up to $0.75/month at its full 50 GB in R2. Monitor free-tier
-  conversion and provider spend separately from paid-plan gross margin.
+- Retained data for a lapsed Pro workspace can cost up to $0.75/month at its
+  full 50 GB in R2, outside these paid-plan margins.
 - An extra launch at $12 costs at most $5.92: 500 credits of model spend plus
   card fees (2.9% + $0.30). That is a 51% margin. Its posts and emails come
   from the plan's own allowances.
@@ -305,10 +311,9 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
    editor copilot use the `drafting` role. Watch the visual critique pass
    rate and move visuals back to `deep` if it drops.
 9. **Cancellation retains data.** Releases, assets and campaigns remain stored;
-   paid operations require resubscription. Basic content drafts and free
-   scheduling remain available within the limits above. Nothing is deleted.
-10. **Separate basic and paid gates.** `workspace:use` admits active free and
-    paid workspaces; `workspace:paid` protects paid pages, tools, credit packs,
+   every operation requires resubscription. Nothing is deleted.
+10. **Workspace gates.** `workspace:use` and `content:drafts` admit active paid
+    workspaces; `workspace:paid` protects paid pages, tools, credit packs,
     AI and release APIs. Operation-specific features remain enforced in the
     tenant REST/MCP contracts and Go services. `content:scheduling-advanced`
     is checked before scheduling and editing queue defaults. The backend is
@@ -335,8 +340,7 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
     - **Products.** A workspace has one product profile (RFC 017), so the
       product limit is one per workspace on every plan.
     - Existing members and channels above a lower plan's limit are kept after
-      a downgrade. New ones are refused, and free scheduling requires reducing
-      active channels and members to one or upgrading again.
+      a downgrade. New ones are refused.
 
 Stripe setup. The products live in the Playbook Media organization's account
 (`acct_1OXB7hJ5a5YKQUvY`), in live mode. These are the 2026-10-15 prices; the

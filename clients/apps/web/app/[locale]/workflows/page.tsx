@@ -33,12 +33,11 @@ export default async function WorkflowsPage({ params }: WorkflowsPageProps) {
       >
         <ReturnToWork />
         {access.hasPaidPlan ? null : (
-          // Open on free basic scheduling, but its runs create releases and campaigns.
+          // Runs create releases and campaigns, which need a paid plan.
           <Alert>
             <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
               <span>
-                You can build workflows on free basic scheduling. Running them creates releases and
-                campaign drafts, which need Pro.
+                Running workflows creates releases and campaign drafts, which need Pro.
               </span>
               <ButtonLink href="/upgrade?from=%2Fworkflows" size="sm">
                 See plans

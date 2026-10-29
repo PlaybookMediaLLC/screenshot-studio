@@ -46,7 +46,7 @@ func TestPageAccessKeepsSessionWorkspaceAndRecoveryBoundaries(t *testing.T) {
 func TestPageAccessWithoutMembershipOrSubscription(t *testing.T) {
 	w := newTestWorkspace(t)
 	snapshot, err := w.repo.PageAccess(w.ctx, w.owner)
-	if err != nil || !snapshot.Features["content:drafts"] || snapshot.Features["workspace:paid"] {
+	if err != nil || snapshot.Features["content:drafts"] || snapshot.Features["workspace:paid"] {
 		t.Fatalf("unpaid=%+v %v", snapshot, err)
 	}
 	w.exec(t, `DELETE FROM member WHERE "userId"=$1`, w.owner.UserID)

@@ -124,7 +124,7 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	repo.WithQuotaCounter(quotaCounter)
 	actor := Actor{OrganizationID: orgID, UserID: userID, SessionID: "session_" + id, RequestID: "request_" + id}
 	entitlements, err := repo.GetEntitlementSummary(ctx, actor)
-	if err != nil || entitlements.Plan != "free" || entitlements.Features["asset:read"] || !entitlements.Features["workspace:use"] || !entitlements.Features["content:drafts"] {
+	if err != nil || entitlements.Plan != "free" || entitlements.Features["asset:read"] || entitlements.Features["workspace:use"] || entitlements.Features["content:drafts"] {
 		t.Fatalf("workspace entitlements=%+v err=%v", entitlements, err)
 	}
 	decision, err := repo.GetFeatureDecision(ctx, actor, "asset:delete")

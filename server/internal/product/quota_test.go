@@ -21,10 +21,10 @@ func TestMonthlyQuotaPeriods(t *testing.T) {
 }
 
 func TestPlanQuotasCoverEveryPlan(t *testing.T) {
+	// There is no free plan: a workspace without a subscription has no allowance.
 	for name, limit := range planQuotas["free"] {
-		want := map[string]int{QuotaPosts: 10, QuotaAPIWriteMinute: 60}[name]
-		if limit != want {
-			t.Fatalf("free %s=%d want %d", name, limit, want)
+		if limit != 0 {
+			t.Fatalf("free %s=%d want 0", name, limit)
 		}
 	}
 	for _, plan := range []string{"pro", "business", "enterprise"} {

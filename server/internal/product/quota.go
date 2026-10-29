@@ -31,9 +31,9 @@ const (
 // planQuotas mirrors lib/billing/plans.ts. The allowances hold a 50% gross
 // margin at 30% use (docs/rfcs/023-pricing-and-unit-economics.md).
 var planQuotas = map[string]map[string]int{
-	// Basic scheduling is free; AI, emails and background jobs remain paid.
-	"free": {QuotaAPIWriteMinute: 60, QuotaJobsConcurrent: 0,
-		QuotaAICredits: 0, QuotaPosts: 10, QuotaEmails: 0},
+	// There is no free plan: a workspace without a subscription has no allowance.
+	"free": {QuotaAPIWriteMinute: 0, QuotaJobsConcurrent: 0,
+		QuotaAICredits: 0, QuotaPosts: 0, QuotaEmails: 0},
 	"pro": {QuotaAPIWriteMinute: 300, QuotaJobsConcurrent: 5,
 		QuotaAICredits: 1_500, QuotaPosts: 250, QuotaEmails: 5_000},
 	"business": {QuotaAPIWriteMinute: 1_500, QuotaJobsConcurrent: 25,

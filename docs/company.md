@@ -79,9 +79,9 @@ still require direct validation.
 
 ## Business model
 
-The existing subscription structure is **Pro $199/month**, **Business
-$699/month**, and **Enterprise starting at $3,000/month**, with metered AI
-usage and no free plan. The billing implementation and current allowances are
+The existing subscription structure is **Pro $39/month**, **Business
+$99/month**, and **Enterprise starting at $999/month**, priced against social
+schedulers, with metered AI usage and no free plan. The billing implementation and current allowances are
 documented in [RFC 023](rfcs/023-pricing-and-unit-economics.md).
 
 For release readiness, test a guided paid pilot at approximately

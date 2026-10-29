@@ -28,19 +28,23 @@ const (
 	quotaLegacyGenerations = "generation:monthly"
 )
 
-// planQuotas mirrors lib/billing/plans.ts. The allowances hold a 75% gross
-// margin at half use (docs/rfcs/023-pricing-and-unit-economics.md).
+// planQuotas mirrors lib/billing/plans.ts. The allowances hold a 50% gross
+// margin at 30% use (docs/rfcs/023-pricing-and-unit-economics.md).
 var planQuotas = map[string]map[string]int{
 	// Basic scheduling is free; AI, emails and background jobs remain paid.
 	"free": {QuotaAPIWriteMinute: 60, QuotaJobsConcurrent: 0,
 		QuotaAICredits: 0, QuotaPosts: 10, QuotaEmails: 0},
 	"pro": {QuotaAPIWriteMinute: 300, QuotaJobsConcurrent: 5,
-		QuotaAICredits: 3_600, QuotaPosts: 120, QuotaEmails: 5_000},
+		QuotaAICredits: 1_500, QuotaPosts: 250, QuotaEmails: 5_000},
 	"business": {QuotaAPIWriteMinute: 1_500, QuotaJobsConcurrent: 25,
-		QuotaAICredits: 13_200, QuotaPosts: 480, QuotaEmails: 25_000},
+		QuotaAICredits: 4_000, QuotaPosts: 600, QuotaEmails: 25_000},
 	"enterprise": {QuotaAPIWriteMinute: 10_000, QuotaJobsConcurrent: 250,
-		QuotaAICredits: 54_000, QuotaPosts: 2_400, QuotaEmails: 100_000},
+		QuotaAICredits: 20_000, QuotaPosts: 5_000, QuotaEmails: 100_000},
 }
+
+// planStorageBytes caps the bytes of a workspace's live assets; it mirrors
+// storage:bytes in lib/billing/plans.ts.
+var planStorageBytes = map[string]int64{"free": 0, "pro": 50 << 30, "business": 250 << 30, "enterprise": 5 << 40}
 
 var monthlyQuotas = map[string]bool{QuotaAICredits: true, QuotaPosts: true, QuotaEmails: true}
 

@@ -1,10 +1,13 @@
 import Link from 'next/link'
 import {
+  annualMonthlyPrice,
   checkoutPlanSchema,
   CREDIT_PACKS,
   getWorkspaceLimit,
   getWorkspaceQuota,
   hasWorkspaceFeature,
+  PLAN_PRICES,
+  usd,
   workspaceLimitSchema,
   workspacePlanSchema,
   workspaceQuotaSchema,
@@ -31,15 +34,15 @@ const displayedPlanSchema = workspacePlanSchema.exclude([PLAN.free])
 type DisplayedPlan = z.infer<typeof displayedPlanSchema>
 const DISPLAYED_PLANS = displayedPlanSchema.options
 
-/**
- * The price shown on each plan card. Derived in docs/rfcs/035: a 75% gross
- * margin at half of each plan's allowance, with annual billing 15% off.
- * Change a price here and every card and table updates.
- */
-export const PLAN_PRICES: Record<DisplayedPlan, { price: string; note: string }> = {
-  pro: { price: '$199', note: 'per month, or $169 billed annually' },
-  business: { price: '$699', note: 'per month, or $594 billed annually' },
-  enterprise: { price: 'From $3,000', note: 'per month, billed annually' },
+/** A plan card's price and the line under it, read from `PLAN_PRICES`. */
+export function priceLabel(plan: DisplayedPlan): { price: string; note: string } {
+  const checkout = checkoutPlanSchema.safeParse(plan)
+  return checkout.success
+    ? {
+        price: usd(PLAN_PRICES[plan]),
+        note: `per month, or ${usd(annualMonthlyPrice(checkout.data))} billed annually`,
+      }
+    : { price: `From ${usd(PLAN_PRICES[plan])}`, note: 'per month, billed annually' }
 }
 
 const PLAN_COPY: Record<
@@ -194,9 +197,9 @@ export function PlanCards({
                 {copy.tagline}
               </p>
               <p className="mt-8 text-[30px] leading-none tracking-[-0.03em] text-white">
-                {PLAN_PRICES[plan].price}
+                {priceLabel(plan).price}
               </p>
-              <p className={cn('mt-2 text-[15px]', MUTED)}>{PLAN_PRICES[plan].note}</p>
+              <p className={cn('mt-2 text-[15px]', MUTED)}>{priceLabel(plan).note}</p>
               {checkoutPlanSchema.safeParse(plan).success ? (
                 <CheckoutButton
                   choices={[

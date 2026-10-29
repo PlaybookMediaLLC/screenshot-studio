@@ -3,6 +3,7 @@
  * Added to the root layout so every page inherits Organization and WebSite schema.
  */
 
+import { PLAN_PRICES } from "@/lib/billing/plans";
 import { LAST_UPDATED_ISO, LATEST_VERSION } from "@/lib/seo/changelog";
 import {
   BROWSER_MOCKUPS,
@@ -19,16 +20,16 @@ const BASE_URL = "https://shots.playbookmedia.io";
 export const ORGANIZATION_ID = `${BASE_URL}/#organization`;
 
 /**
- * Offer for SoftwareApplication JSON-LD. Shots has no free plan, so every
- * app schema quotes the entry plan: Pro at $199 per month.
+ * Offer for SoftwareApplication JSON-LD. Every app schema quotes the entry
+ * paid plan: Pro, per month.
  */
 export const PRO_PLAN_OFFER = {
   "@type": "Offer",
-  price: "199",
+  price: String(PLAN_PRICES.pro),
   priceCurrency: "USD",
   priceSpecification: {
     "@type": "UnitPriceSpecification",
-    price: "199",
+    price: String(PLAN_PRICES.pro),
     priceCurrency: "USD",
     billingDuration: "P1M",
   },

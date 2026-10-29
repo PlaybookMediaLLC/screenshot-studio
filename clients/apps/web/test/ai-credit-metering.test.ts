@@ -176,7 +176,18 @@ test('plan allowances match the Go backend', () => {
       )
     }
   }
-  assert.equal(getWorkspaceQuota('pro', 'ai:credits:monthly'), 3_600)
+  assert.equal(getWorkspaceQuota('pro', 'ai:credits:monthly'), 1_500)
+  const storage = go.match(/planStorageBytes = map\[string\]int64\{([^}]*)\}/)?.[1]
+  assert.ok(storage, 'quota.go has no planStorageBytes')
+  const caps = [...storage.matchAll(/"(\w+)": (\d+)(?: << (\d+))?/g)]
+  assert.equal(caps.length, workspacePlanSchema.options.length, 'storage caps in quota.go')
+  for (const [, plan, value, shift] of caps) {
+    assert.equal(
+      getWorkspaceQuota(workspacePlanSchema.parse(plan), 'storage:bytes'),
+      Number(value) * 2 ** Number(shift ?? 0),
+      `${plan} storage:bytes`
+    )
+  }
 })
 
 test('plan seat and channel limits match the Go backend', () => {

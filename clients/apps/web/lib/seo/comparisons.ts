@@ -1,4 +1,7 @@
+import { PLAN_PRICES, usd } from "@/lib/billing/plans";
 import { PRODUCT_FACTS, atLeast } from "@/lib/seo/product-facts";
+
+const STUDIO_PRICE = `From ${usd(PLAN_PRICES.pro)}/mo`;
 
 /** The date every competitor pricing and feature claim on /compare/* was last verified. */
 export const CLAIMS_CHECKED = "2026-09-20";
@@ -73,7 +76,7 @@ export const comparisons: ComparisonData[] = [
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "Free plan, Pro $13/mo" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "Free plan, Pro $13/mo" },
       { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Gradients free, images on Pro" },
       { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "iPhone, iPad, Pixel, MacBook, browser" },
       { name: "3D Effects", studio: "Full perspective transforms", competitor: "Tilt on Pro" },
@@ -133,7 +136,7 @@ export const comparisons: ComparisonData[] = [
       "Blur tool for redacting sensitive details",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "Free, Basic, and Pro plans" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "Free, Basic, and Pro plans" },
       { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "iPhone, Android, iPad, desktop, and more" },
       { name: "3D Effects", studio: "Perspective tilt & rotation", competitor: "3D shapes and shadow overlays" },
       { name: "Animations", studio: `${atLeast(PRODUCT_FACTS.animationPresets)} presets, keyframes`, competitor: "Animation presets" },
@@ -198,7 +201,7 @@ export const comparisons: ComparisonData[] = [
       "Works on any OS including Chromebook",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "~$63 one-time" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "~$63 one-time" },
       { name: "Platform", studio: "Any browser (web app)", competitor: "Windows, Mac desktop" },
       { name: "Installation", studio: "None required", competitor: "Desktop app download" },
       { name: "Screen Capture", studio: "Via browser or OS tools", competitor: "Built-in capture" },
@@ -219,7 +222,7 @@ export const comparisons: ComparisonData[] = [
       },
       {
         q: "How does Shots pricing compare to Snagit's?",
-        a: "Shots plans start at $199/mo and include the editor with no watermark, plus the launch platform. Snagit costs approximately $63 as a one-time purchase plus upgrade fees for major versions, and covers screen capture rather than launch work.",
+        a: `Shots plans start at ${usd(PLAN_PRICES.pro)}/mo and include the editor with no watermark, plus the launch platform. Snagit costs approximately $63 as a one-time purchase plus upgrade fees for major versions, and covers screen capture rather than launch work.`,
       },
       {
         q: "Does Shots work on Chromebooks?",
@@ -267,7 +270,7 @@ export const comparisons: ComparisonData[] = [
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "$29+ one-time" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "$29+ one-time" },
       { name: "Platform", studio: "Any browser", competitor: "macOS only" },
       { name: "Screen Capture", studio: "Via browser/OS tools", competitor: "Built-in (excellent)" },
       { name: "Background Styling", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, images`, competitor: "Basic solid backgrounds" },
@@ -332,7 +335,7 @@ export const comparisons: ComparisonData[] = [
       "High-res export up to 5x",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "Free" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "Free" },
       { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Solid colors" },
       { name: "Device Frames", studio: "iPhone, MacBook, Apple Watch, Safari, Chrome, Arc", competitor: "macOS and Windows windows" },
       { name: "Shadows", studio: "Blur, spread, offset, color", competitor: "Basic drop shadow" },
@@ -392,7 +395,7 @@ export const comparisons: ComparisonData[] = [
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "Free" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "Free" },
       { name: "Syntax Themes", studio: `${PRODUCT_FACTS.codeThemes}`, competitor: "29" },
       { name: "Backgrounds", studio: "Theme gradients, gradient presets, images, patterns", competitor: "Any color or your own image" },
       { name: "Screenshot Editing", studio: "Full editor", competitor: "Not available" },
@@ -408,7 +411,7 @@ export const comparisons: ComparisonData[] = [
     faqs: [
       {
         q: "Is Shots a good Carbon alternative?",
-        a: `Yes, for most uses. Shots makes code images with ${PRODUCT_FACTS.codeThemes} syntax themes, line numbers, a macOS title bar, gradient and image backgrounds, and transparent export. Carbon has more themes (29) and SVG export. Shots' main editor adds browser mockups, 3D transforms, animations, and video export. Carbon is free; Shots plans start at $199/mo and include launch features.`,
+        a: `Yes, for most uses. Shots makes code images with ${PRODUCT_FACTS.codeThemes} syntax themes, line numbers, a macOS title bar, gradient and image backgrounds, and transparent export. Carbon has more themes (29) and SVG export. Shots' main editor adds browser mockups, 3D transforms, animations, and video export. Carbon is free; Shots plans start at ${usd(PLAN_PRICES.pro)}/mo and include launch features.`,
       },
       {
         q: "Can I export code images as video?",
@@ -452,7 +455,7 @@ export const comparisons: ComparisonData[] = [
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "Free" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "Free" },
       { name: "Syntax Themes", studio: `${PRODUCT_FACTS.codeThemes}`, competitor: "About 20" },
       { name: "Backgrounds", studio: "Theme gradients, gradient presets, images, patterns", competitor: "Theme gradients" },
       { name: "Screenshot Editing", studio: "Full editor", competitor: "Not available" },
@@ -513,7 +516,7 @@ export const comparisons: ComparisonData[] = [
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "$29.99+ one-time" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "$29.99+ one-time" },
       { name: "Platform", studio: "Any browser", competitor: "macOS app" },
       { name: "Backgrounds", studio: `${atLeast(PRODUCT_FACTS.backgrounds)} gradients, solids, images`, competitor: "Gradients and wallpapers" },
       { name: "Device Frames", studio: "Safari, Chrome, Arc, Polaroid, macOS window", competitor: "macOS window" },
@@ -572,7 +575,7 @@ export const comparisons: ComparisonData[] = [
       "Open source",
     ],
     features: [
-      { name: "Price", studio: "From $199/mo", competitor: "Free previews, credits for HD" },
+      { name: "Price", studio: STUDIO_PRICE, competitor: "Free previews, credits for HD" },
       { name: "Output Resolution", studio: "Original resolution", competitor: "Up to 0.25 MP preview (free)" },
       { name: "Maximum Resolution", studio: "Original image, up to 50 MB file", competitor: "Up to 50 MP with credits" },
       { name: "Where Processing Happens", studio: "On your device", competitor: "remove.bg servers" },

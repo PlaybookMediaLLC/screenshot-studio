@@ -23,8 +23,8 @@ const (
 // keeps its owner's seat.
 var limits = map[string]map[string]int{
 	"free":       {Seats: 1, Channels: 1},
-	"pro":        {Seats: 5, Channels: 3},
-	"business":   {Seats: 20, Channels: 15},
+	"pro":        {Seats: 10, Channels: 15},
+	"business":   {Seats: math.MaxInt32, Channels: 100},
 	"enterprise": {Seats: math.MaxInt32, Channels: math.MaxInt32},
 }
 

@@ -20,7 +20,7 @@ import { atLeast, PRODUCT_FACTS } from '@/lib/seo/product-facts'
 import { cn } from '@/lib/utils'
 import { ArrowLink, FaqBlock } from './blocks'
 import { CodeTabs } from './CodeTabs'
-import { PLAN_PRICES, PlanCards } from './pricing'
+import { PlanCards, priceLabel } from './pricing'
 import { CreativeMock } from './WorkflowSection'
 import { ApprovalFlow } from './diagrams/ApprovalFlow'
 import { GuardrailsFlow } from './diagrams/GuardrailsFlow'
@@ -709,7 +709,7 @@ export function PricingSection() {
         body="Every plan includes the editor, release intake, and the API. Higher plans raise every limit, and Enterprise adds the controls a security review asks for."
         label="Pricing"
         lead="Three plans."
-        trail={`Pro is ${PLAN_PRICES.pro.price} a month for teams that ship every week.`}
+        trail={`Pro is ${priceLabel('pro').price} a month for teams that ship every week.`}
       >
         <div className="mt-10">
           <ArrowLink href="/pricing">Compare every plan</ArrowLink>

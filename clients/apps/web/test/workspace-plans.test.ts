@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import {
   evaluateWorkspaceFeature,
   getMinimumPlan,
   getWorkspaceQuota,
   hasWorkspaceFeature,
+  planPriceSummary,
 } from '@/lib/billing/plans'
 
 test('free workspaces cannot delete assets', () => {
@@ -122,4 +124,21 @@ test('free grants basic scheduling with bounded usage but no AI, media or advanc
   assert.equal(getWorkspaceQuota('free', 'ai:credits:monthly'), 0)
   assert.equal(getWorkspaceQuota('free', 'storage:bytes'), 0)
   assert.equal(hasWorkspaceFeature('pro', 'content:scheduling-advanced'), true)
+})
+
+test('plan prices derive annual billing at 15% off, matching the Stripe prices', () => {
+  assert.equal(planPriceSummary('pro'), '$39/mo, or $33/mo billed annually')
+  assert.equal(planPriceSummary('business'), '$99/mo, or $84/mo billed annually')
+  assert.equal(planPriceSummary('enterprise'), 'from $999/mo, billed annually')
+})
+
+test('the static llm.txt quotes the current plan prices', () => {
+  // shortcut: public/llm.txt is hand-written; regenerate it from lib/agents/llms.ts if it grows.
+  const text = readFileSync('public/llm.txt', 'utf8')
+  for (const plan of ['pro', 'business', 'enterprise'] as const) {
+    assert.ok(
+      text.includes(planPriceSummary(plan)),
+      `public/llm.txt lacks ${planPriceSummary(plan)}`
+    )
+  }
 })

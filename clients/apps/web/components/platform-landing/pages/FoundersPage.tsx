@@ -9,7 +9,7 @@ import {
   StatRows,
   TileGrid,
 } from '../blocks'
-import { formatQuota, PLAN_PRICES } from '../pricing'
+import { formatQuota, priceLabel } from '../pricing'
 import { Check, CONTAINER, MUTED, Section, SectionIntro } from '../primitives'
 import { CopyMock, IntakeMock, ReviewMock } from '../WorkflowSection'
 
@@ -147,7 +147,7 @@ export function FoundersPage() {
                 value: formatQuota('pro', 'api:write:minute'),
                 label: 'API writes a minute on Pro',
               },
-              { value: PLAN_PRICES.pro.price, label: `Pro, ${PLAN_PRICES.pro.note}` },
+              { value: priceLabel('pro').price, label: `Pro, ${priceLabel('pro').note}` },
             ]}
           />
         </div>
@@ -165,7 +165,7 @@ export function FoundersPage() {
           },
           {
             q: 'What does it cost?',
-            a: `Pro is ${PLAN_PRICES.pro.price} a month and covers the editor, release intake, and the API, with ${formatQuota('pro', 'ai:credits:monthly')} AI credits. Free basic scheduling includes one seat, one connected account and 10 text/link posts a month; media, AI and advanced queues require a paid plan. Launch intelligence is in early access for design partners on any plan.`,
+            a: `Pro is ${priceLabel('pro').price} a month and covers the editor, release intake, and the API, with ${formatQuota('pro', 'ai:credits:monthly')} AI credits. Launch intelligence is in early access for design partners on any plan.`,
           },
         ]}
       />

@@ -137,19 +137,19 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	subscribe(t, ctx, repo, orgID, "pro")
 	meter := &recordingMonthlyMeter{}
 	repo.WithMonthlyMeter(meter)
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 3_600 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 1_500 {
 		t.Fatalf("AI credit peek remaining=%d err=%v", remaining, err)
 	}
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 40); err != nil || remaining != 3_560 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 40); err != nil || remaining != 1_460 {
 		t.Fatalf("AI credits remaining=%d err=%v", remaining, err)
 	}
 	// Web images older than the credit meter still meter AI credits.
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 10); err != nil || remaining != 3_550 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 10); err != nil || remaining != 1_450 {
 		t.Fatalf("legacy generation quota remaining=%d err=%v", remaining, err)
 	}
 	var exceeded *QuotaExceededError
-	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 3_551); !errors.As(err, &exceeded) ||
-		exceeded.Quota != QuotaAICredits || exceeded.Limit != 3_600 || !exceeded.ResetAt.Equal(nextMonthStart(time.Now())) {
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 1_451); !errors.As(err, &exceeded) ||
+		exceeded.Quota != QuotaAICredits || exceeded.Limit != 1_500 || !exceeded.ResetAt.Equal(nextMonthStart(time.Now())) {
 		t.Fatalf("AI credit overrun accepted: %v", err)
 	}
 	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); !errors.Is(err, ErrQuotaExceeded) {
@@ -189,13 +189,13 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 		t.Fatalf("post charge: %v", err)
 	}
 	refund()
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 120 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 250 {
 		t.Fatalf("refunded posts remaining=%d err=%v", remaining, err)
 	}
-	if _, err := repo.ChargeMonthlyQuota(ctx, orgID, QuotaPosts, 121); !errors.Is(err, ErrQuotaExceeded) {
+	if _, err := repo.ChargeMonthlyQuota(ctx, orgID, QuotaPosts, 251); !errors.Is(err, ErrQuotaExceeded) {
 		t.Fatalf("post overrun accepted: %v", err)
 	}
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 120 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaPosts, 0); err != nil || remaining != 250 {
 		t.Fatalf("a refused post charge used the allowance: remaining=%d err=%v", remaining, err)
 	}
 	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, "unknown:monthly", 1); !errors.Is(err, ErrInvalidInput) {

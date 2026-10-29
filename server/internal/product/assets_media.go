@@ -153,8 +153,7 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if err != nil {
 		return nil, err
 	}
-	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
-	if int64(used)+int64(input.Bytes) > limits[plan] {
+	if int64(used)+int64(input.Bytes) > planStorageBytes[plan] {
 		return nil, ErrStorageQuota
 	}
 	var parent *ent.Asset
@@ -441,8 +440,7 @@ func (c *Configuration) storeGeneratedAsset(ctx context.Context, actor Actor, in
 	if err != nil {
 		return nil, err
 	}
-	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
-	if int64(used)+int64(len(input.Body)) > limits[plan] {
+	if int64(used)+int64(len(input.Body)) > planStorageBytes[plan] {
 		return nil, ErrStorageQuota
 	}
 	id := uuid.NewString()

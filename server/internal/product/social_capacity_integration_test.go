@@ -57,8 +57,10 @@ func TestSocialCapacityCommitsUnderWorkspaceLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := create("second-"+w.id, makeSet()); err != nil {
-		t.Fatal(err)
+	for range proChannels - 2 {
+		if _, err := create(cuid.New(), makeSet()); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Both OAuth and direct connection writers compete for the last slot.
@@ -95,7 +97,7 @@ func TestSocialCapacityCommitsUnderWorkspaceLock(t *testing.T) {
 		var limit *PlanLimitError
 		if err == nil {
 			succeeded++
-		} else if errors.As(err, &limit) && limit.Limit == 3 {
+		} else if errors.As(err, &limit) && limit.Limit == proChannels {
 			rejected++
 		} else {
 			t.Fatalf("unexpected connection result: %v", err)
@@ -104,10 +106,10 @@ func TestSocialCapacityCommitsUnderWorkspaceLock(t *testing.T) {
 	if succeeded != 1 || rejected != 9 {
 		t.Fatalf("last-slot race: succeeded=%d rejected=%d", succeeded, rejected)
 	}
-	if count, err := w.db.Client.ChannelConnection.Query().Where(channelconnection.OrganizationID(w.org), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Count(ctx); err != nil || count != 3 {
+	if count, err := w.db.Client.ChannelConnection.Query().Where(channelconnection.OrganizationID(w.org), channelconnection.StatusEQ(channelconnection.StatusACTIVE)).Count(ctx); err != nil || count != proChannels {
 		t.Fatalf("active connections=%d %v", count, err)
 	}
-	if count, err := w.db.Client.AuditLog.Query().Where(auditlog.OrganizationID(w.org), auditlog.Action("post.connection_created")).Count(ctx); err != nil || count != 3 {
+	if count, err := w.db.Client.AuditLog.Query().Where(auditlog.OrganizationID(w.org), auditlog.Action("post.connection_created")).Count(ctx); err != nil || count != proChannels {
 		t.Fatalf("connection audit count=%d %v", count, err)
 	}
 	for _, item := range candidates {
@@ -185,7 +187,7 @@ func TestSocialCapacityDoesNotReuseAnotherProvidersSlot(t *testing.T) {
 	w := newTestWorkspace(t)
 	subscribe(t, w.ctx, w.repo, w.org, "pro")
 	external := "same-id-" + w.id
-	for i := range 3 {
+	for i := range proChannels {
 		id := cuid.New()
 		if i == 0 {
 			id = external

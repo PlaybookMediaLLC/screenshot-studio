@@ -7,6 +7,7 @@ import { EnvelopeIcon as Mail01Icon } from '@phosphor-icons/react/dist/ssr/Envel
 import { ShareIcon as Share08Icon } from '@phosphor-icons/react/dist/ssr/Share'
 import { SparkleIcon as SparklesIcon } from '@phosphor-icons/react/dist/ssr/Sparkle'
 import { UsersIcon as UserGroupIcon } from '@phosphor-icons/react/dist/ssr/Users'
+import { CREDIT_PACKS } from '@/lib/billing/plans'
 import { PRODUCT_FACTS } from '@/lib/seo/product-facts'
 import { cn } from '@/lib/utils'
 import { FaqBlock, MarketingShell, PageHero, TileGrid } from '../blocks'
@@ -41,20 +42,6 @@ export function PricingPage() {
         trail="Change plans or cancel any time from the billing portal."
       >
         <PricingNotice />
-        <div className="my-8 rounded-xl border p-6">
-          <h2 className="text-xl font-semibold">Free basic scheduling</h2>
-          <p className="mt-2">
-            One seat, one connected account, and 10 text or link posts per month. Choose an exact
-            time or publish now. No credit card required.
-          </p>
-          <p className="mt-2 text-sm">
-            Media uploads, AI, queue slots, suggested times and automated follow-ups require a paid
-            plan.
-          </p>
-          <Link className="mt-4 inline-block underline" href="/write">
-            Start scheduling free
-          </Link>
-        </div>
         <PlanCards location="pricing_cards" />
       </PageHero>
 
@@ -157,7 +144,7 @@ export function PricingPage() {
         items={[
           {
             q: 'Is there a free plan?',
-            a: 'Yes. Free basic scheduling includes one seat, one connected account and 10 text or link posts per month. Pro adds media uploads, AI, advanced scheduling, the editor tools and release workflows.',
+            a: 'No. Every plan is paid, and Pro already includes media uploads, AI, advanced scheduling, the editor tools and release workflows.',
           },
           {
             q: 'How do I buy Pro or Business?',
@@ -165,7 +152,7 @@ export function PricingPage() {
           },
           {
             q: 'What happens when I reach a limit?',
-            a: 'The next AI call, post, or email is refused with a clear error. AI credits, posts, and emails reset on the first of each month (UTC), and API writes reset every minute. To keep going before the reset, buy an extra launch: 500 AI credits for $29. They are spent after the allowance and never expire.',
+            a: `The next AI call, post, or email is refused with a clear error. AI credits, posts, and emails reset on the first of each month (UTC), and API writes reset every minute. To keep going before the reset, buy an extra launch: ${CREDIT_PACKS.launch.credits} AI credits for ${CREDIT_PACKS.launch.price}. They are spent after the allowance and never expire.`,
           },
           {
             q: 'What if a payment fails?',

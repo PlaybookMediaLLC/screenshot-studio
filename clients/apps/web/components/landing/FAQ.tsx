@@ -10,6 +10,7 @@ import {
   VIDEO_FORMATS_SENTENCE,
 } from "@/lib/seo/product-facts";
 import { Button } from '@/components/ui/button'
+import { planPriceSummary } from '@/lib/billing/plans'
 
 interface FAQItem {
   question: string;
@@ -32,7 +33,7 @@ const defaultFAQs: FAQItem[] = [
   {
     question: "How much does Shots cost?",
     answer:
-      "Shots has no free plan. Pro is $199/mo ($169/mo billed annually), Business is $699/mo ($594/mo billed annually), and Enterprise starts at $3,000/mo billed annually. The editor and image tools are included in every plan, with unlimited exports and no watermark. The AI launch features are in early access for design partners.",
+      `Shots has no free plan. Plans: Pro (${planPriceSummary('pro')}), Business (${planPriceSummary('business')}), and Enterprise (${planPriceSummary('enterprise')}). The editor and image tools are included in every plan, with unlimited exports and no watermark. The AI launch features are in early access for design partners.`,
   },
   {
     question: "Do I need to create an account?",

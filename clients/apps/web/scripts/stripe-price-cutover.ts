@@ -95,6 +95,7 @@ async function main(): Promise<void> {
   const stripe = new Stripe(env.STRIPE_SECRET_KEY)
   const targets = targetPrices()
   const replacements: Record<string, string> = {}
+  const productOf: Record<string, string> = {}
   const next: Record<string, string> = {}
   const portalPrices = new Map<string, string[]>()
 
@@ -125,6 +126,7 @@ async function main(): Promise<void> {
     )
     next[key] = id
     if (id !== old.id) replacements[old.id] = id
+    productOf[old.id] = product
     if (target.interval) portalPrices.set(product, [...(portalPrices.get(product) ?? []), id])
   }
 
@@ -170,7 +172,17 @@ async function main(): Promise<void> {
       })
       console.log(`Billing portal configuration ${configuration.id} now offers the new prices.`)
     }
-    for (const old of Object.keys(replacements)) {
+    for (const [old, to] of Object.entries(replacements)) {
+      // Stripe refuses to archive a product's default price; its replacement takes over.
+      const product = await stripe.products.retrieve(productOf[old])
+      const current =
+        typeof product.default_price === 'string'
+          ? product.default_price
+          : product.default_price?.id
+      if (current === old) {
+        await stripe.products.update(product.id, { default_price: to })
+        console.log(`${product.id} now defaults to ${to}.`)
+      }
       await stripe.prices.update(old, { active: false })
       console.log(`Archived ${old}.`)
     }

@@ -300,6 +300,10 @@ const planRefusalSchema = z.union([
   z.object({ data: z.object({ platformCode: z.literal('workspace_feature_not_entitled') }) }),
 ])
 
+/** What a plan refusal says where only text fits, such as a toast or an inline error. */
+export const PLAN_REFUSAL_MESSAGE =
+  "The workspace's plan does not include this. Choose a plan in Settings → Billing."
+
 /**
  * Whether a request from the browser failed because the workspace's plan
  * does not include it, whichever client made it. A plan refusal is final

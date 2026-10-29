@@ -4,11 +4,13 @@ import { z } from 'zod'
 import {
   failureForStatus,
   isPlanRefusal,
+  PLAN_REFUSAL_MESSAGE,
   rateLimitHeaders,
   toApiFailure,
 } from '@/lib/api/platform-errors'
+import { getErrorMessage, requestJson } from '@/components/workspace/settings-client'
 import { DraftRequestError } from '@/lib/content-drafts/client'
-import { SettingsRequestError } from '@/lib/settings/client'
+import { SettingsRequestError, settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
 import { getDomainTRPCError } from '@/lib/trpc/errors'
 import { WorkspaceError } from '@/lib/workspace/errors'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
@@ -137,4 +139,33 @@ test('a plan refusal is recognized from every browser client, and nothing else i
   assert.equal(isPlanRefusal({ data: { code: 'FORBIDDEN', platformCode: 'forbidden' } }), false)
   assert.equal(isPlanRefusal(new Error(message)), false)
   assert.equal(isPlanRefusal(null), false)
+})
+
+test('the shared error messages explain a plan refusal from every client, and keep every other message', async () => {
+  const body = {
+    code: 'workspace_feature_not_entitled',
+    error: 'The workspace:use capability is not available on the current workspace plan.',
+    message: 'The workspace:use capability is not available on the current workspace plan.',
+  }
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async () => Response.json(body, { status: 403 })
+  try {
+    const refusals = [
+      // A tRPC refusal, as the errorFormatter sends it.
+      Object.assign(new Error(body.message), { data: { platformCode: body.code } }),
+      await settingsRequest('/api/v1/webhooks', z.unknown()).catch((error: unknown) => error),
+      await requestJson('/api/workspace/integrations', z.unknown()).catch(
+        (error: unknown) => error
+      ),
+    ]
+    for (const refusal of refusals) {
+      assert.equal(settingsErrorMessage(refusal), PLAN_REFUSAL_MESSAGE)
+      assert.equal(getErrorMessage(refusal), PLAN_REFUSAL_MESSAGE)
+    }
+  } finally {
+    globalThis.fetch = realFetch
+  }
+  const denied = new SettingsRequestError('Only owners can do that.', 403, 'forbidden')
+  assert.equal(settingsErrorMessage(denied), 'Only owners can do that.')
+  assert.equal(getErrorMessage(new Error('Offline.')), 'Offline.')
 })

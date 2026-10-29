@@ -81,7 +81,6 @@ export function PrinciplesPage() {
         eyebrow={{ label: 'Principles' }}
         lead="The rules we build Shots by,"
         location="principles_hero"
-        primary={{ href: '/sign-up', label: 'Get started' }}
         secondary={{ href: '/roadmap', label: 'See the roadmap' }}
         trail="decided before we wrote the code."
       />

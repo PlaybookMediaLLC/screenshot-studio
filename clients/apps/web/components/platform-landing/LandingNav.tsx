@@ -7,7 +7,7 @@ import { ArrowRightIcon as ArrowRight01Icon } from '@phosphor-icons/react/dist/s
 import { ListIcon as Menu01Icon } from '@phosphor-icons/react/dist/ssr/List'
 import { navGroupSchema, pagesInGroup, type NavGroup } from '@/lib/marketing/platform-pages'
 import { cn } from '@/lib/utils'
-import { CtaLink } from './CtaLink'
+import { SessionLinks } from './SessionLinks'
 import { CONTAINER, MONO, MUTED } from './primitives'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
@@ -109,18 +109,7 @@ export function LandingNav() {
             </li>
           </ul>
           <div className="ml-auto flex items-center gap-2 sm:gap-4">
-            <Link
-              className="hidden text-[15px] text-white transition-colors hover:text-white/70 sm:block"
-              href="/sign-in"
-            >
-              Sign in
-            </Link>
-            <CtaLink
-              className="h-10 pl-4 pr-3 text-sm sm:pl-5 sm:pr-4 sm:text-[15px]"
-              href="/sign-up"
-              label="Get started"
-              location="landing_nav"
-            />
+            <SessionLinks placement="bar" />
             <Popover>
               <PopoverTrigger asChild>
               <Button variant="custom" size={null}
@@ -158,18 +147,13 @@ export function LandingNav() {
                   </div>
                 ))}
                 <div className="border-t border-white/[0.06] pt-2">
-                  {[
-                    { href: '/pricing', label: 'Pricing' },
-                    { href: '/sign-in', label: 'Sign in' },
-                  ].map((link) => (
-                    <Link
-                      className="block rounded-lg px-3 py-2 text-[15px] text-white/80 hover:bg-white/[0.05] hover:text-white"
-                      href={link.href}
-                      key={link.href}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
+                  <Link
+                    className="block rounded-lg px-3 py-2 text-[15px] text-white/80 hover:bg-white/[0.05] hover:text-white"
+                    href="/pricing"
+                  >
+                    Pricing
+                  </Link>
+                  <SessionLinks placement="menu" />
                 </div>
               </PopoverContent>
             </Popover>

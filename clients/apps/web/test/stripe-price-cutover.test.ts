@@ -13,7 +13,7 @@ test('the cutover charges the prices RFC 023 lists, in cents', () => {
   })
 })
 
-test('only live subscriptions on a replaced price move', () => {
+test('only subscriptions that can still bill on a replaced price move', () => {
   const subscription = (id: string, status: Stripe.Subscription.Status, price: string) =>
     ({
       id,
@@ -25,6 +25,7 @@ test('only live subscriptions on a replaced price move', () => {
       subscription('active', 'active', 'price_old_pro'),
       subscription('late', 'past_due', 'price_old_business'),
       subscription('trial', 'trialing', 'price_old_pro'),
+      subscription('unpaid', 'unpaid', 'price_old_pro'),
       subscription('ended', 'canceled', 'price_old_pro'),
       subscription('other', 'active', 'price_another_product'),
     ],
@@ -34,5 +35,6 @@ test('only live subscriptions on a replaced price move', () => {
     { from: 'price_old_pro', item: 'si_active', subscription: 'active', to: 'price_new_pro' },
     { from: 'price_old_business', item: 'si_late', subscription: 'late', to: 'price_new_business' },
     { from: 'price_old_pro', item: 'si_trial', subscription: 'trial', to: 'price_new_pro' },
+    { from: 'price_old_pro', item: 'si_unpaid', subscription: 'unpaid', to: 'price_new_pro' },
   ])
 })

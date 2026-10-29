@@ -428,7 +428,8 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
    Extra Launch $12, and every live subscription that will move.
 2. `... apply` creates those prices on the existing products (reusing any
    that already match, so a re-run creates nothing twice) and moves every
-   active, trialing or past-due subscription on an old price to its new
+   active, trialing, past-due or unpaid (it returns once its invoices are
+   paid) subscription on an old price to its new
    price without proration. Each customer pays the lower price from the next
    renewal. Until the IDs change, the webhook for a moved subscription names
    a price the app does not sell yet, so it changes nothing and the

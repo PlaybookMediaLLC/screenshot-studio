@@ -44,11 +44,15 @@ export function targetPrices(): Record<PriceKey, TargetPrice> {
   }
 }
 
-/** Statuses that still bill, so their subscriptions move to the new price. */
+/**
+ * Statuses that bill or can bill again, so their subscriptions move to the new
+ * price: an unpaid subscription comes back once its invoices are paid.
+ */
 const LIVE_STATUSES: ReadonlySet<Stripe.Subscription.Status> = new Set([
   'active',
   'past_due',
   'trialing',
+  'unpaid',
 ])
 
 /** One subscription item to move from an old price to its replacement. */

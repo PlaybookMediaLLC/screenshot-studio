@@ -10,7 +10,7 @@
 **Historical status (2026-10-16):** The Free plan was removed. The 2026-10-24 limited scheduling amendment below reopened it; the product owner withdrew it on 2026-10-29.
 **Phase 0 update (2026-10-16):** Checkout returns to `/api/billing/checkout/return` and applies the plan immediately; `/pricing` shows why a visitor is there; onboarding has a plan step; workspace settings have a Billing section; credit packs require a subscription. No trial.  
 **Packaging update (2026-10-17):** Seat and social channel limits are enforced; Billing settings show every monthly allowance and the pack balance; launch agents send a smaller design schema and skip visuals a re-run already finished.
-**Repricing (2026-10-29):** Paid plans are repriced against Typefully, Postiz and Post Bridge: Pro $39, Business $99, Enterprise from $999, 10 seats on Pro and unlimited seats above it, and more channels and posts. See [Competitor benchmark](#competitor-benchmark-2026-10-29) and [Stripe cutover](#stripe-cutover-for-the-2026-10-29-prices).
+**Repricing (2026-10-29):** Paid plans are repriced against Typefully, Postiz and Post Bridge: Pro $39, Business $99, Enterprise from $999, 10 seats on Pro and unlimited seats above it, and more channels and posts. Later the same day every text role moved to Claude Haiku 5.5, which cut a launch from about 430 credits to about 20, and prices dropped again to Pro $29, Business $79 and Enterprise from $799. See [Competitor benchmark](#competitor-benchmark-2026-10-29), [AI on Claude Haiku 5.5](#ai-on-claude-haiku-55-2026-10-29) and [Stripe cutover](#stripe-cutover-for-the-2026-10-29-prices).
 **Date:** 2026-10-15  
 **Revised:** 2026-10-29
 **Owners:** Product and Engineering  
@@ -24,23 +24,28 @@ customers usually sit. There is no free plan.
 
 | Plan       | Monthly   | Billed annually | Included each month                                                                                  |
 | ---------- | --------- | --------------- | ---------------------------------------------------------------------------------------------------- |
-| Pro        | $39       | $33/mo          | 10 seats, 15 channels, 1,500 AI credits (about 3 launches), 250 posts, 5,000 emails           |
-| Business   | $99       | $84/mo          | Unlimited seats, 100 channels, 4,000 AI credits (about 9 launches), 600 posts, 25,000 emails         |
-| Enterprise | from $999 | annual only     | Unlimited seats and channels, 20,000 AI credits (about 46 launches), 5,000 posts, 100,000 emails, SSO, SCIM, drains |
+| Pro        | $29       | $25/mo          | 10 seats, 15 channels, 600 AI credits (about 30 launches), 250 posts, 5,000 emails           |
+| Business   | $79       | $67/mo          | Unlimited seats, 100 channels, 3,000 AI credits (about 150 launches), 600 posts, 25,000 emails         |
+| Enterprise | from $799 | annual only     | Unlimited seats and channels, 15,000 AI credits (about 750 launches), 5,000 posts, 100,000 emails, SSO, SCIM, drains |
 
-Each plan includes more than the plan above it did before 2026-10-29, for less:
-Business at $99 beats the old $199 Pro on every allowance, and Enterprise from
-$999 beats the old $699 Business on every allowance. Pro at $39 has more seats,
-channels, posts and storage than the old Pro, and fewer AI credits.
+Each plan includes more than the plan above it did before 2026-10-29, for less.
+Pro at $29 has twice the seats, five times the channels, twice the posts and
+storage of the old $199 Pro, and about 30 launches a month where the old Pro
+had about 8. Enterprise from $799 beats the old $699 Business on every
+allowance. Business at $79 beats the old $199 Pro on every allowance but the
+AI credit count (3,000 against 3,600), and a credit now buys about 20 times
+more launch: about 150 launches against 8.
 
 Every paid plan includes the image editor, every image tool, release intake,
-approvals and the audit log. An extra launch is $12 for 500 AI credits. Pack
+approvals and the audit log. An extra launch is $12 for 500 AI credits, about
+25 launches. Pack
 credits are spent after the monthly allowance and do not expire. No trial is
 configured.
 
 **One AI credit is $0.01 of model spend at list price.** Every AI action
-consumes credits in proportion to what it costs. With prompt caching and the
-visuals agent on Sonnet, a launch is about 430 credits.
+consumes credits in proportion to what it costs. On Claude Haiku 5.5 a launch is
+about 20 credits (`LAUNCH_CREDITS` in `lib/billing/plans.ts`); on Opus and
+Sonnet it was about 430.
 
 ### No free plan (2026-10-29)
 
@@ -85,7 +90,7 @@ expired, suspended or unknown entitlement records still fail closed.
 
 | Allowance               | Pro   | Business | Enterprise |
 | ----------------------- | ----- | -------- | ---------- |
-| AI credits per month    | 1,500 | 4,000    | 20,000     |
+| AI credits per month    | 600   | 3,000    | 15,000     |
 | Scheduled posts / month | 250   | 600      | 5,000      |
 | Emails per month        | 5,000 | 25,000   | 100,000    |
 | API writes per minute   | 300   | 1,500    | 10,000     |
@@ -109,7 +114,7 @@ The platform does a job that today takes a stack of tools and a person:
 The stack still needs someone to write the brief, design the visuals, and
 check the claims. A launch kit (cited spec, plan, eight visuals, posts for six
 channels, approvals, scheduling) is several hours of product marketing and
-design work. Pro's three launches cost about $13 each.
+design work. Pro's 30 launches cost about $1 each.
 
 Until 2026-10-29 prices were set well above schedulers. That made Shots five
 to ten times the price of the schedulers buyers compare it with, for fewer
@@ -135,8 +140,8 @@ renders client-side and was read in a browser).
 
 Postiz and Post Bridge offer a 7-day trial; Typefully has a free plan.
 Schedulers price on accounts, include unlimited or near-unlimited posts and
-seats, and include little or no AI. Shots matches Post Bridge's prices
-($39 and $99) and its channel counts (15, and 100 against 99), gives Pro 10
+seats, and include little or no AI. Shots undercuts Post Bridge's prices
+($29 and $79 against $39 and $99), matches its channel counts (15, and 100 against 99), gives Pro 10
 seats where Post Bridge's $39 plan lists none and Business unlimited seats, and includes what none of them do: AI launch kits, the
 screenshot and video editor, release intake and emails, approvals on every
 post and an append-only audit log.
@@ -223,15 +228,18 @@ allocation, support, and payment processing do not.
 
 | Plan       | Price | COGS at 30% use | GM at 30% | GM at 50% | GM at 100% | Annual GM at 30% |
 | ---------- | ----- | --------------- | --------- | --------- | ---------- | ---------------- |
-| Pro        | $39   | $19             | **51.0%** | 29.8%     | −23.2%     | 42.8%            |
-| Business   | $99   | $49             | **50.5%** | 26.9%     | −32.2%     | 42.3%            |
-| Enterprise | $999  | $447            | **55.3%** | 39.6%     | 0.4%       | (annual is list) |
+| Pro        | $29   | $16             | **45.2%** | 23.2%     | −31.6%     | 37.0%            |
+| Business   | $79   | $45             | **42.9%** | 16.0%     | −51.4%     | 33.3%            |
+| Enterprise | $799  | $429            | **46.4%** | 28.1%     | −17.6%     | (annual is list) |
 
 Support is costed at $2, $5, and $150 a month. Enterprise is invoiced, so
 payment processing is about 1.2%.
 
-- Monthly plans clear 50% at 30% use and stay positive at half use.
-- Annual plans (15% off) land at about 42% at 30% use.
+- This table charges AI at 30% of its credits like every other allowance.
+  A credit now buys about 20 times more launch, so typical AI use is nearer
+  10% of credits; at that, with the rest at 30%, the monthly plans clear about
+  50% (Pro 49.6%, Business 50.9%, Enterprise 50.3%).
+- Annual plans (15% off) land at 33–37% at 30% use, about 40–43% at typical AI use.
 - A workspace that uses every allowance in full costs more than Pro or
   Business charges. The posts allowance drives it: at the assumed 40% share of
   X link posts, 250 posts cost up to $20 and 600 cost up to $49. Watch the
@@ -241,12 +249,39 @@ payment processing is about 1.2%.
 - Retained data for a lapsed Pro workspace can cost up to $0.75/month at its
   full 50 GB in R2, outside these paid-plan margins.
 - An extra launch at $12 costs at most $5.92: 500 credits of model spend plus
-  card fees (2.9% + $0.30). That is a 51% margin. Its posts and emails come
+  card fees (2.9% + $0.30). That is a 51% margin, about 25 launches on Claude Haiku 5.5. Its posts and emails come
   from the plan's own allowances.
 
 Because the meter charges credits for what an action actually costs, margin no
 longer depends on the action mix. A Pro workspace cannot spend more than its
-1,500 credits ($16 of model cost) however it uses them.
+600 credits ($6 of model cost) however it uses them, on any model.
+
+### AI on Claude Haiku 5.5 (2026-10-29)
+
+Every text role (`deep`, `drafting`, `fast`, `nano`) runs on Claude Haiku 5.5
+through OpenRouter (`lib/ai/models/catalog.ts`); transcription stays on Gemini
+2.5 Flash, which takes audio. Haiku 5.5 is $0.10 / $0.50 per million tokens up
+to 100K prompt tokens and $0.50 / $2.50 above, against Sonnet 5.5's $2 / $10
+and Opus 5.5's $4 / $20: twenty times cheaper than Sonnet and forty times
+cheaper than Opus at the same token counts.
+
+Scaling the action table above by those ratios, a launch is about 12 credits
+before regenerations and about 20 with them: the visuals agent about 10, the
+spec, plan and revisions about 2. This is an estimate, not a measurement. The
+meter records each call's real cost; replace `LAUNCH_CREDITS` with the
+measured median once launches have run. Qwen 3.7 Flash was considered; above
+32K prompt tokens, where the visuals agent runs, it costs about the same as
+Haiku 5.5, and its only provider (Alibaba Cloud) could not be confirmed to pass
+the no-training routing.
+
+Haiku 5.5 thinks by default (adaptive, effort `medium`), rejects non-default
+sampling parameters and assistant prefill, and accepts forced tool choice. No
+call site sets sampling parameters. Quality on the launch pipeline is
+unmeasured: compare its visuals and copy with the Opus and Sonnet output on
+real launches before relying on it. `PLATFORM_AI_MODEL_DEEP` and
+`PLATFORM_AI_MODEL_DRAFTING` move a role back to Opus or Sonnet without a
+deploy; credits stay dollar-denominated, so margin holds on any model and only
+the number of launches a plan covers changes.
 
 ## Implementation
 
@@ -307,9 +342,9 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
    session). AI credit usage draws on the monthly allowance first, then on
    purchased packs, oldest first. Only a workspace on a paid plan can buy a
    pack; the route answers `403 workspace_feature_not_entitled` otherwise.
-8. **Sonnet for the long loops.** The production visuals agent and the
-   editor copilot use the `drafting` role. Watch the visual critique pass
-   rate and move visuals back to `deep` if it drops.
+8. **One small model for every text role.** Since 2026-10-29 every text
+   role runs on Claude Haiku 5.5 (see above). Watch the visual critique pass
+   rate and move `drafting` or `deep` back to Sonnet or Opus if it drops.
 9. **Cancellation retains data.** Releases, assets and campaigns remain stored;
    every operation requires resubscription. Nothing is deleted.
 10. **Workspace gates.** `workspace:use` and `content:drafts` admit active paid
@@ -383,10 +418,10 @@ a plan. Do these in order, before or with the deploy that ships the new
 allowances:
 
 1. In Stripe, create five prices on the existing products: Shots Pro
-   $39/month and $396/year, Shots Business $99/month and $1,008/year, and
+   $29/month and $300/year, Shots Business $79/month and $804/year, and
    Shots Extra Launch $12 one-time.
 2. Move every live Shots subscription on an old price to the matching new
-   price (Pro $199 to $39, Business $699 to $99, monthly or annual alike),
+   price (Pro $199 to $29, Business $699 to $79, monthly or annual alike),
    without proration charges. Each customer's bill drops.
 3. Put the five new price IDs in Infisical (`prod`, `/screenshot-studio`)
    under the same `STRIPE_PRICE_*` names and deploy.
@@ -459,6 +494,11 @@ lists as a non-goal; until that changes, each product is its own workspace.
   could then be unlimited, as at Postiz and Post Bridge.
 - **Model prices** move. Credits are defined in list-price dollars, so a price
   change updates the credit cost of an action, not the plan.
+- **Claude Haiku 5.5 quality** on launches is untested. If its visuals or
+  copy fall short, a role moves back to Sonnet or Opus through its
+  `PLATFORM_AI_MODEL_*` override; margin holds, but a plan then covers about
+  a twentieth as many launches, so `LAUNCH_CREDITS` and the copy that quotes
+  it must change with it.
 - **No free plan** removes the try-before-buy path. Watch pricing-page
   conversion and sign-ups that never subscribe, and revisit the no-trial
   decision with that data.
@@ -480,4 +520,5 @@ public pricing pages and the third-party sources noted in the research, with
 Publer, Typefully, Hootsuite monthly prices, and Shots.so treated as
 approximate. Competitor benchmark, fetched on 2026-10-29: typefully.com/pricing
 (rendered in a browser), postiz.com/pricing, docs.postiz.com/cloud/plans,
-post-bridge.com/pricing, post-bridge.com/llms-full.txt.
+post-bridge.com/pricing, post-bridge.com/llms-full.txt. Model prices from
+openrouter.ai/api/v1/models, fetched on 2026-10-29.

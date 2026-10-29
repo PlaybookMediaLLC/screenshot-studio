@@ -28,6 +28,12 @@ export const CREDIT_PACKS: Record<
 }
 
 /**
+ * Credits a launch uses on the default models: an estimate in
+ * docs/rfcs/023-pricing-and-unit-economics.md until measured. Copy reads it here.
+ */
+export const LAUNCH_CREDITS = 20
+
+/**
  * List prices in whole US dollars a month: every price on the site, in the
  * agent docs and in structured data is derived from these. Stripe holds the
  * charged amounts, so a change here needs new Stripe prices
@@ -35,9 +41,9 @@ export const CREDIT_PACKS: Record<
  * Enterprise is the lowest sales-led price, billed annually.
  */
 export const PLAN_PRICES: Record<Exclude<WorkspacePlan, 'free'>, number> = {
-  pro: 39,
-  business: 99,
-  enterprise: 999,
+  pro: 29,
+  business: 79,
+  enterprise: 799,
 }
 
 /** Annual billing takes this share off the monthly price. */
@@ -187,7 +193,7 @@ const planQuotas = {
     'storage:bytes': 0,
   },
   pro: {
-    'ai:credits:monthly': 1_500,
+    'ai:credits:monthly': 600,
     'api:write:minute': 300,
     'emails:monthly': 5_000,
     'jobs:concurrent': 5,
@@ -195,7 +201,7 @@ const planQuotas = {
     'storage:bytes': 50 * 1024 * 1024 * 1024,
   },
   business: {
-    'ai:credits:monthly': 4_000,
+    'ai:credits:monthly': 3_000,
     'api:write:minute': 1_500,
     'emails:monthly': 25_000,
     'jobs:concurrent': 25,
@@ -203,7 +209,7 @@ const planQuotas = {
     'storage:bytes': 250 * 1024 * 1024 * 1024,
   },
   enterprise: {
-    'ai:credits:monthly': 20_000,
+    'ai:credits:monthly': 15_000,
     'api:write:minute': 10_000,
     'emails:monthly': 100_000,
     'jobs:concurrent': 250,

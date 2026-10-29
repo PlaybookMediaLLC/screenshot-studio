@@ -137,19 +137,19 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	subscribe(t, ctx, repo, orgID, "pro")
 	meter := &recordingMonthlyMeter{}
 	repo.WithMonthlyMeter(meter)
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 1_500 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); err != nil || remaining != 600 {
 		t.Fatalf("AI credit peek remaining=%d err=%v", remaining, err)
 	}
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 40); err != nil || remaining != 1_460 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 40); err != nil || remaining != 560 {
 		t.Fatalf("AI credits remaining=%d err=%v", remaining, err)
 	}
 	// Web images older than the credit meter still meter AI credits.
-	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 10); err != nil || remaining != 1_450 {
+	if remaining, err := repo.ConsumeWorkspaceQuota(ctx, actor, "generation:monthly", 10); err != nil || remaining != 550 {
 		t.Fatalf("legacy generation quota remaining=%d err=%v", remaining, err)
 	}
 	var exceeded *QuotaExceededError
-	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 1_451); !errors.As(err, &exceeded) ||
-		exceeded.Quota != QuotaAICredits || exceeded.Limit != 1_500 || !exceeded.ResetAt.Equal(nextMonthStart(time.Now())) {
+	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 551); !errors.As(err, &exceeded) ||
+		exceeded.Quota != QuotaAICredits || exceeded.Limit != 600 || !exceeded.ResetAt.Equal(nextMonthStart(time.Now())) {
 		t.Fatalf("AI credit overrun accepted: %v", err)
 	}
 	if _, err := repo.ConsumeWorkspaceQuota(ctx, actor, QuotaAICredits, 0); !errors.Is(err, ErrQuotaExceeded) {

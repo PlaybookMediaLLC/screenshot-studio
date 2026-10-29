@@ -122,8 +122,8 @@ are secondary. See [vision.md](docs/vision.md) for the definition.
 
 ## Commercial validation
 
-Current subscriptions are Pro **$39/month**, Business **$99/month** and
-Enterprise **from $999/month**, with metered AI and no free plan. See
+Current subscriptions are Pro **$29/month**, Business **$79/month** and
+Enterprise **from $799/month**, with metered AI and no free plan. See
 [RFC 023](docs/rfcs/023-pricing-and-unit-economics.md). The release-readiness
 pilot hypothesis is approximately **$199–$399/month** or a defined per-release
 fee; it is not a new implemented billing plan.

@@ -95,7 +95,7 @@ Available in 8 languages: English, Spanish (/es), French (/fr), German (/de), Ja
 Software teams that ship releases, plus developers, designers, and marketers who need product visuals.
 
 ## Pricing
-Plans: Pro ($39/mo, or $33/mo billed annually), Business ($99/mo, or $84/mo billed annually), and Enterprise (from $999/mo, billed annually). There is no free plan. A signed-in workspace is required on every plan. The screenshot editor and image tools are included in every plan, and exports have no watermark. Details: https://shots.playbookmedia.io/pricing
+Plans: Pro ($29/mo, or $25/mo billed annually), Business ($79/mo, or $67/mo billed annually), and Enterprise (from $799/mo, billed annually). There is no free plan. A signed-in workspace is required on every plan. The screenshot editor and image tools are included in every plan, and exports have no watermark. Details: https://shots.playbookmedia.io/pricing
 
 ## Contact
 - Website: https://shots.playbookmedia.io

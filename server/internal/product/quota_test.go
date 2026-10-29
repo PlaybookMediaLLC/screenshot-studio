@@ -35,7 +35,7 @@ func TestPlanQuotasCoverEveryPlan(t *testing.T) {
 		}
 	}
 	// docs/rfcs/023: AI credits sized for a 50% gross margin at 30% use.
-	want := map[string]int{"free": 0, "pro": 1_500, "business": 4_000, "enterprise": 20_000}
+	want := map[string]int{"free": 0, "pro": 600, "business": 3_000, "enterprise": 15_000}
 	for plan, credits := range want {
 		if planQuotas[plan][QuotaAICredits] != credits {
 			t.Fatalf("%s AI credits=%d want %d", plan, planQuotas[plan][QuotaAICredits], credits)

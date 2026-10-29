@@ -7,7 +7,7 @@ import { EnvelopeIcon as Mail01Icon } from '@phosphor-icons/react/dist/ssr/Envel
 import { ShareIcon as Share08Icon } from '@phosphor-icons/react/dist/ssr/Share'
 import { SparkleIcon as SparklesIcon } from '@phosphor-icons/react/dist/ssr/Sparkle'
 import { UsersIcon as UserGroupIcon } from '@phosphor-icons/react/dist/ssr/Users'
-import { CREDIT_PACKS } from '@/lib/billing/plans'
+import { CREDIT_PACKS, LAUNCH_CREDITS } from '@/lib/billing/plans'
 import { PRODUCT_FACTS } from '@/lib/seo/product-facts'
 import { cn } from '@/lib/utils'
 import { FaqBlock, MarketingShell, PageHero, TileGrid } from '../blocks'
@@ -82,7 +82,7 @@ export function PricingPage() {
               {
                 icon: SparklesIcon,
                 title: 'AI credits',
-                body: 'One credit is one cent of AI cost. A launch uses about 430 credits ($4.30), and a short copilot edit uses a few. At zero, Shots stops before the next AI call.',
+                body: `One credit is one cent of AI cost. A launch uses about ${LAUNCH_CREDITS} credits, and a short copilot edit uses one. At zero, Shots stops before the next AI call.`,
               },
               {
                 icon: Calendar03Icon,

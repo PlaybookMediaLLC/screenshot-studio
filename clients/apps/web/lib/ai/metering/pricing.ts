@@ -20,10 +20,12 @@ export const modelPriceSchema = z.object({
 export type ModelPrice = z.infer<typeof modelPriceSchema>
 
 /**
- * Anthropic list prices by OpenRouter model id. Cache writes are 1.25 times
+ * List prices by OpenRouter model id. Anthropic cache writes are 1.25 times
  * input; reads are the published cache-read rate.
  */
 export const MODEL_PRICES: Readonly<Record<string, ModelPrice>> = {
+  // Haiku 5.5 bills $0.10 / $0.50 up to 100K prompt tokens; this is its longer-prompt rate, so the meter never undercharges.
+  'anthropic/claude-haiku-5.5': { cacheRead: 0.05, cacheWrite: 0.625, input: 0.5, output: 2.5 },
   'anthropic/claude-opus-5.5': { cacheRead: 0.2, cacheWrite: 5, input: 4, output: 20 },
   'anthropic/claude-sonnet-5.5': { cacheRead: 0.2, cacheWrite: 2.5, input: 2, output: 10 },
   'anthropic/claude-haiku-4.5': { cacheRead: 0.1, cacheWrite: 1.25, input: 1, output: 5 },

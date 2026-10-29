@@ -6,6 +6,7 @@ import {
   getWorkspaceLimit,
   getWorkspaceQuota,
   hasWorkspaceFeature,
+  LAUNCH_CREDITS,
   PLAN_PRICES,
   usd,
   workspaceLimitSchema,
@@ -266,8 +267,9 @@ export function PlanCards({
                 </span>
               </h3>
               <p className={cn('mt-1 max-w-[560px] text-[15px] leading-[1.6]', MUTED)}>
-                {CREDIT_PACKS.launch.credits.toLocaleString('en-US')} AI credits, about one launch,
-                for any subscribed workspace. They are spent after the monthly allowance and do not
+                {CREDIT_PACKS.launch.credits.toLocaleString('en-US')} AI credits, about{' '}
+                {Math.round(CREDIT_PACKS.launch.credits / LAUNCH_CREDITS)} launches, for any
+                subscribed workspace. They are spent after the monthly allowance and do not
                 expire.
               </p>
             </div>
@@ -280,8 +282,8 @@ export function PlanCards({
           </div>
           <p className={cn('mt-6 max-w-[760px] text-[15px] leading-[1.6]', MUTED)}>
             Launch intelligence is in early access for design partners on any plan. One credit is
-            one cent of AI cost. A launch uses about 430 credits ($4.30). At zero, Shots stops
-            before the next AI call.
+            one cent of AI cost. A launch uses about {LAUNCH_CREDITS} credits ({LAUNCH_CREDITS}{' '}
+            cents). At zero, Shots stops before the next AI call.
           </p>
         </>
       ) : null}

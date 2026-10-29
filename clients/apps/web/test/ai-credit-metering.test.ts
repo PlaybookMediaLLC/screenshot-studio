@@ -176,7 +176,7 @@ test('plan allowances match the Go backend', () => {
       )
     }
   }
-  assert.equal(getWorkspaceQuota('pro', 'ai:credits:monthly'), 1_500)
+  assert.equal(getWorkspaceQuota('pro', 'ai:credits:monthly'), 600)
   const storage = go.match(/planStorageBytes = map\[string\]int64\{([^}]*)\}/)?.[1]
   assert.ok(storage, 'quota.go has no planStorageBytes')
   const caps = [...storage.matchAll(/"(\w+)": (\d+)(?: << (\d+))?/g)]

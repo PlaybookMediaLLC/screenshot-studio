@@ -130,9 +130,9 @@ test('there is no free plan: a workspace without a subscription gets no feature 
 })
 
 test('plan prices derive annual billing at 15% off, matching the Stripe prices', () => {
-  assert.equal(planPriceSummary('pro'), '$39/mo, or $33/mo billed annually')
-  assert.equal(planPriceSummary('business'), '$99/mo, or $84/mo billed annually')
-  assert.equal(planPriceSummary('enterprise'), 'from $999/mo, billed annually')
+  assert.equal(planPriceSummary('pro'), '$29/mo, or $25/mo billed annually')
+  assert.equal(planPriceSummary('business'), '$79/mo, or $67/mo billed annually')
+  assert.equal(planPriceSummary('enterprise'), 'from $799/mo, billed annually')
 })
 
 test('the static llm.txt quotes the current plan prices', () => {

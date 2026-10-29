@@ -1,3 +1,4 @@
+import { LAUNCH_CREDITS } from '@/lib/billing/plans'
 import { cn } from '@/lib/utils'
 import {
   FaqBlock,
@@ -133,8 +134,8 @@ export function FoundersPage() {
             Start on Pro with the editor, release intake, and the API.{' '}
             <span className={MUTED}>
               Launch intelligence is in early access for design partners. Pro includes{' '}
-              {formatQuota('pro', 'ai:credits:monthly')} AI credits a month, and a launch uses about
-              430.
+              {formatQuota('pro', 'ai:credits:monthly')} AI credits a month, and a launch uses about{' '}
+              {LAUNCH_CREDITS}.
             </span>
           </p>
           <StatRows

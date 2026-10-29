@@ -35,11 +35,11 @@ var planQuotas = map[string]map[string]int{
 	"free": {QuotaAPIWriteMinute: 0, QuotaJobsConcurrent: 0,
 		QuotaAICredits: 0, QuotaPosts: 0, QuotaEmails: 0},
 	"pro": {QuotaAPIWriteMinute: 300, QuotaJobsConcurrent: 5,
-		QuotaAICredits: 1_500, QuotaPosts: 250, QuotaEmails: 5_000},
+		QuotaAICredits: 600, QuotaPosts: 250, QuotaEmails: 5_000},
 	"business": {QuotaAPIWriteMinute: 1_500, QuotaJobsConcurrent: 25,
-		QuotaAICredits: 4_000, QuotaPosts: 600, QuotaEmails: 25_000},
+		QuotaAICredits: 3_000, QuotaPosts: 600, QuotaEmails: 25_000},
 	"enterprise": {QuotaAPIWriteMinute: 10_000, QuotaJobsConcurrent: 250,
-		QuotaAICredits: 20_000, QuotaPosts: 5_000, QuotaEmails: 100_000},
+		QuotaAICredits: 15_000, QuotaPosts: 5_000, QuotaEmails: 100_000},
 }
 
 // planStorageBytes caps the bytes of a workspace's live assets; it mirrors

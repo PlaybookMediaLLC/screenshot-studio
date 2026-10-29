@@ -1,10 +1,14 @@
 import Link from 'next/link'
 import {
+  annualMonthlyPrice,
   checkoutPlanSchema,
   CREDIT_PACKS,
   getWorkspaceLimit,
   getWorkspaceQuota,
   hasWorkspaceFeature,
+  LAUNCH_CREDITS,
+  PLAN_PRICES,
+  usd,
   workspaceLimitSchema,
   workspacePlanSchema,
   workspaceQuotaSchema,
@@ -31,15 +35,15 @@ const displayedPlanSchema = workspacePlanSchema.exclude([PLAN.free])
 type DisplayedPlan = z.infer<typeof displayedPlanSchema>
 const DISPLAYED_PLANS = displayedPlanSchema.options
 
-/**
- * The price shown on each plan card. Derived in docs/rfcs/035: a 75% gross
- * margin at half of each plan's allowance, with annual billing 15% off.
- * Change a price here and every card and table updates.
- */
-export const PLAN_PRICES: Record<DisplayedPlan, { price: string; note: string }> = {
-  pro: { price: '$199', note: 'per month, or $169 billed annually' },
-  business: { price: '$699', note: 'per month, or $594 billed annually' },
-  enterprise: { price: 'From $3,000', note: 'per month, billed annually' },
+/** A plan card's price and the line under it, read from `PLAN_PRICES`. */
+export function priceLabel(plan: DisplayedPlan): { price: string; note: string } {
+  const checkout = checkoutPlanSchema.safeParse(plan)
+  return checkout.success
+    ? {
+        price: usd(PLAN_PRICES[plan]),
+        note: `per month, or ${usd(annualMonthlyPrice(checkout.data))} billed annually`,
+      }
+    : { price: `From ${usd(PLAN_PRICES[plan])}`, note: 'per month, billed annually' }
 }
 
 const PLAN_COPY: Record<
@@ -194,9 +198,9 @@ export function PlanCards({
                 {copy.tagline}
               </p>
               <p className="mt-8 text-[30px] leading-none tracking-[-0.03em] text-white">
-                {PLAN_PRICES[plan].price}
+                {priceLabel(plan).price}
               </p>
-              <p className={cn('mt-2 text-[15px]', MUTED)}>{PLAN_PRICES[plan].note}</p>
+              <p className={cn('mt-2 text-[15px]', MUTED)}>{priceLabel(plan).note}</p>
               {checkoutPlanSchema.safeParse(plan).success ? (
                 <CheckoutButton
                   choices={[
@@ -263,8 +267,9 @@ export function PlanCards({
                 </span>
               </h3>
               <p className={cn('mt-1 max-w-[560px] text-[15px] leading-[1.6]', MUTED)}>
-                {CREDIT_PACKS.launch.credits.toLocaleString('en-US')} AI credits, about one launch,
-                for any subscribed workspace. They are spent after the monthly allowance and do not
+                {CREDIT_PACKS.launch.credits.toLocaleString('en-US')} AI credits, about{' '}
+                {Math.round(CREDIT_PACKS.launch.credits / LAUNCH_CREDITS)} launches, for any
+                subscribed workspace. They are spent after the monthly allowance and do not
                 expire.
               </p>
             </div>
@@ -277,8 +282,8 @@ export function PlanCards({
           </div>
           <p className={cn('mt-6 max-w-[760px] text-[15px] leading-[1.6]', MUTED)}>
             Launch intelligence is in early access for design partners on any plan. One credit is
-            one cent of AI cost. A launch uses about 430 credits ($4.30). At zero, Shots stops
-            before the next AI call.
+            one cent of AI cost. A launch uses about {LAUNCH_CREDITS} credits ({LAUNCH_CREDITS}{' '}
+            cents). At zero, Shots stops before the next AI call.
           </p>
         </>
       ) : null}

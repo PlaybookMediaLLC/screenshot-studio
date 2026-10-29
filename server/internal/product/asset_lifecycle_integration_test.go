@@ -18,8 +18,8 @@ func TestConcurrentUploadsCannotExceedStorage(t *testing.T) {
 	w := newTestWorkspace(t)
 	subscribe(t, w.ctx, w.repo, w.org, "pro")
 	repo := w.repo.WithObjectStore(&recordingAssetObjects{exists: true})
-	// Fill the 25 GiB plan to ten bytes short, in rows the int column can hold.
-	room := int64(25<<30) - 10
+	// Fill the Pro plan's storage to ten bytes short, in rows the int column can hold.
+	room := storageLimits["pro"] - 10
 	for i := 0; room > 0; i++ {
 		bytes := min(room, 2_000_000_000)
 		w.exec(t, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"updatedAt") VALUES ($1,$2,$3,'video/mp4',$4,'UPLOADED',now())`,

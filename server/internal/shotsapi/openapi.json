@@ -4,7 +4,7 @@
     "title": "Shots API",
     "version": "1.0.0",
     "summary": "Public HTTP API for Shots.",
-    "description": "Shots turns a software release into a reviewed launch: a cited brief, on-brand visuals, and channel posts that a person approves before anything is scheduled. This API exposes the same workspace operations the app uses.\n\n## Quickstart\n\n1. Create a workspace API key in **Settings → Developer API** (`https://shots.playbookmedia.io/workspace/developers`). Give it only the scopes it needs. The key is shown once.\n2. Send it in the `X-API-Key` header:\n\n```bash\nexport SHOTS_API_KEY=\"ss_...\"\ncurl https://shots.playbookmedia.io/api/v1/releases -H \"X-API-Key: $SHOTS_API_KEY\"\n```\n\n3. Create a draft campaign. Every post starts as a draft; nothing is scheduled until a person approves it:\n\n```bash\ncurl -X POST https://shots.playbookmedia.io/api/v1/campaigns \\\n  -H \"X-API-Key: $SHOTS_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Idempotency-Key: recurring-invoices-launch\" \\\n  -d '{\"name\":\"Recurring invoices\",\"objective\":\"Announce recurring invoices\",\"posts\":[{\"channel\":\"linkedin\",\"copy\":\"Recurring invoices are here.\"}]}'\n```\n\n4. Submit the drafts for review with `POST /api/v1/campaigns/{campaignId}/review-requests`. Approvers decide in the app.\n\n### Typed TypeScript client\n\nThe document is OpenAPI 3.1. Generate types from it and call the API with full request and response typing:\n\n```bash\nnpx openapi-typescript https://shots.playbookmedia.io/openapi.json -o shots.d.ts\nnpm install openapi-fetch\n```\n\n```ts\nimport createClient from 'openapi-fetch'\nimport type { paths } from './shots'\n\nconst shots = createClient<paths>({\n  baseUrl: 'https://shots.playbookmedia.io',\n  headers: { 'X-API-Key': process.env.SHOTS_API_KEY! },\n})\nconst { data, error } = await shots.GET('/api/v1/campaigns/{campaignId}', {\n  params: { path: { campaignId: 'c...' } },\n})\n```\n\n## Authentication\n\n| Credential | How to send it | For |\n| --- | --- | --- |\n| Workspace API key | `X-API-Key: ss_...` | Scripts, CI, and agents. A key belongs to one workspace and carries scopes. |\n| Signed-in session | The `better-auth.session_token` cookie | Same-origin browser calls, checked against the member's role. |\n\nEach operation lists the scope it needs in its security requirement. A key can never choose another workspace: the workspace is the key's own.\n\n| Scope | Allows |\n| --- | --- |\n| `artifact:read` | Read releases, campaigns, the review queue, the publishing schedule, and link previews; sign asset downloads; use the editor utilities. |\n| `asset:write` | Complete and delete asset uploads. |\n| `draft:comment` | Add, reply, edit your own comments, and resolve discussions on workspace drafts. Never approves or publishes. |\n| `draft:write` | Create, update, and delete content drafts. Only a person schedules a draft. |\n| `onboarding:run` | Read a product site into its profile and follow the run. |\n| `post:schedule` | Schedule campaign posts and visuals a person approved, and cancel scheduled posts. It never approves anything. |\n| `queue:write` | Change future posting-slot suggestions and time zones. Does not approve, schedule, or move existing posts. |\n| `release:create` | Create releases and draft campaigns, and submit drafts for review. |\n| `source:write` | Register and update release-intake sources. |\n| `upload:sign` | Sign asset uploads. |\n\nApproving, rejecting, or requesting changes on posts is a person's decision and takes a session only. Those operations refuse API keys with `403`, whatever the key's scopes.\n\nA key with `post:schedule` may schedule campaign posts and visuals a person approved, and cancel scheduled posts. Nothing unapproved can be scheduled, by a key or a person. A session that schedules a variant or cancels a post needs a sign-in under 15 minutes old with two-factor enabled.\n\nShell operations (`/api/v1/me`, `/api/v1/bootstrap`, `/api/v1/organizations`) describe the signed-in user and refuse API keys.\n\n## Plans and limits\n\nFree includes basic content drafts and explicit scheduling for one seat and one connected account, with 10 posts per UTC month and no AI. Paid operations and advanced queue features require a subscription. Each gated operation publishes its gate in `x-shots-entitlement`: the `feature` it needs, the `minimumPlan` that includes it, and the `quota` it consumes.\n\n- A workspace without the feature gets `403` with code `workspace_feature_not_entitled`, plus `feature`, `currentPlan`, and `requiredPlan`.\n- A metered write past its quota gets `429` with code `workspace_quota_exceeded`, plus `Retry-After` and `X-RateLimit-*` headers.\n- Each API key is also limited to 60 requests per minute.\n\n## Idempotency\n\nCreating a release, campaign, or scheduled post accepts an `Idempotency-Key` header of up to 128 characters. A retry with the same key returns the original result with `200` instead of creating a duplicate. Status changes (campaign transitions, review requests, approvals, cancellations) apply only from the current status, so a repeated request returns `409` and changes nothing.\n\n## Errors\n\nEvery failure returns one JSON envelope with a stable `code`, a human-readable `message`, and a `hint`. Branch on `code`; it is stable within `v1`. Every response carries `X-Request-Id`; send your own to correlate logs.",
+    "description": "Shots turns a software release into a reviewed launch: a cited brief, on-brand visuals, and channel posts that a person approves before anything is scheduled. This API exposes the same workspace operations the app uses.\n\n## Quickstart\n\n1. Create a workspace API key in **Settings → Developer API** (`https://shots.playbookmedia.io/workspace/developers`). Give it only the scopes it needs. The key is shown once.\n2. Send it in the `X-API-Key` header:\n\n```bash\nexport SHOTS_API_KEY=\"ss_...\"\ncurl https://shots.playbookmedia.io/api/v1/releases -H \"X-API-Key: $SHOTS_API_KEY\"\n```\n\n3. Create a draft campaign. Every post starts as a draft; nothing is scheduled until a person approves it:\n\n```bash\ncurl -X POST https://shots.playbookmedia.io/api/v1/campaigns \\\n  -H \"X-API-Key: $SHOTS_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Idempotency-Key: recurring-invoices-launch\" \\\n  -d '{\"name\":\"Recurring invoices\",\"objective\":\"Announce recurring invoices\",\"posts\":[{\"channel\":\"linkedin\",\"copy\":\"Recurring invoices are here.\"}]}'\n```\n\n4. Submit the drafts for review with `POST /api/v1/campaigns/{campaignId}/review-requests`. Approvers decide in the app.\n\n### Typed TypeScript client\n\nThe document is OpenAPI 3.1. Generate types from it and call the API with full request and response typing:\n\n```bash\nnpx openapi-typescript https://shots.playbookmedia.io/openapi.json -o shots.d.ts\nnpm install openapi-fetch\n```\n\n```ts\nimport createClient from 'openapi-fetch'\nimport type { paths } from './shots'\n\nconst shots = createClient<paths>({\n  baseUrl: 'https://shots.playbookmedia.io',\n  headers: { 'X-API-Key': process.env.SHOTS_API_KEY! },\n})\nconst { data, error } = await shots.GET('/api/v1/campaigns/{campaignId}', {\n  params: { path: { campaignId: 'c...' } },\n})\n```\n\n## Authentication\n\n| Credential | How to send it | For |\n| --- | --- | --- |\n| Workspace API key | `X-API-Key: ss_...` | Scripts, CI, and agents. A key belongs to one workspace and carries scopes. |\n| Signed-in session | The `better-auth.session_token` cookie | Same-origin browser calls, checked against the member's role. |\n\nEach operation lists the scope it needs in its security requirement. A key can never choose another workspace: the workspace is the key's own.\n\n| Scope | Allows |\n| --- | --- |\n| `artifact:read` | Read releases, campaigns, the review queue, the publishing schedule, and link previews; sign asset downloads; use the editor utilities. |\n| `asset:write` | Complete and delete asset uploads. |\n| `draft:comment` | Add, reply, edit your own comments, and resolve discussions on workspace drafts. Never approves or publishes. |\n| `draft:write` | Create, update, and delete content drafts. Only a person schedules a draft. |\n| `onboarding:run` | Read a product site into its profile and follow the run. |\n| `post:schedule` | Schedule campaign posts and visuals a person approved, and cancel scheduled posts. It never approves anything. |\n| `queue:write` | Change future posting-slot suggestions and time zones. Does not approve, schedule, or move existing posts. |\n| `release:create` | Create releases and draft campaigns, and submit drafts for review. |\n| `source:write` | Register and update release-intake sources. |\n| `upload:sign` | Sign asset uploads. |\n\nApproving, rejecting, or requesting changes on posts is a person's decision and takes a session only. Those operations refuse API keys with `403`, whatever the key's scopes.\n\nA key with `post:schedule` may schedule campaign posts and visuals a person approved, and cancel scheduled posts. Nothing unapproved can be scheduled, by a key or a person. A session that schedules a variant or cancels a post needs a sign-in under 15 minutes old with two-factor enabled.\n\nShell operations (`/api/v1/me`, `/api/v1/bootstrap`, `/api/v1/organizations`) describe the signed-in user and refuse API keys.\n\n## Plans and limits\n\nThere is no free plan: every operation here needs a Pro, Business or Enterprise subscription, and a workspace without one can only sign in and choose a plan. Each gated operation publishes its gate in `x-shots-entitlement`: the `feature` it needs, the `minimumPlan` that includes it, and the `quota` it consumes.\n\n- A workspace without the feature gets `403` with code `workspace_feature_not_entitled`, plus `feature`, `currentPlan`, and `requiredPlan`.\n- A metered write past its quota gets `429` with code `workspace_quota_exceeded`, plus `Retry-After` and `X-RateLimit-*` headers.\n- Each API key is also limited to 60 requests per minute.\n\n## Idempotency\n\nCreating a release, campaign, or scheduled post accepts an `Idempotency-Key` header of up to 128 characters. A retry with the same key returns the original result with `200` instead of creating a duplicate. Status changes (campaign transitions, review requests, approvals, cancellations) apply only from the current status, so a repeated request returns `409` and changes nothing.\n\n## Errors\n\nEvery failure returns one JSON envelope with a stable `code`, a human-readable `message`, and a `hint`. Branch on `code`; it is stable within `v1`. Every response carries `X-Request-Id`; send your own to correlate logs.",
     "contact": {
       "name": "Shots",
       "url": "https://shots.playbookmedia.io/contact"
@@ -77,7 +77,7 @@
         ],
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "requestBody": {
           "required": true,
@@ -249,7 +249,7 @@
         ],
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "requestBody": {
           "required": true,
@@ -383,7 +383,7 @@
         ],
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "parameters": [
           {
@@ -471,7 +471,7 @@
         ],
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "parameters": [
           {
@@ -554,7 +554,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Session-only, tenant-scoped production evidence and policy history.",
         "operationId": "getGitHubProduction",
@@ -1032,7 +1032,7 @@
       "put": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Owners and administrators select GitHub evidence and a Shots workflow. Uses an expected revision; does not replay history.",
         "operationId": "saveGitHubProduction",
@@ -1368,7 +1368,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Evaluates a saved observation or example with no writes, enrichment, credits, or execution.",
         "operationId": "previewGitHubProduction",
@@ -1839,7 +1839,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Reports missing permissions or subscriptions without blocking existing event types.",
         "operationId": "getGitHubProductionCatalog",
@@ -2004,7 +2004,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Tenant-scoped provider-delivery status and history gaps.",
         "operationId": "getGitHubRecovery",
@@ -2172,7 +2172,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Owners/admins inspect a provider page; optional redelivery is bounded to five requests and three attempts. Recovered events cannot run live workflows.",
         "operationId": "inspectGitHubRecovery",
@@ -2351,7 +2351,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists workspace-visible social sets and their connected identities, posting schedule, and defaults. Private member sets are excluded for API keys.",
         "operationId": "listSocialSets",
@@ -3025,7 +3025,7 @@
       "patch": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Changes weekly posting slots, time zone, or natural-time variation for a workspace-visible social set. Requires its current baseVersion; concurrent or repeated writes return 409. Only future slot suggestions change. Existing scheduled and planned times, approval requirements, and connected identities remain unchanged. API keys require the separate queue:write scope; draft:write does not imply it. Private social sets remain unavailable to keys.",
@@ -3589,7 +3589,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Looks up an exact X username or LinkedIn company vanity name/URL using the selected social set’s connected account. Returns provider-authoritative identifiers for structured mentions. Does not search LinkedIn people or publish anything. API keys cannot access private sets. Provider permission failures and rate limits are returned without inventing results.",
@@ -3759,7 +3759,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Reads one visible social set including its posting schedule. Reading never changes approval or publishing permissions.",
         "operationId": "getSocialSet",
@@ -4262,7 +4262,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Suggests times from this social set's stored engagement, or explicitly labelled default times when there is insufficient history.",
         "operationId": "bestPostingTimes",
@@ -4385,7 +4385,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists visible draft deliveries in a window of at most 100 days (maximum 500 rows). Includes scheduled, publishing, published, failed and unknown outcomes; private sets remain hidden from API keys.",
         "operationId": "listCalendarPosts",
@@ -5101,7 +5101,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Conditional calendar mutation. Scheduled changes also require publish:manage. Retries replay the committed result.",
         "operationId": "mutateCalendar",
@@ -5255,7 +5255,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "One account/date snapshot with explicit metric availability and freshness.",
         "operationId": "getAccountAnalytics",
@@ -5455,7 +5455,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Authenticated publisher requests a bounded provider refresh. Collection state and existing observations survive failure; no publication is created.",
         "operationId": "refreshAccountAnalytics",
@@ -5537,7 +5537,7 @@
       "put": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Versioned, audited publisher operation. Public sharing is disabled by default; revoke makes subsequent reads return 404 with no-store.",
         "operationId": "updateAnalyticsSettings",
@@ -5676,7 +5676,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Reads the selected public Mastodon server’s v2 instance metadata. Accepts a hostname or HTTPS origin with no path, port or credentials. The backend blocks private addresses, refuses redirects, limits the response size and bounds network time. This preview does not authorize an account or prove publishing capability. activeUsers is the reported number of active users in the past four weeks, when available.",
@@ -5770,7 +5770,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Starts a provider authorization for the signed-in owner or admin in the active workspace. CREATE_SET requires PRIVATE or WORKSPACE visibility; no set exists until the verified first account commits. ADD_ACCOUNT targets an existing social set, and RECONNECT also binds the existing connection. The attempt retains its original user, session, workspace, and target across workspace switches. Each call starts a new authorization; do not automatically retry a lost begin response. Provider callbacks recover their persisted result instead of exchanging the code twice. API keys cannot connect accounts.",
@@ -5882,7 +5882,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Reads the current adapter configuration and product rollout gates for the active workspace. Only signed-in owners/admins may inspect it; API keys cannot connect accounts. No app IDs, secrets or credentials are returned. Available means a connection can be attempted, not that provider approval, account grants or publishing capabilities have been verified. Subscription capacity, target ownership and occupied slots are rechecked when an attempt starts and commits. The response is not cached.",
@@ -5974,7 +5974,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Creates a single-use, session-bound Bluesky connection attempt for an owner or admin. No social set is created yet. Reconnect retains the original account identity. Each call creates a new attempt; do not retry a lost begin response automatically. API keys cannot connect accounts.",
@@ -6086,7 +6086,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Verifies a dedicated app password and commits the account to the original authorized social set. Credentials belong only in this POST body and must never be logged or persisted by clients. Omit credentials to recover a saved result after interruption. An uncertain external exchange returns a conflict and is not automatically retried. The backend rechecks the original session, workspace and target before committing.",
@@ -6677,7 +6677,7 @@
       "patch": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Changes which webhook deliveries a source turns into releases: the watched branch, the bot and author filters, and pre-release handling. Requires the `source:write` scope.",
@@ -6875,7 +6875,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Reads a public page as the chosen crawler and reports how its links preview: every meta tag, the measured preview images, robots.txt access for each platform crawler, the redirect chain, a 0 to 100 score, and each issue with its fix. Run it in CI to fail a deploy whose links would preview badly. Requires the `artifact:read` scope.",
         "operationId": "getLinkPreview",
@@ -7126,7 +7126,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Marks a signed upload as complete after storage verification. Requires the `asset:write` scope.",
@@ -7267,7 +7267,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Returns a download URL valid for up to two minutes. Each download rechecks the issuing session or credential and current asset access; revocation invalidates outstanding links. Requires the `artifact:read` scope.",
         "operationId": "createAssetDownloadUrl",
@@ -7494,7 +7494,7 @@
       "put": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Describes an uploaded image for people who cannot see it. The description is posted with the image wherever it goes (X takes up to 1,000 characters, LinkedIn more); an empty string clears it.",
@@ -9856,7 +9856,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists the workspace publishing schedule, newest first, up to `limit` posts. `pagination.hasMore` is true when the page is full. Requires the `artifact:read` scope, or a member who manages publishing.",
         "operationId": "listScheduledPosts",
@@ -10249,7 +10249,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Cancels a post that has not started publishing. Cancelling a cancelled post returns it unchanged. A post that is processing or published cannot be cancelled; remove a published post on the social network. Requires the `post:schedule` scope, or a member who manages publishing, signed in within 15 minutes with two-factor.",
@@ -10453,7 +10453,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists the workspace content drafts, newest first. Requires the `artifact:read` scope and the content drafts entitlement (Pro or higher).",
         "operationId": "listContentDrafts",
@@ -10630,7 +10630,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Creates a content draft: a post written in the document editor, kept until it is scheduled. Every attached asset and channel must belong to the workspace. Requires the `draft:write` scope and the content drafts entitlement.",
         "operationId": "createContentDraft",
@@ -10716,7 +10716,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Returns one content draft with its Plate JSON body. Requires the `artifact:read` scope and the content drafts entitlement.",
         "operationId": "getContentDraft",
@@ -10811,7 +10811,7 @@
       "patch": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Updates the fields it sets, based on `baseVersion`. A write based on an older version is refused with 409, so concurrent editors never overwrite each other; reload the draft and retry. Requires the `draft:write` scope.",
         "operationId": "updateContentDraft",
@@ -10926,7 +10926,7 @@
       "delete": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Deletes a content draft. Posts already scheduled from it are not changed. Requires the `draft:write` scope.",
         "operationId": "deleteContentDraft",
@@ -11053,7 +11053,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists the posts scheduled from a content draft, newest first, with each post status. Requires the `artifact:read` scope.",
         "operationId": "listContentDraftPosts",
@@ -11150,7 +11150,7 @@
       "patch": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Pins, tags, or annotates a draft. Properties are not content: the draft's version, and any approval of it, stay. Tags are added and removed by id, so concurrent taggers both count.",
         "operationId": "updateContentDraftProperties",
@@ -11286,7 +11286,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Puts a draft on the calendar at a time, or takes it off. A plan creates no scheduled post: a planned draft never publishes when its time passes.",
         "operationId": "planContentDraft",
@@ -11420,7 +11420,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Duplicates a draft in its social set: a new draft at version 1 with the same writing, destinations and tags, and no share link, comments, review, plan or scheduled posts.",
         "operationId": "duplicateContentDraft",
@@ -11527,7 +11527,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Copies a draft into another social set. Destinations become that set's accounts on the same platforms; platforms it lacks, and unmatched tags, are reported in `dropped`.",
         "operationId": "copyContentDraft",
@@ -11642,7 +11642,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Creates a new draft from an automatic backup. The source draft is left exactly as it is, and the new draft has no publication state.",
         "operationId": "recoverContentDraftRevision",
@@ -11738,7 +11738,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists a draft's history, newest first: creation, edits, renames, destinations, tags, review, sharing, planning, scheduling, publication and recovery, with who and when. Viewing a draft is never recorded.",
         "operationId": "listContentDraftActivity",
@@ -11825,7 +11825,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists a social set's tags. Each set has its own.",
         "operationId": "listDraftTags",
@@ -11910,7 +11910,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Adds a tag to a social set. Names are unique within a set, ignoring case.",
         "operationId": "createDraftTag",
@@ -12043,7 +12043,7 @@
       "patch": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Renames or recolours a tag.",
         "operationId": "updateDraftTag",
@@ -12180,7 +12180,7 @@
       "delete": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Deletes a tag and takes it off the set's drafts, without changing their versions.",
         "operationId": "deleteDraftTag",
@@ -12286,7 +12286,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Reads the product's site and returns a product profile and ideal customer profile draft within ten seconds, then starts the background run that deepens them. A second request while a run is active, or a replayed `Idempotency-Key`, returns the existing run with 200. Requires the `onboarding:run` scope.",
         "operationId": "createOnboardingRun",
@@ -13289,7 +13289,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Returns a run's status, stage, and progress (0 to 100, never decreasing). While the run is active the progress is live. Requires the `onboarding:run` scope.",
         "operationId": "getOnboardingRun",
@@ -13377,7 +13377,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Stops an active run within seconds. Everything it already read is kept; cancelling a finished run changes nothing. Requires the `onboarding:run` scope.",
         "operationId": "cancelOnboardingRun",
@@ -13465,7 +13465,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Starts a new run for a run's URL. Pages read within the hour are reused and unchanged pages skip the model, so re-running an unchanged site costs nothing. Accepts `Idempotency-Key`. Requires the `onboarding:run` scope.",
         "operationId": "rerunOnboardingRun",
@@ -14468,7 +14468,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "workspace:use",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists what enrichment found for the run's site: brand assets, firmographics, social reach, app store listings, competitors, and mentions, each with its provider, confidence, source, and cost. Requires the `onboarding:run` scope.",
         "operationId": "listOnboardingEnrichment",
@@ -15637,7 +15637,7 @@
       "post": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free",
+          "minimumPlan": "pro",
           "quota": "api:write:minute"
         },
         "description": "Adds, replies, edits, deletes or resolves a comment on a visible draft. Every active member may comment; only its author may edit a comment, while owners/admins may also delete comments. Author identities and timestamps are server-owned. A new thread may include anchor {platform, postId, quote?}; quote must match exactly once in the selected post. Omit quote to discuss the whole post. delete_thread removes a discussion; a key may only delete its own thread if all replies also belong to that key. All changes require baseVersion. A repeated or stale action returns 409 without another mutation: read the draft to reconcile an uncertain outcome before submitting a new action. Comment-only changes preserve current approval and never change publication content. API keys need the separate draft:comment scope and are attributed to their key, never a human. Private social sets remain unavailable to keys.",
@@ -15753,7 +15753,7 @@
       "get": {
         "x-shots-entitlement": {
           "feature": "content:drafts",
-          "minimumPlan": "free"
+          "minimumPlan": "pro"
         },
         "description": "Lists existing discussion threads and authoritative author names. Filter by open/resolved status and platform. Whole-draft discussions apply to every platform. Private social sets remain unavailable to API keys.",
         "operationId": "listDraftComments",

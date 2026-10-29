@@ -234,7 +234,7 @@ func TestContentBatches(t *testing.T) {
 		}
 	})
 
-	t.Run("two people saving the same item at once get one draft", func(t *testing.T) {
+	t.Run("two people saving the same item at once get one draft, again after it is deleted", func(t *testing.T) {
 		w.addMember(t, "editor", "creator")
 		batch, err := repo.CreateContentBatch(ctx, owner, ContentBatchInput{Title: "Shared"})
 		if err != nil {
@@ -244,23 +244,110 @@ func TestContentBatches(t *testing.T) {
 			t.Fatal(err)
 		}
 		entry := batch.Items[0]
-		var wg sync.WaitGroup
-		results := make([]*ContentBatchItemRecord, 2)
-		errs := make([]error, 2)
-		for i, actor := range []Actor{owner, w.actor("editor")} {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				results[i], errs[i] = repo.CreateContentBatchItemDraft(ctx, actor, batch.ID, entry.ID, ContentDraftInput{Title: "Shared", PlainText: entry.Caption})
-			}()
+		saveAtOnce := func() string {
+			t.Helper()
+			var wg sync.WaitGroup
+			results := make([]*ContentBatchItemRecord, 2)
+			errs := make([]error, 2)
+			for i, actor := range []Actor{owner, w.actor("editor")} {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					results[i], errs[i] = repo.CreateContentBatchItemDraft(ctx, actor, batch.ID, entry.ID, ContentDraftInput{Title: "Shared", PlainText: entry.Caption})
+				}()
+			}
+			wg.Wait()
+			if errs[0] != nil || errs[1] != nil || results[0].DraftID == nil || results[1].DraftID == nil || *results[0].DraftID != *results[1].DraftID {
+				t.Fatalf("concurrent drafts: %v %v", errs, results)
+			}
+			var drafts int
+			if err := w.db.SQL.QueryRowContext(ctx, `SELECT count(*) FROM content_draft WHERE "organizationId"=$1 AND title='Shared'`, w.org).Scan(&drafts); err != nil || drafts != 1 {
+				t.Fatalf("%d drafts for one item: %v", drafts, err)
+			}
+			return *results[0].DraftID
 		}
-		wg.Wait()
-		if errs[0] != nil || errs[1] != nil || *results[0].DraftID != *results[1].DraftID {
-			t.Fatalf("concurrent drafts: %v %v", errs, results)
+		first := saveAtOnce()
+		// Deleting the unscheduled draft in Write leaves the item ready to save again.
+		if err := repo.DeleteContentDraft(ctx, owner, first); err != nil {
+			t.Fatal(err)
 		}
-		var drafts int
-		if err := w.db.SQL.QueryRowContext(ctx, `SELECT count(*) FROM content_draft WHERE "organizationId"=$1 AND title='Shared'`, w.org).Scan(&drafts); err != nil || drafts != 1 {
-			t.Fatalf("%d drafts for one item: %v", drafts, err)
+		if reloaded, err := repo.GetContentBatch(ctx, owner, batch.ID); err != nil || reloaded.Items[0].DraftID != nil {
+			t.Fatalf("item after its draft was deleted: %+v %v", reloaded.Items[0], err)
+		}
+		if second := saveAtOnce(); second == first {
+			t.Fatalf("the deleted draft %s came back", first)
+		}
+	})
+
+	t.Run("an edit committed while the item is being saved is not lost", func(t *testing.T) {
+		batch, err := repo.CreateContentBatch(ctx, owner, ContentBatchInput{Title: "Edited"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if batch, err = repo.AddContentBatchItems(ctx, owner, batch.ID, []ContentBatchItemInput{item("edited", 0, photos[0]), item("edited", 1, photos[1])}); err != nil {
+			t.Fatal(err)
+		}
+		// Another person's account change is mid-commit, holding the item, when the save starts.
+		entry := batch.Items[0]
+		tx, err := w.db.SQL.BeginTx(ctx, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer tx.Rollback()
+		var blocker int
+		if err := tx.QueryRowContext(ctx, `SELECT pg_backend_pid()`).Scan(&blocker); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE content_batch_item SET "channelConnectionIds"=$2::jsonb WHERE id=$1`, entry.ID, `["`+linkedin+`"]`); err != nil {
+			t.Fatal(err)
+		}
+		type saved struct {
+			record *ContentBatchItemRecord
+			err    error
+		}
+		done := make(chan saved, 1)
+		go func() {
+			record, err := repo.CreateContentBatchItemDraft(ctx, owner, batch.ID, entry.ID, ContentDraftInput{Title: "Edited", PlainText: entry.Caption})
+			done <- saved{record, err}
+		}()
+		for {
+			var blocked bool
+			if err := w.db.SQL.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid)))`, blocker).Scan(&blocked); err != nil {
+				t.Fatal(err)
+			}
+			if blocked {
+				break
+			}
+			select {
+			case result := <-done:
+				t.Fatalf("save did not wait for the edit: %+v %v", result.record, result.err)
+			case <-ctx.Done():
+				t.Fatal(ctx.Err())
+			case <-time.After(5 * time.Millisecond):
+			}
+		}
+		if err := tx.Commit(); err != nil {
+			t.Fatal(err)
+		}
+		result := <-done
+		if result.err != nil || result.record.Draft == nil || strings.Join(result.record.Draft.ChannelConnectionIDs, ",") != linkedin ||
+			strings.Join(result.record.ChannelConnectionIDs, ",") != linkedin {
+			t.Fatalf("draft saved over a concurrent edit: %+v %v", result.record, result.err)
+		}
+		// A save built from the caption before another person's edit is refused, and links nothing.
+		other := batch.Items[1]
+		newer := "Newer caption"
+		if _, err := repo.UpdateContentBatchItem(ctx, owner, batch.ID, other.ID, ContentBatchItemUpdate{Caption: &newer}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.CreateContentBatchItemDraft(ctx, owner, batch.ID, other.ID, ContentDraftInput{Title: "Edited", PlainText: other.Caption}); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("stale save: %v", err)
+		}
+		if reloaded, err := repo.GetContentBatch(ctx, owner, batch.ID); err != nil || reloaded.Items[1].DraftID != nil || reloaded.Items[1].Caption != newer {
+			t.Fatalf("item after a stale save: %+v %v", reloaded.Items[1], err)
+		}
+		if record, err := repo.CreateContentBatchItemDraft(ctx, owner, batch.ID, other.ID, ContentDraftInput{Title: "Edited", PlainText: newer}); err != nil || record.Draft.PlainText != newer {
+			t.Fatalf("save after reload: %+v %v", record, err)
 		}
 	})
 
@@ -344,7 +431,9 @@ func TestContentBatches(t *testing.T) {
 		if err != nil || len(batches) < 4 {
 			t.Fatalf("list: %d %v", len(batches), err)
 		}
+		// There is no free plan, so the stranger subscribes to reach the tenant check.
 		stranger := newTestWorkspace(t)
+		subscribe(t, ctx, repo, stranger.org, "pro")
 		if _, err := repo.GetContentBatch(ctx, stranger.owner, batches[0].ID); !errors.Is(err, publishing.ErrNotFound) {
 			t.Fatalf("other workspace: %v", err)
 		}

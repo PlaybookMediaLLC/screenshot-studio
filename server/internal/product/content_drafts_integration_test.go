@@ -122,9 +122,10 @@ func TestContentDrafts(t *testing.T) {
 		}
 	})
 
-	t.Run("a free workspace may create a draft", func(t *testing.T) {
+	t.Run("a workspace without a subscription cannot create a draft", func(t *testing.T) {
 		_, err := repo.CreateContentDraft(ctx, Actor{OrganizationID: unpaid, Kind: "service"}, ContentDraftInput{})
-		if err != nil {
+		var gate *FeatureNotEntitledError
+		if !errors.As(err, &gate) || gate.RequiredPlan != "pro" {
 			t.Fatalf("unpaid err=%v", err)
 		}
 	})

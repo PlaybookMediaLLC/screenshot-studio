@@ -176,7 +176,19 @@ test('plan allowances match the Go backend', () => {
       )
     }
   }
-  assert.equal(getWorkspaceQuota('pro', 'ai:credits:monthly'), 3_600)
+  assert.equal(getWorkspaceQuota('pro', 'ai:credits:monthly'), 600)
+  const media = readFileSync('../../../server/internal/product/assets_media.go', 'utf8')
+  const storage = media.match(/storageLimits = map\[string\]int64\{([^}]*)\}/)?.[1]
+  assert.ok(storage, 'assets_media.go has no storageLimits')
+  const caps = [...storage.matchAll(/"(\w+)": (\d+)(?: << (\d+))?/g)]
+  assert.equal(caps.length, workspacePlanSchema.options.length, 'storage caps in assets_media.go')
+  for (const [, plan, value, shift] of caps) {
+    assert.equal(
+      getWorkspaceQuota(workspacePlanSchema.parse(plan), 'storage:bytes'),
+      Number(value) * 2 ** Number(shift ?? 0),
+      `${plan} storage:bytes`
+    )
+  }
 })
 
 test('plan seat and channel limits match the Go backend', () => {
@@ -274,6 +286,14 @@ test('the subscription that governs a workspace with several is the live, larger
     'b'
   )
   assert.equal(pick(subscription('active', 'price_other'), subscription('incomplete')), undefined)
+  // A live subscription moved to a price not deployed yet keeps an ended one from downgrading.
+  assert.equal(
+    pick(
+      subscription('active', 'price_new_pro', 'moved', 2),
+      subscription('canceled', 'price_pro', 'old', 1)
+    ),
+    undefined
+  )
 })
 
 test('a paid one-time Checkout session grants its packs once, by session id', () => {
@@ -293,6 +313,17 @@ test('a paid one-time Checkout session grants its packs once, by session id', ()
     provider: 'stripe',
     reference: 'cs_1',
   })
+  // A Checkout opened on the pack's previous price grants the pack it names.
+  assert.equal(
+    creditGrantForSession(
+      session({
+        line_items: { data: [{ price: { id: 'price_old_launch' }, quantity: 1 }] },
+        metadata: { organizationId: 'org_1', pack: 'launch' },
+      }),
+      packs
+    )?.credits,
+    500
+  )
   assert.equal(creditGrantForSession(session({ payment_status: 'unpaid' }), packs), null)
   assert.equal(creditGrantForSession(session({ mode: 'subscription' }), packs), null)
   assert.equal(creditGrantForSession(session({ client_reference_id: null }), packs), null)

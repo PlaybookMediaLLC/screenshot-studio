@@ -40,7 +40,7 @@ export default async function HomePage({
     }
     redirect(platformHref(locale === 'en' ? '/' : `/${locale}`, `/?${search}`))
   }
-  // Free basic scheduling gets Home too; paid starters say so and lead to the plan page.
+  // A contract that grants drafts without a paid plan gets Home too; paid starters lead to the plan page.
   const access = await requirePaidPageAccess(await headers(), locale, '/home', 'content:drafts')
   const paid = access.hasPaidPlan
   const gated = (href: string) => (paid ? href : `/upgrade?from=${encodeURIComponent(href)}`)
@@ -82,7 +82,7 @@ export default async function HomePage({
     {
       title: 'Build a workflow',
       description: 'Automate repeatable tasks.',
-      // Automate opens on free plans and says there that its runs need Pro.
+      // Automate opens without a paid plan and says there that its runs need Pro.
       href: '/workflows',
       icon: Workflow,
       pro: !paid,
@@ -115,7 +115,7 @@ export default async function HomePage({
             </ButtonLink>
           ) : (
             <ButtonLink href="/upgrade" variant="outline" className="gap-2">
-              Free basic scheduling · See plans <ArrowUpRight size={15} aria-hidden="true" />
+              See plans <ArrowUpRight size={15} aria-hidden="true" />
             </ButtonLink>
           )
         }

@@ -5,7 +5,7 @@ import {
   billingIntervalSchema,
   CREDIT_PACKS,
   type checkoutPlanSchema,
-  type creditPackSchema,
+  creditPackSchema,
   workspacePlanSchema,
 } from '@/lib/billing/plans'
 
@@ -29,12 +29,16 @@ const STANDING: Partial<Record<Stripe.Subscription.Status, number>> = {
  * The subscription that decides a workspace's plan when it has more than one:
  * a paying one over a past-due one over one that ended, then the larger plan,
  * then the newest. A subscription for a price the platform does not sell
- * never decides.
+ * never decides, and while it is live, one that ended does not decide either:
+ * a subscription moved to a new price before its ID is deployed leaves the
+ * plan as it is.
  */
 export function governingSubscription(
   subscriptions: Stripe.Subscription[],
   plans: PlanPrices
 ): Stripe.Subscription | null {
+  const unsold = (subscription: Stripe.Subscription) =>
+    !plans[subscription.items.data[0]?.price.id ?? '']
   const rank = (subscription: Stripe.Subscription) => {
     const plan = plans[subscription.items.data[0]?.price.id ?? '']
     return [
@@ -44,15 +48,17 @@ export function governingSubscription(
     ]
   }
   const sold = subscriptions.filter(
-    (subscription) =>
-      plans[subscription.items.data[0]?.price.id ?? ''] && subscription.status !== 'incomplete'
+    (subscription) => !unsold(subscription) && subscription.status !== 'incomplete'
   )
-  return (
+  const governing =
     sold.sort((a, b) => {
       const [left, right] = [rank(a), rank(b)]
       return right[0] - left[0] || right[1] - left[1] || right[2] - left[2]
     })[0] ?? null
+  const liveUnsold = subscriptions.some(
+    (subscription) => STANDING[subscription.status] && unsold(subscription)
   )
+  return governing && !STANDING[governing.status] && liveUnsold ? null : governing
 }
 
 /**
@@ -99,9 +105,11 @@ export function entitlementForSubscription(
 
 /**
  * The AI credits a paid one-time Checkout session buys, or null when it buys
- * none: unpaid, a subscription, or no pack price among its line items. The
- * session id is the grant's reference, so its completed and async-succeeded
- * events grant once between them.
+ * none: unpaid, a subscription, or no pack among its line items. A line item
+ * on a price that is no longer a pack price still counts as the pack the
+ * session's metadata names, so a Checkout opened before a price change grants
+ * once it is paid. The session id is the grant's reference, so its completed
+ * and async-succeeded events grant once between them.
  */
 export function creditGrantForSession(
   session: Stripe.Checkout.Session,
@@ -111,8 +119,9 @@ export function creditGrantForSession(
   if (session.mode !== 'payment' || session.payment_status !== 'paid' || !organizationId) {
     return null
   }
+  const named = creditPackSchema.safeParse(session.metadata?.pack).data
   const credits = (session.line_items?.data ?? []).reduce((total, item) => {
-    const pack = item.price ? packs[item.price.id] : undefined
+    const pack = (item.price ? packs[item.price.id] : undefined) ?? named
     return pack ? total + CREDIT_PACKS[pack].credits * (item.quantity ?? 1) : total
   }, 0)
   return credits > 0 ? { credits, organizationId, provider: 'stripe', reference: session.id } : null

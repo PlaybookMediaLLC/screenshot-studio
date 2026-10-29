@@ -164,9 +164,6 @@ type ContentDraftInput struct {
 	Scratchpad       string                     `json:"scratchpad"`
 	TagIDs           []string                   `json:"tagIds"`
 	Target           *draftdoc.Target           `json:"target"`
-	// importScope stands in for the actor in the import receipt: a batch
-	// item's draft is the item's, whoever saves it.
-	importScope string
 }
 
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.
@@ -511,6 +508,21 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
+	tx, err := c.client.Tx(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	result, err := c.createContentDraft(ctx, tx, actor, input)
+	if err != nil {
+		return nil, err
+	}
+	return result, tx.Commit()
+}
+
+// createContentDraft creates a draft in tx, so a caller can hold its own locks
+// until the draft commits. The caller has authorized the actor.
+func (c *Configuration) createContentDraft(ctx context.Context, tx *ent.Tx, actor Actor, input ContentDraftInput) (*ContentDraftRecord, error) {
 	title, err := contentDraftTitle(input.Title)
 	if err != nil {
 		return nil, err
@@ -539,11 +551,6 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 	if kind == "" {
 		kind = "standard"
 	}
-	tx, err := c.client.Tx(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
 	receipt, fingerprint, err := draftImportIdentity(actor, input)
 	if err != nil {
 		return nil, err
@@ -573,7 +580,7 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		return nil, err
 	}
 	if replay != nil {
-		return replay, tx.Commit()
+		return replay, nil
 	}
 	target, err := draftTarget(kind, input.Target)
 	if err != nil {
@@ -697,9 +704,6 @@ func (c *Configuration) CreateContentDraft(ctx context.Context, actor Actor, inp
 		if _, err = tx.CalendarMutation.Create().SetID(calendarReceiptID(actor, input.RequestKey)).SetOrganizationID(actor.OrganizationID).SetActorID(actor.UserID).SetInputHash(creationHash).SetResult(map[string]any{"draftId": row.ID}).Save(ctx); err != nil {
 			return nil, err
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
 	}
 	result := contentDraftRecord(row.Unwrap())
 	return &result, nil

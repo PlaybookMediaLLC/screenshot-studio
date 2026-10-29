@@ -626,7 +626,7 @@ func (c *Configuration) frontendWorkflow(ctx context.Context, tx *ent.Tx, s *ent
 	if d.Archived || !d.Enabled {
 		return nil
 	}
-	e := ra.Event{Family: ra.Deployed, SemanticKey: "frontend:" + a.ID, RepositoryID: a.Snapshot.RepositoryID, ObjectID: a.Snapshot.DeploymentID, OccurredAt: a.Snapshot.OccurredAt, Origin: "live", Title: "Production deployment reported successful", Notes: a.Decision.Reason, URL: a.Snapshot.URL, Fields: map[string]ra.Value{"deployment.environment": ra.StringValue(a.Snapshot.Environment), "deployment.state": ra.StringValue("success"), "deployment.production": ra.BoolValue(true), "deployment.sha": ra.StringValue(a.Snapshot.Revision), "event.family": ra.StringValue(string(ra.Deployed))}}
+	e := frontendWorkflowEvent(a)
 	// Stable IDs and unique event keys make a crash/retry reuse the same run.
 	eventID, runID := "frontend-event-"+a.ID, "frontend-run-"+a.ID
 	exists, err := tx.ReleaseSourceEvent.Query().Where(releasesourceevent.ID(eventID), releasesourceevent.OrganizationID(s.OrganizationID)).Exist(ctx)
@@ -640,6 +640,13 @@ func (c *Configuration) frontendWorkflow(ctx context.Context, tx *ent.Tx, s *ent
 		return err
 	}
 	return automationOutbox(ctx, tx, s.OrganizationID, runID, EventReleaseAutomationDispatch, 0)
+}
+
+// frontendWorkflowEvent sets the repository and action fields that
+// NormalizeGitHub and ProductionEvent set for a successful deployment: workflow
+// conditions read only Fields, and an absent field selects no branch.
+func frontendWorkflowEvent(a *ent.FrontendActivation) ra.Event {
+	return ra.Event{Family: ra.Deployed, SemanticKey: "frontend:" + a.ID, RepositoryID: a.Snapshot.RepositoryID, ObjectID: a.Snapshot.DeploymentID, OccurredAt: a.Snapshot.OccurredAt, Origin: "live", Title: "Production deployment reported successful", Notes: a.Decision.Reason, URL: a.Snapshot.URL, Fields: map[string]ra.Value{"repository.id": ra.StringValue(a.Snapshot.RepositoryID), "deployment.environment": ra.StringValue(a.Snapshot.Environment), "deployment.state": ra.StringValue("success"), "deployment.production": ra.BoolValue(true), "deployment.sha": ra.StringValue(a.Snapshot.Revision), "event.family": ra.StringValue(string(ra.Deployed)), "event.action": ra.StringValue("success")}}
 }
 
 // acceptGitHubFrontend observes the same authenticated envelope for each opted-in

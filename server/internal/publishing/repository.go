@@ -333,6 +333,17 @@ func (r *Repository) Claim(ctx context.Context, id, runID string, now time.Time)
 	).Exist(ctx)
 }
 
+// PostScheduledFor is when a post is due, read again just before it is sent.
+func (r *Repository) PostScheduledFor(ctx context.Context, organizationID, id string) (time.Time, error) {
+	post, err := r.client.ScheduledPost.Query().Where(
+		scheduledpost.ID(id), scheduledpost.OrganizationID(organizationID),
+	).Only(ctx)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return post.ScheduledFor, nil
+}
+
 func (r *Repository) LoadPublishJob(ctx context.Context, id, runID string) (PublishJob, error) {
 	post, err := r.client.ScheduledPost.Query().Where(
 		scheduledpost.ID(id),

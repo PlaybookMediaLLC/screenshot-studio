@@ -549,7 +549,6 @@ export function ScheduleDialog({
           </details>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Free scheduling: one account and 10 posts per month.{' '}
             <a href="/pricing" className="underline">
               Upgrade to Pro
             </a>{' '}

@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 /**
- * Workspace plans. Free includes basic text/link scheduling for one account;
- * paid plans add media, AI, automation and advanced queue controls.
+ * Workspace plans. There is no free plan: `free` is the state of a workspace
+ * without a subscription, which keeps its owner's seat and grants nothing else.
  */
 export const workspacePlanSchema = z.enum(['free', 'pro', 'business', 'enterprise'])
 export type WorkspacePlan = z.infer<typeof workspacePlanSchema>
@@ -24,7 +24,47 @@ export const CREDIT_PACKS: Record<
   z.infer<typeof creditPackSchema>,
   { credits: number; price: string }
 > = {
-  launch: { credits: 500, price: '$29' },
+  launch: { credits: 500, price: '$12' },
+}
+
+/**
+ * Credits a launch uses on the default models: an estimate in
+ * docs/rfcs/023-pricing-and-unit-economics.md until measured. Copy reads it here.
+ */
+export const LAUNCH_CREDITS = 20
+
+/**
+ * List prices in whole US dollars a month: every price on the site, in the
+ * agent docs and in structured data is derived from these. Stripe holds the
+ * charged amounts, so a change here needs new Stripe prices
+ * (docs/rfcs/023-pricing-and-unit-economics.md#stripe-cutover-for-the-2026-10-29-prices).
+ * Enterprise is the lowest sales-led price, billed annually.
+ */
+export const PLAN_PRICES: Record<Exclude<WorkspacePlan, 'free'>, number> = {
+  pro: 29,
+  business: 79,
+  enterprise: 799,
+}
+
+/** Annual billing takes this share off the monthly price. */
+export const ANNUAL_DISCOUNT = 0.15
+
+/** A self-serve plan's monthly price when billed annually, in whole dollars. */
+export function annualMonthlyPrice(plan: z.infer<typeof checkoutPlanSchema>): number {
+  return Math.round(PLAN_PRICES[plan] * (1 - ANNUAL_DISCOUNT))
+}
+
+/** 999 → "$999". */
+export function usd(dollars: number): string {
+  return `$${dollars.toLocaleString('en-US')}`
+}
+
+/** "$39/mo, or $33/mo billed annually"; Enterprise reads "from $999/mo, billed annually". */
+export function planPriceSummary(plan: Exclude<WorkspacePlan, 'free'>): string {
+  const checkout = checkoutPlanSchema.safeParse(plan)
+  return checkout.success
+    ? `${usd(PLAN_PRICES[plan])}/mo, or ${usd(annualMonthlyPrice(checkout.data))}/mo billed annually`
+    : `from ${usd(PLAN_PRICES[plan])}/mo, billed annually`
 }
 
 export const workspaceFeatureSchema = z.enum([
@@ -76,7 +116,7 @@ export const featureOverrideSchema = z
   .default({})
 
 const planFeatures = {
-  free: ['workspace:use', 'content:drafts'],
+  free: [],
   pro: [
     'asset:create',
     'asset:read',
@@ -131,14 +171,14 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
   'asset:delete': 'pro',
   'release:create': 'pro',
   'source-app:create': 'pro',
-  'workspace:use': 'free',
+  'workspace:use': 'pro',
   'workspace:paid': 'pro',
   'content:scheduling-advanced': 'pro',
   'enterprise:audit-drain': 'enterprise',
   'enterprise:sso': 'enterprise',
   'enterprise:scim': 'enterprise',
   'campaign:workflow': 'pro',
-  'content:drafts': 'free',
+  'content:drafts': 'pro',
   'onboarding:agent': 'pro',
 }
 
@@ -146,34 +186,34 @@ const minimumPlanByFeature: Record<WorkspaceFeature, WorkspacePlan> = {
 const planQuotas = {
   free: {
     'ai:credits:monthly': 0,
-    'api:write:minute': 60,
+    'api:write:minute': 0,
     'emails:monthly': 0,
     'jobs:concurrent': 0,
-    'posts:monthly': 10,
+    'posts:monthly': 0,
     'storage:bytes': 0,
   },
   pro: {
-    'ai:credits:monthly': 3_600,
+    'ai:credits:monthly': 600,
     'api:write:minute': 300,
     'emails:monthly': 5_000,
     'jobs:concurrent': 5,
-    'posts:monthly': 120,
-    'storage:bytes': 25 * 1024 * 1024 * 1024,
+    'posts:monthly': 250,
+    'storage:bytes': 50 * 1024 * 1024 * 1024,
   },
   business: {
-    'ai:credits:monthly': 13_200,
+    'ai:credits:monthly': 3_000,
     'api:write:minute': 1_500,
     'emails:monthly': 25_000,
     'jobs:concurrent': 25,
-    'posts:monthly': 480,
+    'posts:monthly': 600,
     'storage:bytes': 250 * 1024 * 1024 * 1024,
   },
   enterprise: {
-    'ai:credits:monthly': 54_000,
+    'ai:credits:monthly': 15_000,
     'api:write:minute': 10_000,
     'emails:monthly': 100_000,
     'jobs:concurrent': 250,
-    'posts:monthly': 2_400,
+    'posts:monthly': 5_000,
     'storage:bytes': 5 * 1024 * 1024 * 1024 * 1024,
   },
 } as const satisfies Record<WorkspacePlan, Record<WorkspaceQuota, number>>
@@ -183,9 +223,9 @@ const planQuotas = {
  * unlimited. A pending invitation holds a seat; only active social channels count.
  */
 const planLimits = {
-  free: { channels: 1, seats: 1 },
-  pro: { channels: 3, seats: 5 },
-  business: { channels: 15, seats: 20 },
+  free: { channels: 0, seats: 1 },
+  pro: { channels: 15, seats: 10 },
+  business: { channels: 100, seats: null },
   enterprise: { channels: null, seats: null },
 } as const satisfies Record<WorkspacePlan, Record<WorkspaceLimit, number | null>>
 

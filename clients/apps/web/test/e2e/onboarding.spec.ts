@@ -17,6 +17,7 @@ test(
     // There is no free plan: onboarding ends by choosing one.
     await app.expectPath('/onboarding/plan')
     await expect(page.getByRole('heading', { name: 'Choose a plan' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Continue with free scheduling' })).toHaveCount(0)
     await app.open('/onboarding')
     await app.expectPath('/onboarding')
     await expect(page.getByRole('button', { name: 'Create workspace' })).toBeVisible()

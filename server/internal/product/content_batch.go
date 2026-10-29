@@ -600,22 +600,23 @@ func (c *Configuration) ArchiveContentBatch(ctx context.Context, actor Actor, ba
 }
 
 // CreateContentBatchItemDraft turns a staged item into its draft: the ordinary
-// draft creation, keyed by the item's import key so a retry returns the same
-// draft, in the batch's set, with the item's media and accounts. The caller
-// supplies the editor body for the caption and media.
+// draft creation in the batch's set, with the item's media and accounts. The
+// caller supplies the editor body for the item's caption and media.
+//
+// The draft is created and linked under the item's lock, the one staged edits
+// take: a second save waits and returns the first one's draft, and an edit
+// either lands before the save reads the item or waits and finds the draft.
+// The item is its own receipt, so once its draft is deleted it can be saved again.
 func (c *Configuration) CreateContentBatchItemDraft(ctx context.Context, actor Actor, batchID, itemID string, input ContentDraftInput) (*ContentBatchItemRecord, error) {
 	if err := c.authorizeContentDrafts(ctx, actor, true); err != nil {
 		return nil, err
 	}
-	row, _, err := visibleBatch(ctx, c.client, actor, batchID)
+	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
-	item, err := c.client.ContentBatchItem.Query().Where(contentbatchitem.ID(itemID), contentbatchitem.BatchID(row.ID),
-		contentbatchitem.OrganizationID(actor.OrganizationID)).Only(ctx)
-	if ent.IsNotFound(err) {
-		return nil, notFound("Item not found.")
-	}
+	defer tx.Rollback()
+	row, _, item, err := c.batchItem(ctx, tx, actor, batchID, itemID)
 	if err != nil {
 		return nil, err
 	}
@@ -627,28 +628,27 @@ func (c *Configuration) CreateContentBatchItemDraft(ctx context.Context, actor A
 			}
 			assets = append(assets, media.AssetID)
 		}
-		if err := checkBatchMedia(ctx, c.client, actor.OrganizationID, item.Media, false); err != nil {
+		if err := checkBatchMedia(ctx, tx.Client(), actor.OrganizationID, item.Media, false); err != nil {
 			return nil, err
 		}
 		if input.AssetIDs != nil && !slices.Equal(input.AssetIDs, assets) {
 			return nil, invalid("The draft's attachments must be the item's, in order.")
 		}
-		// One receipt per item: two people saving it at once wait on the same
-		// lock, and the second gets the first one's draft.
-		input.ImportKey, input.SocialSetID, input.AssetIDs, input.importScope = item.ImportKey, row.SocialSetID, assets, "batch-item:"+item.ID
+		if input.PlainText != item.Caption {
+			return nil, conflict("This item changed while it was being saved. Reload the batch and save it again.")
+		}
+		input.ImportKey, input.RequestKey, input.SocialSetID, input.AssetIDs = "", "", row.SocialSetID, assets
 		input.ChannelConnectionIDs = item.ChannelConnectionIds
-		draft, err := c.CreateContentDraft(ctx, actor, input)
+		draft, err := c.createContentDraft(ctx, tx, actor, input)
 		if err != nil {
 			return nil, err
 		}
-		linked, err := c.client.ContentBatchItem.Update().Where(contentbatchitem.ID(item.ID),
-			contentbatchitem.Or(contentbatchitem.DraftIDIsNil(), contentbatchitem.DraftID(draft.ID))).SetDraftID(draft.ID).Save(ctx)
-		if err != nil {
+		if err := tx.ContentBatchItem.UpdateOneID(item.ID).SetDraftID(draft.ID).Exec(ctx); err != nil {
 			return nil, err
 		}
-		if linked != 1 {
-			return nil, conflict("Another draft was saved for this item. Reload the batch.")
-		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
 	}
 	return c.batchItemRecord(ctx, actor, batchID, itemID)
 }

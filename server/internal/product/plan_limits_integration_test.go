@@ -12,6 +12,9 @@ import (
 	"github.com/lucsky/cuid"
 )
 
+// The Pro plan's seat and social channel limits in workspaceplan/capacity.go.
+const proSeats, proChannels = 10, 15
+
 func TestPlanLimitsCapSeatsAndChannels(t *testing.T) {
 	url := os.Getenv("PUBLISHING_TEST_DATABASE_URL")
 	if url == "" {
@@ -51,19 +54,20 @@ func TestPlanLimitsCapSeatsAndChannels(t *testing.T) {
 		atLimit.Name != LimitSeats || err.Error() != "Choose a plan to add seats." {
 		t.Fatalf("unsubscribed invite err=%v", err)
 	}
-	if err := repo.RequireChannel(ctx, orgID, "integration-0"); err != nil {
+	if err := repo.RequireChannel(ctx, orgID, "integration-0"); !errors.As(err, &atLimit) ||
+		atLimit.Name != LimitChannels || err.Error() != "Choose a plan to add social channels." {
 		t.Fatalf("unsubscribed channel err=%v", err)
 	}
 
-	// Pro has five seats: the owner and four pending invitations fill them.
+	// The owner and pending invitations fill Pro's seats.
 	subscribe(t, ctx, repo, orgID, "pro")
-	for i := range 4 {
+	for i := range proSeats - 1 {
 		if _, err := repo.InviteMember(ctx, actor, fmt.Sprintf("invite-%d-%s@example.test", i, id), "viewer"); err != nil {
 			t.Fatalf("invite %d: %v", i, err)
 		}
 	}
-	if _, err := repo.InviteMember(ctx, actor, "sixth-"+id+"@example.test", "viewer"); !errors.As(err, &atLimit) ||
-		atLimit.Limit != 5 || err.Error() != "The Pro plan includes 5 seats. Upgrade the plan to add more." {
+	if _, err := repo.InviteMember(ctx, actor, "over-"+id+"@example.test", "viewer"); !errors.As(err, &atLimit) || atLimit.Limit != proSeats ||
+		err.Error() != fmt.Sprintf("The Pro plan includes %d seats. Upgrade the plan to add more.", proSeats) {
 		t.Fatalf("invite past the seats err=%v", err)
 	}
 	// Accepting a pending invitation uses the seat it already holds.
@@ -71,8 +75,8 @@ func TestPlanLimitsCapSeatsAndChannels(t *testing.T) {
 		t.Fatalf("accepting an invitation err=%v", err)
 	}
 
-	// Pro has three social channels; reconnecting one it holds still works.
-	for i := range 3 {
+	// Pro's social channels fill up; reconnecting one it holds still works.
+	for i := range proChannels {
 		if err := repo.RequireChannel(ctx, orgID, fmt.Sprintf("integration-%d", i)); err != nil {
 			t.Fatalf("channel %d: %v", i, err)
 		}
@@ -82,8 +86,10 @@ func TestPlanLimitsCapSeatsAndChannels(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := repo.RequireChannel(ctx, orgID, "integration-3"); !errors.As(err, &atLimit) || atLimit.Limit != 3 {
-		t.Fatalf("fourth channel err=%v", err)
+	over := fmt.Sprintf("integration-%d", proChannels)
+	if err := repo.RequireChannel(ctx, orgID, over); !errors.As(err, &atLimit) || atLimit.Limit != proChannels ||
+		err.Error() != fmt.Sprintf("The Pro plan includes %d social channels. Upgrade the plan to add more.", proChannels) {
+		t.Fatalf("channel past the limit err=%v", err)
 	}
 	if err := repo.RequireChannel(ctx, orgID, "integration-0"); err != nil {
 		t.Fatalf("reconnecting a held channel err=%v", err)
@@ -93,15 +99,22 @@ func TestPlanLimitsCapSeatsAndChannels(t *testing.T) {
 		channelconnection.ExternalAccountID("integration-2")).SetStatus(channelconnection.StatusREVOKED).Exec(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.RequireChannel(ctx, orgID, "integration-3"); err != nil {
+	if err := repo.RequireChannel(ctx, orgID, over); err != nil {
 		t.Fatalf("channel after a disconnect err=%v", err)
+	}
+	if err := db.Client.ChannelConnection.Update().Where(channelconnection.OrganizationID(orgID),
+		channelconnection.ExternalAccountID("integration-2")).SetStatus(channelconnection.StatusACTIVE).Exec(ctx); err != nil {
+		t.Fatal(err)
 	}
 
 	if _, err := repo.SyncWorkspaceEntitlement(ctx, EntitlementSyncInput{EventID: "upgrade-" + orgID, EventType: "test.upgraded",
 		ExpectedVersion: 1, OrganizationID: orgID, Plan: "enterprise", Provider: "test", Status: "active"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repo.InviteMember(ctx, actor, "sixth-"+id+"@example.test", "viewer"); err != nil {
+	if err := repo.RequireChannel(ctx, orgID, over); err != nil {
+		t.Fatalf("enterprise channel err=%v", err)
+	}
+	if _, err := repo.InviteMember(ctx, actor, "over-"+id+"@example.test", "viewer"); err != nil {
 		t.Fatalf("enterprise invite err=%v", err)
 	}
 }

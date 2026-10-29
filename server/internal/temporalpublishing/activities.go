@@ -21,6 +21,7 @@ type ActivityStore interface {
 	FailUnknown(context.Context, string, string, int) error
 	FailUnsent(context.Context, *ent.ScheduledPost, string, string) error
 	LoadPublishJob(context.Context, string, string) (publishing.PublishJob, error)
+	PostScheduledFor(context.Context, string, string) (time.Time, error)
 	StartAttempt(context.Context, *ent.ScheduledPost, string, int) (publishing.Attempt, error)
 }
 
@@ -44,6 +45,9 @@ func NewActivities(store ActivityStore, provider Provider) *Activities {
 // not sent: it fails as MISSED_WINDOW so a person publishes or reschedules it
 // knowingly, rather than an old post appearing hours after its moment.
 const LatePublicationWindow = time.Hour
+
+// errMissedWindow stops a send that would start past LatePublicationWindow.
+var errMissedWindow = errors.New("publication missed its late window")
 
 func (a *Activities) Prepare(ctx context.Context, input PrepareInput) (PreparedPublication, error) {
 	now := a.now().UTC()
@@ -106,6 +110,9 @@ func (a *Activities) Publish(ctx context.Context, input PublishInput) (PublishRe
 
 	providerErr := &socialapi.Error{}
 	failureCode := "UNKNOWN"
+	if errors.Is(publishErr, errMissedWindow) {
+		failureCode = publishing.FailureMissedWindow
+	}
 	if errors.As(publishErr, &providerErr) {
 		failureCode = publishing.ProviderFailureCode(providerErr.Status, providerErr.UnknownDelivery)
 	}
@@ -181,8 +188,19 @@ type threadRecorder interface {
 
 // publish uses the provider's thread-aware call when it has one, and keeps
 // the thread's progress; a progress that cannot be kept is logged, since
-// the post is live either way.
+// the post is live either way. It checks the late window again first: the
+// send runs on the activity queue, whose worker may start it long after
+// Prepare checked, and a post that cannot be checked is not sent.
 func (a *Activities) publish(ctx context.Context, input socialapi.PublishInput) (string, error) {
+	scheduledFor, err := a.store.PostScheduledFor(ctx, input.OrganizationID, input.PostID)
+	if err != nil {
+		slog.ErrorContext(ctx, "publication not sent: its schedule could not be read", "post", input.PostID, "error", err)
+		return "", err
+	}
+	if late := a.now().UTC().Sub(scheduledFor); late > LatePublicationWindow {
+		slog.WarnContext(ctx, "publication missed its window", "post", input.PostID, "lateSeconds", int(late.Seconds()))
+		return "", errMissedWindow
+	}
 	threads, ok := a.provider.(threadPublisher)
 	if !ok {
 		return a.provider.Publish(ctx, input)
@@ -271,6 +289,9 @@ func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResu
 			return PublishResult{Outcome: OutcomePublished, ProviderID: providerID}, nil
 		}
 		return PublishResult{Outcome: OutcomePending, ProviderID: providerID}, nil
+	}
+	if errors.Is(err, errMissedWindow) {
+		return PublishResult{FailureCode: publishing.FailureMissedWindow, Outcome: OutcomeFailed}, nil
 	}
 	providerErr := &socialapi.Error{}
 	if !errors.As(err, &providerErr) {

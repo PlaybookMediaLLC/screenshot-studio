@@ -29,12 +29,16 @@ const STANDING: Partial<Record<Stripe.Subscription.Status, number>> = {
  * The subscription that decides a workspace's plan when it has more than one:
  * a paying one over a past-due one over one that ended, then the larger plan,
  * then the newest. A subscription for a price the platform does not sell
- * never decides.
+ * never decides, and while it is live, one that ended does not decide either:
+ * a subscription moved to a new price before its ID is deployed leaves the
+ * plan as it is.
  */
 export function governingSubscription(
   subscriptions: Stripe.Subscription[],
   plans: PlanPrices
 ): Stripe.Subscription | null {
+  const unsold = (subscription: Stripe.Subscription) =>
+    !plans[subscription.items.data[0]?.price.id ?? '']
   const rank = (subscription: Stripe.Subscription) => {
     const plan = plans[subscription.items.data[0]?.price.id ?? '']
     return [
@@ -44,15 +48,17 @@ export function governingSubscription(
     ]
   }
   const sold = subscriptions.filter(
-    (subscription) =>
-      plans[subscription.items.data[0]?.price.id ?? ''] && subscription.status !== 'incomplete'
+    (subscription) => !unsold(subscription) && subscription.status !== 'incomplete'
   )
-  return (
+  const governing =
     sold.sort((a, b) => {
       const [left, right] = [rank(a), rank(b)]
       return right[0] - left[0] || right[1] - left[1] || right[2] - left[2]
     })[0] ?? null
+  const liveUnsold = subscriptions.some(
+    (subscription) => STANDING[subscription.status] && unsold(subscription)
   )
+  return governing && !STANDING[governing.status] && liveUnsold ? null : governing
 }
 
 /**

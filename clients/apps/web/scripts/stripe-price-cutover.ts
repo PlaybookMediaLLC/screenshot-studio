@@ -93,6 +93,7 @@ async function main(): Promise<void> {
   const targets = targetPrices()
   const replacements: Record<string, string> = {}
   const next: Record<string, string> = {}
+  const portalPrices = new Map<string, string[]>()
 
   for (const key of PRICE_KEYS) {
     const old = await stripe.prices.retrieve(env[key])
@@ -121,6 +122,7 @@ async function main(): Promise<void> {
     )
     next[key] = id
     if (id !== old.id) replacements[old.id] = id
+    if (target.interval) portalPrices.set(product, [...(portalPrices.get(product) ?? []), id])
   }
 
   const subscriptions: Stripe.Subscription[] = []
@@ -142,10 +144,14 @@ async function main(): Promise<void> {
       throw new Error('Some new prices do not exist yet. Run apply first.')
     if (moves.length > 0)
       throw new Error('Live subscriptions are still on old prices. Run apply first.')
+    // Updated in place: running web processes keep the configuration ID they cached.
+    const products = [...portalPrices].map(([product, prices]) => ({ prices, product }))
     const { data } = await stripe.billingPortal.configurations.list({ active: true, limit: 100 })
     for (const configuration of data.filter((item) => item.metadata?.app === 'shots')) {
-      await stripe.billingPortal.configurations.update(configuration.id, { active: false })
-      console.log(`Deactivated billing portal configuration ${configuration.id}.`)
+      await stripe.billingPortal.configurations.update(configuration.id, {
+        features: { subscription_update: { products } },
+      })
+      console.log(`Billing portal configuration ${configuration.id} now offers the new prices.`)
     }
     for (const old of Object.keys(replacements)) {
       await stripe.prices.update(old, { active: false })

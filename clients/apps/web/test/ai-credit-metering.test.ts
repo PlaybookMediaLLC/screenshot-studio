@@ -286,6 +286,14 @@ test('the subscription that governs a workspace with several is the live, larger
     'b'
   )
   assert.equal(pick(subscription('active', 'price_other'), subscription('incomplete')), undefined)
+  // A live subscription moved to a price not deployed yet keeps an ended one from downgrading.
+  assert.equal(
+    pick(
+      subscription('active', 'price_new_pro', 'moved', 2),
+      subscription('canceled', 'price_pro', 'old', 1)
+    ),
+    undefined
+  )
 })
 
 test('a paid one-time Checkout session grants its packs once, by session id', () => {

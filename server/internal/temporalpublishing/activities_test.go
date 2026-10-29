@@ -18,6 +18,8 @@ type activityStore struct {
 	// failure code of a post that was never sent.
 	job               publishing.PublishJob
 	unsent, cancelled string
+	// failed is the failure code Fail recorded.
+	failed string
 }
 
 type quoteReceiptStore struct {
@@ -57,8 +59,8 @@ func (s *activityStore) Claim(context.Context, string, string, time.Time) (bool,
 func (s *activityStore) Complete(context.Context, *ent.ScheduledPost, publishing.Attempt, string, string) error {
 	return nil
 }
-func (s *activityStore) Fail(_ context.Context, _ *ent.ScheduledPost, _ publishing.Attempt, _ string, retryAt *time.Time, _ string) error {
-	s.retryAt = retryAt
+func (s *activityStore) Fail(_ context.Context, _ *ent.ScheduledPost, _ publishing.Attempt, code string, retryAt *time.Time, _ string) error {
+	s.retryAt, s.failed = retryAt, code
 	return nil
 }
 func (s *activityStore) FailUnknown(context.Context, string, string, int) error {
@@ -67,6 +69,14 @@ func (s *activityStore) FailUnknown(context.Context, string, string, int) error 
 }
 func (s *activityStore) LoadPublishJob(context.Context, string, string) (publishing.PublishJob, error) {
 	return s.job, nil
+}
+
+// PostScheduledFor is the job's due time; a test without a job is due now.
+func (s *activityStore) PostScheduledFor(context.Context, string, string) (time.Time, error) {
+	if s.job.Post == nil {
+		return time.Now(), nil
+	}
+	return s.job.Post.ScheduledFor, nil
 }
 func (s *activityStore) StartAttempt(context.Context, *ent.ScheduledPost, string, int) (publishing.Attempt, error) {
 	return publishing.Attempt{ID: "attempt-1", Number: 1}, nil
@@ -176,6 +186,51 @@ func TestPrepareSendsOnlyEligibleOnTimePosts(t *testing.T) {
 			prepared, err := activities.Prepare(context.Background(), PrepareInput{PostID: "p", RunID: "run-1"})
 			if err != nil || prepared.Ready != test.ready || store.unsent != test.unsent || store.cancelled != test.cancelled {
 				t.Fatalf("prepared=%#v unsent=%q cancelled=%q err=%v", prepared, store.unsent, store.cancelled, err)
+			}
+		})
+	}
+}
+
+// sendCounter counts the publications that reached the provider.
+type sendCounter struct {
+	directProvider
+	sends int
+}
+
+func (p *sendCounter) Publish(context.Context, socialapi.PublishInput) (string, error) {
+	p.sends++
+	return "remote-post-1", nil
+}
+
+// The send checks the late window again: it runs on the activity queue, so
+// a down or backlogged worker can start it hours after Prepare passed. Past
+// the window it fails as MISSED_WINDOW without reaching the provider, on both
+// send paths (Submit for V2, Publish for V1); within it, it still goes out.
+func TestSendRechecksTheLatePublicationWindow(t *testing.T) {
+	now := time.Date(2026, 11, 2, 9, 0, 0, 0, time.UTC)
+	job := PreparedPublication{PostID: "p", OrganizationID: "org"}
+	cases := []struct {
+		name          string
+		late          time.Duration
+		sends         int
+		outcome, code string
+	}{
+		{"within the window", LatePublicationWindow, 2, OutcomePublished, ""},
+		{"past the window", LatePublicationWindow + time.Second, 0, OutcomeFailed, publishing.FailureMissedWindow},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			store := &activityStore{job: publishing.PublishJob{Post: &ent.ScheduledPost{ID: "p", ScheduledFor: now.Add(-test.late)}}}
+			provider := &sendCounter{}
+			activities := NewActivities(store, provider)
+			activities.now = func() time.Time { return now }
+			submitted, err := activities.Submit(context.Background(), SubmitInput{Job: job})
+			if err != nil || submitted.Outcome != test.outcome || submitted.FailureCode != test.code {
+				t.Fatalf("submit=%#v err=%v", submitted, err)
+			}
+			published, err := activities.Publish(context.Background(), PublishInput{AttemptNumber: 1, Job: job, MaxAttempts: 3, RunID: "run-1"})
+			if err != nil || published.Outcome != test.outcome || published.FailureCode != test.code || store.failed != test.code || provider.sends != test.sends {
+				t.Fatalf("publish=%#v failed=%q sends=%d err=%v", published, store.failed, provider.sends, err)
 			}
 		})
 	}

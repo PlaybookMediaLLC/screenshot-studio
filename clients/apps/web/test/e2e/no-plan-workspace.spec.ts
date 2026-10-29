@@ -78,7 +78,9 @@ test.describe('a workspace without a plan', () => {
     }
     // Without a plan nothing in the catalog works, so nothing in it says Available.
     await openWorkspaceSetting(page, 'Integrations')
-    await expect(page.getByLabel('Agents and integrations').getByText('Available')).toHaveCount(0)
+    await expect(
+      page.getByLabel('Agents and integrations').getByText('Available', { exact: true })
+    ).toHaveCount(0)
     // A webhook cannot be added without a plan, so the form is not offered.
     await openWorkspaceSetting(page, 'Developer API')
     await expect(page.getByRole('button', { exact: true, name: 'Add webhook' })).toHaveCount(0)

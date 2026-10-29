@@ -1,6 +1,6 @@
 import { safeAssetFileName } from '@/lib/workspace/save-export'
 import { draftChannelSchema } from '@/lib/write/document'
-import { isTimeZone } from '@/lib/write/zoned-time'
+import { isTimeZone, localDateTimeSchema } from '@/lib/write/zoned-time'
 
 /**
  * Bulk batch input (RFC 042): CSV rows and selected files become batch items.
@@ -135,7 +135,7 @@ export function parseBatchCSV(input: string): { mapping: ImportMapping; rows: Im
       const caption = value('caption') ?? ''
       if (caption.length > 100_000) problems.push(`Line ${line}'s caption is too long.`)
       const time = (value('time') ?? '').trim().replace(' ', 'T')
-      if (time && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(time))
+      if (time && !isLocalTime(time))
         problems.push(`Line ${line}'s time must look like 2026-11-03 09:30.`)
       const timeZone = (value('timezone') ?? '').trim()
       if (timeZone && !isTimeZone(timeZone))
@@ -153,6 +153,16 @@ export function parseBatchCSV(input: string): { mapping: ImportMapping; rows: Im
       }
     }),
   }
+}
+
+/** A real day and clock time, as the server parses it: not 2027-02-30 or 24:00. */
+function isLocalTime(time: string): boolean {
+  const at = new Date(`${time}:00Z`)
+  return (
+    localDateTimeSchema.safeParse(time).success &&
+    !Number.isNaN(at.getTime()) &&
+    at.toISOString().startsWith(time)
+  )
 }
 
 /** A workspace resource id: a cuid or a UUID. */

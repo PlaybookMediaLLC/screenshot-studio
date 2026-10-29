@@ -48,6 +48,14 @@ test('the mapping is shown: unknown columns are listed as ignored, times and zon
   assert.equal(rows[0].timeZone, 'Europe/Paris')
   assert.match(rows[1].problems.join(' '), /time must look like/)
   assert.match(rows[1].problems.join(' '), /IANA zone/)
+  // A day or hour that does not exist is the row's problem, not the whole import's.
+  const impossible = parseBatchCSV(
+    'caption,time\nA,2027-02-30 09:30\nB,2026-11-03 24:00\nC,2028-02-29 23:59\n'
+  ).rows
+  assert.deepEqual(
+    impossible.map((row) => row.problems.length),
+    [1, 1, 0]
+  )
 })
 
 test('CSV refuses malformed input and takes exactly fifty rows', () => {

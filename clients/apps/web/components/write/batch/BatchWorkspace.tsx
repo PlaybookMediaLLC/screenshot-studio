@@ -626,16 +626,22 @@ export function BatchWorkspace({
     setUploads((current) => ({ ...current }))
   }
 
-  const updateItem = (item: BatchItem, body: Record<string, unknown>) => {
+  /** Save an item; a body given as a function is built from its latest saved state. */
+  const updateItem = (
+    item: BatchItem,
+    body: Record<string, unknown> | ((latest: BatchItem) => Record<string, unknown>)
+  ) => {
     // A new time or account set needs a new check before the item can be scheduled.
-    if ('timing' in body || 'channelConnectionIds' in body) {
+    if (typeof body === 'function' || 'timing' in body || 'channelConnectionIds' in body) {
       const stale = ([key]: [string, unknown]) => !key.startsWith(`${item.id}/`)
       setVerdicts((current) => Object.fromEntries(Object.entries(current).filter(stale)))
       setSelected((current) => Object.fromEntries(Object.entries(current).filter(stale)))
     }
-    return saveItem(item.id, () => body).catch((error: unknown) => {
-      toast.error(error instanceof Error ? error.message : 'The item could not be saved.')
-    })
+    return saveItem(item.id, typeof body === 'function' ? body : () => body).catch(
+      (error: unknown) => {
+        toast.error(error instanceof Error ? error.message : 'The item could not be saved.')
+      }
+    )
   }
 
   // Bulk actions on staged items, with each item's own values kept unless asked.
@@ -1339,9 +1345,9 @@ export function BatchWorkspace({
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    void updateItem(item, {
-                                      timing: { ...item.timing, disambiguation: choice },
-                                    })
+                                    void updateItem(item, (latest) => ({
+                                      timing: { ...latest.timing, disambiguation: choice },
+                                    }))
                                   }
                                 >
                                   The {choice} one
@@ -1387,15 +1393,13 @@ export function BatchWorkspace({
                                       aria-label={`${account.name} for item ${index + 1}`}
                                       disabled={Boolean(item.draftId) || busy !== null}
                                       checked={on}
+                                      // Toggles made before the last save lands each apply in turn.
                                       onCheckedChange={(checked) =>
-                                        void updateItem(item, {
-                                          channelConnectionIds:
-                                            checked === true
-                                              ? [...item.channelConnectionIds, account.id]
-                                              : item.channelConnectionIds.filter(
-                                                  (id) => id !== account.id
-                                                ),
-                                        })
+                                        void updateItem(item, (latest) => ({
+                                          channelConnectionIds: latest.channelConnectionIds
+                                            .filter((id) => id !== account.id)
+                                            .concat(checked === true ? [account.id] : []),
+                                        }))
                                       }
                                     />
                                     {account.name}

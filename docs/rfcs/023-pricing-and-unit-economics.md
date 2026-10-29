@@ -259,7 +259,9 @@ longer depends on the action mix. A Pro workspace cannot spend more than its
 ### AI on Claude Haiku 5.5 (2026-10-29)
 
 Every text role (`deep`, `drafting`, `fast`, `nano`) runs on Claude Haiku 5.5
-through OpenRouter (`lib/ai/models/catalog.ts`); transcription stays on Gemini
+through OpenRouter, in the web (`lib/ai/models/catalog.ts`) and in the Go
+release automation and onboarding (`server/internal/platformai/platformai.go`),
+which share one role catalog; transcription stays on Gemini
 2.5 Flash, which takes audio. Haiku 5.5 is $0.10 / $0.50 per million tokens up
 to 100K prompt tokens and $0.50 / $2.50 above, against Sonnet 5.5's $2 / $10
 and Opus 5.5's $4 / $20: twenty times cheaper than Sonnet and forty times

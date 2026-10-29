@@ -166,7 +166,11 @@ export function IntegrationCatalog({ canManage }: { canManage: boolean }) {
         className="flex w-full flex-col divide-y divide-foreground/[0.07] overflow-hidden rounded-2xl bg-foreground/[0.015] ring-1 ring-foreground/[0.08]"
       >
         {entries.map((entry) => {
-          const status = STATUS_LABELS[entry.status]
+          // Without a plan nothing here works yet, whatever its own state.
+          const status =
+            STATUS_LABELS[
+              isPlanRefusal(integrations.error) ? statusSchema.enum.not_available : entry.status
+            ]
           return (
             <li
               className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between"

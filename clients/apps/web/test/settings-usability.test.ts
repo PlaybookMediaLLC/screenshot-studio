@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import { monthlyUsagePeriod, subscriptionPriceLabel } from '@/lib/billing/display'
 import { hasPermission } from '@/lib/auth/permissions'
 import { roleCapabilities } from '@/lib/auth/role-descriptions'
+import { installPromptSchema } from '@/components/settings/InstallSettings'
 
 test('usage periods follow UTC month boundaries, including year rollover and leap years', () => {
   assert.deepEqual(monthlyUsagePeriod(new Date('2026-12-31T23:30:00-02:00')), {
@@ -56,4 +57,16 @@ test('role matrix distinguishes drafting, approval, publishing, and administrati
   assert.deepEqual(grants('publisher'), ['Comment on visible drafts', 'Publish'])
   assert.deepEqual(grants('viewer'), ['Comment on visible drafts'])
   assert.equal(grants('admin').length, 6)
+})
+
+test('the install prompt is kept as the browser event, and a promise field does not crash the parse', () => {
+  const event = Object.assign(new Event('beforeinstallprompt'), {
+    prompt: () => Promise.resolve(),
+    userChoice: Promise.resolve({ outcome: 'accepted' }),
+  })
+  const parsed = installPromptSchema.safeParse(event)
+  assert.ok(parsed.success)
+  // The event itself, so calling prompt() keeps the browser's `this`.
+  assert.equal(parsed.data, event)
+  assert.equal(installPromptSchema.safeParse(new Event('beforeinstallprompt')).success, false)
 })

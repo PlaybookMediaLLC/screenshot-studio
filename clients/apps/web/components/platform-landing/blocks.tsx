@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { CtaLink } from './CtaLink'
 import { LandingFooter } from './LandingFooter'
 import { LandingNav } from './LandingNav'
+import { GetStartedCta } from './SessionLinks'
 import { Check, CONTAINER, ctaToneSchema, MONO, MUTED, Section, Stage } from './primitives'
 import {
   Table,
@@ -59,7 +60,7 @@ export function PageHero({
   eyebrow,
   lead,
   location,
-  primary = { href: '/sign-up', label: 'Get started' },
+  primary,
   secondary = { href: '/contact', label: 'Request a demo' },
   trail,
 }: {
@@ -68,6 +69,7 @@ export function PageHero({
   eyebrow: { label: string; href?: string; parent?: string }
   lead: string
   location: string
+  /** Without one, Get started (or Open workspace once signed in). */
   primary?: Cta
   secondary?: Cta | null
   trail: string
@@ -102,7 +104,11 @@ export function PageHero({
         <div className="lg:pb-2">
           <p className="max-w-[46ch] text-lg leading-[1.5] text-white/65">{body}</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <CtaLink href={primary.href} label={primary.label} location={location} />
+            {primary ? (
+              <CtaLink href={primary.href} label={primary.label} location={location} />
+            ) : (
+              <GetStartedCta location={location} />
+            )}
             {secondary ? (
               <CtaLink
                 href={secondary.href}
@@ -480,7 +486,7 @@ export function FinalCta({
             <span className="block text-white/55">{trail}</span>
           </h2>
           <div className="mt-12 flex flex-wrap justify-center gap-3">
-            <CtaLink className="h-12" href="/sign-up" label="Get started" location="final_cta" />
+            <GetStartedCta className="h-12" location="final_cta" />
             <CtaLink
               className="h-12 bg-black/40 backdrop-blur"
               href="/contact"

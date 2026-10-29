@@ -23,6 +23,14 @@ import { requestJson, getErrorMessage } from '@/components/workspace/settings-cl
 import { useTRPC } from '@/lib/trpc/react'
 
 const lines = (value: string) => value.split('\n')
+const trimmed = (values: string[]) => values.map((v) => v.trim()).filter(Boolean)
+/** Preview and save submit the same policy: trimmed lines, no blank entries. */
+const normalized = (policy: GitHubProductionPolicy): GitHubProductionPolicy => ({
+  ...policy,
+  environments: trimmed(policy.environments),
+  refs: trimmed(policy.refs),
+  jobNames: trimmed(policy.jobNames),
+})
 type Decision = z.infer<typeof githubProductionDecisionSchema>
 
 function DecisionDetails({ decision }: { decision: Decision }) {
@@ -80,15 +88,20 @@ export function GitHubProduction({
     queryFn: () => requestJson(`${base}/delivery-recovery`, githubRecoverySchema),
   })
   const [appIdsText, setAppIdsText] = useState<string | null>(null)
-  const [draft, setDraft] = useState<GitHubProductionPolicy | null>(null)
+  // A draft keeps the revision it was started from, so a concurrent save is a conflict.
+  const [draft, setDraft] = useState<{
+    revision: number
+    policy: GitHubProductionPolicy
+  } | null>(null)
   const [preview, setPreview] = useState<Decision | null>(null)
   const [observationId, setObservationId] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const latest = state.data?.policies[0]
+  const revision = draft?.revision ?? latest?.revision ?? 0
   const policy: GitHubProductionPolicy =
-    draft ??
+    draft?.policy ??
     (latest?.policy.schemaVersion === 1
       ? latest.policy
       : {
@@ -107,7 +120,7 @@ export function GitHubProduction({
           definitionId: '',
         })
   const change = (patch: Partial<GitHubProductionPolicy>) => {
-    setDraft({ ...policy, ...patch })
+    setDraft({ revision, policy: { ...policy, ...patch } })
     setPreview(null)
     setMessage('')
   }
@@ -186,6 +199,31 @@ export function GitHubProduction({
             This repository retains the legacy production flag-or-name rule. Saving a new policy
             explicitly replaces it for future observations; history and queued runs stay pinned.
           </p>
+        ) : null}
+        {latest && latest.revision !== revision ? (
+          <Alert>
+            <AlertDescription>
+              <p>
+                This policy changed to revision {latest.revision} after you started editing revision{' '}
+                {revision}. Saving your changes is refused so they cannot overwrite it. Reload the
+                latest revision to continue; your unsaved changes will be discarded.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setDraft(null)
+                  setAppIdsText(null)
+                  setPreview(null)
+                  setError('')
+                  setMessage(`Loaded revision ${latest.revision}.`)
+                }}
+              >
+                Reload latest revision
+              </Button>
+            </AlertDescription>
+          </Alert>
         ) : null}
         {!latest ? (
           <p>
@@ -435,15 +473,11 @@ export function GitHubProduction({
               void perform(async () => {
                 await requestJson(`${base}/production`, githubPolicyVersionSchema, {
                   method: 'PUT',
-                  body: {
-                    expectedRevision: latest?.revision ?? 0,
-                    policy: {
-                      ...policy,
-                      environments: policy.environments.map((v) => v.trim()).filter(Boolean),
-                      refs: policy.refs.map((v) => v.trim()).filter(Boolean),
-                      jobNames: policy.jobNames.map((v) => v.trim()).filter(Boolean),
-                    },
-                  },
+                  body: { expectedRevision: revision, policy: normalized(policy) },
+                }).catch(async (cause: unknown) => {
+                  // A refused save shows the newer revision and the reload action.
+                  await state.refetch()
+                  throw cause
                 })
                 setDraft(null)
                 setPreview(null)
@@ -489,7 +523,7 @@ export function GitHubProduction({
               setPreview(
                 await requestJson(`${base}/production-preview`, githubProductionDecisionSchema, {
                   method: 'POST',
-                  body: { policy, observationId },
+                  body: { policy: normalized(policy), observationId },
                 })
               )
             })

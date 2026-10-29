@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
@@ -61,6 +62,15 @@ func frontendSignature(body []byte) string {
 func frontendAlerts(t *testing.T, w *testWorkspace) int {
 	t.Helper()
 	return w.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(w.org), outboxevent.TypeHasPrefix("activity.frontend.")).CountX(w.ctx)
+}
+
+func TestFrontendWorkflowEventSelectsRepositoryAndActionBranches(t *testing.T) {
+	e := frontendWorkflowEvent(&ent.FrontendActivation{ID: "activation", Snapshot: fd.Observation{RepositoryID: "1001", Environment: "production", Revision: "revision1"}})
+	for _, c := range []ra.Condition{{Field: "repository.id", Operator: "eq", Values: []string{"1001"}}, {Field: "event.action", Operator: "eq", Values: []string{"success"}}} {
+		if d := ra.Evaluate(c, e); d.Status != "evaluated" || !d.Match {
+			t.Errorf("%s did not select the branch: %+v", c.Field, d)
+		}
+	}
 }
 
 func TestFrontendInactiveWorkflowPreservesEvidenceAndAlerts(t *testing.T) {

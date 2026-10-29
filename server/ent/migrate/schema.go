@@ -1318,6 +1318,120 @@ var (
 			},
 		},
 	}
+	// FrontendActivationColumns holds the columns for the "frontend_activation" table.
+	FrontendActivationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceId", Type: field.TypeString},
+		{Name: "activationKey", Type: field.TypeString},
+		{Name: "commitSha", Type: field.TypeString, Default: ""},
+		{Name: "snapshot", Type: field.TypeJSON},
+		{Name: "policy", Type: field.TypeJSON},
+		{Name: "policyVersion", Type: field.TypeInt},
+		{Name: "decision", Type: field.TypeJSON},
+		{Name: "historical", Type: field.TypeBool},
+		{Name: "createdAt", Type: field.TypeTime},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// FrontendActivationTable holds the schema information for the "frontend_activation" table.
+	FrontendActivationTable = &schema.Table{
+		Name:       "frontend_activation",
+		Columns:    FrontendActivationColumns,
+		PrimaryKey: []*schema.Column{FrontendActivationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "frontendactivation_sourceId_activationKey",
+				Unique:  true,
+				Columns: []*schema.Column{FrontendActivationColumns[2], FrontendActivationColumns[3]},
+			},
+			{
+				Name:    "frontendactivation_organizationId_sourceId_commitSha",
+				Unique:  false,
+				Columns: []*schema.Column{FrontendActivationColumns[1], FrontendActivationColumns[2], FrontendActivationColumns[4]},
+			},
+			{
+				Name:    "frontendactivation_organizationId_createdAt",
+				Unique:  false,
+				Columns: []*schema.Column{FrontendActivationColumns[1], FrontendActivationColumns[10]},
+			},
+		},
+	}
+	// FrontendObservationColumns holds the columns for the "frontend_observation" table.
+	FrontendObservationColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "sourceId", Type: field.TypeString},
+		{Name: "eventKey", Type: field.TypeString},
+		{Name: "snapshot", Type: field.TypeJSON},
+		{Name: "policy", Type: field.TypeJSON},
+		{Name: "policyVersion", Type: field.TypeInt},
+		{Name: "decision", Type: field.TypeJSON},
+		{Name: "historical", Type: field.TypeBool},
+		{Name: "occurredAt", Type: field.TypeTime},
+		{Name: "receivedAt", Type: field.TypeTime},
+		{Name: "processedAt", Type: field.TypeTime},
+	}
+	// FrontendObservationTable holds the schema information for the "frontend_observation" table.
+	FrontendObservationTable = &schema.Table{
+		Name:       "frontend_observation",
+		Columns:    FrontendObservationColumns,
+		PrimaryKey: []*schema.Column{FrontendObservationColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "frontendobservation_sourceId_eventKey",
+				Unique:  true,
+				Columns: []*schema.Column{FrontendObservationColumns[2], FrontendObservationColumns[3]},
+			},
+			{
+				Name:    "frontendobservation_organizationId_sourceId_receivedAt",
+				Unique:  false,
+				Columns: []*schema.Column{FrontendObservationColumns[1], FrontendObservationColumns[2], FrontendObservationColumns[10]},
+			},
+		},
+	}
+	// FrontendSourceColumns holds the columns for the "frontend_source" table.
+	FrontendSourceColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeString},
+		{Name: "organizationId", Type: field.TypeString},
+		{Name: "provider", Type: field.TypeString},
+		{Name: "accountId", Type: field.TypeString},
+		{Name: "projectId", Type: field.TypeString},
+		{Name: "githubSourceId", Type: field.TypeString, Default: ""},
+		{Name: "policy", Type: field.TypeJSON},
+		{Name: "revision", Type: field.TypeInt, Default: 1},
+		{Name: "enabled", Type: field.TypeBool, Default: false},
+		{Name: "encryptedToken", Type: field.TypeString, Default: ""},
+		{Name: "encryptedSecret", Type: field.TypeString, Default: ""},
+		{Name: "baselineAt", Type: field.TypeTime},
+		{Name: "effectiveAt", Type: field.TypeTime},
+		{Name: "lastPollAt", Type: field.TypeTime, Nullable: true},
+		{Name: "health", Type: field.TypeString, Default: "baseline_pending"},
+		{Name: "checkpoint", Type: field.TypeJSON},
+		{Name: "updatedAt", Type: field.TypeTime},
+	}
+	// FrontendSourceTable holds the schema information for the "frontend_source" table.
+	FrontendSourceTable = &schema.Table{
+		Name:       "frontend_source",
+		Columns:    FrontendSourceColumns,
+		PrimaryKey: []*schema.Column{FrontendSourceColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "frontendsource_organizationId_provider_accountId_projectId",
+				Unique:  true,
+				Columns: []*schema.Column{FrontendSourceColumns[1], FrontendSourceColumns[2], FrontendSourceColumns[3], FrontendSourceColumns[4]},
+			},
+			{
+				Name:    "frontendsource_enabled_lastPollAt",
+				Unique:  false,
+				Columns: []*schema.Column{FrontendSourceColumns[8], FrontendSourceColumns[13]},
+			},
+			{
+				Name:    "frontendsource_organizationId_githubSourceId",
+				Unique:  false,
+				Columns: []*schema.Column{FrontendSourceColumns[1], FrontendSourceColumns[5]},
+			},
+		},
+	}
 	// GithubDeliveryRecoveryColumns holds the columns for the "github_delivery_recovery" table.
 	GithubDeliveryRecoveryColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString},
@@ -3639,6 +3753,9 @@ var (
 		DeploymentEventTable,
 		DesignTable,
 		EnrichmentRecordTable,
+		FrontendActivationTable,
+		FrontendObservationTable,
+		FrontendSourceTable,
 		GithubDeliveryRecoveryTable,
 		GithubInstallStartTable,
 		GithubInstallationTable,
@@ -3846,6 +3963,15 @@ func init() {
 	}
 	EnrichmentRecordTable.Annotation = &entsql.Annotation{
 		Table: "enrichment_record",
+	}
+	FrontendActivationTable.Annotation = &entsql.Annotation{
+		Table: "frontend_activation",
+	}
+	FrontendObservationTable.Annotation = &entsql.Annotation{
+		Table: "frontend_observation",
+	}
+	FrontendSourceTable.Annotation = &entsql.Annotation{
+		Table: "frontend_source",
 	}
 	GithubDeliveryRecoveryTable.Annotation = &entsql.Annotation{
 		Table: "github_delivery_recovery",

@@ -32,7 +32,12 @@ import {
   usePlateEditor,
   usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
-import { createYjsPlugin, loadLocalCopy, YjsPlugin } from '@shots/platejs-editor/collaboration'
+import {
+  createYjsPlugin,
+  loadLocalCopy,
+  throttleCursor,
+  YjsPlugin,
+} from '@shots/platejs-editor/collaboration'
 import {
   BlockPlaceholderKit,
   BlockSelectionKit,
@@ -820,6 +825,8 @@ export default function DraftEditor({
     // Deferred a tick: React may mount, unmount and remount at once (Strict
     // Mode), and a session cannot connect twice. The discarded mount never starts.
     const room = documentName ?? collaborationRoom(collaboration)
+    // Each cursor move is a message the collaboration server authorizes.
+    const restoreCursor = throttleCursor(editor.getOptions(YjsPlugin).awareness)
     let local: ReturnType<typeof loadLocalCopy> | null = null
     const start = setTimeout(() => {
       started = true
@@ -853,6 +860,7 @@ export default function DraftEditor({
       clearTimeout(start)
       if (started) yjs.destroy()
       local?.destroy()
+      restoreCursor()
     }
   }, [collaboration, documentName, draftId, editor, readOnly])
 

@@ -513,6 +513,42 @@ func (f EnrichmentRecordFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.EnrichmentRecordMutation", m)
 }
 
+// The FrontendActivationFunc type is an adapter to allow the use of ordinary
+// function as FrontendActivation mutator.
+type FrontendActivationFunc func(context.Context, *ent.FrontendActivationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FrontendActivationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FrontendActivationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FrontendActivationMutation", m)
+}
+
+// The FrontendObservationFunc type is an adapter to allow the use of ordinary
+// function as FrontendObservation mutator.
+type FrontendObservationFunc func(context.Context, *ent.FrontendObservationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FrontendObservationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FrontendObservationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FrontendObservationMutation", m)
+}
+
+// The FrontendSourceFunc type is an adapter to allow the use of ordinary
+// function as FrontendSource mutator.
+type FrontendSourceFunc func(context.Context, *ent.FrontendSourceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FrontendSourceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FrontendSourceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FrontendSourceMutation", m)
+}
+
 // The GitHubDeliveryRecoveryFunc type is an adapter to allow the use of ordinary
 // function as GitHubDeliveryRecovery mutator.
 type GitHubDeliveryRecoveryFunc func(context.Context, *ent.GitHubDeliveryRecoveryMutation) (ent.Value, error)

@@ -300,6 +300,7 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 		s.registerPlatformControls(mux)
 		s.registerGitHub(mux)
 		s.registerReleaseAutomation(mux)
+		s.registerFrontendDeployments(mux)
 		s.registerAnnouncements(mux)
 		s.registerAgentAccess(mux)
 		s.registerScreenshots(mux)

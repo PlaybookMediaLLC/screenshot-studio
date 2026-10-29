@@ -1,3 +1,4 @@
+import { frontendDeploymentsRouter } from './routers/frontend-deployments'
 import { creativeSetRouter } from './routers/creative-set'
 import { canvasRouter } from './routers/canvas'
 import 'server-only'
@@ -54,6 +55,7 @@ export const appRouter = router({
   creativeSet: creativeSetRouter,
   release: releaseRouter,
   releaseAutomation: releaseAutomationRouter,
+  frontendDeployments: frontendDeploymentsRouter,
   scheduledPost: scheduledPostRouter,
   shareLink: shareLinkRouter,
   sourceApp: sourceAppRouter,

@@ -1,5 +1,21 @@
-import type { z } from 'zod'
-import { githubProductionStateSchema, githubPolicyVersionSchema, githubProductionDecisionSchema, githubProductionCatalogSchema, githubRecoverySchema, type saveGitHubProductionSchema, type previewGitHubProductionSchema } from './github-production.ts'
+import { z } from 'zod'
+import {
+  frontendSourceSchema,
+  frontendEvidenceSchema,
+  frontendDecisionSchema,
+  frontendPreviewSchema,
+  type FrontendSourceInput,
+} from './frontend-deployments.ts'
+export * from './frontend-deployments.ts'
+import {
+  githubProductionStateSchema,
+  githubPolicyVersionSchema,
+  githubProductionDecisionSchema,
+  githubProductionCatalogSchema,
+  githubRecoverySchema,
+  type saveGitHubProductionSchema,
+  type previewGitHubProductionSchema,
+} from './github-production.ts'
 export * from './github-production.ts'
 import { socialObservationSchema } from './social-analytics.ts'
 export * from './social-analytics.ts'
@@ -4270,6 +4286,40 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
+  /** List backend-verified production sources without credentials. */
+  async frontendSources() {
+    return z
+      .object({ sources: z.array(frontendSourceSchema) })
+      .parse(await this.request<unknown>('v1/frontend-sources'))
+  }
+  /** Save an opt-in production policy with optimistic concurrency. */
+  async saveFrontendSource(input: FrontendSourceInput) {
+    return frontendSourceSchema.parse(
+      await this.request<unknown>('v1/frontend-sources', { method: 'PUT', body: input })
+    )
+  }
+  /** Read this workspace's immutable deployment evidence and decisions. */
+  async frontendHistory(id: string) {
+    return z
+      .object({ items: z.array(frontendEvidenceSchema) })
+      .parse(await this.request<unknown>(`v1/frontend-sources/${encodeURIComponent(id)}/history`))
+  }
+  /** Preview the same evaluator used by durable acceptance, without side effects. */
+  async previewFrontend(input: z.infer<typeof frontendPreviewSchema>) {
+    return frontendDecisionSchema.parse(
+      await this.request<unknown>('v1/frontend-sources/preview', { method: 'POST', body: input })
+    )
+  }
+  /** Forward unmodified body text; the backend verifies the provider signature. */
+  async acceptFrontendWebhook(id: string, signature: string, body: string) {
+    return z.object({ accepted: z.literal(true) }).parse(
+      await this.request<unknown>(`v1/internal/frontend-webhooks/${encodeURIComponent(id)}`, {
+        method: 'POST',
+        body: { signature, body },
+      })
+    )
+  }
+
   /** Begins connecting a GitHub App installation; the state is single-use. */
   async startGitHubConnection() {
     return this.request<{ state: string }>('v1/github/connections/start', { method: 'POST' })
@@ -4290,22 +4340,47 @@ export class ScreenshotStudioBackendSDK {
 
   /** Save a draft with optimistic concurrency; incomplete graphs remain drafts. */
   async getGitHubProduction(id: string, cursor = '') {
-    return githubProductionStateSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production?cursor=${encodeURIComponent(cursor)}`))
+    return githubProductionStateSchema.parse(
+      await this.request<unknown>(
+        `v1/github/sources/${encodeURIComponent(id)}/production?cursor=${encodeURIComponent(cursor)}`
+      )
+    )
   }
   async saveGitHubProduction(id: string, input: z.infer<typeof saveGitHubProductionSchema>) {
-    return githubPolicyVersionSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production`, { body: input, method: 'PUT' }))
+    return githubPolicyVersionSchema.parse(
+      await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production`, {
+        body: input,
+        method: 'PUT',
+      })
+    )
   }
   async previewGitHubProduction(id: string, input: z.infer<typeof previewGitHubProductionSchema>) {
-    return githubProductionDecisionSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production-preview`, { body: input, method: 'POST' }))
+    return githubProductionDecisionSchema.parse(
+      await this.request<unknown>(
+        `v1/github/sources/${encodeURIComponent(id)}/production-preview`,
+        { body: input, method: 'POST' }
+      )
+    )
   }
   async getGitHubProductionCatalog(id: string, runId = 0, attempt = 0) {
-    return githubProductionCatalogSchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/production-catalog?runId=${runId}&attempt=${attempt}`))
+    return githubProductionCatalogSchema.parse(
+      await this.request<unknown>(
+        `v1/github/sources/${encodeURIComponent(id)}/production-catalog?runId=${runId}&attempt=${attempt}`
+      )
+    )
   }
   async getGitHubRecovery(id: string) {
-    return githubRecoverySchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/delivery-recovery`))
+    return githubRecoverySchema.parse(
+      await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/delivery-recovery`)
+    )
   }
   async inspectGitHubRecovery(id: string, redeliver: boolean) {
-    return githubRecoverySchema.parse(await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/delivery-recovery`, { body: { redeliver }, method: 'POST' }))
+    return githubRecoverySchema.parse(
+      await this.request<unknown>(`v1/github/sources/${encodeURIComponent(id)}/delivery-recovery`, {
+        body: { redeliver },
+        method: 'POST',
+      })
+    )
   }
   async saveReleaseAutomation(input: SaveAutomationInput) {
     return this.request<AutomationDefinition>('v1/release-automation', {

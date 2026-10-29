@@ -200,9 +200,9 @@ type Connection = connectedPayload["connection"];
  * authorized again only when access may have changed: the backend publishes a
  * count per workspace, and one for every workspace, that moves with each
  * change that can take access away (a removed or demoted member, an ended
- * session, a replaced or deleted draft). The counts are polled every `pollMs`
- * while connections are open; a move re-checks that workspace's connections
- * at once, and any connection is re-checked after `recheckMs` regardless.
+ * session, a replaced or deleted draft). Each frame reads the current counts
+ * before using cached access; polling every `pollMs` also closes idle revoked
+ * connections. Any connection is re-checked after `recheckMs` regardless.
  */
 export function collabHooks(
   backend: CollabBackend,
@@ -222,15 +222,10 @@ export function collabHooks(
   };
   const open = new Map<string, Set<Open>>();
   let timer: ReturnType<typeof setInterval> | null = null;
-  const snapshot = (organizationId: string): Check => ({
-    global: known.global,
-    organization: known.organizations.get(organizationId) ?? 0,
-    at: Date.now(),
-  });
-  const unchanged = (check: Check | undefined, organizationId: string) =>
+  const unchanged = (check: Check | undefined, next: Check) =>
     !!check &&
-    check.global === known.global &&
-    check.organization === (known.organizations.get(organizationId) ?? 0) &&
+    check.global === next.global &&
+    check.organization === next.organization &&
     Date.now() - check.at < recheckMs;
   const currentAccess = async (
     value: unknown,
@@ -238,10 +233,16 @@ export function collabHooks(
     connection: Connection
   ) => {
     const { grant: original, token } = contextSchema.parse(value);
-    if (unchanged(checks.get(connection), original.organizationId)) return;
-    log("collab.recheck", { documentName, organizationId: original.organizationId });
+    // Polling alone leaves a window for revoked edits and private outgoing frames.
+    const counts = await backend.epochs([original.organizationId]);
     // Taken before the request: a change published while it runs is seen next time.
-    const next = snapshot(original.organizationId);
+    const next: Check = {
+      global: counts.global,
+      organization: counts.organizations[original.organizationId] ?? 0,
+      at: Date.now(),
+    };
+    if (unchanged(checks.get(connection), next)) return;
+    log("collab.recheck", { documentName, organizationId: original.organizationId });
     const grant = await backend.authorize(token, documentName);
     if (
       grant.draftId !== original.draftId ||

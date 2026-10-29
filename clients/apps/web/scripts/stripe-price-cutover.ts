@@ -164,11 +164,12 @@ async function main(): Promise<void> {
     console.log(`${move.subscription}: ${move.from} -> ${move.to}`)
     if (mode === 'apply') {
       // No proration: each customer pays the new, lower price from the next renewal.
-      await stripe.subscriptions.update(
-        move.subscription,
-        { items: [{ id: move.item, price: move.to }], proration_behavior: 'none' },
-        { idempotencyKey: `shots-price-cutover-${move.item}-${move.to}` }
-      )
+      // Setting a price is safe to repeat, and a re-run lists only what is still on
+      // an old price, so no idempotency key: a reused one would replay a stale reply.
+      await stripe.subscriptions.update(move.subscription, {
+        items: [{ id: move.item, price: move.to }],
+        proration_behavior: 'none',
+      })
     }
   }
   console.log('\nPut these in Infisical (prod, /screenshot-studio), deploy, then run finish:')

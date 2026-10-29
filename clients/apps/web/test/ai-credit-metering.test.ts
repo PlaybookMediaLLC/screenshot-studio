@@ -313,6 +313,17 @@ test('a paid one-time Checkout session grants its packs once, by session id', ()
     provider: 'stripe',
     reference: 'cs_1',
   })
+  // A Checkout opened on the pack's previous price grants the pack it names.
+  assert.equal(
+    creditGrantForSession(
+      session({
+        line_items: { data: [{ price: { id: 'price_old_launch' }, quantity: 1 }] },
+        metadata: { organizationId: 'org_1', pack: 'launch' },
+      }),
+      packs
+    )?.credits,
+    500
+  )
   assert.equal(creditGrantForSession(session({ payment_status: 'unpaid' }), packs), null)
   assert.equal(creditGrantForSession(session({ mode: 'subscription' }), packs), null)
   assert.equal(creditGrantForSession(session({ client_reference_id: null }), packs), null)

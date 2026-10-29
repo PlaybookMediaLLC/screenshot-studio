@@ -125,6 +125,23 @@ async function main(): Promise<void> {
     if (target.interval) portalPrices.set(product, [...(portalPrices.get(product) ?? []), id])
   }
 
+  if (mode === 'finish') {
+    // Archiving an old price before its replacement exists would leave nothing to sell.
+    if (Object.values(next).some((id) => !id.startsWith('price_')))
+      throw new Error('Some new prices do not exist yet. Run apply first.')
+    // A Checkout opened before the deploy would still sell an old price; it starts over.
+    for await (const session of stripe.checkout.sessions.list({
+      expand: ['data.line_items'],
+      limit: 100,
+      status: 'open',
+    })) {
+      if (session.line_items?.data.some((item) => item.price && replacements[item.price.id])) {
+        await stripe.checkout.sessions.expire(session.id)
+        console.log(`Expired Checkout session ${session.id} on an old price.`)
+      }
+    }
+  }
+
   const subscriptions: Stripe.Subscription[] = []
   for (const key of PRICE_KEYS.filter((key) => targets[key].interval)) {
     for await (const subscription of stripe.subscriptions.list({
@@ -139,9 +156,6 @@ async function main(): Promise<void> {
   console.log(`${moves.length} live subscription item(s) on an old price.`)
 
   if (mode === 'finish') {
-    // Archiving an old price before its replacement exists would leave nothing to sell.
-    if (Object.values(next).some((id) => !id.startsWith('price_')))
-      throw new Error('Some new prices do not exist yet. Run apply first.')
     if (moves.length > 0)
       throw new Error('Live subscriptions are still on old prices. Run apply first.')
     // Updated in place: running web processes keep the configuration ID they cached.

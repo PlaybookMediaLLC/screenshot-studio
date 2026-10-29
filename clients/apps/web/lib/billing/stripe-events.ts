@@ -5,7 +5,7 @@ import {
   billingIntervalSchema,
   CREDIT_PACKS,
   type checkoutPlanSchema,
-  type creditPackSchema,
+  creditPackSchema,
   workspacePlanSchema,
 } from '@/lib/billing/plans'
 
@@ -105,9 +105,11 @@ export function entitlementForSubscription(
 
 /**
  * The AI credits a paid one-time Checkout session buys, or null when it buys
- * none: unpaid, a subscription, or no pack price among its line items. The
- * session id is the grant's reference, so its completed and async-succeeded
- * events grant once between them.
+ * none: unpaid, a subscription, or no pack among its line items. A line item
+ * on a price that is no longer a pack price still counts as the pack the
+ * session's metadata names, so a Checkout opened before a price change grants
+ * once it is paid. The session id is the grant's reference, so its completed
+ * and async-succeeded events grant once between them.
  */
 export function creditGrantForSession(
   session: Stripe.Checkout.Session,
@@ -117,8 +119,9 @@ export function creditGrantForSession(
   if (session.mode !== 'payment' || session.payment_status !== 'paid' || !organizationId) {
     return null
   }
+  const named = creditPackSchema.safeParse(session.metadata?.pack).data
   const credits = (session.line_items?.data ?? []).reduce((total, item) => {
-    const pack = item.price ? packs[item.price.id] : undefined
+    const pack = (item.price ? packs[item.price.id] : undefined) ?? named
     return pack ? total + CREDIT_PACKS[pack].credits * (item.quantity ?? 1) : total
   }, 0)
   return credits > 0 ? { credits, organizationId, provider: 'stripe', reference: session.id } : null

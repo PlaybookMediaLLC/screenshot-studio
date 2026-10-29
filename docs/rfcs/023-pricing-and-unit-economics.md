@@ -437,8 +437,9 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
    `lib/billing/stripe-events.ts`). It prints the new `STRIPE_PRICE_*`
    values.
 3. Put those values in Infisical (`prod`, `/screenshot-studio`) and deploy.
-4. `... finish`, still with the old values, refuses while any live
-   subscription is on an old price, updates the billing-portal
+4. `... finish`, still with the old values, expires every open Checkout
+   session on an old price, so the buyer starts over on a new one, refuses
+   while any live subscription is on an old price, updates the billing-portal
    configuration tagged `metadata.app = shots` in place to offer the new
    prices (running web processes keep its cached ID), and archives the old
    prices. Run it right after the deploy: until then the portal still
@@ -447,6 +448,9 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
 
 A subscription cancelled between steps 2 and 3 is ignored the same way, so
 its workspace keeps its plan until a later event for it; keep the gap short.
+A credit pack paid after step 3 on a Checkout opened before it still grants
+its credits: `creditGrantForSession` falls back to the pack the session's
+metadata names.
 
 The new allowances apply to every workspace on a plan at deploy, including
 invoiced Enterprise workspaces. A workspace that used more than Pro's 600 AI

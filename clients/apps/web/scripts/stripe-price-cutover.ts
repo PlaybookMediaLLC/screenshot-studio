@@ -45,26 +45,25 @@ export function targetPrices(): Record<PriceKey, TargetPrice> {
 }
 
 /**
- * Statuses that bill or can bill again, so their subscriptions move to the new
- * price: an unpaid subscription comes back once its invoices are paid.
+ * The only statuses a subscription never leaves. Every other one can bill
+ * again (an unpaid one once its invoices are paid, a paused one once it
+ * resumes), so it moves to the new price.
  */
-const LIVE_STATUSES: ReadonlySet<Stripe.Subscription.Status> = new Set([
-  'active',
-  'past_due',
-  'trialing',
-  'unpaid',
+const ENDED_STATUSES: ReadonlySet<Stripe.Subscription.Status> = new Set([
+  'canceled',
+  'incomplete_expired',
 ])
 
 /** One subscription item to move from an old price to its replacement. */
 export type SubscriptionMove = { from: string; item: string; subscription: string; to: string }
 
-/** Every item of a live subscription that is on a replaced price. */
+/** Every item of a subscription that has not ended and is on a replaced price. */
 export function subscriptionMoves(
   subscriptions: readonly Pick<Stripe.Subscription, 'id' | 'items' | 'status'>[],
   replacements: Readonly<Record<string, string>>
 ): SubscriptionMove[] {
   return subscriptions.flatMap((subscription) =>
-    LIVE_STATUSES.has(subscription.status)
+    !ENDED_STATUSES.has(subscription.status)
       ? subscription.items.data.flatMap((item) => {
           const to = replacements[item.price.id]
           return to
@@ -157,11 +156,11 @@ async function main(): Promise<void> {
     }
   }
   const moves = subscriptionMoves(subscriptions, replacements)
-  console.log(`${moves.length} live subscription item(s) on an old price.`)
+  console.log(`${moves.length} subscription item(s) that have not ended on an old price.`)
 
   if (mode === 'finish') {
     if (moves.length > 0)
-      throw new Error('Live subscriptions are still on old prices. Run apply first.')
+      throw new Error('Subscriptions that have not ended are still on old prices. Run apply first.')
     // Updated in place: running web processes keep the configuration ID they cached.
     const products = [...portalPrices].map(([product, prices]) => ({ prices, product }))
     const { data } = await stripe.billingPortal.configurations.list({ active: true, limit: 100 })
@@ -178,22 +177,33 @@ async function main(): Promise<void> {
     return
   }
 
+  const refused: string[] = []
   for (const move of moves) {
     console.log(`${move.subscription}: ${move.from} -> ${move.to}`)
     if (mode === 'apply') {
       // No proration: each customer pays the new, lower price from the next renewal.
       // Setting a price is safe to repeat, and a re-run lists only what is still on
       // an old price, so no idempotency key: a reused one would replay a stale reply.
-      await stripe.subscriptions.update(move.subscription, {
-        items: [{ id: move.item, price: move.to }],
-        proration_behavior: 'none',
-      })
+      await stripe.subscriptions
+        .update(move.subscription, {
+          items: [{ id: move.item, price: move.to }],
+          proration_behavior: 'none',
+        })
+        .catch((error: unknown) => {
+          // Stripe refuses some states (an incomplete subscription, say); the rest still move.
+          if (!(error instanceof Stripe.errors.StripeInvalidRequestError)) throw error
+          refused.push(`${move.subscription}: ${error.message}`)
+        })
     }
   }
   console.log('\nPut these in Infisical (prod, /screenshot-studio), deploy, then run finish:')
   for (const key of PRICE_KEYS) console.log(`${key}=${next[key]}`)
   if (mode === 'plan')
     console.log('\nPlan only: nothing changed. Run with apply to make these changes.')
+  if (refused.length > 0)
+    throw new Error(
+      `\nStripe refused to move:\n${refused.join('\n')}\nRun apply again once each moves or ends; finish refuses until then.`
+    )
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

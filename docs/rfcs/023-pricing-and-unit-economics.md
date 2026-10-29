@@ -425,13 +425,16 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
 
 1. `npx tsx scripts/stripe-price-cutover.ts` prints the plan and changes
    nothing: Pro $29/month and $300/year, Business $79/month and $804/year,
-   Extra Launch $12, and every live subscription that will move.
+   Extra Launch $12, and every subscription that will move.
 2. `... apply` creates those prices on the existing products (reusing any
    that already match, so a re-run creates nothing twice) and moves every
-   active, trialing, past-due or unpaid (it returns once its invoices are
-   paid) subscription on an old price to its new
-   price without proration. Each customer pays the lower price from the next
-   renewal. Until the IDs change, the webhook for a moved subscription names
+   subscription on an old price that has not ended (any status but
+   `canceled` and `incomplete_expired`: an unpaid or paused one can bill
+   again) to its new price without proration. Each customer pays the lower
+   price from the next renewal. It lists any subscription Stripe refuses to
+   change, such as an incomplete one, and exits with an error; run it again
+   once each has moved or ended. Until the IDs change, the webhook for a
+   moved subscription names
    a price the app does not sell yet, so it changes nothing and the
    workspace keeps its plan, even when the workspace also has an old,
    cancelled subscription (`governingSubscription` in
@@ -440,7 +443,8 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
 3. Put those values in Infisical (`prod`, `/screenshot-studio`) and deploy.
 4. `... finish`, still with the old values, expires every open Checkout
    session on an old price, so the buyer starts over on a new one, refuses
-   while any live subscription is on an old price, updates the billing-portal
+   while any subscription that has not ended is on an old price, updates
+   the billing-portal
    configuration tagged `metadata.app = shots` in place to offer the new
    prices (running web processes keep its cached ID), and archives the old
    prices. Run it right after the deploy: until then the portal still

@@ -13,7 +13,7 @@ test('the cutover charges the prices RFC 023 lists, in cents', () => {
   })
 })
 
-test('only subscriptions that can still bill on a replaced price move', () => {
+test('every subscription on a replaced price moves unless it has ended', () => {
   const subscription = (id: string, status: Stripe.Subscription.Status, price: string) =>
     ({
       id,
@@ -26,7 +26,9 @@ test('only subscriptions that can still bill on a replaced price move', () => {
       subscription('late', 'past_due', 'price_old_business'),
       subscription('trial', 'trialing', 'price_old_pro'),
       subscription('unpaid', 'unpaid', 'price_old_pro'),
+      subscription('paused', 'paused', 'price_old_pro'),
       subscription('ended', 'canceled', 'price_old_pro'),
+      subscription('expired', 'incomplete_expired', 'price_old_pro'),
       subscription('other', 'active', 'price_another_product'),
     ],
     { price_old_business: 'price_new_business', price_old_pro: 'price_new_pro' }
@@ -36,5 +38,6 @@ test('only subscriptions that can still bill on a replaced price move', () => {
     { from: 'price_old_business', item: 'si_late', subscription: 'late', to: 'price_new_business' },
     { from: 'price_old_pro', item: 'si_trial', subscription: 'trial', to: 'price_new_pro' },
     { from: 'price_old_pro', item: 'si_unpaid', subscription: 'unpaid', to: 'price_new_pro' },
+    { from: 'price_old_pro', item: 'si_paused', subscription: 'paused', to: 'price_new_pro' },
   ])
 })

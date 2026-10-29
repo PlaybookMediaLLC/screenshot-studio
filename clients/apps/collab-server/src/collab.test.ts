@@ -270,6 +270,64 @@ test("a removed idle recipient is closed once the removal is published", async (
   }
 });
 
+test("a demotion published while a connection is being admitted is re-checked", async () => {
+  const { backend, grants, publish } = fakeBackend();
+  const authorize = backend.authorize;
+  const release = Promise.withResolvers<void>();
+  let admitting = false;
+  backend.authorize = async (token, documentName) => {
+    // Reads the permission first, then answers late: the stale-grant race.
+    const grant = await authorize(token, documentName);
+    if (token === "second-editor-token" && !admitting) {
+      admitting = true;
+      await release.promise;
+    }
+    return grant;
+  };
+  const hooks = collabHooks(backend, () => {}, undefined, FAST);
+  const server = new Server({ port: 0, quiet: true, ...hooks });
+  await server.listen();
+  const owner = connect(server.address.port, "editor-token");
+  // A client that sends nothing until it is admitted, so no queued frame
+  // re-checks it: only the counts recorded at admission can.
+  const member = {
+    readOnly: false,
+    close: () => {},
+    onClose: () => {},
+    send: (_frame: Uint8Array) => {},
+  };
+  const connectionConfig = { readOnly: false, isAuthenticated: false };
+  try {
+    await until(() => owner.events.synced, "owner keeps the workspace polled");
+    const admission = hooks.onAuthenticate({
+      connectionConfig,
+      documentName: DOCUMENT,
+      token: "second-editor-token",
+    } as unknown as Parameters<typeof hooks.onAuthenticate>[0]);
+    await until(() => admitting, "admission read the old permission");
+    grants["second-editor-token"] = "read";
+    publish();
+    await settle();
+    release.resolve();
+    const context = await admission;
+    assert.equal(connectionConfig.readOnly, false, "admitted with the old grant");
+    await hooks.connected({
+      connection: member,
+      context,
+      documentName: DOCUMENT,
+    } as unknown as Parameters<typeof hooks.connected>[0]);
+    // An outgoing frame is gated on current access, like an incoming one.
+    member.send(new Uint8Array([0]));
+    await settle();
+    assert.equal(member.readOnly, true, "a stale grant was used");
+  } finally {
+    release.resolve();
+    owner.provider.destroy();
+    owner.doc.destroy();
+    await server.destroy();
+  }
+});
+
 test("a connection re-checks its access after recheckMs even with nothing published", async () => {
   const { backend, grants } = fakeBackend();
   const server = new Server({

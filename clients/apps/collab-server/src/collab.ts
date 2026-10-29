@@ -332,10 +332,19 @@ export function collabHooks(
         throw new Error("Unknown document.");
       }
       try {
-        const admitted = snapshot("");
+        // The counts as they stand before the request: a change published while
+        // it runs moves the workspace past this, so the next message re-checks.
+        const before = {
+          at: Date.now(),
+          global: known.global,
+          organizations: new Map(known.organizations),
+        };
         const grant = await backend.authorize(token, documentName);
-        admitted.organization =
-          known.organizations.get(grant.organizationId) ?? 0;
+        const admitted: Check = {
+          at: before.at,
+          global: before.global,
+          organization: before.organizations.get(grant.organizationId) ?? 0,
+        };
         connectionConfig.readOnly =
           grant.kind === "creative-set" || grant.access !== "write";
         log("collab.admitted", {

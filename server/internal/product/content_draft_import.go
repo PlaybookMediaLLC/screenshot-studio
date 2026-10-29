@@ -21,9 +21,6 @@ func draftImportIdentity(actor Actor, input ContentDraftInput) (string, string, 
 	if actorID == "" {
 		return "", "", invalid("Import needs an authenticated actor.")
 	}
-	if input.importScope != "" {
-		actorID = input.importScope
-	}
 	encoded, err := json.Marshal(input)
 	if err != nil {
 		return "", "", err

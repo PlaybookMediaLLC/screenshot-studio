@@ -239,6 +239,7 @@ export function collabHooks(
   ) => {
     const { grant: original, token } = contextSchema.parse(value);
     if (unchanged(checks.get(connection), original.organizationId)) return;
+    log("collab.recheck", { documentName, organizationId: original.organizationId });
     // Taken before the request: a change published while it runs is seen next time.
     const next = snapshot(original.organizationId);
     const grant = await backend.authorize(token, documentName);

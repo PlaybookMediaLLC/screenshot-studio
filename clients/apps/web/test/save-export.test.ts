@@ -153,6 +153,21 @@ test('a resumed upload sends only the parts storage does not hold', async (t) =>
   )
 })
 
+test('without Web Crypto a large file is refused before anything is reserved or sent', async (t) => {
+  const upload = fakeUpload()
+  t.mock.method(globalThis, 'fetch', upload.fetch)
+  t.mock.getter(globalThis, 'crypto', () => ({}))
+  await assert.rejects(
+    saveExportToWorkspace({
+      blob: new Blob([new Uint8Array(PART + 1)], { type: 'video/mp4' }),
+      fileName: 'clip.mp4',
+      trpcClient: upload.client,
+    }),
+    /secure \(HTTPS\) connection/
+  )
+  assert.deepEqual([upload.calls, upload.puts], [[], []])
+})
+
 test('a small file keeps the single write-once PUT and its whole digest', async (t) => {
   const bytes = new TextEncoder().encode('small file')
   const upload = fakeUpload()

@@ -127,6 +127,14 @@ const PART_BYTES = 16 * 1024 * 1024
 
 export async function saveExportToWorkspace(input: SaveToWorkspaceInput): Promise<SavedAsset> {
   const { blob, fileName, trpcClient } = input
+  // The server finishes a file sent in parts only with each part's digest,
+  // and Web Crypto needs a secure context: refuse before reserving or sending.
+  if (blob.size > PART_BYTES && !globalThis.crypto?.subtle) {
+    throw new WorkspaceSaveError(
+      'Files over 16 MB upload only over a secure (HTTPS) connection.',
+      'too-large'
+    )
+  }
   if (input.resumeAssetId) {
     const partSha256 = await sendParts(trpcClient, input.resumeAssetId, blob, input.onProgress)
     await trpcClient.asset.completeUpload.mutate({ assetId: input.resumeAssetId, partSha256 })
@@ -202,7 +210,7 @@ async function sendParts(
     sent += part.size
     onProgress?.(Math.round((sent / blob.size) * 95))
   }
-  // Without a digest for every part (no Web Crypto), the server's own reading stands.
+  // Every part has a digest: saveExportToWorkspace refuses large files without Web Crypto.
   return digests.every(Boolean) ? (digests as string[]) : undefined
 }
 

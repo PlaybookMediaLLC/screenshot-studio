@@ -521,14 +521,14 @@ export function BatchWorkspace({
         const ids = [...new Set(rows.flatMap((row) => row.assets))].filter(
           (token) => isAssetId(token) && !chosen.some((file) => file.name === token)
         )
+        // Go checks the workspace and upload status without reading the file, whatever its size.
         await Promise.all(
-          ids.map(async (id) => {
-            const response = await fetch(assetContentUrl(id), {
-              headers: { Range: 'bytes=0-0' },
-            }).catch(() => null)
-            await response?.body?.cancel()
-            if (response?.ok) known.add(id)
-          })
+          ids.map((id) =>
+            trpc.asset.signDownload.query({ assetId: id }).then(
+              () => known.add(id),
+              () => undefined
+            )
+          )
         )
       } else {
         rows = chosen.map((file, index) => ({

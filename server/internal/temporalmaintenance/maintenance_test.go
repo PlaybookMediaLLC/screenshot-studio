@@ -107,9 +107,9 @@ func TestScheduleReconciliationPreservesPauseAndCadence(t *testing.T) {
 			if o.Spec.TimeZoneName != "UTC" || o.Spec.CronExpressions[0] != "5 3 * * *" {
 				t.Fatal(o.Spec)
 			}
-		} else if id == "platform-maintenance-account-deletions" || id == "platform-maintenance-social-token-refresh" {
-			// Deletions wait out a 14-day grace period and tokens renew a week
-			// before expiry; hourly is prompt enough.
+		} else if id == "platform-maintenance-account-deletions" || id == "platform-maintenance-social-token-refresh" || id == "platform-maintenance-asset-cleanup" {
+			// Deletions wait out a 14-day grace period, tokens renew a week
+			// before expiry, and abandoned uploads age in hours; hourly is prompt enough.
 			if len(o.Spec.Intervals) != 1 || o.Spec.Intervals[0].Every != time.Hour {
 				t.Fatal(o.Spec)
 			}

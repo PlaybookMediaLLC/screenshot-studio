@@ -39,6 +39,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatch"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatchitem"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
@@ -219,6 +221,8 @@ func checkColumn(t, c string) error {
 			communicationattempt.Table:            communicationattempt.ValidColumn,
 			communicationrecipient.Table:          communicationrecipient.ValidColumn,
 			contentangle.Table:                    contentangle.ValidColumn,
+			contentbatch.Table:                    contentbatch.ValidColumn,
+			contentbatchitem.Table:                contentbatchitem.ValidColumn,
 			contentdraft.Table:                    contentdraft.ValidColumn,
 			contentdraftfinisher.Table:            contentdraftfinisher.ValidColumn,
 			contentdraftrevision.Table:            contentdraftrevision.ValidColumn,

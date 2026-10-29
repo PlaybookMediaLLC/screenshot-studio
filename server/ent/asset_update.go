@@ -164,6 +164,73 @@ func (_u *AssetUpdate) ClearHeight() *AssetUpdate {
 	return _u
 }
 
+// SetDurationMs sets the "duration_ms" field.
+func (_u *AssetUpdate) SetDurationMs(v int) *AssetUpdate {
+	_u.mutation.ResetDurationMs()
+	_u.mutation.SetDurationMs(v)
+	return _u
+}
+
+// SetNillableDurationMs sets the "duration_ms" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableDurationMs(v *int) *AssetUpdate {
+	if v != nil {
+		_u.SetDurationMs(*v)
+	}
+	return _u
+}
+
+// AddDurationMs adds value to the "duration_ms" field.
+func (_u *AssetUpdate) AddDurationMs(v int) *AssetUpdate {
+	_u.mutation.AddDurationMs(v)
+	return _u
+}
+
+// ClearDurationMs clears the value of the "duration_ms" field.
+func (_u *AssetUpdate) ClearDurationMs() *AssetUpdate {
+	_u.mutation.ClearDurationMs()
+	return _u
+}
+
+// SetCodecs sets the "codecs" field.
+func (_u *AssetUpdate) SetCodecs(v string) *AssetUpdate {
+	_u.mutation.SetCodecs(v)
+	return _u
+}
+
+// SetNillableCodecs sets the "codecs" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableCodecs(v *string) *AssetUpdate {
+	if v != nil {
+		_u.SetCodecs(*v)
+	}
+	return _u
+}
+
+// ClearCodecs clears the value of the "codecs" field.
+func (_u *AssetUpdate) ClearCodecs() *AssetUpdate {
+	_u.mutation.ClearCodecs()
+	return _u
+}
+
+// SetUploadID sets the "upload_id" field.
+func (_u *AssetUpdate) SetUploadID(v string) *AssetUpdate {
+	_u.mutation.SetUploadID(v)
+	return _u
+}
+
+// SetNillableUploadID sets the "upload_id" field if the given value is not nil.
+func (_u *AssetUpdate) SetNillableUploadID(v *string) *AssetUpdate {
+	if v != nil {
+		_u.SetUploadID(*v)
+	}
+	return _u
+}
+
+// ClearUploadID clears the value of the "upload_id" field.
+func (_u *AssetUpdate) ClearUploadID() *AssetUpdate {
+	_u.mutation.ClearUploadID()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *AssetUpdate) SetStatus(v asset.Status) *AssetUpdate {
 	_u.mutation.SetStatus(v)
@@ -344,6 +411,27 @@ func (_u *AssetUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.HeightCleared() {
 		_spec.ClearField(asset.FieldHeight, field.TypeInt)
+	}
+	if value, ok := _u.mutation.DurationMs(); ok {
+		_spec.SetField(asset.FieldDurationMs, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDurationMs(); ok {
+		_spec.AddField(asset.FieldDurationMs, field.TypeInt, value)
+	}
+	if _u.mutation.DurationMsCleared() {
+		_spec.ClearField(asset.FieldDurationMs, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Codecs(); ok {
+		_spec.SetField(asset.FieldCodecs, field.TypeString, value)
+	}
+	if _u.mutation.CodecsCleared() {
+		_spec.ClearField(asset.FieldCodecs, field.TypeString)
+	}
+	if value, ok := _u.mutation.UploadID(); ok {
+		_spec.SetField(asset.FieldUploadID, field.TypeString, value)
+	}
+	if _u.mutation.UploadIDCleared() {
+		_spec.ClearField(asset.FieldUploadID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)
@@ -557,6 +645,73 @@ func (_u *AssetUpdateOne) ClearHeight() *AssetUpdateOne {
 	return _u
 }
 
+// SetDurationMs sets the "duration_ms" field.
+func (_u *AssetUpdateOne) SetDurationMs(v int) *AssetUpdateOne {
+	_u.mutation.ResetDurationMs()
+	_u.mutation.SetDurationMs(v)
+	return _u
+}
+
+// SetNillableDurationMs sets the "duration_ms" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableDurationMs(v *int) *AssetUpdateOne {
+	if v != nil {
+		_u.SetDurationMs(*v)
+	}
+	return _u
+}
+
+// AddDurationMs adds value to the "duration_ms" field.
+func (_u *AssetUpdateOne) AddDurationMs(v int) *AssetUpdateOne {
+	_u.mutation.AddDurationMs(v)
+	return _u
+}
+
+// ClearDurationMs clears the value of the "duration_ms" field.
+func (_u *AssetUpdateOne) ClearDurationMs() *AssetUpdateOne {
+	_u.mutation.ClearDurationMs()
+	return _u
+}
+
+// SetCodecs sets the "codecs" field.
+func (_u *AssetUpdateOne) SetCodecs(v string) *AssetUpdateOne {
+	_u.mutation.SetCodecs(v)
+	return _u
+}
+
+// SetNillableCodecs sets the "codecs" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableCodecs(v *string) *AssetUpdateOne {
+	if v != nil {
+		_u.SetCodecs(*v)
+	}
+	return _u
+}
+
+// ClearCodecs clears the value of the "codecs" field.
+func (_u *AssetUpdateOne) ClearCodecs() *AssetUpdateOne {
+	_u.mutation.ClearCodecs()
+	return _u
+}
+
+// SetUploadID sets the "upload_id" field.
+func (_u *AssetUpdateOne) SetUploadID(v string) *AssetUpdateOne {
+	_u.mutation.SetUploadID(v)
+	return _u
+}
+
+// SetNillableUploadID sets the "upload_id" field if the given value is not nil.
+func (_u *AssetUpdateOne) SetNillableUploadID(v *string) *AssetUpdateOne {
+	if v != nil {
+		_u.SetUploadID(*v)
+	}
+	return _u
+}
+
+// ClearUploadID clears the value of the "upload_id" field.
+func (_u *AssetUpdateOne) ClearUploadID() *AssetUpdateOne {
+	_u.mutation.ClearUploadID()
+	return _u
+}
+
 // SetStatus sets the "status" field.
 func (_u *AssetUpdateOne) SetStatus(v asset.Status) *AssetUpdateOne {
 	_u.mutation.SetStatus(v)
@@ -767,6 +922,27 @@ func (_u *AssetUpdateOne) sqlSave(ctx context.Context) (_node *Asset, err error)
 	}
 	if _u.mutation.HeightCleared() {
 		_spec.ClearField(asset.FieldHeight, field.TypeInt)
+	}
+	if value, ok := _u.mutation.DurationMs(); ok {
+		_spec.SetField(asset.FieldDurationMs, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedDurationMs(); ok {
+		_spec.AddField(asset.FieldDurationMs, field.TypeInt, value)
+	}
+	if _u.mutation.DurationMsCleared() {
+		_spec.ClearField(asset.FieldDurationMs, field.TypeInt)
+	}
+	if value, ok := _u.mutation.Codecs(); ok {
+		_spec.SetField(asset.FieldCodecs, field.TypeString, value)
+	}
+	if _u.mutation.CodecsCleared() {
+		_spec.ClearField(asset.FieldCodecs, field.TypeString)
+	}
+	if value, ok := _u.mutation.UploadID(); ok {
+		_spec.SetField(asset.FieldUploadID, field.TypeString, value)
+	}
+	if _u.mutation.UploadIDCleared() {
+		_spec.ClearField(asset.FieldUploadID, field.TypeString)
 	}
 	if value, ok := _u.mutation.Status(); ok {
 		_spec.SetField(asset.FieldStatus, field.TypeEnum, value)

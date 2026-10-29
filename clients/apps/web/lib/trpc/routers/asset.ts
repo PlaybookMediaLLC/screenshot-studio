@@ -7,11 +7,14 @@ import {
   listAssets,
   signAssetDownload,
   signAssetUpload,
+  signAssetUploadInParts,
+  signAssetUploadParts,
 } from '@/lib/tenant/assets'
 import {
-  assetCompleteSchema,
   assetDownloadQuerySchema,
   assetListQuerySchema,
+  assetPartsCompleteSchema,
+  assetUploadPartsSchema,
   assetUploadSchema,
 } from '@/lib/tenant/schemas'
 import { router } from '../init'
@@ -33,10 +36,25 @@ export const assetRouter = router({
   signUpload: tenantProcedure({ apiKeyScope: 'upload:sign', permission: 'artifact:edit' })
     .input(assetUploadSchema)
     .mutation(async ({ ctx, input }) => signAssetUpload(ctx.tenant, input)),
+  /** Reserve a large file to send in parts (docs/tenant-storage.md). */
+  signUploadInParts: tenantProcedure({ apiKeyScope: 'upload:sign', permission: 'artifact:edit' })
+    .input(assetUploadSchema)
+    .mutation(async ({ ctx, input }) => signAssetUploadInParts(ctx.tenant, input)),
+  /** What a multipart upload holds, and signed PUTs for the parts still to send. */
+  uploadParts: tenantProcedure({ apiKeyScope: 'upload:sign', permission: 'artifact:edit' })
+    .input(assetUploadPartsSchema)
+    .mutation(async ({ ctx, input }) =>
+      signAssetUploadParts(ctx.tenant, input.assetId, input.parts)
+    ),
   completeUpload: tenantProcedure({ apiKeyScope: 'asset:write', permission: 'artifact:edit' })
-    .input(assetCompleteSchema)
+    .input(assetPartsCompleteSchema)
     .mutation(async ({ ctx, input }) => {
-      const asset = await completeAssetUpload(ctx.tenant, input.assetId, input.sha256)
+      const asset = await completeAssetUpload(
+        ctx.tenant,
+        input.assetId,
+        input.sha256,
+        input.partSha256
+      )
       if (!asset) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Asset not found.' })
       }

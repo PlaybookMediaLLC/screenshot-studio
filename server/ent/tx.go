@@ -66,6 +66,10 @@ type Tx struct {
 	CommunicationRecipient *CommunicationRecipientClient
 	// ContentAngle is the client for interacting with the ContentAngle builders.
 	ContentAngle *ContentAngleClient
+	// ContentBatch is the client for interacting with the ContentBatch builders.
+	ContentBatch *ContentBatchClient
+	// ContentBatchItem is the client for interacting with the ContentBatchItem builders.
+	ContentBatchItem *ContentBatchItemClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
 	// ContentDraftFinisher is the client for interacting with the ContentDraftFinisher builders.
@@ -408,6 +412,8 @@ func (tx *Tx) init() {
 	tx.CommunicationAttempt = NewCommunicationAttemptClient(tx.config)
 	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
 	tx.ContentAngle = NewContentAngleClient(tx.config)
+	tx.ContentBatch = NewContentBatchClient(tx.config)
+	tx.ContentBatchItem = NewContentBatchItemClient(tx.config)
 	tx.ContentDraft = NewContentDraftClient(tx.config)
 	tx.ContentDraftFinisher = NewContentDraftFinisherClient(tx.config)
 	tx.ContentDraftRevision = NewContentDraftRevisionClient(tx.config)

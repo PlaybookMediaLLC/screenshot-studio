@@ -20,7 +20,7 @@ const WorkflowName = "platform-maintenance-v1"
 const ActivityName = "platform-maintenance-run-v1"
 const TaskQueue = "platform-maintenance"
 
-var Jobs = []string{"frontend-deployments", "tenant-outbox", "audit-drains", "communications", "workspace-cleanup", "audit-retention", "scheduled-posts", "notifications", "account-deletions", "webhooks", "social-analytics", "social-token-refresh"}
+var Jobs = []string{"frontend-deployments", "tenant-outbox", "audit-drains", "communications", "workspace-cleanup", "audit-retention", "scheduled-posts", "notifications", "account-deletions", "webhooks", "social-analytics", "social-token-refresh", "asset-cleanup"}
 
 type Runner interface {
 	Run(context.Context, string) (int, error)
@@ -87,6 +87,10 @@ func ScheduleOptions(job string) client.ScheduleOptions {
 	if job == "account-deletions" {
 		spec = client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: time.Hour}}}
 		catchup = 24 * time.Hour
+	}
+	if job == "asset-cleanup" {
+		// Abandoned uploads age in hours, so hourly keeps reserved storage honest.
+		spec = client.ScheduleSpec{Intervals: []client.ScheduleIntervalSpec{{Every: time.Hour}}}
 	}
 	if job == "social-token-refresh" {
 		// Tokens renew a week before expiry; hourly retries a failed renewal often enough.

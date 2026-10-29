@@ -333,6 +333,11 @@ export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
   queue: z.boolean().optional(),
   /** A previewed queue slot; a changed queue is a conflict instead of a silent move. */
   expectedQueueSlot: z.iso.datetime().optional(),
+  /**
+   * Schedule these accounts beside the draft's queued posts instead of
+   * replacing them; an account that already has a post is refused.
+   */
+  add: z.boolean().optional(),
   /** Overrides the draft's natural posting time for this schedule (±4 minutes). */
   naturalPostingTime: z.boolean().optional(),
   scheduledFor: z.coerce

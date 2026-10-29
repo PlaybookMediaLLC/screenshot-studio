@@ -8,7 +8,7 @@ const contentTypeSchema = z
   .string()
   .trim()
   .regex(
-    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm)|font\/(woff2?|ttf|otf)|application\/pdf)$/,
+    /^(image\/(gif|jpeg|png|webp)|video\/(mp4|quicktime|webm)|audio\/(aac|mp4|mpeg|ogg|wav|webm)|font\/(woff2?|ttf|otf)|application\/pdf)$/,
     'Unsupported media type.'
   )
 
@@ -18,6 +18,17 @@ const assetIdSchema = z.string().uuid()
 export const assetCompleteSchema = z.object({
   assetId: assetIdSchema,
   sha256: sha256Schema.optional(),
+})
+
+/** Completing a file sent in parts: each part's SHA-256, as the browser read it. */
+export const assetPartsCompleteSchema = assetCompleteSchema.extend({
+  partSha256: z.array(sha256Schema).max(10_000).optional(),
+})
+
+/** The parts of a multipart upload to sign, at most 20 at a time; none asks only what is stored. */
+export const assetUploadPartsSchema = z.object({
+  assetId: assetIdSchema,
+  parts: z.array(z.number().int().min(1).max(10_000)).max(20),
 })
 
 export const assetListQuerySchema = z.object({

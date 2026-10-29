@@ -50,6 +50,12 @@ destination, and schedules through the web. It verifies:
    (`X-Amz-Expires=86400`) signature; each `scheduled_post` is `PUBLISHED`
    with one successful `publication_attempt`.
 
+In-process, `TestScheduledMediaReachesTheProviderThroughTheWorker` runs the
+real publish activities in the Temporal test environment against a private
+signed-URL bucket and a test provider. It adds a mixed carousel with a MOV,
+separate posts, an unanswered submission and a withdrawn approval; see
+[media scheduling](media-scheduling.md) for the capability matrix.
+
 `test/e2e/social-scheduling.spec.ts` checks the web callback and scheduling facade
 with a mock social API, including cross-workspace isolation, X, LinkedIn, and
 both Instagram login variants. Go tests cover ambiguous delivery, retry and

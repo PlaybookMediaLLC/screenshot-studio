@@ -15,3 +15,17 @@ func TestPlanAndTypeLimits(t *testing.T) {
 		t.Fatal("document/video limit")
 	}
 }
+
+// Every draft channel has media rules with a source, and a video limit never
+// exceeds what Shots accepts for upload.
+func TestDestinationsAreComplete(t *testing.T) {
+	for _, channel := range []string{"x", "linkedin", "instagram", "threads", "bluesky", "mastodon"} {
+		rules, ok := Limits.Destinations[channel]
+		if !ok || rules.MaxMedia < 1 || len(rules.Images) == 0 || len(rules.Docs) == 0 || rules.VerifiedOn == "" {
+			t.Fatalf("%s: %+v", channel, rules)
+		}
+		if rules.Video != nil && (len(rules.Video.Formats) == 0 || rules.Video.MaxBytes < 1 || rules.Video.MaxMs != 0 && rules.Video.MaxMs < rules.Video.MinMs) {
+			t.Fatalf("%s video: %+v", channel, rules.Video)
+		}
+	}
+}

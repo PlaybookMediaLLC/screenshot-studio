@@ -21,16 +21,16 @@ func TestUploadVerifiesStoredBytesAndChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 	digest := fmt.Sprintf("%x", sha256.Sum256(body.Bytes()))
-	if err := verifyUploadedContent(bytes.NewReader(body.Bytes()), "image/png", body.Len(), &digest); err != nil {
+	if _, err := verifyUploadedContent(bytes.NewReader(body.Bytes()), "image/png", body.Len(), &digest); err != nil {
 		t.Fatal(err)
 	}
 	for _, size := range []int{body.Len() - 1, body.Len() + 1} {
-		if err := verifyUploadedContent(bytes.NewReader(body.Bytes()), "image/png", size, &digest); err == nil {
+		if _, err := verifyUploadedContent(bytes.NewReader(body.Bytes()), "image/png", size, &digest); err == nil {
 			t.Fatal("dishonest size accepted")
 		}
 	}
 	wrong := fmt.Sprintf("%064d", 0)
-	if err := verifyUploadedContent(bytes.NewReader(body.Bytes()), "image/png", body.Len(), &wrong); err == nil {
+	if _, err := verifyUploadedContent(bytes.NewReader(body.Bytes()), "image/png", body.Len(), &wrong); err == nil {
 		t.Fatal("wrong checksum accepted")
 	}
 	if err := verifyAssetBytes("application/pdf", bytes.NewReader([]byte("%PDF-1.7\nmalformed"))); err == nil {
@@ -136,5 +136,38 @@ func TestUploadedGIFRequiresCompleteBoundedAnimation(t *testing.T) {
 		if err := verifyAssetBytes("image/gif", bytes.NewReader(invalid)); err == nil {
 			t.Fatal("incomplete or trailing GIF content became ready")
 		}
+	}
+}
+
+// Instagram takes JPEG only: a transparent PNG becomes a JPEG over white, not
+// over the transparent pixels' hidden colour, and the derivative fits its width.
+func TestJPEGOnlyProfileFlattensTransparency(t *testing.T) {
+	source := image.NewNRGBA(image.Rect(0, 0, 2000, 1600))
+	for y := 0; y < 1600; y++ {
+		for x := 0; x < 2000; x++ {
+			source.SetNRGBA(x, y, color.NRGBA{R: 0, G: 0, B: 0, A: 0})
+			if x >= 1000 {
+				source.SetNRGBA(x, y, color.NRGBA{R: 200, A: 255})
+			}
+		}
+	}
+	var body bytes.Buffer
+	if err := png.Encode(&body, source); err != nil {
+		t.Fatal(err)
+	}
+	profile := medialimits.Limits.ImageProfiles["instagram-standalone"]
+	result, mime, w, h, err := providerImageForProfile(body.Bytes(), "image/png", profile)
+	if err != nil || mime != "image/jpeg" || w != 1440 || h != 1152 {
+		t.Fatalf("%s %dx%d err=%v", mime, w, h, err)
+	}
+	decoded, err := jpeg.Decode(bytes.NewReader(result))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if left := color.NRGBAModel.Convert(decoded.At(100, 100)).(color.NRGBA); left.R < 240 || left.G < 240 || left.B < 240 {
+		t.Fatalf("transparent area became %v, want white", left)
+	}
+	if right := color.NRGBAModel.Convert(decoded.At(1300, 100)).(color.NRGBA); right.R < 170 || right.G > 40 {
+		t.Fatalf("opaque area became %v", right)
 	}
 }

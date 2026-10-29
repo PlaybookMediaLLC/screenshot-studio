@@ -16,12 +16,30 @@ export async function signAssetUpload(context: TenantContext, input: AssetUpload
   return backendSDK(context).signAssetUpload(input)
 }
 
+/**
+ * Reserve an upload the browser may send in parts: a file larger than one
+ * part comes back with its part plan instead of a single signed URL.
+ */
+export async function signAssetUploadInParts(context: TenantContext, input: AssetUploadInput) {
+  return backendSDK(context).signAssetUploadInParts(input)
+}
+
+/** The parts of a multipart upload storage holds, and signed PUTs for `parts`. */
+export async function signAssetUploadParts(
+  context: TenantContext,
+  assetId: string,
+  parts: number[]
+) {
+  return backendSDK(context).signAssetUploadParts(assetId, parts)
+}
+
 export async function completeAssetUpload(
   context: TenantContext,
   assetId: string,
-  sha256?: string
+  sha256?: string,
+  partSha256?: string[]
 ) {
-  const result = await orNull(backendSDK(context).completeAssetUpload(assetId, sha256))
+  const result = await orNull(backendSDK(context).completeAssetUpload(assetId, sha256, partSha256))
   return result?.asset ?? null
 }
 

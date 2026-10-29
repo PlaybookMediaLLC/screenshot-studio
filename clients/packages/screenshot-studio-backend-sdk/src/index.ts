@@ -637,6 +637,15 @@ export type BackendAssetListItem = {
 
 export type BackendAssetPage = { assets: BackendAssetListItem[]; nextCursor: string | null }
 
+/** How a large file is sent: `parts` parts of `partBytes` each, the last one shorter. */
+export type BackendAssetMultipart = { partBytes: number; parts: number }
+
+/** A multipart upload's stored parts and signed part URLs (valid 15 minutes). */
+export type BackendAssetUploadParts = BackendAssetMultipart & {
+  uploaded: number[]
+  urls: { number: number; url: string }[]
+}
+
 export type BackendAssetUploadInput = {
   parentAssetId?: string
   projectId?: string
@@ -1263,6 +1272,86 @@ export type BackendScheduleTiming = {
   expectedQueueSlot?: string
   scheduledFor?: Date
   timeZone?: string
+  /** Schedule these accounts beside the draft's queued posts instead of replacing them. */
+  add?: boolean
+}
+
+/** One attachment of a batch item: an uploaded asset, or a selected file still uploading. */
+export type BackendBatchMedia = {
+  assetId?: string
+  fileName?: string
+  bytes?: number
+  uploadAssetId?: string
+}
+
+/** When a batch item is meant to go out: a local time in a zone, or the queue at a previewed slot. */
+export type BackendBatchTiming = {
+  mode?: 'time' | 'queue'
+  localTime?: string
+  timeZone?: string
+  disambiguation?: 'earlier' | 'later'
+  expectedQueueSlot?: string
+}
+
+/** A staged batch item (RFC 042). `importKey` makes a retry idempotent. */
+export type BackendContentBatchItemInput = {
+  caption: string
+  channelConnectionIds: string[]
+  importKey: string
+  media: BackendBatchMedia[]
+  timing: BackendBatchTiming
+}
+
+/** A batch item with its media facts, its draft and that draft's scheduled posts. */
+export type BackendContentBatchItem = {
+  caption: string
+  channelConnectionIds: string[]
+  draft: {
+    approvedVersion: number | null
+    assetIds: string[]
+    channelConnectionIds: string[]
+    plainText: string
+    reviewStatus: string
+    status: string
+    title: string
+    version: number
+  } | null
+  draftId: string | null
+  id: string
+  importKey: string
+  media: (BackendBatchMedia & {
+    durationMs: number | null
+    height: number | null
+    mediaType?: string
+    status: string
+    width: number | null
+  })[]
+  position: number
+  posts: BackendContentDraftPost[]
+  timing: BackendBatchTiming
+}
+
+/** A durable batch of separate posts in one social set. */
+export type BackendContentBatch = {
+  archivedAt: string | null
+  createdAt: string
+  id: string
+  itemCount: number
+  items?: BackendContentBatchItem[]
+  socialSetId: string
+  timeZone: string
+  title: string
+  updatedAt: string
+}
+
+/** One item and account: whether it can be scheduled now, and what to fix. */
+export type BackendBatchValidation = {
+  channelConnectionId: string
+  error?: string
+  itemId: string
+  scheduledFor: string | null
+  timeZone: string
+  valid: boolean
 }
 
 export type BackendContentDraftListQuery = {
@@ -2490,9 +2579,30 @@ export class ScreenshotStudioBackendSDK {
     })
   }
 
-  async completeAssetUpload(id: string, sha256?: string) {
+  /**
+   * Reserve an upload the browser may send in parts: a file larger than one
+   * part gets `multipart` instead of `uploadUrl` when storage takes parts.
+   */
+  async signAssetUploadInParts(input: BackendAssetUploadInput) {
+    return this.request<{
+      asset: BackendAsset
+      uploadUrl: string
+      multipart?: BackendAssetMultipart
+    }>('v1/assets/upload-url', { body: { ...input, multipart: true }, method: 'POST' })
+  }
+
+  /** Which parts of a multipart upload storage holds, and signed PUTs for the parts asked for. */
+  async signAssetUploadParts(id: string, parts: number[]) {
+    return this.request<BackendAssetUploadParts>(
+      `v1/assets/${encodeURIComponent(id)}/upload-parts`,
+      { body: { parts }, method: 'POST' }
+    )
+  }
+
+  /** Complete an upload; `partSha256` is each part's digest for a file sent in parts. */
+  async completeAssetUpload(id: string, sha256?: string, partSha256?: string[]) {
     return this.request<{ asset: BackendAsset }>(`v1/assets/${encodeURIComponent(id)}/complete`, {
-      body: sha256 ? { sha256 } : {},
+      body: { ...(sha256 ? { sha256 } : {}), ...(partSha256 ? { partSha256 } : {}) },
       method: 'POST',
     })
   }
@@ -3088,6 +3198,81 @@ export class ScreenshotStudioBackendSDK {
       method: 'POST',
       body: input,
     })
+  }
+
+  /** Open batches in the social sets this member can see, newest first. */
+  async listContentBatches() {
+    return this.request<{ batches: BackendContentBatch[] }>('v1/content-batches')
+  }
+
+  /** Start a durable batch in a social set (the default set when omitted). */
+  async createContentBatch(input: { socialSetId?: string; title: string }) {
+    return this.request<BackendContentBatch>('v1/content-batches', { body: input, method: 'POST' })
+  }
+
+  /** A batch with every item, its media facts, its draft and that draft's posts. */
+  async getContentBatch(id: string) {
+    return this.request<BackendContentBatch>(`v1/content-batches/${encodeURIComponent(id)}`)
+  }
+
+  /** Close a batch; its drafts and posts stay. */
+  async archiveContentBatch(id: string) {
+    await this.request<Response>(`v1/content-batches/${encodeURIComponent(id)}/archive`, {
+      body: {},
+      method: 'POST',
+      responseType: 'response',
+    })
+  }
+
+  /** Stage items; a retried import key returns its item, other content under it is a 409. */
+  async addContentBatchItems(id: string, items: BackendContentBatchItemInput[]) {
+    return this.request<BackendContentBatch>(`v1/content-batches/${encodeURIComponent(id)}/items`, {
+      body: { items },
+      method: 'POST',
+    })
+  }
+
+  /** Change a staged item, or a drafted item's time and order. */
+  async updateContentBatchItem(
+    id: string,
+    itemId: string,
+    input: Partial<
+      Pick<BackendContentBatchItemInput, 'caption' | 'channelConnectionIds' | 'media' | 'timing'>
+    > & {
+      position?: number
+    }
+  ) {
+    return this.request<BackendContentBatchItem>(
+      `v1/content-batches/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}`,
+      { body: input, method: 'PATCH' }
+    )
+  }
+
+  /** Take an item out of its batch; a draft it made stays in Write. */
+  async removeContentBatchItem(id: string, itemId: string) {
+    await this.request<Response>(
+      `v1/content-batches/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}`,
+      { method: 'DELETE', responseType: 'response' }
+    )
+  }
+
+  /** Save an item as its draft; a retry returns the same draft. */
+  async createContentBatchItemDraft(id: string, itemId: string, input: BackendContentDraftCreate) {
+    return this.request<BackendContentBatchItem>(
+      `v1/content-batches/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}/draft`,
+      { body: input, method: 'POST' }
+    )
+  }
+
+  /** Check each item and account apart with scheduling's gates, without charging or reserving. */
+  async validateContentBatch(
+    id: string,
+    items: { itemId: string; targets: BackendContentDraftScheduleTarget[]; version: number }[]
+  ) {
+    return this.request<{ results: BackendBatchValidation[] }>(
+      `v1/content-batches/${encodeURIComponent(id)}/validate`,
+      { body: { items }, method: 'POST' }
+    )
   }
 
   /** Validate a schedule without revisions, quota charges or publication. */

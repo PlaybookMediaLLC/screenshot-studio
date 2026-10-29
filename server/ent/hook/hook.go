@@ -333,6 +333,30 @@ func (f ContentAngleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentAngleMutation", m)
 }
 
+// The ContentBatchFunc type is an adapter to allow the use of ordinary
+// function as ContentBatch mutator.
+type ContentBatchFunc func(context.Context, *ent.ContentBatchMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentBatchFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentBatchMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentBatchMutation", m)
+}
+
+// The ContentBatchItemFunc type is an adapter to allow the use of ordinary
+// function as ContentBatchItem mutator.
+type ContentBatchItemFunc func(context.Context, *ent.ContentBatchItemMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentBatchItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentBatchItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentBatchItemMutation", m)
+}
+
 // The ContentDraftFunc type is an adapter to allow the use of ordinary
 // function as ContentDraft mutator.
 type ContentDraftFunc func(context.Context, *ent.ContentDraftMutation) (ent.Value, error)

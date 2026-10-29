@@ -214,6 +214,7 @@ export function buildPublication(
   const serialized = serializeDraft(body, channel, blockImages, undefined, {
     limit: article ? 100_000 : captionLimit(channel, account.standing),
     numbering: CAPABILITIES[channel].thread ? options.numbering : undefined,
+    documentAssetId: channel === 'linkedin' ? options.document?.assetId : undefined,
   })
   const settings = serialized.posts.map((post) => groups[post.group] ?? {})
   const [first, ...rest] = serialized.posts

@@ -75,6 +75,7 @@ func (s *Server) registerWorkspace(mux *http.ServeMux) {
 	mux.Handle("POST /v1/assets/upload-url", s.authenticateProduct(http.HandlerFunc(s.signAssetUpload)))
 	mux.Handle("POST /v1/assets/generated", s.authenticateProduct(http.HandlerFunc(s.storeGeneratedAsset)))
 	mux.Handle("POST /v1/assets/{id}/complete", s.authenticateProduct(http.HandlerFunc(s.completeAssetUpload)))
+	mux.Handle("POST /v1/assets/{id}/upload-parts", s.authenticateProduct(http.HandlerFunc(s.signAssetUploadParts)))
 	mux.Handle("GET /v1/assets/{id}/download-url", s.authenticateProduct(http.HandlerFunc(s.signAssetDownload)))
 	mux.Handle("GET /v1/assets/{id}/bytes", s.authenticateProduct(http.HandlerFunc(s.readAsset)))
 	mux.Handle("POST /v1/internal/assets/{id}/download", s.authenticateService(http.HandlerFunc(s.readAssetDownload)))

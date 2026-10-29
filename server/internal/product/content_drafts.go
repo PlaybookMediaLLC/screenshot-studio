@@ -164,6 +164,9 @@ type ContentDraftInput struct {
 	Scratchpad       string                     `json:"scratchpad"`
 	TagIDs           []string                   `json:"tagIds"`
 	Target           *draftdoc.Target           `json:"target"`
+	// importScope stands in for the actor in the import receipt: a batch
+	// item's draft is the item's, whoever saves it.
+	importScope string
 }
 
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.

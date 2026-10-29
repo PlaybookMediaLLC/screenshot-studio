@@ -2,6 +2,7 @@ package product
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 )
@@ -31,12 +32,12 @@ func TestSpreadTimes(t *testing.T) {
 	}
 	input.LocalTime = "2027-03-14T02:30"
 	input.ShiftMinutes = 0
-	if _, err := spreadTimes(input, "America/New_York", now); err == nil {
-		t.Fatal("DST gap accepted")
+	if _, err := spreadTimes(input, "America/New_York", now); err == nil || !strings.Contains(err.Error(), "Post 1 would be at Mar 14 02:30, a time the clocks skip") {
+		t.Fatal("DST gap accepted or not named:", err)
 	}
-	input.LocalTime = "2027-11-07T01:30"
-	if _, err := spreadTimes(input, "America/New_York", now); err == nil {
-		t.Fatal("ambiguous DST time accepted")
+	input.LocalTime = "2027-11-06T01:30"
+	if _, err := spreadTimes(input, "America/New_York", now); err == nil || !strings.Contains(err.Error(), "Post 3 would be at Nov 7 01:30, a time that happens twice") {
+		t.Fatal("ambiguous DST time accepted or not named:", err)
 	}
 	input.LocalTime = "2027-03-15T23:30"
 	if _, err := spreadTimes(input, "UTC", now); err == nil {

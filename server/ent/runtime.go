@@ -33,6 +33,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatch"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatchitem"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
@@ -214,11 +216,11 @@ func init() {
 	assetFields := schema.Asset{}.Fields()
 	_ = assetFields
 	// assetDescCreatedAt is the schema descriptor for created_at field.
-	assetDescCreatedAt := assetFields[12].Descriptor()
+	assetDescCreatedAt := assetFields[15].Descriptor()
 	// asset.DefaultCreatedAt holds the default value on creation for the created_at field.
 	asset.DefaultCreatedAt = assetDescCreatedAt.Default.(func() time.Time)
 	// assetDescUpdatedAt is the schema descriptor for updated_at field.
-	assetDescUpdatedAt := assetFields[13].Descriptor()
+	assetDescUpdatedAt := assetFields[16].Descriptor()
 	// asset.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	asset.DefaultUpdatedAt = assetDescUpdatedAt.Default.(func() time.Time)
 	// asset.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
@@ -451,6 +453,34 @@ func init() {
 	contentangle.DefaultUpdatedAt = contentangleDescUpdatedAt.Default.(func() time.Time)
 	// contentangle.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	contentangle.UpdateDefaultUpdatedAt = contentangleDescUpdatedAt.UpdateDefault.(func() time.Time)
+	contentbatchFields := schema.ContentBatch{}.Fields()
+	_ = contentbatchFields
+	// contentbatchDescCreatedAt is the schema descriptor for created_at field.
+	contentbatchDescCreatedAt := contentbatchFields[6].Descriptor()
+	// contentbatch.DefaultCreatedAt holds the default value on creation for the created_at field.
+	contentbatch.DefaultCreatedAt = contentbatchDescCreatedAt.Default.(func() time.Time)
+	// contentbatchDescUpdatedAt is the schema descriptor for updated_at field.
+	contentbatchDescUpdatedAt := contentbatchFields[7].Descriptor()
+	// contentbatch.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	contentbatch.DefaultUpdatedAt = contentbatchDescUpdatedAt.Default.(func() time.Time)
+	// contentbatch.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	contentbatch.UpdateDefaultUpdatedAt = contentbatchDescUpdatedAt.UpdateDefault.(func() time.Time)
+	contentbatchitemFields := schema.ContentBatchItem{}.Fields()
+	_ = contentbatchitemFields
+	// contentbatchitemDescCaption is the schema descriptor for caption field.
+	contentbatchitemDescCaption := contentbatchitemFields[6].Descriptor()
+	// contentbatchitem.DefaultCaption holds the default value on creation for the caption field.
+	contentbatchitem.DefaultCaption = contentbatchitemDescCaption.Default.(string)
+	// contentbatchitemDescCreatedAt is the schema descriptor for created_at field.
+	contentbatchitemDescCreatedAt := contentbatchitemFields[11].Descriptor()
+	// contentbatchitem.DefaultCreatedAt holds the default value on creation for the created_at field.
+	contentbatchitem.DefaultCreatedAt = contentbatchitemDescCreatedAt.Default.(func() time.Time)
+	// contentbatchitemDescUpdatedAt is the schema descriptor for updated_at field.
+	contentbatchitemDescUpdatedAt := contentbatchitemFields[12].Descriptor()
+	// contentbatchitem.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	contentbatchitem.DefaultUpdatedAt = contentbatchitemDescUpdatedAt.Default.(func() time.Time)
+	// contentbatchitem.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	contentbatchitem.UpdateDefaultUpdatedAt = contentbatchitemDescUpdatedAt.UpdateDefault.(func() time.Time)
 	contentdraftFields := schema.ContentDraft{}.Fields()
 	_ = contentdraftFields
 	// contentdraftDescDiscussions is the schema descriptor for discussions field.

@@ -19,6 +19,11 @@ type ObjectDeleter interface {
 	Delete(context.Context, string, string) error
 }
 
+// uploadAborter discards the parts of a multipart upload that never finished.
+type uploadAborter interface {
+	AbortUpload(ctx context.Context, organizationID, key, uploadID string) error
+}
+
 // ProductEvents does the side effects of product events that take more than
 // SQL: GitHub reads, screenshots, and captures. It reports false for an event
 // it does not own.
@@ -74,6 +79,7 @@ func (s *Store) Run(ctx context.Context, job string) (int, error) {
 		"notifications":     s.Notifications,
 		"account-deletions": s.AccountDeletions,
 		"webhooks":          s.DeliverWebhooks,
+		"asset-cleanup":     s.AssetCleanup,
 		"social-analytics": func(ctx context.Context) (int, error) {
 			if s.Analytics == nil {
 				return 0, nil

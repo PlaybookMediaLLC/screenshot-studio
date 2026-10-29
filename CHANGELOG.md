@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.41.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.40.0...v2.41.0) (2026-10-29)
+
+
+### Features
+
+* **billing:** reprice against schedulers, remove the free tier, run AI on Haiku 5.5 ([#378](https://github.com/PlaybookMediaLLC/shots/issues/378)) ([d3737fd](https://github.com/PlaybookMediaLLC/shots/commit/d3737fdcbb54662f211f8bb7f66e7ded7442a1a3))
+
 ## [2.40.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.39.2...v2.40.0) (2026-10-28)
 
 

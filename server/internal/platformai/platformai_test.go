@@ -31,6 +31,10 @@ func TestStructuredDecodesTheReplyAndItsCost(t *testing.T) {
 		!strings.HasPrefix(system, "sys") || !strings.HasSuffix(system, "JSON Schema:\n{}") {
 		t.Fatalf("sent %+v", sent)
 	}
+	// Claude 5.5 models reject a non-default temperature.
+	if _, ok := sent["temperature"]; ok || sent["reasoning"].(map[string]any)["effort"] != "low" {
+		t.Fatalf("sampling and reasoning sent %+v", sent)
+	}
 }
 
 func TestStructuredClassifiesFailures(t *testing.T) {

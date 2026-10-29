@@ -286,6 +286,14 @@ test('the subscription that governs a workspace with several is the live, larger
     'b'
   )
   assert.equal(pick(subscription('active', 'price_other'), subscription('incomplete')), undefined)
+  // A live subscription moved to a price not deployed yet keeps an ended one from downgrading.
+  assert.equal(
+    pick(
+      subscription('active', 'price_new_pro', 'moved', 2),
+      subscription('canceled', 'price_pro', 'old', 1)
+    ),
+    undefined
+  )
 })
 
 test('a paid one-time Checkout session grants its packs once, by session id', () => {
@@ -305,6 +313,17 @@ test('a paid one-time Checkout session grants its packs once, by session id', ()
     provider: 'stripe',
     reference: 'cs_1',
   })
+  // A Checkout opened on the pack's previous price grants the pack it names.
+  assert.equal(
+    creditGrantForSession(
+      session({
+        line_items: { data: [{ price: { id: 'price_old_launch' }, quantity: 1 }] },
+        metadata: { organizationId: 'org_1', pack: 'launch' },
+      }),
+      packs
+    )?.credits,
+    500
+  )
   assert.equal(creditGrantForSession(session({ payment_status: 'unpaid' }), packs), null)
   assert.equal(creditGrantForSession(session({ mode: 'subscription' }), packs), null)
   assert.equal(creditGrantForSession(session({ client_reference_id: null }), packs), null)

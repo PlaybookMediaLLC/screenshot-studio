@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect } from 'react'
+import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 /** What a visit to /pricing tells the buyer, keyed by `param=value` from the URL. */
@@ -11,8 +12,7 @@ const OUTCOMES: Record<string, string> = {
   'checkout=success': 'You are subscribed. Welcome to Shots.',
   'credits=cancelled': 'The credit purchase was cancelled. You have not been charged.',
   'credits=success': 'Payment received. Your extra launch credits are on the way.',
-  'subscribe=required':
-    'This capability requires a paid plan. Basic text and link scheduling is available free.',
+  'subscribe=required': 'This capability requires a paid plan.',
 }
 
 const POLL_MS = 3_000
@@ -58,10 +58,14 @@ function Notice() {
   )
 }
 
-/** The pricing page's notice for a redirect from the paywall, Checkout, or a credit purchase. */
+/**
+ * The pricing page's notice for a redirect from the paywall, Checkout, or a
+ * credit purchase, and the way back to the app for someone sent from it.
+ */
 export function PricingNotice() {
   return (
     <Suspense fallback={null}>
+      <ReturnToWork />
       <Notice />
     </Suspense>
   )

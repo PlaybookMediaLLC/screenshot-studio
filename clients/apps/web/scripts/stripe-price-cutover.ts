@@ -1,17 +1,25 @@
 import { fileURLToPath } from 'node:url'
 import Stripe from 'stripe'
 import { z } from 'zod'
-import { annualMonthlyPrice, CREDIT_PACKS, PLAN_PRICES } from '@/lib/billing/plans'
+import {
+  annualMonthlyPrice,
+  type checkoutPlanSchema,
+  CREDIT_PACKS,
+  getWorkspaceQuota,
+  PLAN_PRICES,
+  type WorkspaceQuota,
+} from '@/lib/billing/plans'
 
 /**
  * Moves Shots onto the prices in lib/billing/plans.ts, in the order
  * docs/rfcs/023-pricing-and-unit-economics.md ("Stripe cutover") requires.
  * Run from clients/apps/web with a live key that can write prices,
  * subscriptions and billing-portal configurations, and the five CURRENT
- * STRIPE_PRICE_* values:
+ * STRIPE_PRICE_* values. Apply also writes each plan product's description,
+ * which Checkout shows the buyer, from the allowances in plans.ts:
  *
  *   npx tsx scripts/stripe-price-cutover.ts          # plan: prints, changes nothing
- *   npx tsx scripts/stripe-price-cutover.ts apply    # new prices, subscriptions moved
+ *   npx tsx scripts/stripe-price-cutover.ts apply    # new prices, descriptions, subscriptions moved
  *   npx tsx scripts/stripe-price-cutover.ts finish   # after the new IDs are deployed
  */
 
@@ -42,6 +50,19 @@ export function targetPrices(): Record<PriceKey, TargetPrice> {
     },
     STRIPE_PRICE_EXTRA_LAUNCH: { interval: null, unitAmount: Number(pack[1]) * 100 },
   }
+}
+
+const PLAN_OF: Partial<Record<PriceKey, z.infer<typeof checkoutPlanSchema>>> = {
+  STRIPE_PRICE_PRO_MONTHLY: 'pro',
+  STRIPE_PRICE_PRO_ANNUAL: 'pro',
+  STRIPE_PRICE_BUSINESS_MONTHLY: 'business',
+  STRIPE_PRICE_BUSINESS_ANNUAL: 'business',
+}
+
+/** The product description Checkout shows for a plan: its monthly allowances. */
+export function productDescription(plan: z.infer<typeof checkoutPlanSchema>): string {
+  const each = (quota: WorkspaceQuota) => getWorkspaceQuota(plan, quota).toLocaleString('en-US')
+  return `${each('ai:credits:monthly')} AI credits, ${each('posts:monthly')} scheduled posts, and ${each('emails:monthly')} release emails each month.`
 }
 
 /**
@@ -98,6 +119,7 @@ async function main(): Promise<void> {
   const productOf: Record<string, string> = {}
   const next: Record<string, string> = {}
   const portalPrices = new Map<string, string[]>()
+  const descriptions = new Map<string, string>()
 
   for (const key of PRICE_KEYS) {
     const old = await stripe.prices.retrieve(env[key])
@@ -128,6 +150,21 @@ async function main(): Promise<void> {
     if (id !== old.id) replacements[old.id] = id
     productOf[old.id] = product
     if (target.interval) portalPrices.set(product, [...(portalPrices.get(product) ?? []), id])
+    const plan = PLAN_OF[key]
+    if (plan) {
+      const description = productDescription(plan)
+      if ((descriptions.get(product) ?? description) !== description)
+        throw new Error(`${product} sells more than one plan; give each plan its own product.`)
+      descriptions.set(product, description)
+    }
+  }
+
+  // Checkout shows the product description, so a stale one promises old allowances.
+  for (const [product, description] of descriptions) {
+    const current = (await stripe.products.retrieve(product)).description
+    if (current === description) continue
+    console.log(`${product} description: "${current ?? ''}" -> "${description}"`)
+    if (mode === 'apply') await stripe.products.update(product, { description })
   }
 
   if (mode === 'finish') {

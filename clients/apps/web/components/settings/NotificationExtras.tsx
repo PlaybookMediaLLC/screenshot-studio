@@ -1,6 +1,6 @@
 'use client'
 
-import { Group, Row } from '@/components/platform-ui'
+import { Group, PlanRequired, Row } from '@/components/platform-ui'
 import { SaveStatus, useSaveState } from '@/components/settings/controls'
 import { usePreferences } from '@/components/settings/PreferencesProvider'
 import { useSocialSets } from '@/components/settings/social-sets/api'
@@ -8,6 +8,7 @@ import { NotificationPreferenceTable } from '@/components/settings/NotificationP
 import { socialSetPreferenceEvents } from '@/lib/notifications/preferences'
 import type { NotificationSettings } from '@/lib/notifications/schema'
 import { Switch } from '@/components/ui/switch'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
 import { SettingsRequestError, settingsErrorMessage } from '@/lib/settings/client'
 
 /**
@@ -73,6 +74,10 @@ export function SocialSetNotifications({
         <p className="text-sm text-muted-foreground" role="status">
           Loading publishing brands…
         </p>
+      ) : isPlanRefusal(sets.error) ? (
+        <PlanRequired from="/workspace/notifications">
+          Publishing brands, and notifications for each, need Pro.
+        </PlanRequired>
       ) : sets.isError ? (
         <p className="text-sm text-red-700 dark:text-red-300" role="alert">
           {settingsErrorMessage(sets.error)}

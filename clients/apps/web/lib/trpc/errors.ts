@@ -1,5 +1,5 @@
 import { TRPCError, type TRPC_ERROR_CODE_KEY } from '@trpc/server'
-import { toApiFailure } from '@/lib/api/platform-errors'
+import { type PlatformErrorCode, toApiFailure } from '@/lib/api/platform-errors'
 
 const statusCodes: Partial<Record<number, TRPC_ERROR_CODE_KEY>> = {
   400: 'BAD_REQUEST',
@@ -24,4 +24,13 @@ export function getDomainTRPCError(error: unknown): TRPCError | null {
   const failure = toApiFailure(error)
   const code = failure && statusCodes[failure.status]
   return code ? new TRPCError({ cause: error, code, message: failure.message }) : null
+}
+
+/**
+ * The platform error code of a failed procedure, as the REST envelope's
+ * `code`, so the browser can tell a plan refusal from a fault. Null when the
+ * failure is not a recognized domain error.
+ */
+export function platformErrorCode(error: TRPCError): PlatformErrorCode | null {
+  return toApiFailure(error.cause)?.code ?? null
 }

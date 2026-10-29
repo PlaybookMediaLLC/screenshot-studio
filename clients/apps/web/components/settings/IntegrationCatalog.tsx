@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { Pill, Section } from '@/components/platform-ui'
 import { OutwardIcon } from '@/components/platform-shell/icons'
 import { Button } from '@/components/ui/button'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useTRPCClient } from '@/lib/trpc/react'
 
@@ -153,7 +154,8 @@ export function IntegrationCatalog({ canManage }: { canManage: boolean }) {
       description="What each integration does, what it needs, and whether it works here today."
       title="Agents and integrations"
     >
-      {integrations.isError ? (
+      {/* A plan refusal is explained once, by the provider sections below. */}
+      {integrations.isError && !isPlanRefusal(integrations.error) ? (
         <p className="text-sm text-red-700 dark:text-red-300" role="alert">
           {settingsErrorMessage(integrations.error)}
         </p>

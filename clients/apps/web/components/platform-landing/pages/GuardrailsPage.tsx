@@ -11,7 +11,7 @@ import {
   RowTable,
   TileGrid,
 } from '../blocks'
-import { MONO, Section, SectionIntro, Window } from '../primitives'
+import { Check, MONO, Section, SectionIntro, Window } from '../primitives'
 import { GuardrailsFlow } from '../diagrams/GuardrailsFlow'
 
 /** A source that tries its luck, run through the real detector and fence at build time. */
@@ -137,7 +137,7 @@ export function GuardrailsPage() {
               'Responses are capped in size and time and must be text',
             ].map((rule) => (
               <li className="flex items-start gap-3" key={rule}>
-                <Mark value={true} />
+                <Check />
                 {rule}
               </li>
             ))}

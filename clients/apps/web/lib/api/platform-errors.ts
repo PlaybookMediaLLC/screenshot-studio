@@ -290,3 +290,21 @@ export function toApiFailure(error: unknown): ApiFailure | null {
     getNamedFailure(error)
   )
 }
+
+const planRefusalSchema = z.union([
+  // lib/settings/client.ts
+  z.object({ code: z.literal('workspace_feature_not_entitled') }),
+  // lib/content-drafts/client.ts
+  z.object({ details: z.object({ code: z.literal('workspace_feature_not_entitled') }) }),
+  // tRPC, through `platformErrorCode` in lib/trpc/errors.ts
+  z.object({ data: z.object({ platformCode: z.literal('workspace_feature_not_entitled') }) }),
+])
+
+/**
+ * Whether a request from the browser failed because the workspace's plan
+ * does not include it, whichever client made it. A plan refusal is final
+ * until the plan changes, so the page offers a plan rather than a retry.
+ */
+export function isPlanRefusal(error: unknown): boolean {
+  return planRefusalSchema.safeParse(error).success
+}

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { Group, Pill, Row, Section } from '@/components/platform-ui'
+import { Group, Pill, PlanRequired, Row, Section } from '@/components/platform-ui'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { deleteWebhookContract, listWebhookDeliveriesContract, listWebhooksContract, webhookDeliverySchema, webhookEventSchema, webhookSchema, webhookWithSecretSchema } from '@/lib/api/contracts/outbound-webhooks'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
 import { SettingsRequestError, settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
 
 type Webhook = z.output<typeof webhookSchema>
@@ -359,6 +360,7 @@ export function WebhookSettings({ canManage }: { canManage: boolean }) {
     queryKey: WEBHOOKS_KEY,
   })
   const unavailable = webhooks.error instanceof SettingsRequestError && webhooks.error.status === 503
+  const planRequired = isPlanRefusal(webhooks.error)
   return (
     <Section
       description="Shots sends each event to your endpoints with an HMAC-SHA256 signature. Deliveries are at least once: use the event ID to drop repeats."
@@ -373,7 +375,9 @@ export function WebhookSettings({ canManage }: { canManage: boolean }) {
       ) : (
         <div className="grid gap-4">
           {secret ? <SecretNotice onDone={() => setSecret(null)} secret={secret} /> : null}
-          {webhooks.isError ? (
+          {planRequired ? (
+            <PlanRequired from="/workspace/developers">Outbound webhooks need Pro.</PlanRequired>
+          ) : webhooks.isError ? (
             <p className="text-sm text-red-700 dark:text-red-300" role="alert">
               {unavailable
                 ? 'Webhooks are unavailable. Contact your administrator to enable them.'
@@ -392,7 +396,7 @@ export function WebhookSettings({ canManage }: { canManage: boolean }) {
               <p className="text-sm text-muted-foreground">No webhooks yet.</p>
             )
           ) : null}
-          {unavailable ? null : <AddWebhook onCreated={setSecret} />}
+          {unavailable || planRequired ? null : <AddWebhook onCreated={setSecret} />}
           <details className="rounded-xl border border-border p-4 text-sm">
             <summary className="cursor-pointer font-medium text-foreground">Verify a delivery</summary>
             <div className="mt-3 grid gap-2 text-muted-foreground">

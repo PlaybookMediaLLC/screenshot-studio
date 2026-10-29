@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { getWorkspaceLimit } from '@/lib/billing/plans'
 import {
   browserRequest,
   db,
@@ -162,11 +163,14 @@ test(
   { tag: '@journey' },
   async ({ browser, identity, page, workspace }) => {
     const org = workspace.id
+    // The owner and seats - 2 members leave Pro one seat for two recipients.
+    const seats = getWorkspaceLimit('pro', 'seats')
+    if (seats === null) throw new Error('Pro must limit seats for this test.')
     await grantWorkspacePlan(org, 'business')
     const contexts = []
     const pending = []
     try {
-      for (let index = 0; index < 5; index++) {
+      for (let index = 0; index < seats; index++) {
         const context = await browser.newContext()
         contexts.push(context)
         const recipient = await context.newPage()
@@ -179,7 +183,7 @@ test(
         expect(invited.status).toBe(200)
         const { id } = invitationSchema.parse(invited.body)
         await signUpViaApi({ ...identity, email }, recipient)
-        if (index < 3)
+        if (index < seats - 2)
           expect(
             (
               await requestJson(recipient, '/api/auth/organization/accept-invitation', {
@@ -209,7 +213,7 @@ test(
         'SELECT count(*)::int AS total FROM member WHERE "organizationId"=$1',
         [org]
       )
-      expect(result.rows[0].total).toBe(5)
+      expect(result.rows[0].total).toBe(seats)
     } finally {
       await Promise.all(contexts.map((context) => context.close()))
     }

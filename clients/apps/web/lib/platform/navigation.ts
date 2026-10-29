@@ -138,7 +138,8 @@ export function paidCapability(from: string | null | undefined): string | null {
   if (tool) return tool[1]
   const area = platformArea(path)
   const destination = PLATFORM_DESTINATIONS.find((item) => item.key === area)
-  return destination && area !== 'home' && area !== 'publish' && area !== 'settings'
+  // Home is where the app starts, not a capability; Settings is not on a plan.
+  return destination && area !== 'home' && area !== 'settings'
     ? destination.label
     : needsSignInTool(path)
 }

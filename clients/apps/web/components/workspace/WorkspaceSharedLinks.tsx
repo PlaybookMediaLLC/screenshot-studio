@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Group, Pill, Row, Section } from '@/components/platform-ui'
+import { Group, Pill, PlanRequired, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   AlertDialog,
@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
 import {
   isLive,
   SHARE_ACCESS_LABELS,
@@ -41,12 +42,15 @@ export function WorkspaceSharedLinks({ canEdit }: { canEdit: boolean }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [revoking, setRevoking] = useState<ShareLink | null>(null)
+  const [planRequired, setPlanRequired] = useState(false)
 
   const load = useCallback(() => {
     trpcClient.shareLink.list
       .query()
       .then((result) => setLinks(result.shareLinks.map((link) => shareLinkSchema.parse(link))))
-      .catch((failure: unknown) => setError(getErrorMessage(failure)))
+      .catch((failure: unknown) =>
+        isPlanRefusal(failure) ? setPlanRequired(true) : setError(getErrorMessage(failure))
+      )
   }, [trpcClient])
 
   useEffect(load, [load])
@@ -64,6 +68,14 @@ export function WorkspaceSharedLinks({ canEdit }: { canEdit: boolean }) {
     }
   }
 
+  if (planRequired) {
+    return (
+      <PlanRequired from="/workspace/shared-links">
+        Publishing designs at a link needs Pro.
+      </PlanRequired>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {error ? (
@@ -78,7 +90,21 @@ export function WorkspaceSharedLinks({ canEdit }: { canEdit: boolean }) {
         <Group>
           {links === null ? (
             <Row>
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              {error ? (
+                // The list failed to load; the alert above says why.
+                <Button
+                  onClick={() => {
+                    setError(null)
+                    load()
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  Try again
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              )}
             </Row>
           ) : links.length === 0 ? (
             <Row>

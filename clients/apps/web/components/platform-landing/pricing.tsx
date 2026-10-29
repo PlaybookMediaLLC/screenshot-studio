@@ -41,7 +41,8 @@ export function priceLabel(plan: DisplayedPlan): { price: string; note: string }
   return checkout.success
     ? {
         price: usd(PLAN_PRICES[plan]),
-        note: `per month, or ${usd(annualMonthlyPrice(checkout.data))} billed annually`,
+        // The yearly total too: Checkout charges it in one payment.
+        note: `per month, or ${usd(annualMonthlyPrice(checkout.data))}/month billed ${usd(annualMonthlyPrice(checkout.data) * 12)} annually`,
       }
     : { price: `From ${usd(PLAN_PRICES[plan])}`, note: 'per month, billed annually' }
 }

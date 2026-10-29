@@ -176,8 +176,10 @@ test('the plan page names the paid capability a free workspace asked for', () =>
   assert.equal(paidCapability('/canvas/new'), 'Canvas')
   assert.equal(paidCapability('/compress-image'), 'Image tools')
   assert.equal(paidCapability('/write/deliveries'), 'Campaign deliveries')
-  // Free areas and unsafe or missing destinations name nothing.
-  for (const from of ['/write', '/home', '/workspace', '//evil.test', 'https://evil.test', null])
+  // There is no free plan: Publish is on Pro too (RFC 023, 2026-10-29).
+  assert.equal(paidCapability('/write'), 'Publish')
+  // Home, Settings, and unsafe or missing destinations name nothing.
+  for (const from of ['/home', '/workspace', '//evil.test', 'https://evil.test', null])
     assert.equal(paidCapability(from), null, String(from))
 })
 

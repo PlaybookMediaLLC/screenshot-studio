@@ -5,10 +5,12 @@ import { usePathname, useRouter } from 'next/navigation'
 import { draftsApi } from '@/lib/content-drafts/client'
 import { prepareWorkspaceSwitch } from '@/lib/platform/navigation-guard'
 import { platformHref } from '@/lib/platform/navigation'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
-type PendingDraft = { id?: string; text: string; error?: string }
+type PendingDraft = { id?: string; text: string; error?: string; planRequired?: boolean }
 let pending: PendingDraft | null = null
 let retry: (() => Promise<void>) | null = null
 const listeners = new Set<() => void>()
@@ -41,9 +43,15 @@ export async function createWritingDraft(
       update({ id: draft.id, text: pending?.text ?? '' })
       navigate(draft.id)
     } catch (error) {
+      const planRequired = isPlanRefusal(error)
       update({
         text: pending?.text ?? '',
-        error: error instanceof Error ? error.message : 'Could not create the draft.',
+        error: planRequired
+          ? 'Writing posts needs Pro.'
+          : error instanceof Error
+            ? error.message
+            : 'Could not create the draft.',
+        planRequired,
       })
     }
   }
@@ -138,7 +146,19 @@ export function PendingDraftInput() {
         />
         {value.error ? (
           <div className="flex gap-2">
-            <Button onClick={() => void retry?.()}>Retry</Button>
+            {value.planRequired ? (
+              <ButtonLink
+                href={`/upgrade?from=${encodeURIComponent('/write')}`}
+                onClick={() => {
+                  retry = null
+                  update(null)
+                }}
+              >
+                See plans
+              </ButtonLink>
+            ) : (
+              <Button onClick={() => void retry?.()}>Retry</Button>
+            )}
             {value.id ? null : (
               // Nothing was created: a refusal (such as no permission to write) must not trap the page.
               <Button

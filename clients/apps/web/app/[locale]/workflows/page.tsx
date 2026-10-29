@@ -2,9 +2,8 @@ import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
 import { AreaNavigation, AUTOMATE_LINKS } from '@/components/platform-hub/AreaNavigation'
 import type { Metadata } from 'next'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
-import { Page } from '@/components/platform-ui'
+import { Page, PlanRequired } from '@/components/platform-ui'
 import { WorkflowsDashboard } from '@/components/workflows/WorkflowsDashboard'
 import { requireWorkflowPageAccess } from './page-access'
 
@@ -34,16 +33,9 @@ export default async function WorkflowsPage({ params }: WorkflowsPageProps) {
         <ReturnToWork />
         {access.hasPaidPlan ? null : (
           // Runs create releases and campaigns, which need a paid plan.
-          <Alert>
-            <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
-              <span>
-                Running workflows creates releases and campaign drafts, which need Pro.
-              </span>
-              <ButtonLink href="/upgrade?from=%2Fworkflows" size="sm">
-                See plans
-              </ButtonLink>
-            </AlertDescription>
-          </Alert>
+          <PlanRequired from="/workflows">
+            Running workflows creates releases and campaign drafts, which need Pro.
+          </PlanRequired>
         )}
         <AreaNavigation label="Automate" items={AUTOMATE_LINKS} />
         <WorkflowsDashboard canManage={access.canManage} key={access.organization.id} />

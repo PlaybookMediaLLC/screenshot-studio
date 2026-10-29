@@ -71,6 +71,7 @@ export function ShellActions({
   collapsed,
   campaignsEnabled,
   draftsEnabled,
+  draftsPlan = true,
   onNavigate,
   paidPlan = true,
   role,
@@ -78,6 +79,8 @@ export function ShellActions({
   collapsed: boolean
   campaignsEnabled: boolean
   draftsEnabled: boolean
+  /** Without content drafts, Post says Pro and opens the plan page instead of a draft that fails. */
+  draftsPlan?: boolean
   onNavigate?: () => void
   /** Without it, paid items say Pro and open the plan page instead of bouncing. */
   paidPlan?: boolean
@@ -92,6 +95,8 @@ export function ShellActions({
   )
   const allowed = (item: (typeof NEW_ITEMS)[number]) =>
     !item.permission || hasPermission(role, item.permission)
+  const locked = (item: (typeof NEW_ITEMS)[number]) =>
+    item.label === 'Post' ? !draftsPlan : item.paid && !paidPlan
   const unavailable = items.filter((item) => !allowed(item))
   return (
     <div className="grid gap-1">
@@ -122,13 +127,13 @@ export function ShellActions({
               <DropdownMenuItem disabled key={item.href}>
                 {item.label}
               </DropdownMenuItem>
-            ) : item.label === 'Post' ? (
+            ) : item.label === 'Post' && !locked(item) ? (
               <DropdownMenuItem key={item.href} onSelect={newPost}>
                 {item.label}
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem key={item.href} asChild>
-                {item.paid && !paidPlan ? (
+                {locked(item) ? (
                   <SidebarLink
                     aria-label={`${item.label} (Pro)`}
                     href={`/upgrade?from=${encodeURIComponent(item.href)}`}

@@ -187,11 +187,19 @@ export function ControlGrid({
 
 /** A boolean or text cell in a comparison table. */
 export function Mark({ value }: { value: boolean | string }) {
-  if (value === true) return <Check />
+  // The icons are decorative; screen readers read the same answer as text.
+  if (value === true)
+    return (
+      <>
+        <Check />
+        <span className="sr-only">Included</span>
+      </>
+    )
   if (value === false)
     return (
       <span className="inline-flex size-5 items-center justify-center text-white/25">
-        <Cancel01Icon aria-label="Not included" className="size-3.5" />
+        <Cancel01Icon aria-hidden="true" className="size-3.5" />
+        <span className="sr-only">Not included</span>
       </span>
     )
   return <span className="text-white/85">{value}</span>

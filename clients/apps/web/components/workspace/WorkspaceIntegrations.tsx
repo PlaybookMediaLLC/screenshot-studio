@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Group, Pill, Row, Section } from '@/components/platform-ui'
+import { Group, Pill, PlanRequired, Row, Section } from '@/components/platform-ui'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
 import {
   type Integration,
   type IntegrationProvider,
@@ -35,6 +36,8 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
   const [setup, setSetup] = useState<Setup | null>(null)
   const [error, setError] = useState<string | null>(params.get('error'))
   const [busy, setBusy] = useState<string | null>(null)
+  // Why the list did not load; `error` alone may be an OAuth return's message.
+  const [loadFailure, setLoadFailure] = useState<'error' | 'plan' | null>(null)
   const connected = params.get('connected')
 
   const load = useCallback(() => {
@@ -44,7 +47,11 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
         setIntegrations(result.integrations)
         setSetup(result.setup)
       })
-      .catch((failure: unknown) => setError(getErrorMessage(failure)))
+      .catch((failure: unknown) => {
+        const plan = isPlanRefusal(failure)
+        setLoadFailure(plan ? 'plan' : 'error')
+        if (!plan) setError(getErrorMessage(failure))
+      })
   }, [trpcClient])
 
   useEffect(load, [load])
@@ -60,6 +67,14 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
     } finally {
       setBusy(null)
     }
+  }
+
+  if (loadFailure === 'plan') {
+    return (
+      <PlanRequired from="/workspace/integrations">
+        Delivering designs to Slack, Notion and Figma needs Pro.
+      </PlanRequired>
+    )
   }
 
   return (
@@ -105,7 +120,20 @@ export function WorkspaceIntegrations({ canManage }: { canManage: boolean }) {
                 </div>
               ))}
               <Row>
-                {!status ? (
+                {!status && loadFailure ? (
+                  // Nothing loaded; the alert above says why.
+                  <Button
+                    onClick={() => {
+                      setError(null)
+                      setLoadFailure(null)
+                      load()
+                    }}
+                    size="sm"
+                    variant="outline"
+                  >
+                    Try again
+                  </Button>
+                ) : !status ? (
                   <p className="text-sm text-muted-foreground">Loading…</p>
                 ) : !status.ready ? (
                   <div className="grid gap-2">

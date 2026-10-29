@@ -5,9 +5,10 @@ import { useState } from 'react'
 import type { z } from 'zod'
 import { locales } from '@/i18n/routing'
 import { trackCTAClick } from '@/lib/analytics'
+import { safeReturnPath } from '@/lib/platform/navigation'
 import { cn } from '@/lib/utils'
 import { ctaClassName } from './CtaLink'
-import { type checkoutPathSchema, ctaToneSchema } from './primitives'
+import { checkoutPathSchema, ctaToneSchema } from './primitives'
 import { Button } from '@/components/ui/button'
 
 const LOCALE_PREFIX = new RegExp(`^/(${locales.join('|')})(?=/|$)`)
@@ -41,8 +42,14 @@ export function CheckoutButton({
     setBusy(true)
     setError(null)
     setNeedsWorkspace(false)
+    // The in-app page that sent the buyer here is where Checkout returns them.
+    const returnTo = safeReturnPath(new URLSearchParams(window.location.search).get('returnTo'), '')
     const response = await fetch(path, {
-      body: JSON.stringify(choice.body),
+      body: JSON.stringify(
+        returnTo && path === checkoutPathSchema.enum['/api/billing/checkout']
+          ? { ...choice.body, returnTo }
+          : choice.body
+      ),
       headers: { 'content-type': 'application/json' },
       method: 'POST',
     }).catch(() => null)

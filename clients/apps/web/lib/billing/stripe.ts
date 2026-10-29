@@ -18,6 +18,7 @@ import {
   workspacePlanSchema,
 } from '@/lib/billing/plans'
 import {
+  checkoutRedirects,
   checkoutReturnFor,
   checkoutReturnSchema,
   creditGrantForSession,
@@ -167,6 +168,8 @@ export async function createBillingSession(input: {
   interval: z.infer<typeof billingIntervalSchema>
   organizationId: string
   plan: z.infer<typeof checkoutPlanSchema>
+  /** The in-app page the buyer was sent from; Checkout and the portal return there. */
+  returnTo?: string
 }): Promise<{ url: string }> {
   const api = stripe()
   const env = stripeEnvironment()
@@ -188,7 +191,7 @@ export async function createBillingSession(input: {
     const portal = await api.billingPortal.sessions.create({
       configuration: await shotsPortal(api),
       customer: typeof live.customer === 'string' ? live.customer : live.customer.id,
-      return_url: returnUrl(),
+      return_url: input.returnTo ? appUrl(input.returnTo) : returnUrl(),
     })
     return { url: portal.url }
   }
@@ -201,15 +204,16 @@ export async function createBillingSession(input: {
 
   // Stripe Tax adds sales tax from the address Checkout collects. Stripe refuses the
   // session until Tax is activated (head office address) in the Dashboard.
+  const redirects = checkoutRedirects(input.returnTo)
   const session = await api.checkout.sessions.create({
     allow_promotion_codes: true,
     automatic_tax: { enabled: true },
-    cancel_url: appUrl('/pricing?checkout=cancelled'),
+    cancel_url: appUrl(redirects.cancel),
     client_reference_id: input.organizationId,
     line_items: [{ price, quantity: 1 }],
     mode: 'subscription',
     subscription_data: { metadata: { organizationId: input.organizationId } },
-    success_url: appUrl('/api/billing/checkout/return?session_id={CHECKOUT_SESSION_ID}'),
+    success_url: appUrl(redirects.success),
   })
   if (!session.url) throw new Error('Stripe returned a Checkout session without a URL.')
   return { url: session.url }

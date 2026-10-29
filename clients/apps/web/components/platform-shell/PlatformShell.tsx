@@ -66,6 +66,7 @@ export async function PlatformShell({
         <PlatformSidebar
           campaignsEnabled={campaignsEnabled}
           draftsEnabled={contentDraftsEnabled()}
+          draftsPlan={access?.hasBasicScheduling ?? true}
           initialNavigation={navigation}
           notificationIdentity={
             access?.organization

@@ -25,6 +25,7 @@ type ContentDraftStore interface {
 	IssueContentDraftCollabToken(context.Context, product.Actor, string) (*product.CollabToken, error)
 	WriteStore
 	AuthorizeCollab(context.Context, string, string) (*product.CollabGrant, error)
+	CollabEpochs(context.Context, []string) (int64, map[string]int64, error)
 	LoadCollabState(context.Context, string, string) ([]byte, error)
 	StoreCollabState(context.Context, string, string, []byte) error
 }

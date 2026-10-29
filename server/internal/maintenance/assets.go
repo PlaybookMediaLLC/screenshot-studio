@@ -10,14 +10,13 @@ import (
 
 // assetCleanupCandidates are assets nothing can still use. An upload reserved
 // a day ago never completed (its signed URL lasted two minutes; a resumable
-// upload a day); a refused upload is kept an hour for its error; a provider
-// derivative nothing has referenced for 30 days is regenerated on demand.
+// upload a day); a refused upload is kept an hour for its error. Provider
+// derivatives are kept: creative variants, Story Sets and templates reuse
+// them, and platform_asset_in_use_v1 does not see those references.
 // The same predicate is rechecked under the row lock before anything changes.
 const assetCleanupCandidates = `
  (a.status = 'PENDING' AND a."updatedAt" < now() - interval '24 hours')
- OR (a.status = 'FAILED' AND a."updatedAt" < now() - interval '1 hour')
- OR (a.status = 'UPLOADED' AND a."objectKey" LIKE 'org/' || a."organizationId" || '/derived/provider-images/%'
-     AND a."updatedAt" < now() - interval '30 days' AND NOT platform_asset_in_use_v1(a."organizationId", a.id, true))`
+ OR (a.status = 'FAILED' AND a."updatedAt" < now() - interval '1 hour')`
 
 // AssetCleanup retires abandoned uploads and unused derivatives. Each becomes
 // DELETED with an asset.deleted outbox event in one transaction; the outbox

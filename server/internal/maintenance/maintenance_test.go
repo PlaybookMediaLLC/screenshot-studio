@@ -412,9 +412,9 @@ func (o *onboardingCancels) Cancel(_ context.Context, organizationID string) err
 	return nil
 }
 
-// Abandoned uploads and derivatives nothing used for 30 days are retired
-// through the asset.deleted outbox; media a draft, a queued post or a batch
-// still needs, and derivatives a published post shows, stay.
+// Abandoned uploads are retired through the asset.deleted outbox; originals
+// and provider derivatives stay, even old and unreferenced by any post, since
+// a creative may reuse a derivative where the in-use check cannot see it.
 func TestAssetCleanupRetiresOnlyUnneededMedia(t *testing.T) {
 	s, o := setup(t)
 	ctx := context.Background()
@@ -444,7 +444,7 @@ func TestAssetCleanupRetiresOnlyUnneededMedia(t *testing.T) {
 	exec(t, s.DB, `INSERT INTO social_set (id,"organizationId",name,"publicSlug") VALUES ('set','a','Set','set-a')`)
 	exec(t, s.DB, `INSERT INTO content_batch (id,"organizationId","socialSetId",title) VALUES ('batch','a','set','Batch')`)
 	exec(t, s.DB, `INSERT INTO content_batch_item (id,"batchId","organizationId","importKey",fingerprint,position,media) VALUES ('item','batch','a','batch-item-import-key','f',0,'[{"assetId":"batch-copy"}]')`)
-	if n, err := s.Run(ctx, "asset-cleanup"); err != nil || n != 4 {
+	if n, err := s.Run(ctx, "asset-cleanup"); err != nil || n != 2 {
 		t.Fatalf("cleaned %d err=%v", n, err)
 	}
 	if n, err := s.Run(ctx, "asset-cleanup"); err != nil || n != 0 {
@@ -461,13 +461,13 @@ func TestAssetCleanupRetiresOnlyUnneededMedia(t *testing.T) {
 		deleted = append(deleted, id)
 	}
 	rows.Close()
-	if strings.Join(deleted, ",") != "cancelled-copy,old-failed,stale-pending,unused-copy" {
+	if strings.Join(deleted, ",") != "old-failed,stale-pending" {
 		t.Fatalf("deleted %v", deleted)
 	}
 	if _, err := s.Run(ctx, "tenant-outbox"); err != nil {
 		t.Fatal(err)
 	}
-	if len(o.deleted) != 4 {
+	if len(o.deleted) != 2 {
 		t.Fatalf("objects deleted: %v", o.deleted)
 	}
 	if strings.Join(o.aborted, ",") != "a/org/a/input/stale-pending/1/a.png#upload-1" {

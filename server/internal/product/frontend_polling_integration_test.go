@@ -548,3 +548,94 @@ func TestFrontendGitHubRecoveryDeliveryRemainsReviewOnly(t *testing.T) {
 		t.Fatal("API polling bypassed the recovered-delivery review boundary")
 	}
 }
+
+func TestFrontendRecoveredChecksCannotQualifyLiveActivations(t *testing.T) {
+	for _, eventName := range []string{"check_run", "status"} {
+		for _, method := range []string{"webhook", "poll"} {
+			t.Run(eventName+"/"+method, func(t *testing.T) {
+				f, active, _, github := productionWorkspace(t)
+				frontendFixtureCleanup(t, f.testWorkspace)
+				policy := frontendPolicy()
+				policy.WorkflowVersionID = *active.ActiveVersionID
+				rule := fd.CheckRule{Source: "github_check", Name: "ci", AppID: "44", Scope: "commit", Passing: []string{"success"}, MaxAgeSeconds: 3600}
+				if eventName == "status" {
+					rule.Source, rule.AppID = "github_status", ""
+				}
+				policy.Checks = []fd.CheckRule{rule}
+				s, err := f.repo.SaveFrontendSource(f.ctx, f.owner, FrontendSourceInput{ID: f.source.ID, Name: "GitHub frontend", Provider: "github", AccountID: strconv.FormatInt(f.installation, 10), ProjectID: "1001", Enabled: true, Policy: policy})
+				if err != nil {
+					t.Fatal(err)
+				}
+				f.exec(t, `UPDATE frontend_source SET "effectiveAt"=now()-interval '1 hour',"lastPollAt"=now()-interval '1 minute' WHERE id=$1`, s.ID)
+				at := time.Now().UTC().Add(-time.Minute)
+				deployment := productionDelivery(t, f, 501, 601, "success", "live-production", at)
+				observation, err := fd.NormalizeGitHub(deployment.EventName, deployment.DeliveryID, deployment.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if _, err := f.repo.AcceptGitHubEvent(f.ctx, deployment); err != nil {
+					t.Fatal(err)
+				}
+				payload := map[string]any{"installation": map[string]any{"id": f.installation}, "repository": map[string]any{"id": 1001}}
+				if eventName == "check_run" {
+					payload["check_run"] = map[string]any{"id": 10, "name": "ci", "head_sha": observation.Revision, "status": "completed", "conclusion": "success", "completed_at": at.Add(time.Second).Format(time.RFC3339Nano), "app": map[string]any{"id": 44}}
+				} else {
+					payload["id"], payload["context"], payload["sha"], payload["state"], payload["updated_at"] = 10, "ci", observation.Revision, "success", at.Add(time.Second).Format(time.RFC3339Nano)
+				}
+				body, _ := json.Marshal(payload)
+				recovered := AcceptGitHubEventInput{DeliveryID: "recovered-check-" + f.id, EventName: eventName, Body: body}
+				f.exec(t, `INSERT INTO github_delivery_recovery (id,guid,"installationId","repositoryId","eventName","deliveredAt","statusCode",recovery) VALUES ($1,$2,$3,'1001',$4,now(),500,true)`, "check-recovery-"+f.id, recovered.DeliveryID, f.installation, eventName)
+				t.Cleanup(func() {
+					if _, err := f.db.SQL.ExecContext(f.ctx, `DELETE FROM github_delivery_recovery WHERE "installationId"=$1`, f.installation); err != nil {
+						t.Error(err)
+					}
+				})
+				for i := 0; i < 2; i++ {
+					if method == "poll" {
+						f.repo.WithGitHubApp(frontendRecoveryReader{fakeReader: github.fakeReader, complete: true, deliveries: []fd.GitHubRecoveredDelivery{{DeliveryID: recovered.DeliveryID, EventName: recovered.EventName, Body: body}}})
+						_, err = f.repo.PollFrontends(f.ctx)
+					} else {
+						_, err = f.repo.AcceptGitHubEvent(f.ctx, recovered)
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				row := f.db.Client.FrontendObservation.Query().Where(frontendobservation.SourceID(s.ID), frontendobservation.EventKey("delivery:"+recovered.DeliveryID)).OnlyX(f.ctx)
+				if !row.Historical || len(row.Snapshot.Checks) != 1 {
+					t.Fatal("recovered check evidence or provenance was lost")
+				}
+				// Recovery of the activation itself cannot overwrite live state
+				// or drop provenance by inheriting its existing Historical flag.
+				observation.Key, observation.Checks = "recovered-activation", row.Snapshot.Checks
+				if err := f.repo.acceptFrontendObservation(f.ctx, f.org, s.ID, observation, true); err != nil {
+					t.Fatal(err)
+				}
+				if !f.db.Client.FrontendObservation.Query().Where(frontendobservation.SourceID(s.ID), frontendobservation.EventKey(observation.Key)).OnlyX(f.ctx).Historical {
+					t.Fatal("existing live activation erased recovery provenance")
+				}
+				// Another live activation on the same revision must not consume the
+				// recovered check through the prior-observation lookup either.
+				if _, err := f.repo.AcceptGitHubEvent(f.ctx, productionDelivery(t, f, 502, 602, "success", "next-live-production", at.Add(2*time.Second))); err != nil {
+					t.Fatal(err)
+				}
+				for _, a := range f.db.Client.FrontendActivation.Query().Where(frontendactivation.SourceID(s.ID)).AllX(f.ctx) {
+					if a.Historical || a.Decision.State != "needs_attention" || len(a.Snapshot.Checks) != 0 {
+						t.Fatalf("recovered check contaminated live activation: %+v", a)
+					}
+				}
+				if frontendAlerts(t, f.testWorkspace) != 0 || f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx) != 0 {
+					t.Fatal("recovered check triggered live side effects")
+				}
+				liveCheck := fd.Check{Source: rule.Source, Name: rule.Name, AppID: rule.AppID, ID: "11", RepositoryID: "1001", Revision: observation.Revision, Status: "completed", Conclusion: "success", OccurredAt: at.Add(3 * time.Second)}
+				f.repo.WithGitHubApp(frontendRecoveryReader{fakeReader: github.fakeReader, complete: true, checks: func(string) []fd.Check { return []fd.Check{liveCheck} }})
+				if _, err := f.repo.PollFrontends(f.ctx); err != nil {
+					t.Fatal(err)
+				}
+				if frontendAlerts(t, f.testWorkspace) != 1 || f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx) != 1 {
+					t.Fatal("fresh authenticated check did not qualify the current live activation once")
+				}
+			})
+		}
+	}
+}

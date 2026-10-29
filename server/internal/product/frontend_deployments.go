@@ -396,6 +396,7 @@ func (c *Configuration) frontendObservationTx(ctx context.Context, org, id strin
 		eventTime = *o.ActivationObservedAt
 	}
 	historical = historical || !s.Enabled || !eventTime.After(s.EffectiveAt) || eventTime.After(now.Add(5*time.Minute))
+	incomingHistorical := historical
 	// A successful staging/preview activation does not supersede production,
 	// including when production is still waiting on its required checks.
 	if !eventTime.After(now.Add(5*time.Minute)) && o.Provider == s.Provider && o.Environment != "" && slices.Contains(s.Policy.Environments, o.Environment) && (o.Production == "active" || s.Provider == "cloudflare_workers" && o.Production == "pending" && o.ActivationID != "") {
@@ -419,8 +420,12 @@ func (c *Configuration) frontendObservationTx(ctx context.Context, org, id strin
 			return err
 		}
 		if a != nil {
-			policy, version, historical = a.Policy, a.PolicyVersion, a.Historical
-			if o.OccurredAt.Before(a.Snapshot.OccurredAt) {
+			policy, version, historical = a.Policy, a.PolicyVersion, historical || a.Historical
+			if incomingHistorical && !a.Historical {
+				// Keep recovered evidence in the immutable receipt; it cannot
+				// replace live state or lend checks to a later live observation.
+				decision = evaluate(policy, o)
+			} else if o.OccurredAt.Before(a.Snapshot.OccurredAt) {
 				decision = fd.Decision{State: "not_matched", Reason: "Out-of-order evidence retained; a newer observation already determines this activation."}
 			} else {
 				o.Checks = mergeFrontendChecks(a.Snapshot.Checks, frontendRelevantChecks(policy, o, o.Checks))
@@ -430,7 +435,7 @@ func (c *Configuration) frontendObservationTx(ctx context.Context, org, id strin
 		} else {
 			// Prior check observations can arrive before a promotion; use only the
 			// exact repository/revision or deployment identity in the evaluator.
-			rows, e := tx.FrontendObservation.Query().Where(frontendobservation.OrganizationID(org), frontendobservation.SourceID(id)).Order(ent.Desc(frontendobservation.FieldReceivedAt)).Limit(500).All(ctx)
+			rows, e := tx.FrontendObservation.Query().Where(frontendobservation.OrganizationID(org), frontendobservation.SourceID(id), frontendobservation.Historical(false)).Order(ent.Desc(frontendobservation.FieldReceivedAt)).Limit(500).All(ctx)
 			if e != nil {
 				return e
 			}
@@ -443,7 +448,7 @@ func (c *Configuration) frontendObservationTx(ctx context.Context, org, id strin
 		if err != nil {
 			return err
 		}
-		if !o.OccurredAt.Before(a.Snapshot.OccurredAt) {
+		if !historical && !o.OccurredAt.Before(a.Snapshot.OccurredAt) {
 			if err := c.emitFrontendDecision(ctx, tx, s, a); err != nil {
 				return err
 			}
@@ -471,6 +476,9 @@ func (c *Configuration) frontendObservationTx(ctx context.Context, org, id strin
 				return err
 			}
 			for _, a := range activations {
+				if historical && !a.Historical {
+					continue
+				}
 				snapshot := a.Snapshot
 				checks := []fd.Check{}
 				for _, check := range o.Checks {

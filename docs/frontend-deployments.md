@@ -167,6 +167,10 @@ evidence and alerts continue, including activations waiting for required checks.
 Deliveries marked as recovered by the GitHub recovery UI remain review-only in
 both webhook intake and frontend polling. GitHub uses its existing 25 MiB intake
 budget; hosting-provider bodies and API responses remain limited to 1 MiB.
+Recovered checks stay in review-only receipts: they cannot update a live
+activation, supply checks to a later live activation, or trigger alerts or
+workflows. A subsequent authenticated check read can qualify the current live
+activation normally.
 
 Unique source/event keys, activation keys, activity/outbox keys and stable workflow
 run IDs survive duplicate deliveries, concurrent acceptance and restarts. The
@@ -313,6 +317,10 @@ dispatching the inactive workflow.
 Check-recovery regressions place 121 newer staging/preview activations ahead of a
 pending production activation and verify API recovery, late commit checks and
 deployment-scoped checks each emit one alert and one workflow dispatch.
+Recovered `check_run` and commit-status deliveries are tested through webhook and
+polling intake against pending and subsequent live activations. Review-only
+provenance survives retries and updates to an existing activation; a fresh check
+read still completes the current activation normally.
 
 Earlier local test failures were resolved: Node 24 was replaced by the pinned
 Node 22 runtime, and integration fixture cleanup was corrected so retained test

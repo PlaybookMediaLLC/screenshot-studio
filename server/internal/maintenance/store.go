@@ -19,6 +19,11 @@ type ObjectDeleter interface {
 	Delete(context.Context, string, string) error
 }
 
+// uploadAborter discards the parts of a multipart upload that never finished.
+type uploadAborter interface {
+	AbortUpload(ctx context.Context, organizationID, key, uploadID string) error
+}
+
 // ProductEvents does the side effects of product events that take more than
 // SQL: GitHub reads, screenshots, and captures. It reports false for an event
 // it does not own.
@@ -60,12 +65,21 @@ type OnboardingCanceller interface {
 // retries. Session locks disappear if a worker loses its database connection.
 func (s *Store) Run(ctx context.Context, job string) (int, error) {
 	handlers := map[string]func(context.Context) (int, error){
+		"frontend-deployments": func(ctx context.Context) (int, error) {
+			if p, ok := s.Events.(interface {
+				PollFrontends(context.Context) (int, error)
+			}); ok {
+				return p.PollFrontends(ctx)
+			}
+			return 0, nil
+		},
 		"tenant-outbox": s.Outbox, "audit-drains": s.AuditDrains,
 		"communications": s.Communications, "workspace-cleanup": s.WorkspaceCleanup,
 		"audit-retention":   s.AuditRetention,
 		"notifications":     s.Notifications,
 		"account-deletions": s.AccountDeletions,
 		"webhooks":          s.DeliverWebhooks,
+		"asset-cleanup":     s.AssetCleanup,
 		"social-analytics": func(ctx context.Context) (int, error) {
 			if s.Analytics == nil {
 				return 0, nil

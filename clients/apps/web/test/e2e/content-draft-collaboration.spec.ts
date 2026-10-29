@@ -11,6 +11,7 @@ import {
   openNewDraft,
   type Page,
   requestJson,
+  settleSelection,
   signUpViaApi,
   test,
   trpcMutation,
@@ -24,19 +25,148 @@ import * as Y from 'yjs'
 /** The collaboration server as the browser reaches it. */
 const collabUrl = process.env.E2E_COLLAB_URL ?? 'ws://localhost:1234'
 
+test('a saved draft stays readable until a failed live connection is retried', async ({
+  app,
+  page,
+  startWorkspace,
+}, testInfo) => {
+  await startWorkspace()
+  const draftId = await openNewDraft(page)
+  await draftEditor(page).click()
+  await page.keyboard.insertText('Saved before connecting.')
+  await expectSaved(page)
+  const path = `/api/v1/content-drafts/${draftId}`
+  const saved = z
+    .object({ body: z.array(z.unknown()), plainText: z.string() })
+    .parse((await apiRequest(page, path)).body)
+  await app.open('/write')
+  // A returning reader can have no browser copy; the saved server document must still win.
+  await page.evaluate(async (name) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase(name)
+      request.onsuccess = () => resolve()
+      request.onerror = () => reject(request.error)
+      request.onblocked = () => reject(new Error('The test draft browser copy is still open.'))
+    })
+  }, `content-draft:${draftId}`)
+
+  let unavailable = true
+  // Interrupt only this page's transport; the retry authenticates with the real server.
+  await page.routeWebSocket(
+    (url) => url.origin === new URL(collabUrl).origin,
+    (socket) => {
+      if (!unavailable) socket.connectToServer()
+    }
+  )
+  const writes: string[] = []
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === path && request.method() === 'PATCH')
+      writes.push(request.method())
+  })
+  await app.open(`/write/${draftId}`)
+  const preview = page.getByRole('region', { name: 'Saved draft' })
+  await expect(preview).toContainText(saved.plainText)
+  await expect(page.getByText('Connecting… Showing the last saved version.')).toBeVisible()
+  await expect(page.locator('[contenteditable="true"][aria-label="Draft body"]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Add another post', exact: true })).toHaveCount(0)
+  await preview.click()
+  await page.keyboard.insertText('Must not edit while connecting.')
+  await expect(preview).not.toContainText('Must not edit while connecting.')
+  await expect(page.getByRole('button', { name: 'Retry connection' })).toBeVisible()
+  expect(writes).toEqual([])
+  expect((await apiRequest(page, path)).body).toMatchObject(saved)
+  await page.screenshot({ path: testInfo.outputPath('saved-draft-connection-retry.png') })
+
+  unavailable = false
+  await page.getByRole('button', { name: 'Retry connection' }).click()
+  await expect(draftEditor(page)).toContainText(saved.plainText)
+  await expect
+    .poll(async () =>
+      (await draftEditor(page).locator('[data-slate-string]').allTextContents()).join('')
+    )
+    .toBe(saved.plainText)
+  await expect(preview).toHaveCount(0)
+  await endOfText(page, saved.plainText)
+  await page.keyboard.insertText(' Editing after retry.')
+  await expectSaved(page)
+  await app.reload()
+  await expect(draftEditor(page)).toContainText(`${saved.plainText} Editing after retry.`)
+  await expect(draftEditor(page)).not.toContainText('Must not edit while connecting.')
+})
+
+test('a viewer promoted to creator can edit after client navigation', async ({
+  browser,
+  identity,
+  page,
+  workspace,
+}) => {
+  const memberIdentity = { ...identity, email: `promoted-${identity.email}` }
+  const invited = await requestJson(page, '/api/auth/organization/invite-member', {
+    email: memberIdentity.email,
+    organizationId: workspace.id,
+    role: 'viewer',
+  })
+  expect(invited.status).toBe(200)
+  const invitationId = z.object({ id: z.string() }).parse(invited.body).id
+  const context = await browser.newContext()
+  try {
+    const member = await context.newPage()
+    await signUpViaApi(memberIdentity, member)
+    await acceptInvitation(member, invitationId)
+    const members = z
+      .object({
+        members: z.array(z.object({ id: z.string(), user: z.object({ email: z.string() }) })),
+      })
+      .parse((await trpcQuery(page, 'workspace.listMembers')).body)
+    const membership = members.members.find((entry) => entry.user.email === memberIdentity.email)
+    if (!membership) throw new Error('Accepted membership was not listed.')
+    const draftId = await openNewDraft(page)
+    await draftEditor(page).click()
+    await page.keyboard.insertText('Visible to the viewer.')
+    await expectSaved(page)
+    await member.goto(`/write/${draftId}`)
+    await expect(member.getByTestId('draft-editor')).toContainText('Visible to the viewer.')
+    await expect(draftEditor(member)).toHaveCount(0)
+    expect(
+      (
+        await requestJson(page, '/api/auth/organization/update-member-role', {
+          memberId: membership.id,
+          organizationId: workspace.id,
+          role: 'creator',
+        })
+      ).status
+    ).toBe(200)
+    const navigationStart = await member.evaluate(() => performance.timeOrigin)
+    await member.locator(`a[href^="/write/${draftId}?"]`).click()
+    await expect(draftEditor(member)).toBeVisible()
+    expect(await member.evaluate(() => performance.timeOrigin)).toBe(navigationStart)
+    await endOfText(member, 'Visible to the viewer.')
+    await member.keyboard.insertText(' Promoted member update.')
+    await expectSaved(member)
+    await expect(draftEditor(page)).toContainText('Promoted member update.')
+    await page.reload()
+    await expect(draftEditor(page)).toContainText('Promoted member update.')
+  } finally {
+    await context.close()
+  }
+})
+
 /** Confirm the browser caret moved before typing into the live editor. */
 async function endOfText(page: Page, text: string): Promise<void> {
   const sentence = draftEditor(page).getByText(text, { exact: true })
   await sentence.click()
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End')
-  await expect
-    .poll(() =>
-      sentence.evaluate(() => {
+  // A re-render before slate copies the moved caret into its model puts it
+  // back at the click, so press End until it stays at the end.
+  await expect(async () => {
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End')
+    await settleSelection(page)
+    expect(
+      await sentence.evaluate(() => {
         const selection = window.getSelection()
         return { text: selection?.focusNode?.textContent, offset: selection?.focusOffset }
       })
-    )
-    .toEqual({ text, offset: text.length })
+    ).toEqual({ text, offset: text.length })
+  }).toPass({ timeout: 20_000 })
 }
 
 /** Try to join a draft's document with a token; resolves to whether it was refused. */
@@ -295,8 +425,7 @@ test(
       await member.keyboard.type(' Forbidden live edit.')
       expect((await deniedSave).status()).toBe(403)
       await expect(draftEditor(page)).not.toContainText('Forbidden live edit.')
-      await draftEditor(page).click()
-      await page.keyboard.press('ControlOrMeta+End')
+      await endOfText(page, 'Visible to the team.')
       await page.keyboard.type(' Allowed owner update.')
       await expectSaved(page)
       await expect(draftEditor(member)).toContainText('Allowed owner update.')
@@ -320,7 +449,18 @@ test(
       }
       await expect.poll(storedText, { timeout: 20_000 }).toContain('Allowed owner update.')
       expect(await storedText()).not.toContain('Forbidden live edit.')
-      await member.reload()
+      const navigationStart = await member.evaluate(() => performance.timeOrigin)
+      await member.locator(`a[href^="/write/${draftId}?"]`).click()
+      await expect(member.getByTestId('draft-editor')).toContainText('Allowed owner update.')
+      await expect(draftEditor(member)).toHaveCount(0)
+      expect(await member.evaluate(() => performance.timeOrigin)).toBe(navigationStart)
+      await endOfText(page, 'Visible to the team. Allowed owner update.')
+      await page.keyboard.insertText(' Still live after the access change.')
+      await expectSaved(page)
+      await expect(member.getByTestId('draft-editor')).toContainText(
+        'Still live after the access change.'
+      )
+      await member.goto(`/write/${draftId}`)
       const reader = member.getByTestId('draft-editor')
       await expect(reader).toBeVisible()
       await expect(reader).toContainText('Allowed owner update.')
@@ -394,8 +534,13 @@ test(
     expect(created.status, JSON.stringify(created.body)).toBe(201)
     const { id } = z.object({ id: z.string() }).parse(created.body)
     await page.goto(`/write/${id}`)
+    await expect(page.getByRole('region', { name: 'Saved draft' })).toContainText(
+      'Stored before anyone opened it'
+    )
+    await expect(page.locator('[contenteditable="true"][aria-label="Draft body"]')).toHaveCount(0)
     await expect(draftEditor(page)).toContainText('Stored before anyone opened it', {
       timeout: 60_000,
     })
+    await expect(page.getByRole('region', { name: 'Saved draft' })).toHaveCount(0)
   }
 )

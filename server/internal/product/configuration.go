@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/sourceapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/brand"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/collab"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/notifications"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/webhooks"
@@ -73,12 +74,15 @@ type Configuration struct {
 	capture            Capturer
 	// collabKey signs content draft collaboration tokens (RFC 013).
 	collabKey []byte
+	// collabEpochs counts the changes that can alter live collaboration access.
+	collabEpochs collab.Epochs
 	// agentClients finds the OAuth clients agents connect through (RFC 026).
 	agentClients AgentClients
 	// imageHost admits the hosts screenshots may be downloaded from; GitHub's by default.
 	imageHost func(string) bool
 	// web replaces the HTTP client for image downloads and readiness probes in tests.
-	web *http.Client
+	web          *http.Client
+	frontendHTTP *http.Client
 	// postMetrics reads a live post's engagement from its platform (RFC 013).
 	postMetrics PostMetricsReader
 	analytics   AnalyticsReader
@@ -92,7 +96,7 @@ type Configuration struct {
 
 func NewConfiguration(client *ent.Client) *Configuration {
 	return &Configuration{client: client, auth: publishing.NewRepository(client), invitations: EnvInvitationMailer{}, requireInvitationEmailVerification: true,
-		reviews: EnvReviewMailer{}}
+		reviews: EnvReviewMailer{}, collabEpochs: collab.NewMemoryEpochs()}
 }
 
 // WithInvitationEmailVerification configures the same policy as Better Auth;
@@ -117,7 +121,29 @@ func (c *Configuration) ExecuteAuthStore(ctx context.Context, request authstore.
 	if c.authStore == nil {
 		return nil, ErrStorageUnavailable
 	}
-	return c.authStore.Execute(ctx, request)
+	result, err := c.authStore.Execute(ctx, request)
+	if err == nil && revokesCollabAccess(request) {
+		// A changed or removed member, session, user or workspace names no
+		// single draft, so every live collaboration session authorizes again.
+		c.collabAccessChanged(ctx, "")
+	}
+	return result, err
+}
+
+// revokesCollabAccess reports whether an auth store write can take away
+// collaboration access: a member, session, user (a ban) or workspace updated
+// or removed. Creating one (a sign-in, a new member) never does.
+func revokesCollabAccess(request authstore.Request) bool {
+	switch request.Model {
+	case "member", "session", "user", "organization":
+	default:
+		return false
+	}
+	switch request.Op {
+	case "update", "updateMany", "delete", "deleteMany":
+		return true
+	}
+	return false
 }
 
 func (c *Configuration) WithObjectStore(objects AssetObjectStore) *Configuration {

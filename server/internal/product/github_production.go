@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
@@ -248,6 +249,13 @@ func recordGitHubObservation(ctx context.Context, tx *ent.Tx, source *ent.Source
 		return false, false, err
 	}
 	legacy = policy != nil && policy.Policy.SchemaVersion == 0
+	frontend, err := tx.FrontendSource.Query().Where(frontendsource.OrganizationID(source.OrganizationID), frontendsource.Or(frontendsource.ID(source.ID), frontendsource.GithubSourceID(source.ID))).Exist(ctx)
+	if err != nil {
+		return false, false, err
+	}
+	if frontend {
+		legacy = false
+	}
 	prior, err := tx.GitHubObservation.Query().Where(githubobservation.OrganizationID(source.OrganizationID), githubobservation.SourceAppID(source.ID), githubobservation.SemanticKey(e.Key)).Only(ctx)
 	if err != nil && !ent.IsNotFound(err) {
 		return false, false, err
@@ -283,6 +291,14 @@ func recordGitHubObservation(ctx context.Context, tx *ent.Tx, source *ent.Source
 		}
 	} else {
 		status = "needs_attention"
+	}
+	// Retain repository evidence and its pinned GitHub policy while the
+	// explicitly selected frontend policy owns new deployment side effects.
+	// Previously queued GitHub observations keep their original processing.
+	if frontend {
+		status = "not_matched"
+		decision.Status = "not_matched"
+		decision.Reason = "The configured frontend policy is authoritative for new deployment alerts and workflows."
 	}
 	if origin != "live" {
 		status = "review_only"

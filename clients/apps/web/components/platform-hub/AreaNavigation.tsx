@@ -114,6 +114,7 @@ export const CAMPAIGN_LINKS = [
   { href: '/campaigns?status=ARCHIVED', label: 'Archived' },
 ]
 export const AUTOMATE_LINKS = [
+  { href: '/workflows/deployments', label: 'Deployments' },
   { href: '/workflows', label: 'Workflows' },
   { href: '/workflows/runs', label: 'Runs' },
   { href: '/workflows?view=sources', label: 'Sources' },

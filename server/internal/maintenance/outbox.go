@@ -42,7 +42,12 @@ func (s *Store) Outbox(ctx context.Context) (int, error) {
 		// Notification delivery has independent processing state.
 		case aggregate == "asset" && kind == "asset.deleted":
 			var key string
-			failure = s.DB.QueryRowContext(ctx, `SELECT "objectKey" FROM asset WHERE id=$1 AND "organizationId"=$2 AND status='DELETED'`, resource, org).Scan(&key)
+			var uploadID sql.NullString
+			failure = s.DB.QueryRowContext(ctx, `SELECT "objectKey","uploadId" FROM asset WHERE id=$1 AND "organizationId"=$2 AND status='DELETED'`, resource, org).Scan(&key, &uploadID)
+			// An unfinished multipart upload's parts are not the object; discard them too.
+			if aborter, ok := s.Objects.(uploadAborter); failure == nil && uploadID.Valid && ok {
+				failure = aborter.AbortUpload(ctx, org, key, uploadID.String)
+			}
 			if failure == nil {
 				failure = s.Objects.Delete(ctx, org, key)
 			}

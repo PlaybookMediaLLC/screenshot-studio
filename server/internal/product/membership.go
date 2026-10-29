@@ -143,6 +143,7 @@ func (c *Configuration) UpdateMemberRole(ctx context.Context, actor Actor, membe
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	c.collabAccessChanged(ctx, actor.OrganizationID)
 	return workspaceMemberRecord(updated, person), nil
 }
 
@@ -197,6 +198,7 @@ func (c *Configuration) RemoveMember(ctx context.Context, actor Actor, memberID 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	c.collabAccessChanged(ctx, actor.OrganizationID)
 	return result, nil
 }
 
@@ -247,6 +249,7 @@ func (c *Configuration) LeaveWorkspace(ctx context.Context, actor Actor) (*Works
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	c.collabAccessChanged(ctx, actor.OrganizationID)
 	return result, nil
 }
 
@@ -307,7 +310,11 @@ func (c *Configuration) TransferOwnership(ctx context.Context, actor Actor, memb
 	if err := recordProductActivity(ctx, tx, actor, "workspace.ownership_transferred", "product.workspace_ownership_transferred", "member", memberID, map[string]any{"affectedUserId": recipient.UserID}); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	c.collabAccessChanged(ctx, actor.OrganizationID)
+	return nil
 }
 
 func workspaceMemberRecord(membership *ent.Member, person *ent.User) *WorkspaceMember {

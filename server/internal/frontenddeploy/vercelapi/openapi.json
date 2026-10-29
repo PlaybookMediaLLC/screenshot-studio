@@ -1,0 +1,235 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Vercel API",
+    "description": "Vercel combines the best developer experience with an obsessive focus on end-user performance. Our platform enables frontend teams to do their best work.",
+    "contact": {
+      "email": "support@vercel.com",
+      "name": "Vercel Support",
+      "url": "https://vercel.com/support"
+    },
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "https://api.vercel.com"
+    }
+  ],
+  "paths": {
+    "/v9/projects/{idOrName}": {
+      "get": {
+        "description": "Get the information for a specific project by passing either the project `id` or `name` in the URL.",
+        "operationId": "getProject",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "summary": "Find a project by id or name",
+        "tags": [
+          "projects"
+        ],
+        "responses": {
+          "200": {
+            "description": "The project information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "accountId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "accountId",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "x-vercel-cli": {
+          "supportedSubcommands": true,
+          "supportedProduction": false,
+          "aliases": [
+            "inspect",
+            "get"
+          ]
+        },
+        "parameters": [
+          {
+            "name": "idOrName",
+            "description": "The unique project identifier or the project name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "example": "prj_12HKQaOmR5t5Uy6vdcQsNIiZgHGB",
+              "description": "The unique project identifier or the project name",
+              "type": "string"
+            },
+            "x-vercel-cli": {
+              "kind": "argument"
+            }
+          },
+          {
+            "description": "The Team identifier to perform the request on behalf of.",
+            "in": "query",
+            "name": "teamId",
+            "schema": {
+              "type": "string",
+              "example": "team_1a2b3c4d5e6f7g8h9i0j1k2l"
+            }
+          },
+          {
+            "description": "The Team slug to perform the request on behalf of.",
+            "in": "query",
+            "name": "slug",
+            "schema": {
+              "type": "string",
+              "example": "my-team-url-slug"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/deployments/{deploymentId}/checks": {
+      "get": {
+        "description": "List all of the checks created for a deployment.",
+        "operationId": "getAllChecks",
+        "security": [
+          {
+            "bearerToken": []
+          }
+        ],
+        "summary": "Retrieve a list of all checks",
+        "tags": [
+          "checks"
+        ],
+        "deprecated": true,
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "checks": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "integrationId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "completed",
+                              "registered",
+                              "running"
+                            ]
+                          },
+                          "conclusion": {
+                            "type": "string",
+                            "enum": [
+                              "canceled",
+                              "failed",
+                              "neutral",
+                              "skipped",
+                              "stale",
+                              "succeeded"
+                            ]
+                          },
+                          "updatedAt": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "integrationId",
+                          "name",
+                          "status",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "checks"
+                  ],
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deploymentId",
+            "description": "The deployment to get all checks for",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "description": "The deployment to get all checks for",
+              "example": "dpl_2qn7PZrx89yxY34vEZPD31Y9XVj6",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The Team identifier to perform the request on behalf of.",
+            "in": "query",
+            "name": "teamId",
+            "schema": {
+              "type": "string",
+              "example": "team_1a2b3c4d5e6f7g8h9i0j1k2l"
+            }
+          },
+          {
+            "description": "The Team slug to perform the request on behalf of.",
+            "in": "query",
+            "name": "slug",
+            "schema": {
+              "type": "string",
+              "example": "my-team-url-slug"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerToken": {
+        "type": "http",
+        "description": "Default authentication mechanism",
+        "scheme": "bearer"
+      },
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://api.vercel.com/oauth/authorize",
+            "tokenUrl": "https://api.vercel.com/oauth/access_token",
+            "scopes": {}
+          }
+        }
+      }
+    }
+  },
+  "x-shots-upstream": {
+    "url": "https://openapi.vercel.sh/",
+    "sha256": "ab214065a12df9fe8cf5a5e093f06e98f08532446df01aae668c7bdc551e7836",
+    "projection": "Read operations and evidence fields only; upstream paths, parameters and field types retained."
+  }
+}

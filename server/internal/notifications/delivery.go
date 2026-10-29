@@ -183,7 +183,7 @@ func (s *Service) fanout(ctx context.Context) (bool, error) {
 					return false, e2
 				}
 				if channel == "in_app" && permitted {
-					_, e2 = tx.ExecContext(ctx, `INSERT INTO platform_notification_inbox(id,"organizationId","userId",event_id,kind,resource_type,resource_id,description,href,category) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, id, e.org, user, e.id, e.kind, e.resourceType, e.resourceID, def.Label, href(e.resourceType, e.resourceID, row), notificationCategory(def))
+					_, e2 = tx.ExecContext(ctx, `INSERT INTO platform_notification_inbox(id,"organizationId","userId",event_id,kind,resource_type,resource_id,description,href,category) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`, id, e.org, user, e.id, e.kind, e.resourceType, e.resourceID, personalDescription(def, row), href(e.resourceType, e.resourceID, row), notificationCategory(def))
 					if e2 != nil {
 						return false, e2
 					}
@@ -343,6 +343,8 @@ func (s *Service) recipients(ctx context.Context, e occurrence, d activity.Defin
 		admin := role == "owner" || role == "admin"
 		eligible := wanted[id]
 		switch d.Audience {
+		case "workspace":
+			eligible = true
 		case "admins", "operators":
 			eligible = eligible || admin
 		case "approvers":
@@ -586,6 +588,16 @@ func (s *Service) prepare(ctx context.Context, d Delivery) (Envelope, Outcome, e
 	}
 	env.Subject = def.Label
 	env.Text = def.Label
+	if resourceType == "frontend_activation" && d.Channel != "slack" {
+		allowed, row, e := s.resource(ctx, d.OrganizationID, d.Destination, resourceType, resourceID)
+		if e != nil {
+			return env, Outcome{}, e
+		}
+		if !allowed {
+			return skip("ACCESS_REMOVED")
+		}
+		env.Text = personalDescription(def, row)
+	}
 	if d.Channel == "email" && (d.Kind == "campaign_posts.submitted" || d.Kind == "campaign_posts.decided") {
 		var payload map[string]any
 		if err = json.Unmarshal(raw, &payload); err != nil {

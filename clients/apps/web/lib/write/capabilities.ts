@@ -8,13 +8,8 @@ import type { DraftChannel, DraftKind, PostPoll } from '@/lib/write/document'
  * adapter that sends it; the matrix in
  * docs/scheduling/typefully/write/implementation-matrix.md links the sources.
  * Go holds the same numbers (`draftChannelLimits`, `checkDraftExtras`).
+ * Media rules live in lib/write/media-rules.ts, shared with Go.
  */
-
-/** Media a post can carry. */
-export const mediaKindSchema = z.enum(['image', 'gif', 'video', 'pdf'])
-
-/** One of {@link mediaKindSchema}. */
-export type MediaKind = z.infer<typeof mediaKindSchema>
 
 /** Whether a capability is live, or why it is not. */
 export const availabilitySchema = z.discriminatedUnion('available', [
@@ -55,8 +50,6 @@ export type PlatformCapabilities = {
   /** Draft kinds this platform takes. */
   kinds: readonly DraftKind[]
   label: string
-  /** Media types and how many images one post carries. */
-  media: { imageLimit: number; kinds: readonly MediaKind[]; videoAlone: boolean }
   /** Mentions: how they are written and whether a lookup backs them. */
   mentions: 'handle' | 'annotation' | 'none'
   poll: PollRules | null
@@ -89,7 +82,6 @@ const X: PlatformCapabilities = {
   captionLimit: 280,
   kinds: ['standard', 'reply', 'quote', 'repurpose', 'article'],
   label: 'X',
-  media: { imageLimit: 4, kinds: ['image', 'gif', 'video'], videoAlone: true },
   mentions: 'handle',
   poll: {
     durationRange: { min: 5, max: 10_080 },
@@ -131,7 +123,6 @@ const LINKEDIN: PlatformCapabilities = {
   captionLimit: 3_000,
   kinds: ['standard', 'quote', 'repurpose'],
   label: 'LinkedIn',
-  media: { imageLimit: 9, kinds: ['image', 'gif', 'video', 'pdf'], videoAlone: true },
   mentions: 'annotation',
   poll: {
     durationsMinutes: [MINUTES.day, 3 * MINUTES.day, 7 * MINUTES.day, 14 * MINUTES.day],
@@ -155,17 +146,11 @@ const LINKEDIN: PlatformCapabilities = {
   automation: NO_AUTOMATION,
 }
 
-function simple(
-  label: string,
-  captionLimit: number,
-  imageLimit: number,
-  thread: boolean
-): PlatformCapabilities {
+function simple(label: string, captionLimit: number, thread: boolean): PlatformCapabilities {
   return {
     captionLimit,
     kinds: ['standard', 'repurpose'],
     label,
-    media: { imageLimit, kinds: ['image', 'gif', 'video'], videoAlone: true },
     mentions: 'handle',
     poll: null,
     premiumCaptionLimit: null,
@@ -184,12 +169,12 @@ function simple(
 
 /** Every platform's capabilities. */
 export const CAPABILITIES: Record<DraftChannel, PlatformCapabilities> = {
-  bluesky: { ...simple('Bluesky', 300, 4, true), kinds: ['standard', 'repurpose', 'quote'] },
-  instagram: { ...simple('Instagram', 2_200, 10, false), mentions: 'handle' },
+  bluesky: { ...simple('Bluesky', 300, true), kinds: ['standard', 'repurpose', 'quote'] },
+  instagram: { ...simple('Instagram', 2_200, false), mentions: 'handle' },
   linkedin: LINKEDIN,
-  mastodon: { ...simple('Mastodon', 500, 4, true), kinds: ['standard', 'repurpose', 'quote'] },
+  mastodon: { ...simple('Mastodon', 500, true), kinds: ['standard', 'repurpose', 'quote'] },
   threads: {
-    ...simple('Threads', 500, 10, true),
+    ...simple('Threads', 500, true),
     poll: {
       durationsMinutes: [0],
       minOptions: 2,

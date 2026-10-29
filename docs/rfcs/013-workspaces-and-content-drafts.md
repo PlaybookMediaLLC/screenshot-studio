@@ -410,15 +410,30 @@ browser ──websocket + token──▶ collab-server ──authorize / load / 
 | --- | --- | --- |
 | `POST /v1/content-drafts/{id}/collab-token` | the web, for a signed-in member | service token and the member's session |
 | `POST /v1/collab/authorize` | the collab server, per connection | `COLLAB_SERVICE_TOKEN` and the member's token |
+| `GET /v1/collab/epochs` | the collab server, before each frame and once a second for idle connections | `COLLAB_SERVICE_TOKEN` |
 | `GET`, `PUT /v1/collab/documents/{draftId}` | the collab server, to load and store | `COLLAB_SERVICE_TOKEN` and the member's token |
 
 Only the backend holds `COLLAB_TOKEN_SECRET`, the signing key. The collab
 server holds `COLLAB_SERVICE_TOKEN`, which opens the three collab routes and
-nothing else, and every one of them also needs a member's token for that
-draft. A connection is admitted with an unexpired token; loads and stores
+nothing else. Authorization and document loads and stores also need a member's
+token for that draft. A connection is admitted with an unexpired token; loads and stores
 accept the connection's token for twelve hours after it expires, so a long
 session keeps saving. A member removed from the workspace is refused on their
 next connection, and one demoted below `artifact:edit` joins read-only.
+
+A connection is authorized when it opens, not on every message. The backend
+counts the changes that can take access away, per workspace and once for every
+workspace: a member demoted, removed or leaving, an ownership transfer, a
+draft body replaced or a draft deleted, and any member, session, user or
+workspace written through the auth store. Before accepting or sending a frame,
+the collab server reads the current counts (`GET /v1/collab/epochs`). Changed
+counts require fresh authorization before the frame can pass; unavailable
+counts close the connection. A poll also rechecks idle connections when counts
+move, closing or demoting them. Every connection is
+also authorized again after a minute, which covers changes nothing announces,
+such as an expired session. Revocation reaches an idle session within about a
+second and is checked before its next frame. With `REDIS_URL` the counts are
+shared by every backend replica.
 
 One replica needs nothing else. More replicas relay each document's live
 updates and awareness through Redis (the Hocuspocus Redis extension, enabled

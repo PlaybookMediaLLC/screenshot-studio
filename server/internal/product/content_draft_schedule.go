@@ -44,13 +44,6 @@ func EnableE2EDraftPlatform() {
 	draftPlatformChannels["e2e"] = "x"
 }
 
-// draftChannelImageLimits is how many images each channel takes in one post.
-// Excess attachments are rejected, never silently truncated. The composer
-// enforces the same counts (lib/content-drafts/serialize.ts).
-var draftChannelImageLimits = map[string]int{
-	"bluesky": 4, "instagram": 10, "linkedin": 9, "mastodon": 4, "threads": 10, "x": 4,
-}
-
 // draftChannelLimits is each channel's caption limit; the composer holds the
 // same numbers (DRAFT_CHANNEL_LIMITS in lib/content-drafts/serialize.ts).
 var draftChannelLimits = map[string]int{
@@ -101,6 +94,9 @@ type ScheduleContentDraftInput struct {
 	LocalTime      string `json:"localTime"`
 	PublishNow     bool   `json:"publishNow"`
 	TimeZone       string `json:"timeZone"`
+	// Add schedules these channels beside the draft's live posts instead of
+	// replacing them, so correcting one destination leaves the others queued.
+	Add bool `json:"add"`
 }
 
 // naturalOffsetLimit bounds a natural posting time's offset: four minutes.
@@ -305,6 +301,10 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 		if err != nil {
 			return nil, nil, err
 		}
+		if connection.Platform == "instagram" {
+			// The publisher has no verified path for Facebook Login accounts yet.
+			return nil, nil, conflict("Instagram accounts connected through Facebook Login can't publish from Shots yet. Reconnect this account with Instagram Login.")
+		}
 		if draft.SocialSetID != nil && (connection.SocialSetID == nil || *connection.SocialSetID != *draft.SocialSetID) {
 			return nil, nil, conflict("A selected account is not in this draft's social set.")
 		}
@@ -347,13 +347,20 @@ func (c *Configuration) draftTargetConnections(ctx context.Context, tx *ent.Tx, 
 			}
 			limit = caps.PostTextLimit()
 		}
-		if len(ids) > draftChannelImageLimits[channel] {
+		if len(ids) > draftMediaLimit(channel) {
 			return nil, nil, invalid("Too many attachments for " + channel + ". Remove attachments before scheduling.")
 		}
 		if target.AssetIDs != nil {
 			if ids, err = contentDraftAssets(ctx, tx, organizationID, ids); err != nil {
 				return nil, nil, err
 			}
+		}
+		rows, err := draftMediaRows(ctx, tx.Client(), organizationID, ids)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := checkDraftMedia(channel, rows); err != nil {
+			return nil, nil, err
 		}
 		if channel == "instagram" && len(ids) == 0 {
 			return nil, nil, conflict("Instagram needs an image. Add one to the draft first.")
@@ -545,12 +552,19 @@ func checkDraftReplies(ctx context.Context, tx *ent.Tx, organizationID, channel 
 		if distinctAssetCount(reply.AssetIDs) != len(reply.AssetIDs) {
 			return invalid("Each attachment in a reply must be distinct.")
 		}
-		if len(reply.AssetIDs) > draftChannelImageLimits[channel] {
+		if len(reply.AssetIDs) > draftMediaLimit(channel) {
 			return invalid("Too many attachments for " + channel + ".")
 		}
 		ids, err := contentDraftAssets(ctx, tx, organizationID, reply.AssetIDs)
 		if err != nil {
 			return err
+		}
+		rows, err := draftMediaRows(ctx, tx.Client(), organizationID, ids)
+		if err != nil {
+			return err
+		}
+		if err := checkDraftMedia(channel, rows); err != nil {
+			return fmt.Errorf("Post %d: %w", index+2, err)
 		}
 		if reply.Caption == "" && len(ids) == 0 {
 			return invalid(fmt.Sprintf("Post %d is empty.", index+2))
@@ -616,9 +630,52 @@ func cancelLiveDraftPosts(ctx context.Context, tx *ent.Tx, actor Actor, draftID 
 	return cancelled, nil
 }
 
+// liveDraftChannels is the channels of the draft's queued posts, which an
+// added schedule keeps. A target that already has one is refused: change that
+// post with Reschedule instead of queuing a second.
+func liveDraftChannels(ctx context.Context, tx *ent.Tx, draftID string, targets []ContentDraftScheduleTarget) ([]string, error) {
+	live, err := tx.ScheduledPost.Query().Where(scheduledpost.ContentDraftID(draftID), scheduledpost.StatusIn(
+		scheduledpost.StatusDRAFT, scheduledpost.StatusSCHEDULED, scheduledpost.StatusPROCESSING,
+		scheduledpost.StatusUNKNOWN_DELIVERY, scheduledpost.StatusPUBLISHED)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	kept := []string{}
+	for _, post := range live {
+		for _, target := range targets {
+			if target.ChannelConnectionID == post.ChannelConnectionID {
+				return nil, conflict("This draft already has a post on a selected account. Reschedule that post instead of adding another.")
+			}
+		}
+		if post.Status != scheduledpost.StatusPUBLISHED && !slices.Contains(kept, post.ChannelConnectionID) {
+			kept = append(kept, post.ChannelConnectionID)
+		}
+	}
+	return kept, nil
+}
+
 // ScheduleContentDraft queues the draft at input.Version to every target.
 // Scheduling snapshots each caption, so later edits to the draft do not
 // change queued posts; scheduling again cancels them and queues new ones.
+// prepareDraftMedia gives each target the media its provider will receive:
+// images oriented and sized for it, and the length of each video read.
+// Scheduling and its preflight both check what this leaves.
+func (c *Configuration) prepareDraftMedia(ctx context.Context, actor Actor, input *ScheduleContentDraftInput, fallback []string) error {
+	input.Targets = slices.Clone(input.Targets)
+	for i := range input.Targets {
+		target := &input.Targets[i]
+		target.AssetIDs = slices.Clone(target.AssetIDs)
+		target.Replies = slices.Clone(target.Replies)
+		for j := range target.Replies {
+			target.Replies[j].AssetIDs = slices.Clone(target.Replies[j].AssetIDs)
+		}
+	}
+	if err := c.prepareDraftImages(ctx, actor, input.Targets, fallback); err != nil {
+		return err
+	}
+	return c.probeDraftVideos(ctx, actor.OrganizationID, input.Targets, fallback)
+}
+
 func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, draftID string,
 	input ScheduleContentDraftInput) (*ScheduleContentDraftResult, error) {
 	if err := c.authorizeDecision(ctx, actor, "owner", "admin", "publisher"); err != nil {
@@ -635,16 +692,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		return nil, err
 	}
 	if loadedDraft.Version == input.Version {
-		input.Targets = slices.Clone(input.Targets)
-		for i := range input.Targets {
-			target := &input.Targets[i]
-			target.AssetIDs = slices.Clone(target.AssetIDs)
-			target.Replies = slices.Clone(target.Replies)
-			for j := range target.Replies {
-				target.Replies[j].AssetIDs = slices.Clone(target.Replies[j].AssetIDs)
-			}
-		}
-		if err := c.prepareDraftImages(ctx, actor, input.Targets, loadedDraft.AssetIds); err != nil {
+		if err := c.prepareDraftMedia(ctx, actor, &input, loadedDraft.AssetIds); err != nil {
 			return nil, err
 		}
 	}
@@ -662,6 +710,21 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	}
 	draft, err := visibleContentDraft(ctx, tx.Client(), actor, draftID)
 	if err != nil {
+		return nil, err
+	}
+	// Share-lock the media so a concurrent deletion waits and then sees these posts.
+	media := slices.Clone(draft.AssetIds)
+	for _, target := range input.Targets {
+		media = append(media, target.AssetIDs...)
+		for _, reply := range target.Replies {
+			media = append(media, reply.AssetIDs...)
+		}
+		if target.Options != nil {
+			media = append(media, target.Options.DocumentAssetID, target.Options.ArticleCoverAssetID)
+		}
+	}
+	if _, err := tx.PlatformExec(ctx, `SELECT id FROM asset WHERE "organizationId"=$1 AND id = ANY($2::text[]) FOR SHARE`,
+		actor.OrganizationID, "{"+strings.Join(slices.DeleteFunc(media, func(id string) bool { return !contentDraftRefPattern.MatchString(id) }), ",")+"}"); err != nil {
 		return nil, err
 	}
 	if replay, err := replayDraftSchedule(ctx, tx, draft, input); err != nil || replay != nil {
@@ -719,7 +782,12 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	if err := requireAllowedCopy(ctx, tx.BrandProfile, actor.OrganizationID, captions...); err != nil {
 		return nil, err
 	}
-	cancelled, err := cancelLiveDraftPosts(ctx, tx, actor, draft.ID)
+	var cancelled, kept []string
+	if input.Add {
+		kept, err = liveDraftChannels(ctx, tx, draft.ID, input.Targets)
+	} else {
+		cancelled, err = cancelLiveDraftPosts(ctx, tx, actor, draft.ID)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -781,11 +849,16 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 		result.Scheduled = append(result.Scheduled, post.Unwrap())
 		channelIDs = append(channelIDs, target.ChannelConnectionID)
 	}
-	// A scheduled draft is no longer only planned.
-	count, err := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version), contentdraft.CalendarVersion(draft.CalendarVersion)).
-		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(channelIDs).AddVersion(1).AddCalendarVersion(1).
+	// A scheduled draft is no longer only planned. Scheduling changes no
+	// content, so an approval of this version carries to the next.
+	update := tx.ContentDraft.Update().Where(contentdraft.ID(draft.ID), contentdraft.Version(input.Version), contentdraft.CalendarVersion(draft.CalendarVersion)).
+		SetStatus(contentdraft.StatusScheduled).SetChannelConnectionIds(append(kept, channelIDs...)).AddVersion(1).AddCalendarVersion(1).
 		ClearPlannedFor().ClearPlanTimeZone().
-		SetNillableUpdatedByUserID(projectActor(actor)).Save(ctx)
+		SetNillableUpdatedByUserID(projectActor(actor))
+	if draft.ApprovedVersion != nil && *draft.ApprovedVersion == draft.Version {
+		update.SetApprovedVersion(draft.Version + 1)
+	}
+	count, err := update.Save(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -798,7 +871,7 @@ func (c *Configuration) ScheduleContentDraft(ctx context.Context, actor Actor, d
 	}
 	if err := appendConfigurationAudit(ctx, tx, actor, "product.content_draft_scheduled", "content_draft", draft.ID,
 		map[string]any{"cancelledPostIds": cancelled, "scheduledPostIds": postIDs, "version": input.Version,
-			"scheduledFor": placement.at.Format(time.RFC3339), "reason": reason, "timeZone": placement.zone}); err != nil {
+			"scheduledFor": placement.at.Format(time.RFC3339), "reason": reason, "timeZone": placement.zone, "added": input.Add}); err != nil {
 		return nil, err
 	}
 	updated, err := tx.ContentDraft.Get(ctx, draft.ID)

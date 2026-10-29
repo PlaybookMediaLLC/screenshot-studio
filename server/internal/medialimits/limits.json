@@ -32,6 +32,187 @@
         "image/jpeg",
         "image/png"
       ]
+    },
+    "instagram-standalone": {
+      "maxBytes": 8000000,
+      "maxEdge": 1440,
+      "formats": [
+        "image/jpeg"
+      ]
+    },
+    "threads": {
+      "maxBytes": 8000000,
+      "maxEdge": 1440,
+      "formats": [
+        "image/jpeg",
+        "image/png"
+      ]
+    }
+  },
+  "destinations": {
+    "x": {
+      "maxMedia": 4,
+      "mixed": false,
+      "images": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ],
+      "gif": {
+        "alone": true,
+        "maxBytes": 15000000
+      },
+      "video": {
+        "formats": [
+          "video/mp4"
+        ],
+        "alone": true,
+        "minMs": 500,
+        "maxBytes": 536870912
+      },
+      "docs": [
+        "https://docs.x.com/x-api/media/quickstart/best-practices"
+      ],
+      "verifiedOn": "2026-10-28"
+    },
+    "linkedin": {
+      "maxMedia": 20,
+      "mixed": false,
+      "images": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ],
+      "converts": {
+        "image/webp": "image/png"
+      },
+      "gif": {
+        "alone": false,
+        "maxBytes": 20000000
+      },
+      "video": {
+        "formats": [
+          "video/mp4"
+        ],
+        "alone": true,
+        "minMs": 3000,
+        "maxMs": 1800000,
+        "maxBytes": 500000000
+      },
+      "docs": [
+        "https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api",
+        "https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/images-api",
+        "https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/multiimage-post-api"
+      ],
+      "verifiedOn": "2026-10-28"
+    },
+    "instagram": {
+      "maxMedia": 20,
+      "requiresMedia": true,
+      "mixed": true,
+      "images": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ],
+      "converts": {
+        "image/png": "image/jpeg",
+        "image/webp": "image/jpeg"
+      },
+      "minImageWidth": 320,
+      "aspect": {
+        "min": 0.8,
+        "max": 1.91
+      },
+      "video": {
+        "formats": [
+          "video/mp4",
+          "video/quicktime"
+        ],
+        "alone": false,
+        "minMs": 3000,
+        "maxMs": 900000,
+        "maxBytes": 300000000
+      },
+      "docs": [
+        "https://developers.facebook.com/docs/instagram-platform/content-publishing/",
+        "https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media"
+      ],
+      "verifiedOn": "2026-10-28"
+    },
+    "threads": {
+      "maxMedia": 20,
+      "mixed": true,
+      "images": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ],
+      "converts": {
+        "image/webp": "image/png"
+      },
+      "minImageWidth": 320,
+      "video": {
+        "formats": [
+          "video/mp4",
+          "video/quicktime"
+        ],
+        "alone": false,
+        "maxMs": 300000,
+        "maxBytes": 1000000000
+      },
+      "docs": [
+        "https://developers.facebook.com/docs/threads/posts"
+      ],
+      "verifiedOn": "2026-10-28"
+    },
+    "bluesky": {
+      "maxMedia": 4,
+      "mixed": false,
+      "images": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ],
+      "video": {
+        "formats": [
+          "video/mp4"
+        ],
+        "alone": true,
+        "maxBytes": 300000000
+      },
+      "docs": [
+        "https://github.com/bluesky-social/atproto/tree/main/lexicons/app/bsky/embed"
+      ],
+      "verifiedOn": "2026-10-28"
+    },
+    "mastodon": {
+      "maxMedia": 4,
+      "mixed": false,
+      "images": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ],
+      "imageMaxBytes": 16777216,
+      "gif": {
+        "alone": true,
+        "maxBytes": 16777216
+      },
+      "video": {
+        "formats": [
+          "video/mp4",
+          "video/quicktime",
+          "video/webm"
+        ],
+        "alone": true,
+        "maxBytes": 103809024
+      },
+      "docs": [
+        "https://docs.joinmastodon.org/user/posting/",
+        "https://docs.joinmastodon.org/entities/Instance/"
+      ],
+      "verifiedOn": "2026-10-28"
     }
   }
 }

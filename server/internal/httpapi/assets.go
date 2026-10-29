@@ -80,17 +80,40 @@ func (s *Server) completeAssetUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	var input struct {
 		SHA256 *string `json:"sha256"`
+		// PartSHA256 is each part's digest, for a file sent in parts.
+		PartSHA256 []string `json:"partSha256"`
 	}
-	if err := decodeJSON(r, &input); err != nil {
+	if err := decodeJSON(r, &input); err != nil || len(input.PartSHA256) > 10_000 {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	row, err := s.configuration.CompleteAssetUpload(r.Context(), workspaceActor(r), id, input.SHA256)
+	row, err := s.configuration.CompleteAssetUpload(r.Context(), workspaceActor(r), id, input.SHA256, input.PartSHA256...)
 	if err != nil {
 		writeStoreError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"asset": row})
+}
+
+func (s *Server) signAssetUploadParts(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if _, err := uuid.Parse(id); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid asset ID")
+		return
+	}
+	var input struct {
+		Parts []int `json:"parts"`
+	}
+	if err := decodeJSON(r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	result, err := s.configuration.SignAssetUploadParts(r.Context(), workspaceActor(r), id, input.Parts)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) signAssetDownload(w http.ResponseWriter, r *http.Request) {

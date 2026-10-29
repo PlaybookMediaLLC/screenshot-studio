@@ -55,10 +55,12 @@ func CheckXText(caps XCapabilities, text string) error {
 type XMedia struct {
 	MIME  string
 	Bytes int64
+	// DurationMs is a video's recorded length; zero is unknown.
+	DurationMs int
 }
 
-// CheckXMedia rejects unsupported selections using known MIME and size facts.
-// It does not inspect source bytes, image dimensions, or video duration.
+// CheckXMedia rejects unsupported selections using known MIME, size and
+// recorded video length. It does not inspect source bytes or image dimensions.
 func CheckXMedia(caps XCapabilities, media []XMedia) error {
 	if err := caps.Validate(); err != nil {
 		return err
@@ -84,6 +86,10 @@ func CheckXMedia(caps XCapabilities, media []XMedia) error {
 				return errors.New("Reconnect X to verify this account's video limits.")
 			}
 			limit = *caps.VideoMaxBytes
+			if item.DurationMs > *caps.VideoMaxDurationSeconds*1000 {
+				return fmt.Errorf("This X account takes videos up to %d minutes; this one is %d:%02d. Trim it before scheduling.",
+					*caps.VideoMaxDurationSeconds/60, item.DurationMs/60000, item.DurationMs/1000%60)
+			}
 		default:
 			return errors.New("X supports JPEG, PNG, WebP, GIF, or MP4 attachments.")
 		}

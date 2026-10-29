@@ -3,6 +3,7 @@ package product
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
@@ -22,6 +23,29 @@ import (
 
 // collabStateLimit bounds one stored Yjs document state.
 const collabStateLimit = 5 << 20
+
+// WithCollabEpochs shares the collaboration access counts between backend
+// replicas. Without it they live in this process.
+func (c *Configuration) WithCollabEpochs(epochs collab.Epochs) *Configuration {
+	c.collabEpochs = epochs
+	return c
+}
+
+// CollabEpochs reports the access counts the collaboration server polls: the
+// global count and the count of each workspace with a live session.
+func (c *Configuration) CollabEpochs(ctx context.Context, organizationIDs []string) (int64, map[string]int64, error) {
+	return c.collabEpochs.Read(ctx, organizationIDs)
+}
+
+// collabAccessChanged tells live collaboration sessions in organizationID, or
+// in every workspace when it is "", to authorize again. Call it after the
+// change commits. A failure is logged: sessions still re-authorize on their own
+// within a minute.
+func (c *Configuration) collabAccessChanged(ctx context.Context, organizationID string) {
+	if err := c.collabEpochs.Bump(ctx, organizationID); err != nil {
+		slog.WarnContext(ctx, "collab_access_change_unpublished", "organization_id", organizationID, "error", err)
+	}
+}
 
 // WithCollabKey sets the key that signs collaboration tokens. Without one,
 // collaboration is unavailable.

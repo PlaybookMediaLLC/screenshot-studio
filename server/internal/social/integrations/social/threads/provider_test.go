@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
@@ -145,6 +147,33 @@ func TestCarouselFlow(t *testing.T) {
 	fin, err := p.FinalizePost(context.Background(), "tok", check.PendingData, integration)
 	if err != nil || fin.Status != "pending" || string(fin.PendingData) != `{"step":"container","containerId":"car"}` {
 		t.Fatalf("%+v %v", fin, err)
+	}
+}
+
+// A mixed carousel keeps its order, and a video is sent as one by its stored
+// type even when the signed URL names a QuickTime file.
+func TestMixedCarouselSendsVideoByType(t *testing.T) {
+	var children []string
+	setup(t, func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		if r.URL.Path != "/v1.0/u1/threads" {
+			w.Write([]byte(`{"status":"FINISHED"}`))
+			return
+		}
+		if q.Get("media_type") == "CAROUSEL" {
+			w.Write([]byte(`{"id":"car"}`))
+			return
+		}
+		children = append(children, q.Get("media_type")+":"+q.Get("image_url")+q.Get("video_url"))
+		w.Write([]byte(`{"id":"m` + strconv.Itoa(len(children)) + `"}`))
+	})
+	_, err := New().PostPending(context.Background(), "u1", "tok", []integrations.PostDetails{{ID: "p1", Message: "m", Media: []integrations.MediaContent{
+		{Path: "https://x/a.png", Type: "image"}, {Path: "https://x/clip.mov?X-Amz-Signature=s", Type: "video"}}}}, &ent.Integration{InternalID: "u1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Join(children, " ") != "IMAGE:https://x/a.png VIDEO:https://x/clip.mov?X-Amz-Signature=s" {
+		t.Fatalf("children %v", children)
 	}
 }
 

@@ -306,8 +306,8 @@ the number of launches a plan covers changes.
    credit meter still send the old generation quota name; the backend counts
    it as AI credits.
 4. **Allowances** are in `lib/billing/plans.ts` and
-   `server/internal/product/quota.go` (`planQuotas`, and `planStorageBytes`
-   for storage); `test/ai-credit-metering.test.ts` fails if they drift apart.
+   `server/internal/product/quota.go` (`planQuotas`; storage is `storageLimits`
+   in `assets_media.go`); `test/ai-credit-metering.test.ts` fails if they drift apart.
    **Prices** are `PLAN_PRICES` and `CREDIT_PACKS` in `lib/billing/plans.ts`;
    annual billing is derived from `ANNUAL_DISCOUNT`. The plan cards, pricing
    and Enterprise FAQs, landing FAQ, comparison and guide pages, `/llms.txt`

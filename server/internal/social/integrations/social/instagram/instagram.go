@@ -624,7 +624,7 @@ func (p *Provider) PostPendingOn(ctx context.Context, id, token string, posts []
 		if m.ThumbnailTimestamp != nil && *m.ThumbnailTimestamp != 0 {
 			thumbOffset = strconv.FormatInt(*m.ThumbnailTimestamp, 10)
 		}
-		isVideo := helpers.HasExtension(m.Path, "mp4")
+		isVideo := m.Type == "video" || helpers.HasExtension(m.Path, "mp4")
 		// Private media URLs carry their own query parameters. Encode the entire
 		// URL as one Graph API parameter so its signature reaches Meta intact.
 		mediaURL := facebook.EncodeURIComponent(m.Path)

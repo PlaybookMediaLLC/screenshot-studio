@@ -256,15 +256,18 @@ export {
   uploadSignedAsset,
 } from './browser'
 export {
+  addBatchRows,
   caretAtDocumentEnd,
   chooseChannels,
   draftEditor,
   enableDraftTags,
   expectSaved,
   inPreview,
+  openNewBatch,
   openNewDraft,
   openSchedule,
   previewOf,
+  saveBatchDrafts,
   settleSelection,
   socialMockPort,
   xVerification,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"time"
 
@@ -43,6 +44,15 @@ func spreadTimes(input DraftBatchTimesInput, zone string, now time.Time) ([]time
 		}
 		wall := start.AddDate(0, 0, i/input.PostsPerDay).Add(time.Duration((i%input.PostsPerDay)*input.SpacingMinutes+shift) * time.Minute)
 		at, err := resolveLocalTime(wall.Format("2006-01-02T15:04"), zone, "")
+		var clocks *LocalTimeError
+		if errors.As(err, &clocks) {
+			// Name the post rather than guess which side of a clock change was meant.
+			what := "a time the clocks skip"
+			if clocks.Kind == "ambiguous" {
+				what = "a time that happens twice as the clocks go back"
+			}
+			return nil, invalid(fmt.Sprintf("Post %d would be at %s, %s in %s. Choose another start time or spacing.", i+1, wall.Format("Jan 2 15:04"), what, zone))
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -98,6 +108,16 @@ func (c *Configuration) ValidateContentDraftSchedule(ctx context.Context, actor 
 	}
 	if err := validateDraftTargets(input); err != nil {
 		return err
+	}
+	loaded, err := c.loadDraft(ctx, actor, id)
+	if err != nil {
+		return err
+	}
+	// Check what scheduling would send: oriented, provider-sized images too.
+	if loaded.Version == input.Version {
+		if err := c.prepareDraftMedia(ctx, actor, &input, loaded.AssetIds); err != nil {
+			return err
+		}
 	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {

@@ -257,6 +257,65 @@ export async function openNewDraft(page: Page): Promise<string> {
 }
 
 /**
+ * Start a bulk batch (RFC 042) from Write's batches page, in the workspace's
+ * publishing brand, and return its id once its page can be used.
+ */
+export async function openNewBatch(
+  page: Page,
+  app: { open(path: string): Promise<void>; reload(): Promise<void> }
+): Promise<string> {
+  await app.open('/write/batches')
+  await page.getByRole('button', { name: 'Start a batch', exact: true }).click()
+  await page.waitForURL(/\/write\/batches\/[^/]+$/)
+  await app.reload()
+  await expect(page.getByTestId('bulk-batch')).toBeVisible()
+  return new URL(page.url()).pathname.split('/').pop() ?? ''
+}
+
+/** Uploaded media shown on a batch item: its type, or why it is not stored yet. */
+const PENDING_MEDIA = /Uploading|Waiting to upload|Upload failed/
+
+/**
+ * Add a batch's rows from `csv` with the selected `files`, wait for every
+ * upload, and return the items' locators in order. Rows with a problem stay
+ * in the preview and are not added.
+ */
+export async function addBatchRows(
+  page: Page,
+  csv: string,
+  files: Parameters<Locator['setInputFiles']>[0] = []
+): Promise<Locator> {
+  const items = page.getByTestId('batch-item')
+  const before = await items.count()
+  if (Array.isArray(files) ? files.length : files)
+    await page.getByLabel('Batch media files').setInputFiles(files)
+  await page.getByLabel('Batch CSV', { exact: true }).fill(csv)
+  await page.getByRole('button', { name: 'Preview import', exact: true }).click()
+  const preview = page.getByTestId('import-preview')
+  await expect(preview).toBeVisible()
+  const add = preview.getByRole('button', { name: /^Add \d+ ready rows/ })
+  const ready = Number((await add.textContent())?.match(/\d+/)?.[0] ?? 0)
+  await add.click()
+  await expect(items).toHaveCount(before + ready)
+  await expect(items.filter({ hasText: PENDING_MEDIA })).toHaveCount(0, { timeout: 60_000 })
+  return items
+}
+
+/** Save the batch's ready items as drafts and return every saved item's draft id, in order. */
+export async function saveBatchDrafts(page: Page): Promise<string[]> {
+  const items = page.getByTestId('batch-item')
+  await page.getByRole('button', { name: 'Save ready items as drafts', exact: true }).click()
+  await expect(items.filter({ has: page.getByText('Not saved', { exact: true }) })).toHaveCount(0, {
+    timeout: 60_000,
+  })
+  return (
+    await items
+      .getByRole('link', { name: /^Open draft/ })
+      .evaluateAll((links) => links.map((link) => link.getAttribute('href')!))
+  ).map((href) => href.split('/').pop()!)
+}
+
+/**
  * Turn platforms on in the composer's Manage platforms dialog, then close it.
  * A new draft already publishes to every platform of its set, so this
  * confirms them rather than adding any.

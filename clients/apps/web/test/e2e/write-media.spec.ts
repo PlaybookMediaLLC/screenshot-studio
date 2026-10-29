@@ -181,7 +181,9 @@ test(
       .locator('input[type=file][aria-label="Insert media"]')
       .setInputFiles({ name: 'mixed.png', mimeType: 'image/png', buffer: png })
     await expect(draftEditor(page).locator('figure')).toHaveCount(2)
-    await expect(page.getByTestId('preview-panel').getByRole('alert')).toContainText('Mixed media')
+    await expect(page.getByTestId('preview-panel').getByRole('alert')).toContainText(
+      'X posts a video or GIF on its own. Move the other attachments to a separate post.'
+    )
     await expectSaved(page)
     const saved = await apiRequest(page, `/api/v1/content-drafts/${id}`)
     const body = (saved.body as { body: Record<string, unknown>[] }).body

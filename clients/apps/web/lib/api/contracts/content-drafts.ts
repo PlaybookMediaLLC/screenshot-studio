@@ -1,6 +1,7 @@
 import { draftVersionsQuerySchema } from '@/lib/api/contracts/content-draft-concurrency'
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
+import { getMinimumPlan } from '@/lib/billing/plans'
 import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import { automationSchema, draftKindSchema } from '@/lib/write/document'
@@ -145,7 +146,10 @@ export const contentDraftListQuerySchema = z.object({
 export const contentDraftParamsSchema = z.object({ id: contentDraftIdSchema })
 
 const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'free' },
+  'x-shots-entitlement': {
+    feature: 'content:drafts',
+    minimumPlan: getMinimumPlan('content:drafts'),
+  },
 }
 
 /** `GET /api/v1/content-drafts` */
@@ -333,6 +337,11 @@ export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
   queue: z.boolean().optional(),
   /** A previewed queue slot; a changed queue is a conflict instead of a silent move. */
   expectedQueueSlot: z.iso.datetime().optional(),
+  /**
+   * Schedule these accounts beside the draft's queued posts instead of
+   * replacing them; an account that already has a post is refused.
+   */
+  add: z.boolean().optional(),
   /** Overrides the draft's natural posting time for this schedule (±4 minutes). */
   naturalPostingTime: z.boolean().optional(),
   scheduledFor: z.coerce

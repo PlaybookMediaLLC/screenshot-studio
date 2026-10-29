@@ -42,10 +42,6 @@ var planQuotas = map[string]map[string]int{
 		QuotaAICredits: 15_000, QuotaPosts: 5_000, QuotaEmails: 100_000},
 }
 
-// planStorageBytes caps the bytes of a workspace's live assets; it mirrors
-// storage:bytes in lib/billing/plans.ts.
-var planStorageBytes = map[string]int64{"free": 0, "pro": 50 << 30, "business": 250 << 30, "enterprise": 5 << 40}
-
 var monthlyQuotas = map[string]bool{QuotaAICredits: true, QuotaPosts: true, QuotaEmails: true}
 
 // maxQuotaAmount bounds one consumption. A release email can reach a whole

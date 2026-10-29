@@ -55,14 +55,15 @@ test('TF-076: unsupported combinations and excessive attachments fail without dr
     [p('Text'), image('a'), { ...image('gif'), mimeType: 'image/gif' }],
     'x'
   )
-  assert.match(mixed.errors.join(' '), /Mixed media/)
+  assert.match(mixed.errors.join(' '), /on its own/)
   assert.equal(mixed.posts[0].media.length, 2)
   const excess = serializeDraft(
-    [p('Text'), ...Array.from({ length: 10 }, (_, i) => image(String(i)))],
+    [p('Text'), ...Array.from({ length: 21 }, (_, i) => image(String(i)))],
     'linkedin'
   )
-  assert.match(excess.errors.join(' '), /up to 9/)
-  assert.equal(excess.posts[0].assetIds.length, 10)
+  // LinkedIn's MultiImage API takes 2 to 20 images (read 2026-10-28).
+  assert.match(excess.errors.join(' '), /up to 20/)
+  assert.equal(excess.posts[0].assetIds.length, 21)
   assert.match(
     serializeDraft([p('Text'), { type: 'placeholder', children: [{ text: '' }] }], 'x').errors.join(
       ' '

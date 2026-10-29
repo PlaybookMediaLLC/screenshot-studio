@@ -145,13 +145,13 @@ test("edits sync between editors, viewers stay read-only, strangers are refused"
   }
 });
 
-test("an open editor becomes read-only once its demotion is published", async () => {
+test("an open editor refuses demoted writes before the next access poll", async () => {
   const { backend, stored, grants, publish } = fakeBackend();
   const server = new Server({
     port: 0,
     quiet: true,
     debounce: 50,
-    ...collabHooks(backend, () => {}, undefined, FAST),
+    ...collabHooks(backend, () => {}, undefined, { pollMs: 60_000 }),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
@@ -168,7 +168,6 @@ test("an open editor becomes read-only once its demotion is published", async ()
     );
     grants["second-editor-token"] = "read";
     publish();
-    await settle();
     member.doc.getText("t").insert(0, "forbidden ");
     await new Promise((resolve) => setTimeout(resolve, 300));
     assert.equal(
@@ -224,8 +223,7 @@ test("typing makes no authorization calls while access is unchanged", async () =
       "ten updates"
     );
     await new Promise((resolve) => setTimeout(resolve, 200));
-    // Authorized when it opened; nothing published since, so no update or
-    // outgoing frame asks the backend again (it was two calls per update).
+    // Unchanged access counts avoid full authorization queries while typing.
     assert.equal(calls - before, 0, `${calls - before} calls for ten updates`);
   } finally {
     owner.provider.destroy();
@@ -358,7 +356,7 @@ test("a connection re-checks its access after recheckMs even with nothing publis
   }
 });
 
-test("frames queued while a published removal is re-checked are never delivered", async () => {
+test("outgoing frames check a published removal before the next access poll", async () => {
   const { backend, grants, publish } = fakeBackend();
   const authorize = backend.authorize;
   const release = Promise.withResolvers<void>();
@@ -375,7 +373,7 @@ test("frames queued while a published removal is re-checked are never delivered"
   const server = new Server({
     port: 0,
     quiet: true,
-    ...collabHooks(backend, () => {}, undefined, FAST),
+    ...collabHooks(backend, () => {}, undefined, { pollMs: 60_000 }),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
@@ -390,8 +388,8 @@ test("frames queued while a published removal is re-checked are never delivered"
     hold = true;
     delete grants["viewer-token"];
     publish();
-    await until(() => checking, "re-check of the published removal, held");
     owner.doc.getText("t").insert(14, " PRIVATE");
+    await until(() => checking, "re-check of the published removal, held");
     await until(
       () =>
         server.hocuspocus.documents
@@ -407,6 +405,45 @@ test("frames queued while a published removal is re-checked are never delivered"
   } finally {
     release.resolve();
     for (const client of [owner, viewer]) {
+      client.provider.destroy();
+      client.doc.destroy();
+    }
+    await server.destroy();
+  }
+});
+
+test("unavailable access counts close a sender before applying its update", async () => {
+  const { backend } = fakeBackend();
+  const epochs = backend.epochs;
+  let refuse = false;
+  backend.epochs = async (organizations) => {
+    if (refuse) throw new Error("access counts unavailable");
+    return epochs(organizations);
+  };
+  const server = new Server({
+    port: 0,
+    quiet: true,
+    ...collabHooks(backend, () => {}, undefined, { pollMs: 60_000 }),
+  });
+  await server.listen();
+  const owner = connect(server.address.port, "editor-token");
+  const member = connect(server.address.port, "second-editor-token");
+  try {
+    await until(() => owner.events.synced && member.events.synced, "sync");
+    owner.doc.getText("t").insert(0, "original");
+    await until(
+      () => member.doc.getText("t").toString() === "original",
+      "initial update"
+    );
+    const shared = server.hocuspocus.documents.get(DOCUMENT)?.getText("t");
+    assert.ok(shared);
+    refuse = true;
+    member.doc.getText("t").insert(8, " must not be applied");
+    await until(() => member.events.closed, "unverified sender to close");
+    assert.equal(shared.toString(), "original");
+    assert.equal(owner.doc.getText("t").toString(), "original");
+  } finally {
+    for (const client of [owner, member]) {
       client.provider.destroy();
       client.doc.destroy();
     }
@@ -569,7 +606,6 @@ test(
       assert.ok(stored.every(({ token }) => token === "editor-token"));
       delete grants["viewer-token"];
       publish();
-      await settle();
       editor.doc.getText("t").insert(0, "private ");
       await until(
         () => viewer.events.closed,

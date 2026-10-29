@@ -178,3 +178,4 @@ export const throttleCursor = (
 };
 
 export { YjsPlugin };
+export { HocuspocusProviderWrapper } from "@platejs/yjs";

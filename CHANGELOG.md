@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.41.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.41.0...v2.41.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **billing:** move each product's default price before archiving the old one ([#387](https://github.com/PlaybookMediaLLC/shots/issues/387)) ([1dade24](https://github.com/PlaybookMediaLLC/shots/commit/1dade24b3473cc371aa46ade633ec2c925ef8f8e))
+* **web:** resolve the 2026-10-29 QA audit's plan, checkout and accessibility findings ([#389](https://github.com/PlaybookMediaLLC/shots/issues/389)) ([75da3f6](https://github.com/PlaybookMediaLLC/shots/commit/75da3f68ebb34fb2b146e936fd9eb6c2f563a7aa))
+
 ## [2.41.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.40.0...v2.41.0) (2026-10-29)
 
 

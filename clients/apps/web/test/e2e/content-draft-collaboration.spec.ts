@@ -11,6 +11,7 @@ import {
   openNewDraft,
   type Page,
   requestJson,
+  settleSelection,
   signUpViaApi,
   test,
   trpcMutation,
@@ -154,15 +155,18 @@ test('a viewer promoted to creator can edit after client navigation', async ({
 async function endOfText(page: Page, text: string): Promise<void> {
   const sentence = draftEditor(page).getByText(text, { exact: true })
   await sentence.click()
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End')
-  await expect
-    .poll(() =>
-      sentence.evaluate(() => {
+  // A re-render before slate copies the moved caret into its model puts it
+  // back at the click, so press End until it stays at the end.
+  await expect(async () => {
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End')
+    await settleSelection(page)
+    expect(
+      await sentence.evaluate(() => {
         const selection = window.getSelection()
         return { text: selection?.focusNode?.textContent, offset: selection?.focusOffset }
       })
-    )
-    .toEqual({ text, offset: text.length })
+    ).toEqual({ text, offset: text.length })
+  }).toPass({ timeout: 20_000 })
 }
 
 /** Try to join a draft's document with a token; resolves to whether it was refused. */

@@ -37,6 +37,7 @@ func (s *Server) registerCollab(mux *http.ServeMux) {
 		})
 	}
 	mux.Handle("POST /v1/collab/authorize", guard(s.authorizeCollab))
+	mux.Handle("GET /v1/collab/epochs", guard(s.collabEpochs))
 	mux.Handle("GET /v1/collab/documents/{draftId}", guard(s.loadCollabDocument))
 	mux.Handle("PUT /v1/collab/documents/{draftId}", guard(s.storeCollabDocument))
 }
@@ -71,6 +72,22 @@ func (s *Server) authorizeCollab(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, grant)
+}
+
+// collabEpochs reports the access counts the collaboration server polls, for
+// the workspaces named by organizationId (repeated) and for every workspace.
+func (s *Server) collabEpochs(w http.ResponseWriter, r *http.Request) {
+	organizations := r.URL.Query()["organizationId"]
+	if len(organizations) > 1000 {
+		writeError(w, http.StatusBadRequest, "too many organizations")
+		return
+	}
+	global, counts, err := s.configuration.CollabEpochs(r.Context(), organizations)
+	if err != nil {
+		writeStoreError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"global": global, "organizations": counts})
 }
 
 func collabDocumentID(w http.ResponseWriter, r *http.Request) (string, bool) {

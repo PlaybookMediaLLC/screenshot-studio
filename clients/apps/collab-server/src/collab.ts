@@ -29,9 +29,19 @@ export const collabGrantSchema = z.object({
 /** What the backend grants a connection. */
 export type CollabGrant = z.infer<typeof collabGrantSchema>;
 
+/** The backend's counts of changes that can alter collaboration access. */
+export const collabEpochsSchema = z.object({
+  global: z.number(),
+  organizations: z.record(z.string(), z.number()),
+});
+
+/** Access counts: one for every workspace, and one per workspace asked for. */
+export type CollabEpochs = z.infer<typeof collabEpochsSchema>;
+
 /** The Go backend's collaboration routes. */
 export type CollabBackend = {
   authorize: (token: string, documentName: string) => Promise<CollabGrant>;
+  epochs: (organizationIds: string[]) => Promise<CollabEpochs>;
   load: (draftId: string, token: string) => Promise<Uint8Array | null>;
   store: (draftId: string, token: string, state: Uint8Array) => Promise<void>;
 };
@@ -90,6 +100,15 @@ export function backendClient(
           body: JSON.stringify({ documentName, token }),
           method: "POST",
         })
+      ),
+    epochs: async (organizationIds) =>
+      collabEpochsSchema.parse(
+        await call(
+          `/v1/collab/epochs?${new URLSearchParams(
+            organizationIds.map((id) => ["organizationId", id])
+          )}`,
+          { method: "GET" }
+        )
       ),
     load: async (draftId, token) => {
       const { state } = z.object({ state: z.string().nullable() }).parse(
@@ -157,24 +176,72 @@ export function redisWriterTokens(redis: {
   };
 }
 
+/** The access counts a decision was made against, and when. */
+const checkSchema = z.object({
+  global: z.number(),
+  organization: z.number(),
+  at: z.number(),
+});
+type Check = z.infer<typeof checkSchema>;
+
 const contextSchema = z.object({
   grant: collabGrantSchema,
   token: z.string().min(1),
+  admitted: checkSchema.optional(),
 });
 type Context = z.infer<typeof contextSchema>;
 
-/** The Hocuspocus hooks that route every decision through the backend. */
+type Connection = connectedPayload["connection"];
+
+/**
+ * The Hocuspocus hooks that route every decision through the backend.
+ *
+ * A connection is authorized when it opens (onAuthenticate). After that it is
+ * authorized again only when access may have changed: the backend publishes a
+ * count per workspace, and one for every workspace, that moves with each
+ * change that can take access away (a removed or demoted member, an ended
+ * session, a replaced or deleted draft). The counts are polled every `pollMs`
+ * while connections are open; a move re-checks that workspace's connections
+ * at once, and any connection is re-checked after `recheckMs` regardless.
+ */
 export function collabHooks(
   backend: CollabBackend,
   log: Log,
-  writers: WriterTokens = memoryWriterTokens()
+  writers: WriterTokens = memoryWriterTokens(),
+  {
+    pollMs = 1_000,
+    recheckMs = 60_000,
+  }: { pollMs?: number; recheckMs?: number } = {}
 ) {
+  const known = { global: 0, organizations: new Map<string, number>() };
+  const checks = new WeakMap<Connection, Check>();
+  type Open = {
+    connection: Connection;
+    context: unknown;
+    documentName: string;
+  };
+  const open = new Map<string, Set<Open>>();
+  let timer: ReturnType<typeof setInterval> | null = null;
+  const snapshot = (organizationId: string): Check => ({
+    global: known.global,
+    organization: known.organizations.get(organizationId) ?? 0,
+    at: Date.now(),
+  });
+  const unchanged = (check: Check | undefined, organizationId: string) =>
+    !!check &&
+    check.global === known.global &&
+    check.organization === (known.organizations.get(organizationId) ?? 0) &&
+    Date.now() - check.at < recheckMs;
   const currentAccess = async (
     value: unknown,
     documentName: string,
-    connection: connectedPayload["connection"]
+    connection: Connection
   ) => {
     const { grant: original, token } = contextSchema.parse(value);
+    if (unchanged(checks.get(connection), original.organizationId)) return;
+    log("collab.recheck", { documentName, organizationId: original.organizationId });
+    // Taken before the request: a change published while it runs is seen next time.
+    const next = snapshot(original.organizationId);
     const grant = await backend.authorize(token, documentName);
     if (
       grant.draftId !== original.draftId ||
@@ -190,6 +257,58 @@ export function collabHooks(
       connection.readOnly ||
       grant.kind === "creative-set" ||
       grant.access !== "write";
+    checks.set(connection, next);
+  };
+  const recheck = ({ connection, context, documentName }: Open) => {
+    currentAccess(context, documentName, connection).catch((error: unknown) => {
+      log("collab.revoked", {
+        documentName,
+        status: error instanceof CollabBackendError ? error.status : 0,
+      });
+      connection.close({
+        code: 4403,
+        reason: "Document access is no longer available.",
+      });
+    });
+  };
+  const poll = async () => {
+    if (open.size === 0) {
+      if (timer) clearInterval(timer);
+      timer = null;
+      return;
+    }
+    try {
+      const counts = await backend.epochs([...open.keys()]);
+      const moved = new Set<string>();
+      if (counts.global !== known.global) {
+        for (const id of open.keys()) moved.add(id);
+      }
+      known.global = counts.global;
+      for (const [id, count] of Object.entries(counts.organizations)) {
+        if ((known.organizations.get(id) ?? 0) !== count) moved.add(id);
+        known.organizations.set(id, count);
+      }
+      // Pushed revocation: an idle reader loses access without waiting for a frame.
+      for (const id of moved)
+        for (const entry of open.get(id) ?? []) recheck(entry);
+    } catch (error) {
+      log("collab.epochs_failed", {
+        status: error instanceof CollabBackendError ? error.status : 0,
+      });
+    }
+  };
+  const track = (entry: Open, organizationId: string) => {
+    const entries = open.get(organizationId) ?? new Set<Open>();
+    entries.add(entry);
+    open.set(organizationId, entries);
+    entry.connection.onClose(() => {
+      entries.delete(entry);
+      if (entries.size === 0) open.delete(organizationId);
+    });
+    if (!timer) {
+      timer = setInterval(() => void poll(), pollMs);
+      timer.unref?.();
+    }
   };
   const protect = (
     value: unknown,
@@ -214,7 +333,19 @@ export function collabHooks(
         throw new Error("Unknown document.");
       }
       try {
+        // The counts as they stand before the request: a change published while
+        // it runs moves the workspace past this, so the next message re-checks.
+        const before = {
+          at: Date.now(),
+          global: known.global,
+          organizations: new Map(known.organizations),
+        };
         const grant = await backend.authorize(token, documentName);
+        const admitted: Check = {
+          at: before.at,
+          global: before.global,
+          organization: before.organizations.get(grant.organizationId) ?? 0,
+        };
         connectionConfig.readOnly =
           grant.kind === "creative-set" || grant.access !== "write";
         log("collab.admitted", {
@@ -223,7 +354,7 @@ export function collabHooks(
           organizationId: grant.organizationId,
           userId: grant.user.id,
         });
-        return { grant, token };
+        return { grant, token, admitted };
       } catch (error) {
         log("collab.refused", {
           documentName,
@@ -235,7 +366,15 @@ export function collabHooks(
     },
 
     async connected({ context, documentName, connection }: connectedPayload) {
+      const { admitted, grant } = contextSchema.parse(context);
+      if (admitted) checks.set(connection, admitted);
+      track({ connection, context, documentName }, grant.organizationId);
       protect(context, documentName, connection);
+    },
+
+    async onDestroy() {
+      if (timer) clearInterval(timer);
+      timer = null;
     },
 
     async beforeHandleMessage({

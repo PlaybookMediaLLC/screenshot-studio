@@ -39,13 +39,25 @@ function fakeBackend() {
         user: { id: token, name: token },
       };
     },
+    epochs: async () => ({ global: 0, organizations: { org: published } }),
     load: async () => null,
     store: async (_draftId, token, state) => {
       stored.push({ state, token });
     },
   };
-  return { backend, stored, grants };
+  let published = 0;
+  /** What the backend does after a demotion or removal commits. */
+  const publish = () => {
+    published += 1;
+  };
+  return { backend, stored, grants, publish };
 }
+
+/** Polls the access counts quickly, so tests see a published change at once. */
+const FAST = { pollMs: 10 };
+
+/** Long enough for the server to read a published change and re-check. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
 
 function connect(port: number, token: string, document = DOCUMENT) {
   const doc = new Y.Doc();
@@ -89,7 +101,7 @@ test("edits sync between editors, viewers stay read-only, strangers are refused"
     debounce: 50,
     port: 0,
     quiet: true,
-    ...collabHooks(backend, (event) => log.push(event)),
+    ...collabHooks(backend, (event) => log.push(event), undefined, FAST),
   });
   await server.listen();
   const port = server.address.port;
@@ -133,13 +145,13 @@ test("edits sync between editors, viewers stay read-only, strangers are refused"
   }
 });
 
-test("an open editor becomes read-only before its next live edit", async () => {
-  const { backend, stored, grants } = fakeBackend();
+test("an open editor becomes read-only once its demotion is published", async () => {
+  const { backend, stored, grants, publish } = fakeBackend();
   const server = new Server({
     port: 0,
     quiet: true,
     debounce: 50,
-    ...collabHooks(backend, () => {}),
+    ...collabHooks(backend, () => {}, undefined, FAST),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
@@ -155,6 +167,8 @@ test("an open editor becomes read-only before its next live edit", async () => {
       "initial edit"
     );
     grants["second-editor-token"] = "read";
+    publish();
+    await settle();
     member.doc.getText("t").insert(0, "forbidden ");
     await new Promise((resolve) => setTimeout(resolve, 300));
     assert.equal(
@@ -181,7 +195,7 @@ test("an open editor becomes read-only before its next live edit", async () => {
   }
 });
 
-test("an update's echo and acknowledgement share one outgoing decision", async () => {
+test("typing makes no authorization calls while access is unchanged", async () => {
   const { backend } = fakeBackend();
   const authorize = backend.authorize;
   let calls = 0;
@@ -192,7 +206,7 @@ test("an update's echo and acknowledgement share one outgoing decision", async (
   const server = new Server({
     port: 0,
     quiet: true,
-    ...collabHooks(backend, () => {}),
+    ...collabHooks(backend, () => {}, undefined, FAST),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
@@ -210,12 +224,9 @@ test("an update's echo and acknowledgement share one outgoing decision", async (
       "ten updates"
     );
     await new Promise((resolve) => setTimeout(resolve, 200));
-    // One decision admits each update; one more releases its echo together with
-    // the sync acknowledgement Hocuspocus sends in the same turn (was two).
-    assert.ok(
-      calls - before <= 20,
-      `${calls - before} decisions for ten updates`
-    );
+    // Authorized when it opened; nothing published since, so no update or
+    // outgoing frame asks the backend again (it was two calls per update).
+    assert.equal(calls - before, 0, `${calls - before} calls for ten updates`);
   } finally {
     owner.provider.destroy();
     owner.doc.destroy();
@@ -223,12 +234,12 @@ test("an update's echo and acknowledgement share one outgoing decision", async (
   }
 });
 
-test("a removed idle recipient gets no later document updates or awareness", async () => {
-  const { backend, grants } = fakeBackend();
+test("a removed idle recipient is closed once the removal is published", async () => {
+  const { backend, grants, publish } = fakeBackend();
   const server = new Server({
     port: 0,
     quiet: true,
-    ...collabHooks(backend, () => {}),
+    ...collabHooks(backend, () => {}, undefined, FAST),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
@@ -239,6 +250,8 @@ test("a removed idle recipient gets no later document updates or awareness", asy
       "initial sync"
     );
     delete grants["viewer-token"];
+    publish();
+    await until(() => viewer.events.closed, "removed idle recipient to close");
     owner.doc.getText("t").insert(0, "private after removal");
     owner.provider.setAwarenessField("user", { name: "Private presence" });
     await until(() => viewer.events.closed, "removed idle recipient to close");
@@ -257,35 +270,127 @@ test("a removed idle recipient gets no later document updates or awareness", asy
   }
 });
 
-test("a delayed authorization cannot release frames queued after removal", async () => {
+test("a demotion published while a connection is being admitted is re-checked", async () => {
+  const { backend, grants, publish } = fakeBackend();
+  const authorize = backend.authorize;
+  const release = Promise.withResolvers<void>();
+  let admitting = false;
+  backend.authorize = async (token, documentName) => {
+    // Reads the permission first, then answers late: the stale-grant race.
+    const grant = await authorize(token, documentName);
+    if (token === "second-editor-token" && !admitting) {
+      admitting = true;
+      await release.promise;
+    }
+    return grant;
+  };
+  const hooks = collabHooks(backend, () => {}, undefined, FAST);
+  const server = new Server({ port: 0, quiet: true, ...hooks });
+  await server.listen();
+  const owner = connect(server.address.port, "editor-token");
+  // A client that sends nothing until it is admitted, so no queued frame
+  // re-checks it: only the counts recorded at admission can.
+  const member = {
+    readOnly: false,
+    close: () => {},
+    onClose: () => {},
+    send: (_frame: Uint8Array) => {},
+  };
+  const connectionConfig = { readOnly: false, isAuthenticated: false };
+  try {
+    await until(() => owner.events.synced, "owner keeps the workspace polled");
+    const admission = hooks.onAuthenticate({
+      connectionConfig,
+      documentName: DOCUMENT,
+      token: "second-editor-token",
+    } as unknown as Parameters<typeof hooks.onAuthenticate>[0]);
+    await until(() => admitting, "admission read the old permission");
+    grants["second-editor-token"] = "read";
+    publish();
+    await settle();
+    release.resolve();
+    const context = await admission;
+    assert.equal(connectionConfig.readOnly, false, "admitted with the old grant");
+    await hooks.connected({
+      connection: member,
+      context,
+      documentName: DOCUMENT,
+    } as unknown as Parameters<typeof hooks.connected>[0]);
+    // An outgoing frame is gated on current access, like an incoming one.
+    member.send(new Uint8Array([0]));
+    await settle();
+    assert.equal(member.readOnly, true, "a stale grant was used");
+  } finally {
+    release.resolve();
+    owner.provider.destroy();
+    owner.doc.destroy();
+    await server.destroy();
+  }
+});
+
+test("a connection re-checks its access after recheckMs even with nothing published", async () => {
   const { backend, grants } = fakeBackend();
+  const server = new Server({
+    port: 0,
+    quiet: true,
+    ...collabHooks(backend, () => {}, undefined, { pollMs: 10, recheckMs: 50 }),
+  });
+  await server.listen();
+  const owner = connect(server.address.port, "editor-token");
+  const member = connect(server.address.port, "second-editor-token");
+  try {
+    await until(() => owner.events.synced && member.events.synced, "sync");
+    // An ended session, say: nothing is published, the next check still sees it.
+    delete grants["second-editor-token"];
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    member.doc.getText("t").insert(0, "after the session ended");
+    await until(
+      () => member.events.closed,
+      "the unpublished revocation to close it"
+    );
+    assert.equal(owner.doc.getText("t").toString(), "");
+  } finally {
+    for (const client of [owner, member]) {
+      client.provider.destroy();
+      client.doc.destroy();
+    }
+    await server.destroy();
+  }
+});
+
+test("frames queued while a published removal is re-checked are never delivered", async () => {
+  const { backend, grants, publish } = fakeBackend();
   const authorize = backend.authorize;
   const release = Promise.withResolvers<void>();
   let hold = false;
   let checking = false;
   backend.authorize = async (token, documentName) => {
-    const grant = await authorize(token, documentName);
     if (hold && token === "viewer-token") {
       hold = false;
       checking = true;
       await release.promise;
     }
-    return grant;
+    return authorize(token, documentName);
   };
   const server = new Server({
     port: 0,
     quiet: true,
-    ...collabHooks(backend, () => {}),
+    ...collabHooks(backend, () => {}, undefined, FAST),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
   const viewer = connect(server.address.port, "viewer-token");
   try {
     await until(() => owner.events.synced && viewer.events.synced, "sync");
-    hold = true;
     owner.doc.getText("t").insert(0, "before removal");
-    await until(() => checking, "held outgoing authorization");
+    await until(
+      () => viewer.doc.getText("t").toString().includes("before removal"),
+      "authorized edit"
+    );
+    hold = true;
     delete grants["viewer-token"];
+    publish();
+    await until(() => checking, "re-check of the published removal, held");
     owner.doc.getText("t").insert(14, " PRIVATE");
     await until(
       () =>
@@ -297,15 +402,7 @@ test("a delayed authorization cannot release frames queued after removal", async
       "private update queued while authorization is held"
     );
     release.resolve();
-    await until(
-      () => viewer.doc.getText("t").toString().includes("before removal"),
-      "authorized batch"
-    );
-    assert.ok(!viewer.doc.getText("t").toString().includes("PRIVATE"));
-    await until(
-      () => viewer.events.closed,
-      "new authorization to refuse the later batch"
-    );
+    await until(() => viewer.events.closed, "removed viewer to close");
     assert.ok(!viewer.doc.getText("t").toString().includes("PRIVATE"));
   } finally {
     release.resolve();
@@ -330,7 +427,7 @@ test("a rejected document store closes its room without crashing the server", as
     debounce: 10,
     port: 0,
     quiet: true,
-    ...collabHooks(backend, (event) => log.push(event)),
+    ...collabHooks(backend, (event) => log.push(event), undefined, FAST),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
@@ -390,7 +487,7 @@ test("a failed writer-token store refuses the update before broadcasting it", as
   const server = new Server({
     port: 0,
     quiet: true,
-    ...collabHooks(backend, () => {}, writers),
+    ...collabHooks(backend, () => {}, writers, FAST),
   });
   await server.listen();
   const owner = connect(server.address.port, "editor-token");
@@ -433,7 +530,7 @@ test(
       await import("@hocuspocus/extension-redis");
     const { Redis } = await import("ioredis");
     const url = process.env.COLLAB_TEST_REDIS_URL ?? "";
-    const { backend, stored, grants } = fakeBackend();
+    const { backend, stored, grants, publish } = fakeBackend();
     const clients: InstanceType<typeof Redis>[] = [];
     const replica = async () => {
       const redis = new Redis(url);
@@ -452,7 +549,7 @@ test(
         ],
         port: 0,
         quiet: true,
-        ...collabHooks(backend, () => {}, redisWriterTokens(redis)),
+        ...collabHooks(backend, () => {}, redisWriterTokens(redis), FAST),
       });
       await server.listen();
       return server;
@@ -471,6 +568,8 @@ test(
       await until(() => stored.length > 0, "a store");
       assert.ok(stored.every(({ token }) => token === "editor-token"));
       delete grants["viewer-token"];
+      publish();
+      await settle();
       editor.doc.getText("t").insert(0, "private ");
       await until(
         () => viewer.events.closed,
@@ -486,10 +585,12 @@ test(
   }
 );
 
-test("Story Sets share presence only and reauthorize membership on messages", async () => {
+test("Story Sets share presence only and drop a member once the removal is published", async () => {
   const name = "creative-set:cstory00000001";
   const admitted = new Set(["alice", "bob"]);
+  let published = 0;
   const backend: CollabBackend = {
+    epochs: async () => ({ global: 0, organizations: { org: published } }),
     authorize: async (token, documentName) => {
       if (!admitted.has(token) || documentName !== name)
         throw new CollabBackendError("Member removed", 403);
@@ -512,7 +613,7 @@ test("Story Sets share presence only and reauthorize membership on messages", as
     port: 0,
     quiet: true,
     debounce: 50,
-    ...collabHooks(backend, () => {}),
+    ...collabHooks(backend, () => {}, undefined, FAST),
   });
   await server.listen();
   const alice = connect(server.address.port, "alice", name);
@@ -540,6 +641,8 @@ test("Story Sets share presence only and reauthorize membership on messages", as
     assert.equal(bob.doc.getText("content").toString(), "");
     await until(() => stranger.events.failed !== "", "wrong set refused");
     admitted.delete("alice");
+    published += 1;
+    await settle();
     alice.provider.setAwarenessField("user", { name: "Removed" });
     await until(() => alice.events.closed, "removed member disconnected");
     assert.ok(

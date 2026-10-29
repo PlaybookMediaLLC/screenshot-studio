@@ -424,8 +424,10 @@ test('multiple stories, reusable versions and proposals remain editable through 
   await motion.getByRole('button', { name: 'Cancel render' }).click()
   await expect(motion.getByRole('button', { name: 'Render video' })).toBeEnabled()
   await motion.getByRole('button', { name: 'Render video' }).click()
+  // The render runs in the browser and shares the runner's CPUs with three
+  // other workers: one CI attempt was 86% done when 150 s ran out.
   await expect(motion.getByRole('button', { name: 'Download video ZIP' })).toBeEnabled({
-    timeout: 150_000,
+    timeout: 300_000,
   })
   await expect
     .poll(() =>

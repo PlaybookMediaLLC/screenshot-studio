@@ -166,18 +166,29 @@ test(
       })
       expect(wrongPerson.status).toBe(403)
 
-      // Refocusing an already-mounted settings page rehydrates the shared
-      // session and must replace its private query cache without a page reload.
+      // Refocusing replaces the private cache under the workspace-switch guard,
+      // without reloading the page or leaving the old connection dialog open.
       await page.bringToFront()
       await expect(async () => {
         await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
         await expect(
-          page.getByRole('link', { name: 'Settings for Private Beta', exact: true })
+          page.getByRole('link', {
+            name: 'Settings for Private Beta',
+            exact: true,
+            includeHidden: true,
+          })
         ).toBeVisible({ timeout: 1_000 })
       }).toPass({ timeout: 30_000, intervals: [1_000, 5_000] })
       await expect(
-        page.getByRole('link', { name: 'Settings for Private Alpha', exact: true })
+        page.getByRole('link', {
+          name: 'Settings for Private Alpha',
+          exact: true,
+          includeHidden: true,
+        })
       ).toHaveCount(0)
+      await expect(page.getByRole('alertdialog')).toContainText(
+        'You switched to Private Beta workspace in another tab.'
+      )
       await cancelledCreation
       releaseResponse()
       await delivered

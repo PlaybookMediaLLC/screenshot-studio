@@ -95,18 +95,20 @@ test(
     const reserved = page.waitForResponse(
       (response) => response.request().method() === 'PATCH' && response.ok()
     )
+    const uploading = page.waitForRequest((request) => request.method() === 'PUT')
     await page.getByLabel('Batch media files').setInputFiles(file)
     await page.getByLabel('Batch CSV', { exact: true }).fill('caption,asset\nCut short,cut.png')
     await page.getByRole('button', { name: 'Preview import', exact: true }).click()
     await page.getByRole('button', { name: /^Add 1 ready rows/ }).click()
     await reserved
-    await page.unrouteAll({ behavior: 'ignoreErrors' })
+    await uploading
     // After the reload the page tries to finish the upload and finds no bytes.
     const refused = page.waitForResponse((response) =>
       response.url().includes('asset.completeUpload')
     )
     await app.reload()
     await refused
+    await page.unrouteAll({ behavior: 'ignoreErrors' })
 
     const item = page.getByTestId('batch-item')
     await expect(

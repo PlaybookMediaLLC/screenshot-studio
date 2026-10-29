@@ -14,6 +14,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/agentclients"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/authstore"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/capture"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/collab"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/config"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/database"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
@@ -114,6 +115,14 @@ func main() {
 	// The MCP server counts per-key calls on the same Redis; nil skips them.
 	var limiter product.QuotaCounter
 	if redisURL := os.Getenv("REDIS_URL"); redisURL != "" {
+		// Collaboration access counts are shared by every backend replica.
+		epochs, err := collab.NewRedisEpochs(redisURL)
+		if err != nil {
+			slog.Error("invalid collaboration epoch configuration", "error", err)
+			os.Exit(1)
+		}
+		defer epochs.Close()
+		configuration.WithCollabEpochs(epochs)
 		counter, err := quota.NewRedisCounter(redisURL)
 		if err != nil {
 			slog.Error("invalid quota counter configuration", "error", err)

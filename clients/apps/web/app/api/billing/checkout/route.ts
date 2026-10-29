@@ -14,6 +14,7 @@ export const POST = route(createBillingSessionContract, {
       interval: body.interval,
       organizationId: access.organizationId,
       plan: body.plan,
+      returnTo: body.returnTo,
     })
   },
 })

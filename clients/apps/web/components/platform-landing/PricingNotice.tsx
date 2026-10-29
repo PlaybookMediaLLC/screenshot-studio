@@ -4,6 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect } from 'react'
 import { ReturnToWork } from '@/components/platform-hub/ReturnToWork'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { safeReturnPath } from '@/lib/platform/navigation'
 
 /** What a visit to /pricing tells the buyer, keyed by `param=value` from the URL. */
 const OUTCOMES: Record<string, string> = {
@@ -20,10 +21,10 @@ const POLL_LIMIT_MS = 60_000
 
 /**
  * While Stripe finishes activating a subscription, checks the workspace's
- * plan every few seconds and opens the app once it is paid, or after a
+ * plan every few seconds and opens `destination` once it is paid, or after a
  * minute either way (the app sends an unpaid workspace back here).
  */
-function useOpenAppWhenPaid(enabled: boolean) {
+function useOpenAppWhenPaid(enabled: boolean, destination: string) {
   useEffect(() => {
     if (!enabled) return
     const startedAt = Date.now()
@@ -37,11 +38,11 @@ function useOpenAppWhenPaid(enabled: boolean) {
         Date.now() - startedAt > POLL_LIMIT_MS
       ) {
         window.clearInterval(timer)
-        window.location.assign('/')
+        window.location.assign(destination)
       }
     }, POLL_MS)
     return () => window.clearInterval(timer)
-  }, [enabled])
+  }, [destination, enabled])
 }
 
 function Notice() {
@@ -49,7 +50,10 @@ function Notice() {
   const key = ['subscribe', 'checkout', 'credits']
     .map((param) => `${param}=${searchParams.get(param)}`)
     .find((candidate) => OUTCOMES[candidate])
-  useOpenAppWhenPaid(key === 'checkout=pending')
+  useOpenAppWhenPaid(
+    key === 'checkout=pending',
+    safeReturnPath(searchParams.get('returnTo'), '/')
+  )
   if (!key) return null
   return (
     <Alert className="mb-6 rounded-none border-white/15 bg-[#181818] px-5 py-4 text-white">

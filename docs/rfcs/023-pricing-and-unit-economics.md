@@ -324,9 +324,14 @@ the number of launches a plan covers changes.
    workspace without a subscription, or the billing portal for one that
    already subscribes (`lib/billing/stripe.ts`). Checkout returns to
    `/api/billing/checkout/return`, which reads the session from Stripe,
-   applies the plan, and opens onboarding's product step or the app. When
+   applies the plan, and opens the in-app page the buyer asked for, else
+   onboarding's product step or the app. That page travels as `returnTo`
+   from the plan page through `/pricing`, the checkout request and Stripe's
+   success and cancel URLs (`checkoutRedirects` in
+   `lib/billing/stripe-events.ts`); only an in-app path is accepted. When
    Stripe has not activated the subscription yet, it opens
-   `/pricing?checkout=pending`, which polls until the plan is applied.
+   `/pricing?checkout=pending`, which polls until the plan is applied and
+   then opens the same page.
    `POST /api/webhooks/stripe` verifies the Stripe signature, reads the
    subscription fresh from Stripe, and applies it through the same versioned
    entitlement sync as the signed billing webhook, retrying a stale version

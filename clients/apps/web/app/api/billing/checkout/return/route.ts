@@ -4,19 +4,15 @@ import { errorResponse, route } from '@/lib/api/route'
 import { organizationAccess } from '@/lib/api/route-auth'
 import { getAuthBaseUrl } from '@/lib/auth/environment'
 import { completeCheckout } from '@/lib/billing/stripe'
-import { checkoutReturnSchema } from '@/lib/billing/stripe-events'
+import { checkoutReturnSchema, pathAfterCheckout } from '@/lib/billing/stripe-events'
 import { ONBOARDING_PRODUCT_PATH, pathAfterPlan } from '@/lib/onboarding/next-step'
-
-const NEXT_PATH = {
-  [checkoutReturnSchema.enum.pending]: '/pricing?checkout=pending',
-  [checkoutReturnSchema.enum.success]: '/?checkout=success',
-}
 
 /**
  * Stripe's success URL. Applies the plan the buyer just paid for, then sends
- * them to onboarding's product step (or the app, once the workspace has a
- * product profile), or to a page that waits for the webhook when Stripe has
- * not activated the subscription yet.
+ * them to the in-app page they were sent to pricing from (`returnTo`), else
+ * to onboarding's product step (or the app, once the workspace has a product
+ * profile), or to a page that waits for the webhook when Stripe has not
+ * activated the subscription yet.
  */
 export const GET = route(completeCheckoutContract, {
   auth: organizationAccess('billing:manage'),
@@ -28,10 +24,11 @@ export const GET = route(completeCheckoutContract, {
     if (outcome === checkoutReturnSchema.enum.mismatch) {
       return errorResponse(403, 'This checkout does not belong to the active workspace.')
     }
-    const next =
-      outcome === checkoutReturnSchema.enum.success && (await pathAfterPlan(access)) !== '/'
+    const next = await pathAfterCheckout(outcome, query.returnTo, async () =>
+      (await pathAfterPlan(access)) !== '/'
         ? `${ONBOARDING_PRODUCT_PATH}?checkout=success`
-        : NEXT_PATH[outcome]
+        : '/?checkout=success'
+    )
     return NextResponse.redirect(new URL(next, getAuthBaseUrl()), 303)
   },
 })

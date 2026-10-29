@@ -73,8 +73,11 @@ export default async function UpgradePage({
           <Row>
             <div className="flex flex-wrap items-center gap-3">
               {canManage ? (
-                // Straight to plan choice; pricing links back to what they asked for.
-                <ButtonLink href={`/pricing?returnTo=${encodeURIComponent(requested || '/home')}`}>
+                // Straight to plan choice. What they asked for travels through Checkout
+                // and opens once they pay; without it, onboarding or the app opens as before.
+                <ButtonLink
+                  href={requested ? `/pricing?returnTo=${encodeURIComponent(requested)}` : '/pricing'}
+                >
                   Choose a plan
                 </ButtonLink>
               ) : (

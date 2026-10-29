@@ -633,7 +633,9 @@ func (c *Configuration) CreateContentBatchItemDraft(ctx context.Context, actor A
 		if input.AssetIDs != nil && !slices.Equal(input.AssetIDs, assets) {
 			return nil, invalid("The draft's attachments must be the item's, in order.")
 		}
-		input.ImportKey, input.SocialSetID, input.AssetIDs = item.ImportKey, row.SocialSetID, assets
+		// One receipt per item: two people saving it at once wait on the same
+		// lock, and the second gets the first one's draft.
+		input.ImportKey, input.SocialSetID, input.AssetIDs, input.importScope = item.ImportKey, row.SocialSetID, assets, "batch-item:"+item.ID
 		input.ChannelConnectionIDs = item.ChannelConnectionIds
 		draft, err := c.CreateContentDraft(ctx, actor, input)
 		if err != nil {

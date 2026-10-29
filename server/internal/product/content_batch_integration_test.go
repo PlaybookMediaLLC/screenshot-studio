@@ -9,6 +9,7 @@ import (
 	"image/jpeg"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -230,6 +231,36 @@ func TestContentBatches(t *testing.T) {
 		}
 		if _, err := repo.AddContentBatchItems(ctx, owner, batch.ID, over); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("51 items: %v", err)
+		}
+	})
+
+	t.Run("two people saving the same item at once get one draft", func(t *testing.T) {
+		w.addMember(t, "editor", "creator")
+		batch, err := repo.CreateContentBatch(ctx, owner, ContentBatchInput{Title: "Shared"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if batch, err = repo.AddContentBatchItems(ctx, owner, batch.ID, []ContentBatchItemInput{item("shared", 0, photos[0])}); err != nil {
+			t.Fatal(err)
+		}
+		entry := batch.Items[0]
+		var wg sync.WaitGroup
+		results := make([]*ContentBatchItemRecord, 2)
+		errs := make([]error, 2)
+		for i, actor := range []Actor{owner, w.actor("editor")} {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				results[i], errs[i] = repo.CreateContentBatchItemDraft(ctx, actor, batch.ID, entry.ID, ContentDraftInput{Title: "Shared", PlainText: entry.Caption})
+			}()
+		}
+		wg.Wait()
+		if errs[0] != nil || errs[1] != nil || *results[0].DraftID != *results[1].DraftID {
+			t.Fatalf("concurrent drafts: %v %v", errs, results)
+		}
+		var drafts int
+		if err := w.db.SQL.QueryRowContext(ctx, `SELECT count(*) FROM content_draft WHERE "organizationId"=$1 AND title='Shared'`, w.org).Scan(&drafts); err != nil || drafts != 1 {
+			t.Fatalf("%d drafts for one item: %v", drafts, err)
 		}
 	})
 

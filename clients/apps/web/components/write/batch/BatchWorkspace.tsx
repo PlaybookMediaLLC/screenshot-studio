@@ -101,20 +101,23 @@ function LocalTimeFields({
 }: {
   disabled?: boolean
   label: string
-  onChange: (value: string) => void
+  /**
+   * Receives the edit, not the result: applied to the latest saved value,
+   * a time typed before an earlier day change is saved keeps that day.
+   */
+  onChange: (edit: (current: string) => string) => void
   value: string
 }) {
   const [day = '', time = ''] = value ? value.split('T') : []
-  const set = (nextDay: string, nextTime: string) => {
-    if (nextDay && nextTime) onChange(`${nextDay}T${nextTime}`)
-  }
   return (
     <span className="flex items-center gap-1">
       <DatePicker
         aria-label={`${label} day`}
         disabled={disabled}
         value={day}
-        onChange={(next) => set(next, time || '09:00')}
+        onChange={(next) => {
+          if (next) onChange((current) => `${next}T${current.split('T')[1] || time || '09:00'}`)
+        }}
       />
       <Input
         aria-label={`${label} time`}
@@ -122,7 +125,10 @@ function LocalTimeFields({
         disabled={disabled}
         type="time"
         value={time}
-        onChange={(event) => set(day, event.target.value)}
+        onChange={(event) => {
+          const next = event.target.value
+          if (day && next) onChange((current) => `${current.split('T')[0] || day}T${next}`)
+        }}
       />
     </span>
   )
@@ -1182,7 +1188,9 @@ export function BatchWorkspace({
                       <LocalTimeFields
                         label="Spread start"
                         value={spread.start}
-                        onChange={(start) => setSpread({ ...spread, start })}
+                        onChange={(edit) =>
+                          setSpread((current) => ({ ...current, start: edit(current.start) }))
+                        }
                       />
                     </div>
                     <Label className="grid gap-1 font-normal">
@@ -1327,14 +1335,18 @@ export function BatchWorkspace({
                             disabled={busy !== null}
                             label={`Item ${index + 1}`}
                             value={item.timing.mode === 'time' ? (item.timing.localTime ?? '') : ''}
-                            onChange={(localTime) =>
-                              void updateItem(item, {
+                            onChange={(edit) =>
+                              void updateItem(item, (latest) => ({
                                 timing: {
                                   mode: 'time',
-                                  localTime,
-                                  timeZone: item.timing.timeZone || zone,
+                                  localTime: edit(
+                                    latest.timing.mode === 'time'
+                                      ? (latest.timing.localTime ?? '')
+                                      : ''
+                                  ),
+                                  timeZone: latest.timing.timeZone || zone,
                                 },
-                              })
+                              }))
                             }
                           />
                           {timing.kind === 'problem' && /happens twice/.test(timing.text)

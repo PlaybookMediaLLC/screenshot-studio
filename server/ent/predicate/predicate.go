@@ -126,6 +126,15 @@ type Design func(*sql.Selector)
 // EnrichmentRecord is the predicate function for enrichmentrecord builders.
 type EnrichmentRecord func(*sql.Selector)
 
+// FrontendActivation is the predicate function for frontendactivation builders.
+type FrontendActivation func(*sql.Selector)
+
+// FrontendObservation is the predicate function for frontendobservation builders.
+type FrontendObservation func(*sql.Selector)
+
+// FrontendSource is the predicate function for frontendsource builders.
+type FrontendSource func(*sql.Selector)
+
 // GitHubDeliveryRecovery is the predicate function for githubdeliveryrecovery builders.
 type GitHubDeliveryRecovery func(*sql.Selector)
 

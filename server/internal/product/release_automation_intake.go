@@ -71,8 +71,12 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 			event = &automation.Event{RepositoryID: evidence.RepositoryID}
 		}
 	}
+	frontend, err := c.acceptGitHubFrontend(ctx, input)
+	if err != nil {
+		return nil, err
+	}
 	if event == nil {
-		return &GitHubEventAcceptance{}, nil
+		return &frontend, nil
 	}
 	sources, err := c.GitHubSources(ctx, installation, event.RepositoryID)
 	if err != nil {
@@ -83,6 +87,10 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 		result, err := c.acceptGitHubEvent(ctx, input.DeliveryID, *event, sources, evidence)
 		if ent.IsConstraintError(err) {
 			continue
+		}
+		if result != nil {
+			result.Handled += frontend.Handled
+			result.Duplicates += frontend.Duplicates
 		}
 		return result, err
 	}

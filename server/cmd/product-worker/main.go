@@ -229,7 +229,7 @@ func main() {
 			os.Exit(1)
 		}
 		defer retention.Close()
-		events := product.NewConfiguration(db.Client).WithCapturer(capture.FromEnvironment()).WithPostMetrics(provider).WithAnalytics(provider)
+		events := product.NewConfiguration(db.Client).WithWebhooks(cfg.WebhookEncryptionKey, nil).WithCapturer(capture.FromEnvironment()).WithPostMetrics(provider).WithAnalytics(provider)
 		if objectStore != nil {
 			events.WithObjectStore(objectStore)
 		}

@@ -1,7 +1,7 @@
 .PHONY: generate fmt fmt-check test race vet check build
 
 generate:
-	go generate ./ent ./internal/social/ent
+	go generate ./ent ./internal/social/ent ./internal/frontenddeploy/vercelapi
 
 fmt:
 	gofmt -w .
@@ -19,7 +19,7 @@ vet:
 	go vet ./...
 
 check: generate fmt-check test race vet
-	git diff --exit-code -- ent internal/social/ent
+	git diff --exit-code -- ent internal/social/ent internal/frontenddeploy/vercelapi/client.gen.go
 
 build:
 	go build ./cmd/...

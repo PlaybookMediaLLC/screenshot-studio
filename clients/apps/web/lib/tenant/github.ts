@@ -189,6 +189,8 @@ export const githubAppEventSchema = z.enum([
   'deployment_status',
   'workflow_run',
   'workflow_job',
+  'check_run',
+  'status',
   'installation',
   'installation_repositories',
   'milestone',

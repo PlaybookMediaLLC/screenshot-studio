@@ -27,6 +27,12 @@ type Definition struct {
 }
 
 var Catalogue = catalogue([]Definition{
+	{ID: "frontend.connection_attention", Label: "Frontend connection needs attention", Group: "deployments", Audience: "workspace"},
+	{ID: "frontend.succeeded", Label: "Production deployment reported successful", Group: "deployments", Audience: "workspace"},
+	{ID: "frontend.checks_passed", Label: "Production deployment reported successful; required checks passed", Group: "deployments", Audience: "workspace"},
+	{ID: "frontend.failed", Label: "Production deployment or required checks failed", Group: "deployments", Audience: "workspace"},
+	{ID: "frontend.needs_attention", Label: "Production deployment needs attention", Group: "deployments", Audience: "workspace"},
+	{ID: "frontend.rollback", Label: "Production rollback reported; inspect activation evidence", Group: "deployments", Audience: "workspace"},
 	{ID: "release.created", Label: "Release created", Group: "releases", Audience: "creators", Restricted: false, EmailDefault: false},
 	{ID: "release.ingested", Label: "Release received", Group: "releases", Audience: "creators", Restricted: false, EmailDefault: false},
 	{ID: "source_change.collected", Label: "Source changes received", Group: "releases", Audience: "creators", Restricted: false, EmailDefault: false},
@@ -112,6 +118,7 @@ func Emit(ctx context.Context, tx *ent.Tx, org, kind, resourceType, resourceID, 
 
 func catalogue(definitions []Definition) []Definition {
 	sources := map[string]string{
+		"frontend.connection_attention": "saveFrontendPollState", "frontend.succeeded": "emitFrontendDecision", "frontend.checks_passed": "emitFrontendDecision", "frontend.failed": "emitFrontendDecision", "frontend.needs_attention": "emitFrontendDecision", "frontend.rollback": "emitFrontendDecision",
 		"release.created": "CreateRelease", "release.ingested": "IngestSourceRelease", "source_change.collected": "CollectSourceChange", "source_app.connected": "CreateSourceApp", "deployment.succeeded": "IngestDeployment",
 		"capture.completed": "recordCapture", "capture.failed": "handleDeploymentEvent", "asset.uploaded": "CompleteAssetUpload", "asset.generated": "StoreGeneratedAsset",
 		"generation.completed": "FinishLaunchRun", "generation.failed": "FinishLaunchRun / expired-run recovery", "generation.budget_exhausted": "FinishLaunchRun", "generation.cancelled": "CancelLaunchRun",
@@ -121,7 +128,7 @@ func catalogue(definitions []Definition) []Definition {
 		"integration.connected": "SaveIntegration / FinishOAuth / Slack callback / provider health recovery", "integration.disconnected": "DeleteIntegration / Slack Disconnect", "integration.reconnect_required": "Slack / social provider committed health transition", "invitation.created": "CreateInvitation", "invitation.revoked": "RevokeInvitation", "member.joined": "membership transaction trigger", "member.removed": "RemoveMember / membership transaction trigger", "member.left": "LeaveWorkspace", "member.role_changed": "ChangeMemberRole / membership transaction trigger", "workspace.ownership_transferred": "TransferWorkspaceOwnership",
 		"workflow.completed": "FinishReleaseAutomation", "workflow.needs_attention": "FinishReleaseAutomation",
 	}
-	destinations := map[string]string{"releases": "release intake or associated campaign", "captures": "product page", "assets": "asset or campaign", "generation": "campaign run", "reviews": "campaign step or draft editor", "comments": "resource discussion", "mentions": "resource discussion", "publishing": "draft calendar or campaign", "integrations": "integration or source settings", "membership": "member settings", "workflows": "workflow run"}
+	destinations := map[string]string{"deployments": "deployment evidence", "releases": "release intake or associated campaign", "captures": "product page", "assets": "asset or campaign", "generation": "campaign run", "reviews": "campaign step or draft editor", "comments": "resource discussion", "mentions": "resource discussion", "publishing": "draft calendar or campaign", "integrations": "integration or source settings", "membership": "member settings", "workflows": "workflow run"}
 	for i := range definitions {
 		d := &definitions[i]
 		d.MandatoryFailure = d.ID == "post.publish_failed" || d.ID == "post.publish_recovery_required"

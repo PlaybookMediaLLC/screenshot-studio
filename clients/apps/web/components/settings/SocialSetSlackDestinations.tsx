@@ -1,6 +1,7 @@
 'use client'
 
 import { useSocialSets } from '@/components/settings/social-sets/api'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import type { NotificationSettings } from '@/lib/notifications/schema'
@@ -13,6 +14,8 @@ export function SocialSetSlackDestinations({policy,channels,disabled,onChange}:{
   onChange:(policy:NotificationSettings['policy'])=>void
 }) {
   const sets=useSocialSets()
+  // By publishing brand, above, already says what the plan is missing.
+  if (isPlanRefusal(sets.error)) return null
   if (sets.isError) return <p role="alert">Publishing brands could not be loaded. Reload to change brand destinations.</p>
   if (sets.isPending) return <p role="status">Loading publishing brands…</p>
   const shared=sets.data.items.filter((set) => set.visibility==='WORKSPACE')

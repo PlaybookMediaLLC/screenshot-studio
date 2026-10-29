@@ -3,13 +3,20 @@ import { initTRPC } from '@trpc/server'
 import superjson from 'superjson'
 import { ZodError } from 'zod'
 import { workflowFieldErrors } from './workflow-field-errors'
-import { getDomainTRPCError } from './errors'
+import { getDomainTRPCError, platformErrorCode } from './errors'
 import type { TRPCContext } from './context'
 
 const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error, path }) {
-    return { ...shape, data: { ...shape.data, fieldErrors: workflowFieldErrors(error, path) } }
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        fieldErrors: workflowFieldErrors(error, path),
+        platformCode: platformErrorCode(error),
+      },
+    }
   },
 })
 

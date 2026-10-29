@@ -151,6 +151,40 @@ export function checkoutReturnFor(
     : checkoutReturnSchema.enum.pending
 }
 
+/** `path` with the buyer's in-app page added as `returnTo`, when there is one. */
+function withReturnTo(path: string, returnTo: string | undefined): string {
+  if (!returnTo) return path
+  return `${path}${path.includes('?') ? '&' : '?'}returnTo=${encodeURIComponent(returnTo)}`
+}
+
+/**
+ * Where Stripe sends a subscription buyer, as app paths: the return route
+ * once they pay, pricing if they cancel. Both keep the page they came from.
+ */
+export function checkoutRedirects(returnTo?: string): { cancel: string; success: string } {
+  return {
+    cancel: withReturnTo('/pricing?checkout=cancelled', returnTo),
+    // Stripe fills in {CHECKOUT_SESSION_ID}, so it stays unencoded.
+    success: withReturnTo('/api/billing/checkout/return?session_id={CHECKOUT_SESSION_ID}', returnTo),
+  }
+}
+
+/**
+ * Where a returning buyer goes: the page they were sent from, otherwise
+ * `appPath` (onboarding's product step or the app). A subscription Stripe has
+ * not activated yet waits on pricing, which opens the same page once it is.
+ */
+export async function pathAfterCheckout(
+  outcome: Exclude<z.infer<typeof checkoutReturnSchema>, 'mismatch'>,
+  returnTo: string | undefined,
+  appPath: () => Promise<string>
+): Promise<string> {
+  if (outcome === checkoutReturnSchema.enum.pending) {
+    return withReturnTo('/pricing?checkout=pending', returnTo)
+  }
+  return returnTo ?? appPath()
+}
+
 /** A live subscription's billing cycle, as the billing page shows it. */
 export const subscriptionCycleSchema = z.object({
   /** When a scheduled cancellation ends the plan; null when none is scheduled. */

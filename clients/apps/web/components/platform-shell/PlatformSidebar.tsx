@@ -77,19 +77,19 @@ const PAID_AREAS = new Set(['create', 'campaigns', 'library', 'automate', 'activ
 function NavLink({
   collapsed,
   item: { href, icon, key },
+  locked,
   onNavigate,
-  paidPlan,
   subs,
 }: {
   collapsed: boolean
   item: NavItem
+  /** The plan does not include the area: it is marked Pro and opens the plan page. */
+  locked: boolean
   onNavigate?: () => void
-  paidPlan: boolean
   /** The area's pages, listed under the row while the area is open (Polar's NavList). */
   subs?: AreaLink[]
 }) {
   const t = useTranslations('platformNavigation')
-  const locked = !paidPlan && PAID_AREAS.has(key)
   const pathname = usePathname()
   const active = platformArea(pathname) === platformArea(href)
   return (
@@ -122,6 +122,7 @@ function Navigation({
   campaignsEnabled,
   collapsed,
   draftsEnabled,
+  draftsPlan,
   onNavigate,
   paidPlan,
   role,
@@ -129,6 +130,7 @@ function Navigation({
   campaignsEnabled: boolean
   collapsed: boolean
   draftsEnabled: boolean
+  draftsPlan: boolean
   onNavigate?: () => void
   paidPlan: boolean
   role: string
@@ -144,6 +146,7 @@ function Navigation({
         collapsed={collapsed}
         campaignsEnabled={campaignsEnabled}
         draftsEnabled={draftsEnabled}
+        draftsPlan={draftsPlan}
         onNavigate={onNavigate}
         paidPlan={paidPlan}
         role={role}
@@ -161,8 +164,13 @@ function Navigation({
                 collapsed={collapsed}
                 item={item}
                 key={item.href}
+                // Home, and Publish where it opens drafts, need content drafts.
+                locked={
+                  item.key === 'home' || (item.key === 'publish' && draftsEnabled)
+                    ? !draftsPlan
+                    : !paidPlan && PAID_AREAS.has(item.key)
+                }
                 onNavigate={onNavigate}
-                paidPlan={paidPlan}
                 subs={
                   item.key === 'publish'
                     ? draftsEnabled
@@ -345,6 +353,8 @@ export interface PlatformSidebarProps {
   /** Who is signed in where, from the server, for the notification count. */
   notificationIdentity?: { userId: string; workspaceId: string }
   organizationName?: string
+  /** False when the plan lacks content drafts: Home, Publish and New → Post are marked Pro. */
+  draftsPlan?: boolean
   /** False without a paid plan, which marks the paid areas before they are opened. */
   paidPlan?: boolean
   /** The member's workspace role; New offers what it may create. */
@@ -410,6 +420,7 @@ function useNavigationExpanded(
 export function PlatformSidebar({
   campaignsEnabled,
   draftsEnabled = false,
+  draftsPlan = true,
   initialNavigation = 'expanded',
   notificationIdentity,
   organizationName = 'Workspace',
@@ -427,7 +438,8 @@ export function PlatformSidebar({
     <>
       <ShellSearch
         campaignsEnabled={campaignsEnabled}
-        draftsEnabled={draftsEnabled}
+        // Posts are searched only where the plan can read them.
+        draftsEnabled={draftsEnabled && draftsPlan}
         paidPlan={paidPlan}
         workspaceId={notificationIdentity?.workspaceId}
       />
@@ -461,6 +473,7 @@ export function PlatformSidebar({
             campaignsEnabled={campaignsEnabled}
             collapsed={collapsed}
             draftsEnabled={draftsEnabled}
+            draftsPlan={draftsPlan}
             paidPlan={paidPlan}
             role={role}
           />
@@ -511,6 +524,7 @@ export function PlatformSidebar({
                   campaignsEnabled={campaignsEnabled}
                   collapsed={false}
                   draftsEnabled={draftsEnabled}
+                  draftsPlan={draftsPlan}
                   paidPlan={paidPlan}
                   role={role}
                   onNavigate={() => setMobileOpen(false)}

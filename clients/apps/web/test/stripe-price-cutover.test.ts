@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import type Stripe from 'stripe'
-import { subscriptionMoves, targetPrices } from '../scripts/stripe-price-cutover'
+import {
+  productDescription,
+  subscriptionMoves,
+  targetPrices,
+} from '../scripts/stripe-price-cutover'
 
 test('the cutover charges the prices RFC 023 lists, in cents', () => {
   assert.deepEqual(targetPrices(), {
@@ -11,6 +15,17 @@ test('the cutover charges the prices RFC 023 lists, in cents', () => {
     STRIPE_PRICE_BUSINESS_ANNUAL: { interval: 'year', unitAmount: 80_400 },
     STRIPE_PRICE_EXTRA_LAUNCH: { interval: null, unitAmount: 1_200 },
   })
+})
+
+test('Checkout describes each plan with the allowances it grants', () => {
+  assert.equal(
+    productDescription('pro'),
+    '600 AI credits, 250 scheduled posts, and 5,000 release emails each month.'
+  )
+  assert.equal(
+    productDescription('business'),
+    '3,000 AI credits, 600 scheduled posts, and 25,000 release emails each month.'
+  )
 })
 
 test('every subscription on a replaced price moves unless it has ended', () => {

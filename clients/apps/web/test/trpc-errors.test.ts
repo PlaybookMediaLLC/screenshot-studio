@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { TRPCError } from '@trpc/server'
 import { ZodError } from 'zod'
-import { getDomainTRPCError } from '@/lib/trpc/errors'
+import { getDomainTRPCError, platformErrorCode } from '@/lib/trpc/errors'
 import { WorkspaceError } from '@/lib/workspace/errors'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 
@@ -107,4 +107,19 @@ test('a transaction failure left unconverted would surface as 500', () => {
   // so the assertions above cannot pass for an unrelated reason.
   const raw = Object.assign(new Error('Transaction already closed'), { code: 'P2028' })
   assert.equal(getDomainTRPCError(raw), null)
+})
+
+test('a plan refusal carries its platform code to the browser, as REST does', () => {
+  const refused = getDomainTRPCError(
+    new BackendSDKError('The workspace:use capability is not available.', 403, {
+      code: 'workspace_feature_not_entitled',
+      currentPlan: 'free',
+      feature: 'workspace:use',
+      requiredPlan: 'pro',
+    })
+  )
+  assert.equal(refused?.code, 'FORBIDDEN')
+  assert.equal(platformErrorCode(refused!), 'workspace_feature_not_entitled')
+  // A plain tRPC error has no domain cause, so no platform code.
+  assert.equal(platformErrorCode(new TRPCError({ code: 'FORBIDDEN' })), null)
 })

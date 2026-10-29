@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { z } from 'zod'
-import { failureForStatus, rateLimitHeaders, toApiFailure } from '@/lib/api/platform-errors'
+import {
+  failureForStatus,
+  isPlanRefusal,
+  rateLimitHeaders,
+  toApiFailure,
+} from '@/lib/api/platform-errors'
+import { DraftRequestError } from '@/lib/content-drafts/client'
+import { SettingsRequestError } from '@/lib/settings/client'
 import { getDomainTRPCError } from '@/lib/trpc/errors'
 import { WorkspaceError } from '@/lib/workspace/errors'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
@@ -110,4 +117,24 @@ test('unknown errors are left for the caller to log as a 500', () => {
   assert.equal(toApiFailure(new Error('Unexpected.')), null)
   assert.equal(toApiFailure(namedError('PrismaClientKnownRequestError', 'P2028')), null)
   assert.equal(toApiFailure('not an error'), null)
+})
+
+test('a plan refusal is recognized from every browser client, and nothing else is', () => {
+  const code = 'workspace_feature_not_entitled'
+  const message = 'The workspace:use capability is not available on the current workspace plan.'
+  assert.equal(isPlanRefusal(new SettingsRequestError(message, 403, code)), true)
+  assert.equal(
+    isPlanRefusal(new DraftRequestError(message, 403, { code, requiredPlan: 'pro' })),
+    true
+  )
+  assert.equal(isPlanRefusal({ data: { code: 'FORBIDDEN', platformCode: code } }), true)
+  // A role refusal or an outage is not a plan refusal: those keep their own message or retry.
+  assert.equal(isPlanRefusal(new SettingsRequestError('Denied.', 403, 'forbidden')), false)
+  assert.equal(
+    isPlanRefusal(new DraftRequestError('Down.', 503, { code: 'upstream_unavailable' })),
+    false
+  )
+  assert.equal(isPlanRefusal({ data: { code: 'FORBIDDEN', platformCode: 'forbidden' } }), false)
+  assert.equal(isPlanRefusal(new Error(message)), false)
+  assert.equal(isPlanRefusal(null), false)
 })

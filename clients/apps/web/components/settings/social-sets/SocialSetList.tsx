@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { ChannelIcon } from '@/components/drafts/channel-meta'
-import { EmptyState, Group, Pill, Row } from '@/components/platform-ui'
+import { EmptyState, Group, Pill, PlanRequired, Row } from '@/components/platform-ui'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { DeveloperId } from '@/components/settings/DeveloperId'
 import { socialSetHref } from '@/components/workspace/settings-sections'
@@ -22,6 +22,7 @@ import {
   socialSetSchema,
 } from '@/lib/api/contracts/social-sets'
 import { channelForPlatform } from '@/lib/content-drafts/serialize'
+import { isPlanRefusal } from '@/lib/api/platform-errors'
 import { settingsErrorMessage } from '@/lib/settings/client'
 import { useSocialSetScope } from './scope'
 import { z } from 'zod'
@@ -316,6 +317,13 @@ export function SocialSetList({ canManage }: { canManage: boolean }) {
   const list = useSocialSets()
   if (list.isPending)
     return <p className="text-sm text-muted-foreground">Loading publishing brands…</p>
+  if (isPlanRefusal(list.error)) {
+    return (
+      <PlanRequired from="/workspace/social-sets">
+        Publishing brands, and the accounts and schedules they post with, need Pro.
+      </PlanRequired>
+    )
+  }
   if (list.isError) {
     return (
       <p className="text-sm text-red-700 dark:text-red-300" role="alert">

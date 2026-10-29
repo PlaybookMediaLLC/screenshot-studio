@@ -1,4 +1,6 @@
 import type { ComponentType, ReactNode } from 'react'
+import { ButtonLink } from '@/components/platform-shell/ButtonLink'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { cn } from '@/lib/utils'
 
 /**
@@ -200,5 +202,23 @@ export function EmptyState({
       </div>
       {action ? <div className="flex max-w-full flex-wrap justify-center gap-2">{action}</div> : null}
     </div>
+  )
+}
+
+/**
+ * What the workspace's plan does not include, and the way to one that does,
+ * in place of a control or list that cannot load. `from` is the page to
+ * return to; the plan page names it.
+ */
+export function PlanRequired({ children, from }: { children: ReactNode; from: string }) {
+  return (
+    <Alert>
+      <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+        <span>{children}</span>
+        <ButtonLink href={`/upgrade?from=${encodeURIComponent(from)}`} size="sm">
+          See plans
+        </ButtonLink>
+      </AlertDescription>
+    </Alert>
   )
 }

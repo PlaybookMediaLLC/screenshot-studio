@@ -324,9 +324,14 @@ the number of launches a plan covers changes.
    workspace without a subscription, or the billing portal for one that
    already subscribes (`lib/billing/stripe.ts`). Checkout returns to
    `/api/billing/checkout/return`, which reads the session from Stripe,
-   applies the plan, and opens onboarding's product step or the app. When
+   applies the plan, and opens the in-app page the buyer asked for, else
+   onboarding's product step or the app. That page travels as `returnTo`
+   from the plan page through `/pricing`, the checkout request and Stripe's
+   success and cancel URLs (`checkoutRedirects` in
+   `lib/billing/stripe-events.ts`); only an in-app path is accepted. When
    Stripe has not activated the subscription yet, it opens
-   `/pricing?checkout=pending`, which polls until the plan is applied.
+   `/pricing?checkout=pending`, which polls until the plan is applied and
+   then opens the same page.
    `POST /api/webhooks/stripe` verifies the Stripe signature, reads the
    subscription fresh from Stripe, and applies it through the same versioned
    entitlement sync as the signed billing webhook, retrying a stale version
@@ -428,7 +433,9 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
    nothing: Pro $29/month and $300/year, Business $79/month and $804/year,
    Extra Launch $12, and every subscription that will move.
 2. `... apply` creates those prices on the existing products (reusing any
-   that already match, so a re-run creates nothing twice) and moves every
+   that already match, so a re-run creates nothing twice), writes each plan
+   product's description, which Checkout shows the buyer, from the
+   allowances in `lib/billing/plans.ts`, and moves every
    subscription on an old price that has not ended (any status but
    `canceled` and `incomplete_expired`: an unpaid or paused one can bill
    again) to its new price without proration. Each customer pays the lower
@@ -452,6 +459,13 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
    default price), and archives the old prices. Run it right after the deploy: until then the portal still
    offers the old prices, and a customer who switches plan there lands on
    one, which makes `finish` refuse until `apply` runs again.
+
+The 2026-10-29 cutover ran before `apply` wrote descriptions, so Checkout
+still described the 2026-10-15 allowances (Pro 3,600 AI credits and 120
+posts, Business 13,200 and 480) while the app granted the new ones. Run
+`apply` once with the current `STRIPE_PRICE_*` values to correct them: every
+price and subscription is already on its new price, so it only rewrites the
+descriptions.
 
 A subscription cancelled between steps 2 and 3 is ignored the same way, so
 its workspace keeps its plan until a later event for it; keep the gap short.

@@ -416,25 +416,35 @@ contact page.
 Stripe prices cannot change amount, and `lib/billing/stripe.ts` maps a
 subscription to its plan by price ID. Switching the price variables while a
 subscription is still on an old price would leave that subscription without
-a plan. Do these in order, before or with the deploy that ships the new
-allowances:
+a plan. `scripts/stripe-price-cutover.ts` (in `clients/apps/web`) does the
+Stripe side in order. Run it with the five current `STRIPE_PRICE_*` values
+and a live key that can write prices, subscriptions and billing-portal
+configurations (the app's restricted key cannot). Its amounts come from
+`PLAN_PRICES`, `ANNUAL_DISCOUNT` and `CREDIT_PACKS`:
 
-1. In Stripe, create five prices on the existing products: Shots Pro
-   $29/month and $300/year, Shots Business $79/month and $804/year, and
-   Shots Extra Launch $12 one-time.
-2. Move every live Shots subscription on an old price to the matching new
-   price (Pro $199 to $29, Business $699 to $79, monthly or annual alike),
-   without proration charges. Each customer's bill drops.
-3. Put the five new price IDs in Infisical (`prod`, `/screenshot-studio`)
-   under the same `STRIPE_PRICE_*` names and deploy.
-4. Delete the Stripe billing portal configuration tagged `metadata.app =
-   shots`, so the app rebuilds it with the new prices on first use.
-5. Archive the five old prices.
+1. `npx tsx scripts/stripe-price-cutover.ts` prints the plan and changes
+   nothing: Pro $29/month and $300/year, Business $79/month and $804/year,
+   Extra Launch $12, and every live subscription that will move.
+2. `... apply` creates those prices on the existing products (reusing any
+   that already match, so a re-run creates nothing twice) and moves every
+   active, trialing or past-due subscription on an old price to its new
+   price without proration. Each customer pays the lower price from the next
+   renewal. Until the IDs change, the webhook for a moved subscription names
+   a price the app does not sell yet, so it changes nothing and the
+   workspace keeps its plan. It prints the new `STRIPE_PRICE_*` values.
+3. Put those values in Infisical (`prod`, `/screenshot-studio`) and deploy.
+4. `... finish`, still with the old values, refuses while any live
+   subscription is on an old price, deactivates the billing-portal
+   configuration tagged `metadata.app = shots` so the app rebuilds it with
+   the new prices, and archives the old prices.
+
+A subscription cancelled between steps 2 and 3 is ignored the same way, so
+its workspace keeps its plan until a later event for it; keep the gap short.
 
 The new allowances apply to every workspace on a plan at deploy, including
-invoiced Enterprise workspaces. A workspace that used more than 1,500 AI
-credits a month on Pro now fits Business, which costs less than its old Pro
-bill and includes more of everything.
+invoiced Enterprise workspaces. A workspace that used more than Pro's 600 AI
+credits a month now fits Business, which costs less than its old Pro bill
+and includes more of everything.
 
 ## Open items
 

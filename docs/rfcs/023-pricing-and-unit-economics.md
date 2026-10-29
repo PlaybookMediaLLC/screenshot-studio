@@ -380,16 +380,17 @@ the number of launches a plan covers changes.
       a downgrade. New ones are refused.
 
 Stripe setup. The products live in the Playbook Media organization's account
-(`acct_1OXB7hJ5a5YKQUvY`), in live mode. These are the 2026-10-15 prices; the
-2026-10-29 prices replace them through the [Stripe cutover](#stripe-cutover-for-the-2026-10-29-prices):
+(`acct_1OXB7hJ5a5YKQUvY`), in live mode. These are the 2026-10-29 prices, live
+since the [Stripe cutover](#stripe-cutover-for-the-2026-10-29-prices) ran on
+2026-10-29; the 2026-10-15 prices they replaced are archived:
 
 | Variable                        | Price                            | Stripe price ID                  |
 | ------------------------------- | -------------------------------- | -------------------------------- |
-| `STRIPE_PRICE_PRO_MONTHLY`      | Shots Pro, $199/month            | `price_1UR2aVJ5a5YKQUvYsctgLQXR` |
-| `STRIPE_PRICE_PRO_ANNUAL`       | Shots Pro, $2,028/year           | `price_1UR2beJ5a5YKQUvYJkDsVEFc` |
-| `STRIPE_PRICE_BUSINESS_MONTHLY` | Shots Business, $699/month       | `price_1UR2d6J5a5YKQUvYwYskMeEF` |
-| `STRIPE_PRICE_BUSINESS_ANNUAL`  | Shots Business, $7,128/year      | `price_1UR2etJ5a5YKQUvY6ugXO7JW` |
-| `STRIPE_PRICE_EXTRA_LAUNCH`     | Shots Extra Launch, $29 one-time | `price_1UR2g3J5a5YKQUvYA4LRZ18D` |
+| `STRIPE_PRICE_PRO_MONTHLY`      | Shots Pro, $29/month             | `price_1UVvzWJ5a5YKQUvYGH9ILWBv` |
+| `STRIPE_PRICE_PRO_ANNUAL`       | Shots Pro, $300/year             | `price_1UVvzXJ5a5YKQUvYsEDM4Dzl` |
+| `STRIPE_PRICE_BUSINESS_MONTHLY` | Shots Business, $79/month        | `price_1UVvzXJ5a5YKQUvYwl3ViL7N` |
+| `STRIPE_PRICE_BUSINESS_ANNUAL`  | Shots Business, $804/year        | `price_1UVvzXJ5a5YKQUvYvIHnupQe` |
+| `STRIPE_PRICE_EXTRA_LAUNCH`     | Shots Extra Launch, $12 one-time | `price_1UVvzYJ5a5YKQUvYjbk7kRyn` |
 
 The price IDs are in Infisical (`prod`, `/screenshot-studio`). Each web deploy
 (`infra/digitalocean/update-web-image.py`) adds every `STRIPE_*` key that
@@ -446,8 +447,9 @@ ships it is in production. Its amounts come from `PLAN_PRICES`,
    while any subscription that has not ended is on an old price, updates
    the billing-portal
    configuration tagged `metadata.app = shots` in place to offer the new
-   prices (running web processes keep its cached ID), and archives the old
-   prices. Run it right after the deploy: until then the portal still
+   prices (running web processes keep its cached ID), makes each new price
+   its product's default where the old one was (Stripe refuses to archive a
+   default price), and archives the old prices. Run it right after the deploy: until then the portal still
    offers the old prices, and a customer who switches plan there lands on
    one, which makes `finish` refuse until `apply` runs again.
 

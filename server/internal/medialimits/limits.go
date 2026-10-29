@@ -19,7 +19,44 @@ type ImageProfile struct {
 	Formats  []string `json:"formats"`
 }
 
+// VideoRules are a destination's published video limits. Zero means unbounded
+// by Shots; the account or the provider may still refuse.
+type VideoRules struct {
+	Formats  []string `json:"formats"`
+	Alone    bool     `json:"alone"`
+	MinMs    int      `json:"minMs"`
+	MaxMs    int      `json:"maxMs"`
+	MaxBytes int      `json:"maxBytes"`
+}
+
+// Destination is one draft channel's media rules, shared with the composer
+// (lib/write/capabilities.ts). Docs and VerifiedOn record where each number was
+// read. Account-specific limits are checked separately.
+type Destination struct {
+	MaxMedia      int  `json:"maxMedia"`
+	RequiresMedia bool `json:"requiresMedia"`
+	// Mixed allows images and videos in one post (a carousel).
+	Mixed  bool     `json:"mixed"`
+	Images []string `json:"images"`
+	// Converts names the formats Shots sends as another (Instagram takes JPEG only).
+	Converts      map[string]string `json:"converts"`
+	ImageMaxBytes int               `json:"imageMaxBytes"`
+	MinImageWidth int               `json:"minImageWidth"`
+	Aspect        *struct {
+		Min float64 `json:"min"`
+		Max float64 `json:"max"`
+	} `json:"aspect"`
+	GIF *struct {
+		Alone    bool `json:"alone"`
+		MaxBytes int  `json:"maxBytes"`
+	} `json:"gif"`
+	Video      *VideoRules `json:"video"`
+	Docs       []string    `json:"docs"`
+	VerifiedOn string      `json:"verifiedOn"`
+}
+
 var Limits struct {
+	Destinations   map[string]Destination  `json:"destinations"`
 	ImageProfiles  map[string]ImageProfile `json:"imageProfiles"`
 	FreeImageBytes int                     `json:"freeImageBytes"`
 	PaidImageBytes int                     `json:"paidImageBytes"`

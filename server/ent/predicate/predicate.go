@@ -87,6 +87,12 @@ type CommunicationRecipient func(*sql.Selector)
 // ContentAngle is the predicate function for contentangle builders.
 type ContentAngle func(*sql.Selector)
 
+// ContentBatch is the predicate function for contentbatch builders.
+type ContentBatch func(*sql.Selector)
+
+// ContentBatchItem is the predicate function for contentbatchitem builders.
+type ContentBatchItem func(*sql.Selector)
+
 // ContentDraft is the predicate function for contentdraft builders.
 type ContentDraft func(*sql.Selector)
 
@@ -126,11 +132,32 @@ type Design func(*sql.Selector)
 // EnrichmentRecord is the predicate function for enrichmentrecord builders.
 type EnrichmentRecord func(*sql.Selector)
 
+// FrontendActivation is the predicate function for frontendactivation builders.
+type FrontendActivation func(*sql.Selector)
+
+// FrontendObservation is the predicate function for frontendobservation builders.
+type FrontendObservation func(*sql.Selector)
+
+// FrontendSource is the predicate function for frontendsource builders.
+type FrontendSource func(*sql.Selector)
+
+// GitHubDeliveryRecovery is the predicate function for githubdeliveryrecovery builders.
+type GitHubDeliveryRecovery func(*sql.Selector)
+
 // GitHubInstallStart is the predicate function for githubinstallstart builders.
 type GitHubInstallStart func(*sql.Selector)
 
 // GitHubInstallation is the predicate function for githubinstallation builders.
 type GitHubInstallation func(*sql.Selector)
+
+// GitHubObservation is the predicate function for githubobservation builders.
+type GitHubObservation func(*sql.Selector)
+
+// GitHubProductionPolicy is the predicate function for githubproductionpolicy builders.
+type GitHubProductionPolicy func(*sql.Selector)
+
+// GitHubRecoveryScan is the predicate function for githubrecoveryscan builders.
+type GitHubRecoveryScan func(*sql.Selector)
 
 // IdealCustomerProfile is the predicate function for idealcustomerprofile builders.
 type IdealCustomerProfile func(*sql.Selector)

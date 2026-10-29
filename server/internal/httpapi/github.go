@@ -19,6 +19,7 @@ var (
 )
 
 func (s *Server) registerGitHub(mux *http.ServeMux) {
+	s.registerGitHubProduction(mux)
 	mux.Handle("POST /v1/source-changes", s.authenticateProduct(http.HandlerFunc(s.collectSourceChange)))
 	mux.Handle("POST /v1/source-deployments", s.authenticateProduct(http.HandlerFunc(s.ingestDeployment)))
 	mux.Handle("POST /v1/github/connections/start", s.authenticateProduct(http.HandlerFunc(s.startGitHubConnection)))

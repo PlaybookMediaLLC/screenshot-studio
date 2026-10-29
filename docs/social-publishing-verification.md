@@ -40,6 +40,21 @@ destination, and schedules through the web. It verifies:
 4. A cancelled post makes no provider request.
 5. HTTP 429 and 500 responses retry into one remote post each.
 6. An expired provider credential fails without publishing.
+7. Content drafts publish their media through the same worker. A second flow
+   uploads a PNG, an MP4 and two more images through the signed-upload flow,
+   then schedules three drafts to the fake destination, which takes drafts
+   under X's rules only in the gate (`PLATFORM_E2E_DRAFT_PLATFORM`): a photo
+   with a Unicode caption, a video, and three images in an order that is not
+   their upload order. The fake receives each post once with its caption, and
+   each item's content type, SHA-256 in order, and a 24-hour
+   (`X-Amz-Expires=86400`) signature; each `scheduled_post` is `PUBLISHED`
+   with one successful `publication_attempt`.
+
+In-process, `TestScheduledMediaReachesTheProviderThroughTheWorker` runs the
+real publish activities in the Temporal test environment against a private
+signed-URL bucket and a test provider. It adds a mixed carousel with a MOV,
+separate posts, an unanswered submission and a withdrawn approval; see
+[media scheduling](media-scheduling.md) for the capability matrix.
 
 `test/e2e/social-scheduling.spec.ts` checks the web callback and scheduling facade
 with a mock social API, including cross-workspace isolation, X, LinkedIn, and
@@ -49,10 +64,13 @@ rerun it after changing those paths.
 
 ## Remaining release gates
 
-- Inject lost provider responses, malformed replies, media fetch failure,
-  worker restart, approval revocation, and wrong-tenant access through the
-  isolated full stack. Prove no duplicate remote post and the intended
-  canonical status for each case.
+- Inject malformed replies and wrong-tenant access through the isolated full
+  stack. Lost responses, missing media, a worker that vanished before
+  sending, a lost receipt write, approval revocation, the late window and a
+  cancel racing the provider call are covered against real PostgreSQL and
+  Temporal with an in-process fake provider (`TestSchedulingThroughTemporal`,
+  see [scheduling reliability](scheduling/reliability.md)); repeat them
+  through `./dev/social-gate` with the web and the published SDK.
 - Hold a post for more than 24 real hours, then verify the worker signs its
   private media only when it publishes. Moving a future timestamp forward in
   a test proves scheduling behavior, but not elapsed URL expiry.

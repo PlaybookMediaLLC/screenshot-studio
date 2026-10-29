@@ -411,6 +411,21 @@ func TestContentDraftPlatform(t *testing.T) {
 		if old.Status != scheduledpost.StatusSCHEDULED {
 			t.Fatal("failed command consumed original timer")
 		}
+		// Approving a corrected edit approves the edit, not the queued snapshot it replaced.
+		current, err := repo.GetContentDraft(ctx, owner, draft.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		title := "Corrected after review"
+		if _, err := repo.UpdateContentDraft(ctx, owner, draft.ID, ContentDraftUpdate{BaseVersion: current.Version, Title: &title}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.ReviewContentDraft(ctx, owner, draft.ID, ContentDraftReviewInput{Action: "approve"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := repo.PublishQueuedContentDraftPost(ctx, owner, queued.Posts[0].ID); !errors.Is(err, publishing.ErrConflict) {
+			t.Fatalf("withdrawn snapshot published under a later approval: %v", err)
+		}
 	})
 
 	t.Run("approval gates scheduling at the approved version", func(t *testing.T) {

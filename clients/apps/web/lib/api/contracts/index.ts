@@ -1,3 +1,11 @@
+import {
+  getGitHubProductionContract,
+  saveGitHubProductionContract,
+  previewGitHubProductionContract,
+  getGitHubProductionCatalogContract,
+  getGitHubRecoveryContract,
+  inspectGitHubRecoveryContract,
+} from './github-production'
 import { updateSocialSetQueueContract } from '@/lib/api/contracts/social-set-queue'
 import { listSocialSetsContract, getSocialSetContract } from '@/lib/api/contracts/social-sets'
 import { lookupMentionsContract } from '@/lib/api/contracts/social-mentions'
@@ -98,6 +106,13 @@ import {
 
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
+  getGitHubProductionContract,
+  saveGitHubProductionContract,
+  previewGitHubProductionContract,
+  getGitHubProductionCatalogContract,
+  getGitHubRecoveryContract,
+  inspectGitHubRecoveryContract,
+
   listSocialSetsContract,
   updateSocialSetQueueContract,
   lookupMentionsContract,

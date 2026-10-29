@@ -164,6 +164,9 @@ type ContentDraftInput struct {
 	Scratchpad       string                     `json:"scratchpad"`
 	TagIDs           []string                   `json:"tagIds"`
 	Target           *draftdoc.Target           `json:"target"`
+	// importScope stands in for the actor in the import receipt: a batch
+	// item's draft is the item's, whoever saves it.
+	importScope string
 }
 
 // ContentDraftUpdate changes the fields it sets, based on BaseVersion.
@@ -1172,6 +1175,10 @@ func (c *Configuration) UpdateContentDraft(ctx context.Context, actor Actor, id 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
+	if row.CollabGeneration != previous.CollabGeneration {
+		// The body was replaced: the live room of the old generation closes.
+		c.collabAccessChanged(ctx, actor.OrganizationID)
+	}
 	result := contentDraftRecord(row)
 	return &result, nil
 }
@@ -1271,5 +1278,9 @@ func (c *Configuration) DeleteContentDraftAtVersion(ctx context.Context, actor A
 	if err := emitDraftEvent(ctx, tx, existing, webhooks.DraftDeleted, nil); err != nil {
 		return err
 	}
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+	c.collabAccessChanged(ctx, actor.OrganizationID)
+	return nil
 }

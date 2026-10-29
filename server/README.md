@@ -47,6 +47,8 @@ workflow owns the scheduled timer, `cancel` and `poke` signals, and bounded
 provider retry timers. The V2 activity calls the provider adapter directly and
 stores its remote receipt on the canonical attempt. An ambiguous failure is
 `UNKNOWN_DELIVERY` because retrying could create a duplicate social post.
+[Scheduling reliability](../docs/scheduling/reliability.md) documents the
+states and the failure model.
 
 ## Temporal guarantees
 
@@ -62,6 +64,9 @@ boundary:
 | No automatic retry of provider mutations | submit activity has one attempt; timeout becomes `UNKNOWN_DELIVERY` |
 | Pending provider confirmation | V1 keeps read-only status checks for replay; V2 requires a confirmed direct receipt |
 | Missing-post recovery | `missing-post-workflow` runs immediately and hourly when `RUN_CRON=true` |
+| Durable outcome writes | receipt, failure and unknown writes retry for 24 hours; the provider ID is logged first |
+| Stalled-post recovery | the `scheduled-posts` job settles `PROCESSING` posts whose run closed: `UNKNOWN_DELIVERY` after a possible send, requeued otherwise |
+| Late publication window | a post that cannot start within an hour of its time fails as `MISSED_WINDOW` without sending |
 | Worker placement controls | `EXCLUDE_QUEUE` and `WORKER_CONCURRENCY_DIVIDER` |
 | Namespace readiness | `DescribeNamespace` with a 10-second bound |
 | TLS and API-key authentication | both settings apply independently |

@@ -100,8 +100,7 @@ type uploaded struct {
 // uploadPicture uploads one media. data holds the bytes for images and
 // converted PDFs; videos pass nil and are streamed chunk-by-chunk from
 // fileName instead of being held in memory.
-func (p *Provider) uploadPicture(ctx context.Context, fileName, accessToken, personID string, data []byte, postType string) (*uploaded, error) {
-	isVideo := helpers.HasExtension(fileName, "mp4")
+func (p *Provider) uploadPicture(ctx context.Context, fileName, accessToken, personID string, data []byte, postType string, isVideo bool) (*uploaded, error) {
 	isPdf := helpers.HasExtension(fileName, "pdf")
 
 	size := int64(len(data))
@@ -255,6 +254,8 @@ func (p *Provider) mediaProcessingStatus(ctx context.Context, accessToken, urn, 
 type mediaItem struct {
 	path string
 	data []byte // set for the converted PDF carousel
+	// video is the asset's stored type; a signed URL's name need not end in .mp4.
+	video bool
 }
 
 // processMedia uploads sequentially on purpose: uploading in parallel holds
@@ -264,7 +265,7 @@ func (p *Provider) processMedia(ctx context.Context, media []mediaItem, accessTo
 	for _, m := range media {
 		data := m.data
 		// Videos are never buffered: uploadPicture streams them.
-		if data == nil && !helpers.HasExtension(m.path, "mp4") {
+		if data == nil && !m.video {
 			if helpers.HasExtension(m.path, "pdf") {
 				// Native documents retain their bytes. Sending them through the image
 				// decoder rejects every uploaded PDF before document initialization.
@@ -282,7 +283,7 @@ func (p *Provider) processMedia(ctx context.Context, media []mediaItem, accessTo
 				return nil, nil, 0, err
 			}
 		}
-		up, err := p.uploadPicture(ctx, m.path, accessToken, personID, data, postType)
+		up, err := p.uploadPicture(ctx, m.path, accessToken, personID, data, postType, m.video)
 		if err != nil {
 			return nil, nil, 0, err
 		}
@@ -494,7 +495,7 @@ func (p *Provider) PostPendingAs(ctx context.Context, id, accessToken string, po
 		alts = nil
 	} else {
 		for _, m := range first.Media {
-			media = append(media, mediaItem{path: m.Path})
+			media = append(media, mediaItem{path: m.Path, video: m.Type == "video" || helpers.HasExtension(m.Path, "mp4")})
 			alts = append(alts, m.Alt)
 		}
 	}

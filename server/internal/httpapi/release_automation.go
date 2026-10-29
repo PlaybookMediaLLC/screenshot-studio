@@ -67,8 +67,8 @@ func (s *Server) acceptGitHubEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input product.AcceptGitHubEventInput
-	if err := decodeJSON(r, &input); err != nil {
-		writeError(w, 400, "invalid event")
+	if err := decodeJSONLimit(r, &input, automation.MaxGitHubPayloadBytes+(1<<20)); err != nil {
+		writeError(w, 400, "invalid or oversized GitHub event")
 		return
 	}
 	// Bound the durable acceptance phase below GitHub's response deadline.

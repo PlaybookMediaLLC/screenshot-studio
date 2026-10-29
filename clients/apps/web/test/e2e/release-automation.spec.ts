@@ -1,4 +1,6 @@
 import { createHmac, randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { githubProductionStateSchema, githubRecoverySchema } from 'screenshot-studio-backend-sdk'
 import {
   bindTestGoOrganization,
   browserRequest,
@@ -16,6 +18,7 @@ import {
   startHttpMockServer,
   test,
   trpcMutation,
+  trpcQuery,
   unbindTestGoOrganization,
   xVerification,
 } from './framework'
@@ -757,5 +760,193 @@ test(
       await unbindTestGoOrganization(organizationId)
       await provider.close()
     }
+  }
+)
+
+test(
+  'qualifies GitHub deployment evidence through the signed webhook and pinned Shots workflow',
+  { tag: '@journey' },
+  async ({ app, identity, page }) => {
+    test.skip(
+      process.env.E2E_RELEASE_AUTOMATION !== '1',
+      'Run the documented release automation fixture stack.'
+    )
+    await createWorkspace(identity, page)
+    const organizationId = await getActiveOrganizationId(page)
+    await app.open('/workflows?view=sources')
+    await page.getByRole('link', { name: 'Connect GitHub', exact: true }).click()
+    await expect(page.getByText('GitHub is connected. Choose a repository to watch.')).toBeVisible({
+      timeout: 60_000,
+    })
+    await page.getByRole('button', { name: 'Choose a repository' }).click()
+    await chooseOption(
+      page
+        .locator('form')
+        .filter({ has: page.getByRole('button', { name: 'Watch', exact: true }) })
+        .getByRole('combobox', { name: 'Repository', exact: true }),
+      'fixture/product'
+    )
+    await page.getByRole('button', { name: 'Watch', exact: true }).click()
+    await expect(page.getByText(/Watching fixture\/product/)).toBeVisible()
+    const overview = await trpcQuery(page, 'releaseAutomation.overview')
+    expect(overview.status, JSON.stringify(overview.body)).toBe(200)
+    const source = z.object({ sources: z.array(z.object({ id: z.string() })) }).parse(overview.body)
+      .sources[0]
+    const graph = {
+      schemaVersion: 1,
+      family: 'deployment.succeeded',
+      qualification: { field: 'deployment.environment', operator: 'eq', values: ['production'] },
+      nodes: [
+        { id: 'trigger', type: 'trigger' },
+        { id: 'release', type: 'action', action: { type: 'create_release' } },
+        { id: 'end', type: 'end', outcome: 'completed' },
+      ],
+      edges: [
+        { from: 'trigger', to: 'release', branch: 'next' },
+        { from: 'release', to: 'end', branch: 'next' },
+      ],
+    }
+    const saved = await trpcMutation(page, 'releaseAutomation.save', {
+      sourceAppId: source.id,
+      name: 'Qualified deployment release',
+      description: 'Local fixture only',
+      priority: 10,
+      expectedRevision: 0,
+      graph,
+      layout: {},
+    })
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    const definition = z.object({ id: z.string(), revision: z.number() }).parse(saved.body)
+    const activated = await trpcMutation(page, 'releaseAutomation.activate', definition)
+    expect(activated.status, JSON.stringify(activated.body)).toBe(200)
+    const version = z.object({ activeVersionId: z.string() }).parse(activated.body).activeVersionId
+    await app.open(`/workflows/sources/${source.id}/production`)
+    await expect(page.getByRole('heading', { name: 'Repository production policy' })).toBeVisible()
+    await expect(page.getByText('Deployments read: available.', { exact: false })).toBeVisible()
+    await page.getByLabel('Trusted reporting GitHub App IDs').fill('900')
+    await page.getByLabel('Web image · #301', { exact: false }).check()
+    await page.getByLabel('GitHub run ID').fill('401')
+    await page.getByLabel('Attempt', { exact: true }).fill('1')
+    await page.getByRole('button', { name: 'Load jobs for this attempt' }).click()
+    await page.getByRole('button', { name: 'Watch this job name' }).click()
+    await page.getByLabel('Shots workflow to run').selectOption(definition.id)
+    await page.getByLabel('Enable for new live events').check()
+    await page.getByRole('button', { name: 'Save policy revision' }).click()
+    await expect(
+      page.getByText('Policy revision saved. Historical events were not replayed.')
+    ).toBeVisible()
+    const base = `/api/v1/github/sources/${source.id}`
+    const state = async () => {
+      const response = await browserRequest(page, `${base}/production`)
+      expect(response.status, JSON.stringify(response.body)).toBe(200)
+      return githubProductionStateSchema.parse(response.body)
+    }
+    const count = async (table: string) =>
+      (await db.rows(`SELECT id FROM ${table} WHERE "organizationId"=$1`, [organizationId])).length
+    const baseline = await fixtureCounts()
+    const secret = process.env.E2E_GITHUB_WEBHOOK_SECRET
+    if (!secret) throw new Error('Fixture webhook secret missing')
+    const send = async (name: string, body: string, signature?: string) =>
+      browserRequest(page, '/api/webhooks/github', {
+        method: 'POST',
+        body,
+        headers: {
+          'content-type': 'application/json',
+          'x-github-event': name,
+          'x-github-delivery': randomUUID(),
+          'x-hub-signature-256':
+            signature ?? `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`,
+        },
+      })
+    const body = z
+      .record(z.string(), z.unknown())
+      .parse(
+        JSON.parse(
+          await readFile(
+            '../../../server/internal/releaseautomation/testdata/deployment-status.json',
+            'utf8'
+          )
+        )
+      )
+    const deployment = z.record(z.string(), z.unknown()).parse(body.deployment)
+    const status = z.record(z.string(), z.unknown()).parse(body.deployment_status)
+    deployment.id = Date.now()
+    status.id = Date.now() + 1
+    status.created_at = new Date(Date.now() + 1_000).toISOString()
+    body.deployment = deployment
+    body.deployment_status = status
+    // Exercise the facade and Go transport above the former 1 MiB ceiling.
+    body.provider_metadata = 'x'.repeat(2 << 20)
+    const valid = JSON.stringify(body)
+    expect((await send('deployment_status', valid, 'sha256=invalid')).status).toBe(401)
+    expect((await send('deployment_status', '{')).status).toBe(400)
+    expect((await send('deployment_status', ' '.repeat((25 << 20) + 1))).status).toBe(413)
+    expect((await send('deployment_status', valid)).status).toBe(200)
+    await expect
+      .poll(async () => (await state()).observations[0]?.status, { timeout: 60_000 })
+      .toBe('matched')
+    const matched = (await state()).observations[0]
+    expect(matched.workflowVersionId).toBe(version)
+    expect(matched.runId).toBeTruthy()
+    await expect
+      .poll(async () => (await state()).observations[0]?.dispatchStatus, { timeout: 60_000 })
+      .toBe('succeeded')
+    expect(await count('release')).toBe(1)
+    expect((await send('deployment_status', valid)).status).toBe(202)
+    expect((await state()).observations[0].duplicates).toBe(1)
+    expect(await count('release_automation_run')).toBe(1)
+    // Every newly subscribed Actions event crosses the web allowlist, API, durable
+    // observation and policy evaluator. Success alone cannot satisfy this policy.
+    for (const eventName of ['workflow_run', 'workflow_job']) {
+      const action = z
+        .record(z.string(), z.unknown())
+        .parse(
+          JSON.parse(
+            await readFile(
+              `../../../server/internal/releaseautomation/testdata/${eventName.replaceAll('_', '-')}.json`,
+              'utf8'
+            )
+          )
+        )
+      const object = z.record(z.string(), z.unknown()).parse(action[eventName])
+      object.id = Date.now()
+      object.updated_at = new Date(Date.now() + 1_000).toISOString()
+      object.completed_at = object.updated_at
+      action[eventName] = object
+      expect((await send(eventName, JSON.stringify(action))).status).toBe(200)
+    }
+    await expect
+      .poll(
+        async () =>
+          (await state()).observations.filter((item) => item.status === 'not_matched').length,
+        { timeout: 60_000 }
+      )
+      .toBe(2)
+    expect(await count('release')).toBe(1)
+    await page.getByRole('button', { name: 'Refresh events' }).click()
+    await page.getByLabel('Recorded observation').selectOption(matched.id)
+    await page.getByRole('button', { name: 'Preview current policy' }).click()
+    await expect(
+      page.getByText('Configured production evidence matched.', { exact: false }).first()
+    ).toBeVisible()
+    expect(await count('release_automation_run')).toBe(1)
+    expect((await fixtureCounts()).modelCalls).toBe(baseline.modelCalls)
+    const recovery = await browserRequest(page, `${base}/delivery-recovery`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ redeliver: false }),
+    })
+    expect(recovery.status, JSON.stringify(recovery.body)).toBe(200)
+    expect(githubRecoverySchema.parse(recovery.body).gap).toBe(true)
+    // Tenant-bound session reads are still denied after switching to a new workspace.
+    const second = await trpcMutation(page, 'workspace.create', {
+      name: 'Other deployment workspace',
+      slug: `deployment-other-${randomUUID()}`,
+    })
+    expect(second.status, JSON.stringify(second.body)).toBe(200)
+    expect((await browserRequest(page, `${base}/production`)).status).toBe(404)
+    await app.open('/workflows')
+    // A fresh workspace cannot inspect delivery failures belonging to this source.
+    expect((await browserRequest(page, `${base}/delivery-recovery`)).status).toBe(404)
   }
 )

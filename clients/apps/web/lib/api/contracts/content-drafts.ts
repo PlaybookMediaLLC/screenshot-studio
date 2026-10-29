@@ -301,6 +301,13 @@ export const contentDraftPostSchema = z.object({
   scheduleTimeZone: z.string().nullable().default(null),
   slotAt: timestampSchema.nullable().default(null),
   socialSetId: z.string().nullable().default(null),
+  /**
+   * Why it did not publish once failed, unconfirmed or cancelled by the
+   * publisher (a provider status or a code such as `MEDIA_UNAVAILABLE`), and
+   * when its provider confirmed it.
+   */
+  failureCode: z.string().nullable().default(null),
+  publishedAt: timestampSchema.nullable().default(null),
 })
 
 /**
@@ -326,6 +333,11 @@ export const contentDraftScheduleSchema = scheduleTimingSchema.extend({
   queue: z.boolean().optional(),
   /** A previewed queue slot; a changed queue is a conflict instead of a silent move. */
   expectedQueueSlot: z.iso.datetime().optional(),
+  /**
+   * Schedule these accounts beside the draft's queued posts instead of
+   * replacing them; an account that already has a post is refused.
+   */
+  add: z.boolean().optional(),
   /** Overrides the draft's natural posting time for this schedule (±4 minutes). */
   naturalPostingTime: z.boolean().optional(),
   scheduledFor: z.coerce

@@ -65,6 +65,13 @@ func (ScheduledPost) Fields() []ent.Field {
 		field.Time("slot_at").StorageKey("slotAt").Optional().Nillable().Immutable(),
 		field.Int("natural_offset_seconds").StorageKey("naturalOffsetSeconds").Optional().Nillable().Immutable(),
 		field.String("schedule_time_zone").StorageKey("scheduleTimeZone").Optional().Nillable().Immutable(),
+		// A fingerprint of the schedule request's timing (RFC 013): a retry of
+		// the same draft version replays only the same intent. Empty before it.
+		field.String("schedule_intent").StorageKey("scheduleIntent").Optional().Nillable().Immutable(),
+		// Why the post did not publish, once it is FAILED, UNKNOWN_DELIVERY or
+		// cancelled by the worker: a provider status or a code such as
+		// MEDIA_UNAVAILABLE. Each attempt keeps its own failure code too.
+		field.String("failure_code").StorageKey("failureCode").Optional().Nillable(),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
 		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}

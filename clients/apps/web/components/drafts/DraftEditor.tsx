@@ -23,7 +23,7 @@ import {
   type EditorServices,
   rehostDataImages,
 } from '@shots/platejs-editor/lib'
-import { KEYS, type Value } from '@shots/platejs-editor/platejs'
+import { createSlateEditor, KEYS, type Value } from '@shots/platejs-editor/platejs'
 import {
   Plate,
   type PlateEditor,
@@ -32,7 +32,13 @@ import {
   usePlateEditor,
   usePluginOption,
 } from '@shots/platejs-editor/platejs/react'
-import { createYjsPlugin, loadLocalCopy, YjsPlugin } from '@shots/platejs-editor/collaboration'
+import {
+  createYjsPlugin,
+  HocuspocusProviderWrapper,
+  loadLocalCopy,
+  throttleCursor,
+  YjsPlugin,
+} from '@shots/platejs-editor/collaboration'
 import {
   BlockPlaceholderKit,
   BlockSelectionKit,
@@ -538,7 +544,7 @@ function DraftToolbar({
       </ToolbarGroup>
       <ToolbarGroup>
         <FileButton
-          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm"
+          accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm"
           inputRef={imageInput}
           label="Insert media"
           onFile={(file) => {
@@ -636,7 +642,49 @@ function DraftToolbar({
   )
 }
 
-export default function DraftEditor({
+function SavedDraft({
+  value,
+  textDirection,
+}: Pick<DraftEditorProps, 'textDirection'> & { value: Value }) {
+  const editor = React.useMemo(
+    () =>
+      createSlateEditor({ plugins: BaseEditorKit, value: structuredClone(threadAsRules(value)) }),
+    [value]
+  )
+  return (
+    <section aria-label="Saved draft">
+      <EditorStatic
+        editor={editor}
+        className={cn(POST_COLUMN, 'draft-prose min-h-0 pt-1 pb-4 text-[15px] leading-relaxed')}
+        dir={textDirection}
+      />
+    </section>
+  )
+}
+
+export default function DraftEditor(props: DraftEditorProps) {
+  const [attempt, setAttempt] = React.useState(0)
+  const retry = React.useCallback(() => setAttempt((value) => value + 1), [])
+  const initialSession = React.useRef({
+    issued: props.collaboration?.issued,
+    readOnly: props.readOnly,
+  })
+  const takeIssued = React.useCallback(() => {
+    const issued = initialSession.current.issued
+    initialSession.current.issued = undefined
+    return initialSession.current.readOnly === props.readOnly ? issued : undefined
+  }, [props.readOnly])
+  return (
+    <DraftEditorSession
+      key={`${attempt}-${props.readOnly}`}
+      {...props}
+      onRetry={retry}
+      takeIssued={takeIssued}
+    />
+  )
+}
+
+function DraftEditorSession({
   collaboration,
   draftId,
   textDirection = 'ltr',
@@ -652,15 +700,16 @@ export default function DraftEditor({
   initialValue,
   onChange,
   onDiscussionsChange,
+  onRetry,
+  takeIssued,
   readOnly,
   services,
   title,
   user,
-}: DraftEditorProps) {
+}: DraftEditorProps & { onRetry: () => void; takeIssued: () => DraftCollaboration['issued'] }) {
   // Read once: later saves must not re-seed the plugin and reset its state.
   const [initialDiscussions] = React.useState(storedDiscussions)
   const plugins = React.useMemo(() => {
-    let issued = collaboration?.issued
     const live = collaboration
       ? createYjsPlugin(
           {
@@ -668,9 +717,8 @@ export default function DraftEditor({
             documentName: documentName ?? collaborationRoom(collaboration),
             getToken: () => {
               const room = documentName ?? collaborationRoom(collaboration)
-              const first = issued
-              issued = undefined
-              // The page's token saves a round trip; reconnects ask for a fresh one.
+              const first = takeIssued()
+              // Only the first session can use the page token and its original access.
               return first &&
                 first.documentName === room &&
                 first.expiresAt.getTime() - Date.now() > 15_000
@@ -756,7 +804,16 @@ export default function DraftEditor({
         }),
       ],
     })
-  }, [collaboration, documentName, extraPlugins, initialDiscussions, readOnly, user.id, user.name])
+  }, [
+    collaboration,
+    documentName,
+    extraPlugins,
+    initialDiscussions,
+    readOnly,
+    takeIssued,
+    user.id,
+    user.name,
+  ])
   // Mentions offer the signed-in member and the handles the workspace already
   // writes, instead of the upstream demo list.
   const handleList = handles.join(' ')
@@ -781,6 +838,9 @@ export default function DraftEditor({
         : emptyValue(),
   })
   const [live, setLive] = React.useState(false)
+  const [connectionFailed, setConnectionFailed] = React.useState(false)
+  const waitingForConnection = Boolean(collaboration) && !live
+  const disposal = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const reportEditor = React.useEffectEvent(() => onEditor?.(editor))
   React.useEffect(() => {
     // External tools read editor.children immediately. Report the collaborative
@@ -799,10 +859,21 @@ export default function DraftEditor({
   // session gets it asynchronously, so the editable remounts when it arrives.
   React.useEffect(() => {
     if (!collaboration) return
+    if (disposal.current) clearTimeout(disposal.current)
     const yjs = editor.getApi(YjsPlugin).yjs
+    const { awareness, ydoc } = editor.getOptions(YjsPlugin)
     let started = false
     let initialized = false
+    let initializing = false
     let cancelled = false
+    let connected = false
+    let provider: HocuspocusProviderWrapper | null = null
+    const failed = () => {
+      if (cancelled || connected) return
+      setConnectionFailed(true)
+      if (draftId) pendingDraftConnectionError(draftId, onRetry)
+    }
+    const timeout = setTimeout(failed, 10_000)
     const ready = () => {
       if (
         !cancelled &&
@@ -810,16 +881,18 @@ export default function DraftEditor({
         editor
           .getOptions(YjsPlugin)
           ._providers.some((provider) => provider.type === 'hocuspocus' && provider.isSynced)
-      )
+      ) {
+        connected = true
+        clearTimeout(timeout)
         setLive(true)
+      }
     }
-    editor.setOption(YjsPlugin, 'onSyncChange', ready)
-    editor.setOption(YjsPlugin, 'onError', () => {
-      if (draftId) pendingDraftConnectionError(draftId, () => yjs.connect('hocuspocus'))
-    })
+    editor.setOption(YjsPlugin, 'onError', failed)
     // Deferred a tick: React may mount, unmount and remount at once (Strict
     // Mode), and a session cannot connect twice. The discarded mount never starts.
     const room = documentName ?? collaborationRoom(collaboration)
+    // Each cursor move is a message the collaboration server authorizes.
+    const restoreCursor = throttleCursor(editor.getOptions(YjsPlugin).awareness)
     let local: ReturnType<typeof loadLocalCopy> | null = null
     const start = setTimeout(() => {
       started = true
@@ -828,12 +901,30 @@ export default function DraftEditor({
       // newly opened draft (a recovered backup) empty.
       local = readOnly ? null : loadLocalCopy(room, editor.getOptions(YjsPlugin).ydoc)
       void (local?.ready ?? Promise.resolve())
-        .then(() =>
-          cancelled
-            ? undefined
-            : // The stored body seeds the shared document the first time it is opened.
-              yjs
+        .then(() => {
+          if (cancelled) return
+          const { awareness, providers, ydoc } = editor.getOptions(YjsPlugin)
+          const config = providers.find((candidate) => candidate.type === 'hocuspocus')
+          if (!config || !('options' in config) || config.type !== 'hocuspocus')
+            throw new Error('The draft collaboration provider is unavailable.')
+          // Plate's init seeds after five seconds even without a sync. Connect first
+          // so a cached snapshot can never be seeded over an existing server document.
+          provider = new HocuspocusProviderWrapper({
+            awareness,
+            doc: ydoc,
+            options: config.options,
+            onConnect: () => editor.setOption(YjsPlugin, '_isConnected', true),
+            onDisconnect: () => editor.setOption(YjsPlugin, '_isConnected', false),
+            onError: failed,
+            onSyncChange: (synced) => {
+              editor.setOption(YjsPlugin, '_isSynced', synced)
+              if (cancelled || !synced || !provider) return
+              if (initializing) return ready()
+              initializing = true
+              editor.setOption(YjsPlugin, 'providers', [provider])
+              void yjs
                 .init({
+                  autoConnect: false,
                   autoSelect: 'end',
                   id: room,
                   value:
@@ -845,16 +936,34 @@ export default function DraftEditor({
                   initialized = true
                   ready()
                 })
-        )
-        .catch((error: unknown) => console.error('[drafts] live session failed', error))
+                .catch((error: unknown) => {
+                  console.error('[drafts] live session failed', error)
+                  failed()
+                })
+            },
+          })
+        })
+        .catch((error: unknown) => {
+          console.error('[drafts] live session failed', error)
+          failed()
+        })
     }, 0)
     return () => {
       cancelled = true
       clearTimeout(start)
+      clearTimeout(timeout)
+      // Plate's wrapper skips disconnected/connecting sockets during destruction.
+      provider?.provider.destroy()
       if (started) yjs.destroy()
       local?.destroy()
+      restoreCursor()
+      // Strict Mode immediately reuses the editor; only a discarded session is disposed.
+      disposal.current = setTimeout(() => {
+        awareness.destroy()
+        ydoc.destroy()
+      }, 0)
     }
-  }, [collaboration, documentName, draftId, editor, readOnly])
+  }, [collaboration, documentName, draftId, editor, onRetry, readOnly])
 
   const [keyboardInset, setKeyboardInset] = React.useState(0)
   React.useEffect(() => {
@@ -876,8 +985,11 @@ export default function DraftEditor({
   }, [])
   const imageInput = React.useRef<HTMLInputElement>(null)
   const postTools = React.useMemo<PostTools>(
-    () => (readOnly ? {} : { addImage: () => imageInput.current?.click(), settings: postSettings }),
-    [postSettings, readOnly]
+    () =>
+      readOnly || waitingForConnection
+        ? {}
+        : { addImage: () => imageInput.current?.click(), settings: postSettings },
+    [postSettings, readOnly, waitingForConnection]
   )
   return (
     <EditorServicesProvider services={services}>
@@ -888,7 +1000,7 @@ export default function DraftEditor({
             onValueChange={({ value }) => {
               if (!collaboration || live) onChange(value)
             }}
-            readOnly={readOnly}
+            readOnly={readOnly || waitingForConnection}
           >
             {collaboration ? <Presence /> : null}
             <DiscussionsWatcher onChange={onDiscussionsChange} />
@@ -925,11 +1037,28 @@ export default function DraftEditor({
                 <ReadyEditor draftId={draftId} focus={!readOnly && initiallyEmpty} />
               </CommentColumn>
             ) : (
-              <p role="status" className="p-6">
-                Connecting your draft…
-              </p>
+              <>
+                <div
+                  className={cn(
+                    'flex items-center gap-3 py-3 text-sm text-muted-foreground',
+                    POST_COLUMN
+                  )}
+                >
+                  <p role="status">
+                    {connectionFailed
+                      ? 'Could not connect. Showing the last saved version.'
+                      : 'Connecting… Showing the last saved version.'}
+                  </p>
+                  {connectionFailed ? (
+                    <Button variant="outline" size="sm" onClick={onRetry}>
+                      Retry connection
+                    </Button>
+                  ) : null}
+                </div>
+                <SavedDraft value={firstValue.current} textDirection={textDirection} />
+              </>
             )}
-            {readOnly ? null : (
+            {readOnly || waitingForConnection ? null : (
               <div className={cn('pb-6', POST_COLUMN)}>
                 <Button
                   variant="outline"
@@ -941,7 +1070,9 @@ export default function DraftEditor({
                 </Button>
               </div>
             )}
-            {readOnly || hashtags.length === 0 ? null : <HashtagChips hashtags={hashtags} />}
+            {readOnly || waitingForConnection || hashtags.length === 0 ? null : (
+              <HashtagChips hashtags={hashtags} />
+            )}
             {readOnly || (collaboration && !live) ? null : (
               // Mount subscriptions after the shared document has loaded. Otherwise
               // media tools can retain the empty pre-connection value until an edit.

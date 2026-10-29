@@ -30,7 +30,7 @@ test('Bluesky blocks excess images without dropping the selected attachments', (
   assert.equal(result.assetIds.length, 5)
   assert.deepEqual(result.degradations, [])
   assert.deepEqual(result.errors, [
-    'Choose up to four images or one MP4 video for each Bluesky post.',
+    'Bluesky takes up to 4 attachments in one post; this one has 5. Remove some, or schedule them as separate posts.',
   ])
 })
 
@@ -207,7 +207,7 @@ test('images past the channel limit are reported, not dropped from the draft', (
   assert.equal(x.assetIds.length, 5)
   assert.deepEqual(x.degradations, [])
   assert.deepEqual(x.errors, [
-    'Choose up to four images, one GIF, or one MP4 video for each X post.',
+    'X takes up to 4 attachments in one post; this one has 5. Remove some, or schedule them as separate posts.',
   ])
   assert.deepEqual(serializeDraft([p(text('Look')), ...images], 'linkedin').degradations, [])
 })
@@ -228,7 +228,7 @@ test('channel limits and requirements block scheduling', () => {
   assert.match(long.errors[0], /281 of 280/)
   assert.deepEqual(serializeDraft([p(text('a'.repeat(281)))], 'linkedin').errors, [])
   assert.deepEqual(serializeDraft([p(text('No picture'))], 'instagram').errors, [
-    'Instagram needs an image.',
+    'Instagram needs at least one image or video. Add one to the post.',
   ])
   assert.deepEqual(serializeDraft([], 'x').errors, ['Write something to post.'])
   const external = serializeDraft(
@@ -359,7 +359,11 @@ test('an uploaded video is the post media and goes alone', () => {
   assert.deepEqual(alone.errors, [])
   assert.deepEqual(alone.degradations, [])
   const mixed = serializeDraft([p(text('Watch')), video, image], 'x')
-  assert.deepEqual(mixed.errors, ['A video goes alone: one video, no images with it.'])
+  assert.deepEqual(mixed.errors, [
+    'X posts a video or GIF on its own. Move the other attachments to a separate post.',
+  ])
+  // Instagram and Threads carousels take photos and videos together.
+  assert.deepEqual(serializeDraft([p(text('Watch')), video, image], 'threads').errors, [])
   // A video embedded by its link is still left out.
   const embed = serializeDraft(
     [p(text('Watch')), { type: 'video', url: 'https://video.example/v', children: [text('')] }],

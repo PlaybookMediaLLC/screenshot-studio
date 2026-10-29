@@ -20,7 +20,12 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-type objects struct{ deleted []string }
+type objects struct{ deleted, aborted []string }
+
+func (o *objects) AbortUpload(_ context.Context, org, key, uploadID string) error {
+	o.aborted = append(o.aborted, org+"/"+key+"#"+uploadID)
+	return nil
+}
 
 func (o *objects) Delete(_ context.Context, org, key string) error {
 	if !strings.HasPrefix(key, "org/"+org+"/") {
@@ -405,4 +410,67 @@ type onboardingCancels struct{ organizations []string }
 func (o *onboardingCancels) Cancel(_ context.Context, organizationID string) error {
 	o.organizations = append(o.organizations, organizationID)
 	return nil
+}
+
+// Abandoned uploads are retired through the asset.deleted outbox; originals
+// and provider derivatives stay, even old and unreferenced by any post, since
+// a creative may reuse a derivative where the in-use check cannot see it.
+func TestAssetCleanupRetiresOnlyUnneededMedia(t *testing.T) {
+	s, o := setup(t)
+	ctx := context.Background()
+	exec(t, s.DB, `INSERT INTO channel_connection (id,"organizationId",provider,"externalAccountId","secretReference","createdByUserId","updatedAt") VALUES ('conn','a','social','ext','KEY','user',now())`)
+	exec(t, s.DB, `INSERT INTO content_draft (id,"organizationId",title,body,"plainText","assetIds","channelConnectionIds") VALUES ('draft','a','Draft','[]','','[]','[]')`)
+	asset := func(id, status, key, age string) {
+		exec(t, s.DB, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,'a',$2,'image/png',10,$3::"AssetStatus",now()-$4::interval,now()-$4::interval)`, id, key, status, age)
+	}
+	post := func(id, status, assetID string) {
+		exec(t, s.DB, `INSERT INTO scheduled_post (id,"organizationId","channelConnectionId","contentDraftId","scheduledFor",status,caption,"idempotencyKey","assetIds","updatedAt") VALUES ($1,'a','conn','draft',now(),$2::"ScheduledPostStatus",'c',$1,jsonb_build_array($3::text),now())`, id, status, assetID)
+	}
+	derived := "org/a/derived/provider-images/"
+	asset("stale-pending", "PENDING", "org/a/input/stale-pending/1/a.png", "25 hours")
+	asset("fresh-pending", "PENDING", "org/a/input/fresh-pending/1/a.png", "1 hour")
+	asset("old-failed", "FAILED", "org/a/input/old-failed/1/a.png", "2 hours")
+	// A large upload abandoned partway: its parts are discarded with it.
+	exec(t, s.DB, `UPDATE asset SET "uploadId"='upload-1' WHERE id='stale-pending'`)
+	asset("original", "UPLOADED", "org/a/input/original/1/a.png", "90 days")
+	asset("unused-copy", "UPLOADED", derived+"unused/1/x.png", "31 days")
+	asset("queued-copy", "UPLOADED", derived+"queued/1/x.png", "31 days")
+	asset("published-copy", "UPLOADED", derived+"published/1/x.png", "31 days")
+	asset("cancelled-copy", "UPLOADED", derived+"cancelled/1/x.png", "31 days")
+	asset("batch-copy", "UPLOADED", derived+"batch/1/x.png", "31 days")
+	post("p1", "SCHEDULED", "queued-copy")
+	post("p2", "PUBLISHED", "published-copy")
+	post("p3", "CANCELLED", "cancelled-copy")
+	exec(t, s.DB, `INSERT INTO social_set (id,"organizationId",name,"publicSlug") VALUES ('set','a','Set','set-a')`)
+	exec(t, s.DB, `INSERT INTO content_batch (id,"organizationId","socialSetId",title) VALUES ('batch','a','set','Batch')`)
+	exec(t, s.DB, `INSERT INTO content_batch_item (id,"batchId","organizationId","importKey",fingerprint,position,media) VALUES ('item','batch','a','batch-item-import-key','f',0,'[{"assetId":"batch-copy"}]')`)
+	if n, err := s.Run(ctx, "asset-cleanup"); err != nil || n != 2 {
+		t.Fatalf("cleaned %d err=%v", n, err)
+	}
+	if n, err := s.Run(ctx, "asset-cleanup"); err != nil || n != 0 {
+		t.Fatalf("second run cleaned %d err=%v", n, err)
+	}
+	rows, err := s.DB.QueryContext(ctx, `SELECT id FROM asset WHERE "organizationId"='a' AND status='DELETED' ORDER BY id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var deleted []string
+	for rows.Next() {
+		var id string
+		_ = rows.Scan(&id)
+		deleted = append(deleted, id)
+	}
+	rows.Close()
+	if strings.Join(deleted, ",") != "old-failed,stale-pending" {
+		t.Fatalf("deleted %v", deleted)
+	}
+	if _, err := s.Run(ctx, "tenant-outbox"); err != nil {
+		t.Fatal(err)
+	}
+	if len(o.deleted) != 2 {
+		t.Fatalf("objects deleted: %v", o.deleted)
+	}
+	if strings.Join(o.aborted, ",") != "a/org/a/input/stale-pending/1/a.png#upload-1" {
+		t.Fatalf("uploads aborted: %v", o.aborted)
+	}
 }

@@ -67,6 +67,10 @@ const (
 	FieldNaturalOffsetSeconds = "naturalOffsetSeconds"
 	// FieldScheduleTimeZone holds the string denoting the schedule_time_zone field in the database.
 	FieldScheduleTimeZone = "scheduleTimeZone"
+	// FieldScheduleIntent holds the string denoting the schedule_intent field in the database.
+	FieldScheduleIntent = "scheduleIntent"
+	// FieldFailureCode holds the string denoting the failure_code field in the database.
+	FieldFailureCode = "failureCode"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -122,6 +126,8 @@ var Columns = []string{
 	FieldSlotAt,
 	FieldNaturalOffsetSeconds,
 	FieldScheduleTimeZone,
+	FieldScheduleIntent,
+	FieldFailureCode,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -302,6 +308,16 @@ func ByNaturalOffsetSeconds(opts ...sql.OrderTermOption) OrderOption {
 // ByScheduleTimeZone orders the results by the schedule_time_zone field.
 func ByScheduleTimeZone(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldScheduleTimeZone, opts...).ToFunc()
+}
+
+// ByScheduleIntent orders the results by the schedule_intent field.
+func ByScheduleIntent(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldScheduleIntent, opts...).ToFunc()
+}
+
+// ByFailureCode orders the results by the failure_code field.
+func ByFailureCode(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFailureCode, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

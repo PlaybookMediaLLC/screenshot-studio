@@ -20,8 +20,10 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/media"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/medialimits"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/aws/smithy-go"
 	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
 )
@@ -70,6 +72,9 @@ type AssetUploadInput struct {
 	ContentType    string  `json:"contentType"`
 	FileName       string  `json:"fileName"`
 	SHA256         *string `json:"sha256"`
+	// Multipart asks to send a file larger than one part in parts, when
+	// storage can take it so.
+	Multipart bool `json:"multipart"`
 }
 
 type AssetRecord struct {
@@ -81,6 +86,42 @@ type AssetRecord struct {
 type AssetUploadResult struct {
 	Asset     AssetRecord `json:"asset"`
 	UploadURL string      `json:"uploadUrl"`
+	// Multipart is set, and UploadURL empty, when the file goes in parts.
+	Multipart *AssetMultipart `json:"multipart,omitempty"`
+}
+
+// uploadPartBytes is a multipart upload's part size: above storage's 5 MiB
+// minimum, so a 512 MiB video is 32 parts and a browser holds one at a time.
+const uploadPartBytes = 16 << 20
+
+// AssetMultipart says how a large file is sent: Parts parts of PartBytes
+// each, the last one shorter, each signed by SignAssetUploadParts.
+type AssetMultipart struct {
+	PartBytes int `json:"partBytes"`
+	Parts     int `json:"parts"`
+}
+
+func assetMultipart(bytes int) AssetMultipart {
+	return AssetMultipart{PartBytes: uploadPartBytes, Parts: (bytes + uploadPartBytes - 1) / uploadPartBytes}
+}
+
+// partBytes is the exact size of part number n of a file of this many bytes.
+func (m AssetMultipart) partBytes(total, n int) int {
+	if n < m.Parts {
+		return m.PartBytes
+	}
+	return total - (m.Parts-1)*m.PartBytes
+}
+
+// multipartObjectStore is storage that takes a large file in parts, so a
+// dropped connection resends one part instead of the file. Only the server
+// lists and completes the parts; the browser never reads an ETag.
+type multipartObjectStore interface {
+	CreateMultipartUpload(ctx context.Context, key, mediaType string) (string, error)
+	SignUploadPart(ctx context.Context, key, uploadID string, number int, bytes int64) (string, error)
+	ListUploadedParts(ctx context.Context, key, uploadID string) ([]media.UploadedPart, error)
+	CompleteMultipartUpload(ctx context.Context, key, uploadID string, parts []media.UploadedPart) error
+	AbortMultipartUpload(ctx context.Context, key, uploadID string) error
 }
 
 func recordAsset(row *ent.Asset) AssetRecord {
@@ -110,7 +151,7 @@ func validAssetUpload(input AssetUploadInput) bool {
 		return false
 	}
 	switch input.ContentType {
-	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm", "application/pdf",
+	case "image/gif", "image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime", "video/webm", "application/pdf",
 		// Audio for design timelines (music, voice-over).
 		"audio/aac", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/wav", "audio/webm",
 		"font/woff", "font/woff2", "font/ttf", "font/otf":
@@ -146,17 +187,6 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if input.Bytes > medialimits.UploadBytes(input.ContentType, plan) {
 		return nil, invalid("The file exceeds this plan’s media upload limit.")
 	}
-	used, err := c.client.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID),
-		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
-		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
-	}).Int(ctx)
-	if err != nil {
-		return nil, err
-	}
-	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
-	if int64(used)+int64(input.Bytes) > limits[plan] {
-		return nil, ErrStorageQuota
-	}
 	var parent *ent.Asset
 	if input.ParentAssetID != "" {
 		parent, err = c.client.Asset.Query().Where(asset.ID(input.ParentAssetID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
@@ -169,15 +199,22 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	}
 	id := uuid.NewString()
 	key := fmt.Sprintf("org/%s/%s/%s/1/%s", actor.OrganizationID, input.Classification, id, input.FileName)
-	url, err := c.objects.SignUpload(ctx, key, input.ContentType)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+	parts, split := c.objects.(multipartObjectStore)
+	split = split && input.Multipart && input.Bytes > uploadPartBytes
+	url := ""
+	if !split {
+		if url, err = c.objects.SignUpload(ctx, key, input.ContentType); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+		}
 	}
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := reserveStorage(ctx, tx, actor.OrganizationID, plan, input.Bytes); err != nil {
+		return nil, err
+	}
 	create := tx.Asset.Create().SetID(id).SetOrganizationID(actor.OrganizationID).
 		SetObjectKey(key).SetMediaType(input.ContentType).SetBytes(input.Bytes)
 	if input.SHA256 != nil {
@@ -204,16 +241,176 @@ func (c *Configuration) SignAssetUpload(ctx context.Context, actor Actor, input 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
-	return &AssetUploadResult{Asset: recordAsset(row.Unwrap()), UploadURL: url}, nil
+	result := &AssetUploadResult{Asset: recordAsset(row.Unwrap()), UploadURL: url}
+	if split {
+		// Started after the reservation commits; a reservation whose upload
+		// never starts is failed and its bytes released by cleanup.
+		uploadID, err := parts.CreateMultipartUpload(ctx, key, input.ContentType)
+		if err == nil {
+			_, err = c.client.Asset.UpdateOneID(row.ID).SetUploadID(uploadID).Save(ctx)
+		}
+		if err != nil {
+			_, _ = c.client.Asset.UpdateOneID(row.ID).SetStatus(asset.StatusFAILED).Save(ctx)
+			return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+		}
+		multipart := assetMultipart(input.Bytes)
+		result.Multipart = &multipart
+	}
+	return result, nil
 }
 
-func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, assetID string, sha256 *string) (*AssetRecord, error) {
+// AssetUploadParts is a multipart upload's state: the parts storage holds
+// whole, and signed URLs for the parts asked for.
+type AssetUploadParts struct {
+	AssetMultipart
+	Uploaded []int          `json:"uploaded"`
+	URLs     []AssetPartURL `json:"urls"`
+}
+
+// AssetPartURL is a signed PUT of one part, valid for 15 minutes.
+type AssetPartURL struct {
+	Number int    `json:"number"`
+	URL    string `json:"url"`
+}
+
+// SignAssetUploadParts reports which parts of a pending multipart upload
+// storage holds and signs the numbered parts, at most 20 at a time. A
+// browser resumes an interrupted upload by sending only the parts missing.
+func (c *Configuration) SignAssetUploadParts(ctx context.Context, actor Actor, assetID string, numbers []int) (*AssetUploadParts, error) {
+	if err := c.authorizeRoles(ctx, actor, "owner", "admin", "creator"); err != nil {
+		return nil, err
+	}
+	if len(numbers) > 20 {
+		return nil, invalid("Ask for at most 20 parts at a time.")
+	}
+	row, err := c.client.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(actor.OrganizationID),
+		asset.StatusEQ(asset.StatusPENDING)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return nil, publishing.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	store, ok := c.objects.(multipartObjectStore)
+	if row.UploadID == nil || !ok {
+		return nil, conflict("This upload is not sent in parts. Upload the file again.")
+	}
+	stored, err := store.ListUploadedParts(ctx, row.ObjectKey, *row.UploadID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+	}
+	result := &AssetUploadParts{AssetMultipart: assetMultipart(row.Bytes), Uploaded: []int{}, URLs: []AssetPartURL{}}
+	for _, part := range stored {
+		if part.Number >= 1 && part.Number <= result.Parts && part.Bytes == int64(result.partBytes(row.Bytes, part.Number)) {
+			result.Uploaded = append(result.Uploaded, part.Number)
+		}
+	}
+	for _, number := range numbers {
+		if number < 1 || number > result.Parts {
+			return nil, invalid(fmt.Sprintf("This upload has parts 1 to %d.", result.Parts))
+		}
+		url, err := store.SignUploadPart(ctx, row.ObjectKey, *row.UploadID, number, int64(result.partBytes(row.Bytes, number)))
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+		}
+		result.URLs = append(result.URLs, AssetPartURL{Number: number, URL: url})
+	}
+	return result, nil
+}
+
+// completeMultipart joins a pending upload's parts once storage holds each
+// one whole. Storage that no longer knows the upload was completed before
+// the asset row was updated; the object's own checks follow either way.
+func (c *Configuration) completeMultipart(ctx context.Context, row *ent.Asset) error {
+	store, ok := c.objects.(multipartObjectStore)
+	if !ok {
+		return ErrStorageUnavailable
+	}
+	plan := assetMultipart(row.Bytes)
+	stored, err := store.ListUploadedParts(ctx, row.ObjectKey, *row.UploadID)
+	var apiError smithy.APIError
+	if errors.As(err, &apiError) && apiError.ErrorCode() == "NoSuchUpload" {
+		return c.clearUploadID(ctx, row)
+	}
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+	}
+	byNumber := map[int]media.UploadedPart{}
+	for _, part := range stored {
+		byNumber[part.Number] = part
+	}
+	parts := make([]media.UploadedPart, 0, plan.Parts)
+	missing := 0
+	for number := 1; number <= plan.Parts; number++ {
+		part, ok := byNumber[number]
+		if !ok || part.Bytes != int64(plan.partBytes(row.Bytes, number)) {
+			missing++
+			continue
+		}
+		parts = append(parts, part)
+	}
+	if missing > 0 {
+		return conflict(fmt.Sprintf("%d of %d parts of this upload are missing. Send them again to finish it.", missing, plan.Parts))
+	}
+	if err := store.CompleteMultipartUpload(ctx, row.ObjectKey, *row.UploadID, parts); err != nil {
+		return fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+	}
+	return c.clearUploadID(ctx, row)
+}
+
+func (c *Configuration) clearUploadID(ctx context.Context, row *ent.Asset) error {
+	if _, err := c.client.Asset.Update().Where(asset.ID(row.ID), asset.StatusEQ(asset.StatusPENDING)).ClearUploadID().Save(ctx); err != nil {
+		return err
+	}
+	row.UploadID = nil
+	return nil
+}
+
+// storageLimits are each plan's stored bytes, counting reserved and failed
+// uploads until maintenance removes them.
+var storageLimits = map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
+
+func storageUsed(ctx context.Context, client *ent.Client, organizationID string) (int64, error) {
+	used, err := client.Asset.Query().Where(asset.OrganizationID(organizationID),
+		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
+		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
+	}).Int(ctx)
+	return int64(used), err
+}
+
+// reserveStorage counts the workspace's bytes and admits this many more under
+// a per-workspace lock held until the transaction ends, so concurrent uploads
+// cannot each see room that only one of them has.
+func reserveStorage(ctx context.Context, tx *ent.Tx, organizationID, plan string, bytes int) error {
+	if _, err := tx.PlatformExec(ctx, `SELECT pg_advisory_xact_lock(hashtext('asset-storage:' || $1))`, organizationID); err != nil {
+		return err
+	}
+	used, err := storageUsed(ctx, tx.Client(), organizationID)
+	if err != nil {
+		return err
+	}
+	if used+int64(bytes) > storageLimits[plan] {
+		return ErrStorageQuota
+	}
+	return nil
+}
+
+// CompleteAssetUpload checks a pending upload's stored bytes and makes the
+// asset usable. A file sent in parts is joined first, and partSHA256, the
+// hex digest of each part as the browser read it, is checked against the
+// stored object part by part, since a browser cannot hash a large file whole.
+func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, assetID string, sha256 *string, partSHA256 ...string) (*AssetRecord, error) {
 	if err := c.authorizeRoles(ctx, actor,
 		"owner", "admin", "creator"); err != nil {
 		return nil, err
 	}
 	if sha256 != nil && !assetHashPattern.MatchString(*sha256) {
 		return nil, ErrInvalidInput
+	}
+	for _, digest := range partSHA256 {
+		if !assetHashPattern.MatchString(digest) {
+			return nil, ErrInvalidInput
+		}
 	}
 	row, err := c.client.Asset.Query().Where(asset.ID(assetID), asset.OrganizationID(actor.OrganizationID),
 		asset.StatusNEQ(asset.StatusDELETED)).Only(ctx)
@@ -233,6 +430,17 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if c.objects == nil {
 		return nil, ErrStorageUnavailable
 	}
+	if partSHA256 != nil && len(partSHA256) != assetMultipart(row.Bytes).Parts {
+		return nil, invalid(fmt.Sprintf("Send one checksum for each of the upload's %d parts.", assetMultipart(row.Bytes).Parts))
+	}
+	if row.UploadID != nil {
+		if partSHA256 == nil {
+			return nil, conflict("Send the checksum of each part to finish an upload sent in parts.")
+		}
+		if err := c.completeMultipart(ctx, row); err != nil {
+			return nil, err
+		}
+	}
 	exists, err := c.objects.Exists(ctx, row.ObjectKey)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
@@ -246,8 +454,14 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 	if sha256 != nil && row.Sha256 == nil {
 		row.Sha256 = sha256
 	}
-	if err := c.checkUploadedBytes(ctx, actor, row); err != nil {
+	content, err := c.checkUploadedBytes(ctx, actor, row, partSHA256)
+	if err != nil {
 		return nil, err
+	}
+	video := content.video
+	if sha256 == nil && row.Sha256 == nil {
+		// A large file's digest is the server's own reading of it.
+		sha256 = &content.sha256
 	}
 	dimensions, err := c.uploadedImageDimensions(ctx, row)
 	if err != nil {
@@ -265,6 +479,9 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 		asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusUPLOADED)
 	if dimensions != nil {
 		update.SetWidth(dimensions.Width).SetHeight(dimensions.Height)
+	}
+	if video != nil {
+		update.SetWidth(video.Width).SetHeight(video.Height).SetDurationMs(video.DurationMs).SetCodecs(strings.Join(video.Codecs, ","))
 	}
 	if sha256 != nil {
 		update.SetSha256(*sha256)
@@ -296,29 +513,22 @@ func (c *Configuration) CompleteAssetUpload(ctx context.Context, actor Actor, as
 
 // checkUploadedBytes verifies the actual length, digest and media signature.
 // A store without streaming still verifies bytes through its Read contract.
-func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row *ent.Asset) error {
-	var object io.ReadCloser
-	var err error
-	if opener, ok := c.objects.(objectOpener); ok {
-		object, err = opener.Open(ctx, row.ObjectKey)
-	} else {
-		var data []byte
-		data, err = c.objects.Read(ctx, row.ObjectKey)
-		object = io.NopCloser(bytes.NewReader(data))
-	}
+func (c *Configuration) checkUploadedBytes(ctx context.Context, actor Actor, row *ent.Asset, partSHA256 []string) (uploadedContent, error) {
+	object, err := c.openObject(ctx, row.ObjectKey)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
+		return uploadedContent{}, fmt.Errorf("%w: %v", ErrStorageUnavailable, err)
 	}
 	defer object.Close()
-	if err := verifyUploadedContent(object, row.MediaType, row.Bytes, row.Sha256); err != nil {
+	content, err := verifyUploadedContent(object, row.MediaType, row.Bytes, row.Sha256, partSHA256...)
+	if err != nil {
 		if errors.Is(err, ErrInvalidInput) {
 			if _, failErr := c.client.Asset.Update().Where(asset.ID(row.ID), asset.OrganizationID(actor.OrganizationID), asset.StatusEQ(asset.StatusPENDING)).SetStatus(asset.StatusFAILED).Save(ctx); failErr != nil {
-				return failErr
+				return uploadedContent{}, failErr
 			}
 		}
-		return err
+		return uploadedContent{}, err
 	}
-	return nil
+	return content, nil
 }
 
 func (c *Configuration) SignAssetDownload(ctx context.Context, actor Actor, assetID string) (string, error) {
@@ -434,15 +644,10 @@ func (c *Configuration) storeGeneratedAsset(ctx context.Context, actor Actor, in
 	if len(input.Body) > medialimits.UploadBytes(input.ContentType, plan) {
 		return nil, invalid("The file exceeds this plan’s media upload limit.")
 	}
-	used, err := c.client.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID),
-		asset.StatusNEQ(asset.StatusDELETED)).Aggregate(func(s *entsql.Selector) string {
-		return fmt.Sprintf("COALESCE(SUM(%s), 0)", s.C(asset.FieldBytes))
-	}).Int(ctx)
-	if err != nil {
+	// Refuse early without a lock; reserveStorage decides under it.
+	if used, err := storageUsed(ctx, c.client, actor.OrganizationID); err != nil {
 		return nil, err
-	}
-	limits := map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
-	if int64(used)+int64(len(input.Body)) > limits[plan] {
+	} else if used+int64(len(input.Body)) > storageLimits[plan] {
 		return nil, ErrStorageQuota
 	}
 	id := uuid.NewString()
@@ -466,6 +671,9 @@ func (c *Configuration) storeGeneratedAsset(ctx context.Context, actor Actor, in
 		return nil, err
 	}
 	defer tx.Rollback()
+	if err := reserveStorage(ctx, tx, actor.OrganizationID, plan, len(input.Body)); err != nil {
+		return nil, err
+	}
 	create := tx.Asset.Create().SetID(id).SetOrganizationID(actor.OrganizationID).
 		SetObjectKey(key).SetMediaType(input.ContentType).SetBytes(len(input.Body)).
 		SetSha256(fmt.Sprintf("%x", sha256.Sum256(input.Body))).SetStatus(asset.StatusUPLOADED).

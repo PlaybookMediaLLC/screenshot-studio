@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.40.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.39.2...v2.40.0) (2026-10-28)
+
+
+### Features
+
+* **github:** qualify production deployments with versioned policies ([#368](https://github.com/PlaybookMediaLLC/shots/issues/368)) ([47c3129](https://github.com/PlaybookMediaLLC/shots/commit/47c31294bb0abe68e1e9cd0712e1471e93be4601))
+
+
+### Bug Fixes
+
+* **scheduling:** reserve reviewed queue slots and settle every publication ([#364](https://github.com/PlaybookMediaLLC/shots/issues/364)) ([60e5b2d](https://github.com/PlaybookMediaLLC/shots/commit/60e5b2debb87ff96f52af42970ab49c9ad02ac54))
+
+
+### Performance Improvements
+
+* **ci:** move cache exports off the browser critical path ([#372](https://github.com/PlaybookMediaLLC/shots/issues/372)) ([048d44b](https://github.com/PlaybookMediaLLC/shots/commit/048d44b18c233d1a1d1c84f00f8f032786c1681e))
+* **ci:** share production builds across end-to-end shards ([#359](https://github.com/PlaybookMediaLLC/shots/issues/359)) ([c363eaf](https://github.com/PlaybookMediaLLC/shots/commit/c363eaf3f8d4b13be2e8f65c55bf6c4dc9ce4787))
+* **collab:** send the local cursor at most every 200ms ([#373](https://github.com/PlaybookMediaLLC/shots/issues/373)) ([5e1ab6d](https://github.com/PlaybookMediaLLC/shots/commit/5e1ab6de8609379aed51a20ed2939f02e032eeb7))
+
 ## [2.39.2](https://github.com/PlaybookMediaLLC/shots/compare/v2.39.1...v2.39.2) (2026-10-28)
 
 

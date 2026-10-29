@@ -42,6 +42,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatch"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatchitem"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
@@ -55,8 +57,15 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubproductionpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubrecoveryscan"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
@@ -188,6 +197,10 @@ type Client struct {
 	CommunicationRecipient *CommunicationRecipientClient
 	// ContentAngle is the client for interacting with the ContentAngle builders.
 	ContentAngle *ContentAngleClient
+	// ContentBatch is the client for interacting with the ContentBatch builders.
+	ContentBatch *ContentBatchClient
+	// ContentBatchItem is the client for interacting with the ContentBatchItem builders.
+	ContentBatchItem *ContentBatchItemClient
 	// ContentDraft is the client for interacting with the ContentDraft builders.
 	ContentDraft *ContentDraftClient
 	// ContentDraftFinisher is the client for interacting with the ContentDraftFinisher builders.
@@ -214,10 +227,24 @@ type Client struct {
 	Design *DesignClient
 	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
 	EnrichmentRecord *EnrichmentRecordClient
+	// FrontendActivation is the client for interacting with the FrontendActivation builders.
+	FrontendActivation *FrontendActivationClient
+	// FrontendObservation is the client for interacting with the FrontendObservation builders.
+	FrontendObservation *FrontendObservationClient
+	// FrontendSource is the client for interacting with the FrontendSource builders.
+	FrontendSource *FrontendSourceClient
+	// GitHubDeliveryRecovery is the client for interacting with the GitHubDeliveryRecovery builders.
+	GitHubDeliveryRecovery *GitHubDeliveryRecoveryClient
 	// GitHubInstallStart is the client for interacting with the GitHubInstallStart builders.
 	GitHubInstallStart *GitHubInstallStartClient
 	// GitHubInstallation is the client for interacting with the GitHubInstallation builders.
 	GitHubInstallation *GitHubInstallationClient
+	// GitHubObservation is the client for interacting with the GitHubObservation builders.
+	GitHubObservation *GitHubObservationClient
+	// GitHubProductionPolicy is the client for interacting with the GitHubProductionPolicy builders.
+	GitHubProductionPolicy *GitHubProductionPolicyClient
+	// GitHubRecoveryScan is the client for interacting with the GitHubRecoveryScan builders.
+	GitHubRecoveryScan *GitHubRecoveryScanClient
 	// IdealCustomerProfile is the client for interacting with the IdealCustomerProfile builders.
 	IdealCustomerProfile *IdealCustomerProfileClient
 	// IntegrationConnection is the client for interacting with the IntegrationConnection builders.
@@ -396,6 +423,8 @@ func (c *Client) init() {
 	c.CommunicationAttempt = NewCommunicationAttemptClient(c.config)
 	c.CommunicationRecipient = NewCommunicationRecipientClient(c.config)
 	c.ContentAngle = NewContentAngleClient(c.config)
+	c.ContentBatch = NewContentBatchClient(c.config)
+	c.ContentBatchItem = NewContentBatchItemClient(c.config)
 	c.ContentDraft = NewContentDraftClient(c.config)
 	c.ContentDraftFinisher = NewContentDraftFinisherClient(c.config)
 	c.ContentDraftRevision = NewContentDraftRevisionClient(c.config)
@@ -409,8 +438,15 @@ func (c *Client) init() {
 	c.DeploymentEvent = NewDeploymentEventClient(c.config)
 	c.Design = NewDesignClient(c.config)
 	c.EnrichmentRecord = NewEnrichmentRecordClient(c.config)
+	c.FrontendActivation = NewFrontendActivationClient(c.config)
+	c.FrontendObservation = NewFrontendObservationClient(c.config)
+	c.FrontendSource = NewFrontendSourceClient(c.config)
+	c.GitHubDeliveryRecovery = NewGitHubDeliveryRecoveryClient(c.config)
 	c.GitHubInstallStart = NewGitHubInstallStartClient(c.config)
 	c.GitHubInstallation = NewGitHubInstallationClient(c.config)
+	c.GitHubObservation = NewGitHubObservationClient(c.config)
+	c.GitHubProductionPolicy = NewGitHubProductionPolicyClient(c.config)
+	c.GitHubRecoveryScan = NewGitHubRecoveryScanClient(c.config)
 	c.IdealCustomerProfile = NewIdealCustomerProfileClient(c.config)
 	c.IntegrationConnection = NewIntegrationConnectionClient(c.config)
 	c.Invitation = NewInvitationClient(c.config)
@@ -600,6 +636,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		CommunicationAttempt:            NewCommunicationAttemptClient(cfg),
 		CommunicationRecipient:          NewCommunicationRecipientClient(cfg),
 		ContentAngle:                    NewContentAngleClient(cfg),
+		ContentBatch:                    NewContentBatchClient(cfg),
+		ContentBatchItem:                NewContentBatchItemClient(cfg),
 		ContentDraft:                    NewContentDraftClient(cfg),
 		ContentDraftFinisher:            NewContentDraftFinisherClient(cfg),
 		ContentDraftRevision:            NewContentDraftRevisionClient(cfg),
@@ -613,8 +651,15 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		DeploymentEvent:                 NewDeploymentEventClient(cfg),
 		Design:                          NewDesignClient(cfg),
 		EnrichmentRecord:                NewEnrichmentRecordClient(cfg),
+		FrontendActivation:              NewFrontendActivationClient(cfg),
+		FrontendObservation:             NewFrontendObservationClient(cfg),
+		FrontendSource:                  NewFrontendSourceClient(cfg),
+		GitHubDeliveryRecovery:          NewGitHubDeliveryRecoveryClient(cfg),
 		GitHubInstallStart:              NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:              NewGitHubInstallationClient(cfg),
+		GitHubObservation:               NewGitHubObservationClient(cfg),
+		GitHubProductionPolicy:          NewGitHubProductionPolicyClient(cfg),
+		GitHubRecoveryScan:              NewGitHubRecoveryScanClient(cfg),
 		IdealCustomerProfile:            NewIdealCustomerProfileClient(cfg),
 		IntegrationConnection:           NewIntegrationConnectionClient(cfg),
 		Invitation:                      NewInvitationClient(cfg),
@@ -731,6 +776,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		CommunicationAttempt:            NewCommunicationAttemptClient(cfg),
 		CommunicationRecipient:          NewCommunicationRecipientClient(cfg),
 		ContentAngle:                    NewContentAngleClient(cfg),
+		ContentBatch:                    NewContentBatchClient(cfg),
+		ContentBatchItem:                NewContentBatchItemClient(cfg),
 		ContentDraft:                    NewContentDraftClient(cfg),
 		ContentDraftFinisher:            NewContentDraftFinisherClient(cfg),
 		ContentDraftRevision:            NewContentDraftRevisionClient(cfg),
@@ -744,8 +791,15 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		DeploymentEvent:                 NewDeploymentEventClient(cfg),
 		Design:                          NewDesignClient(cfg),
 		EnrichmentRecord:                NewEnrichmentRecordClient(cfg),
+		FrontendActivation:              NewFrontendActivationClient(cfg),
+		FrontendObservation:             NewFrontendObservationClient(cfg),
+		FrontendSource:                  NewFrontendSourceClient(cfg),
+		GitHubDeliveryRecovery:          NewGitHubDeliveryRecoveryClient(cfg),
 		GitHubInstallStart:              NewGitHubInstallStartClient(cfg),
 		GitHubInstallation:              NewGitHubInstallationClient(cfg),
+		GitHubObservation:               NewGitHubObservationClient(cfg),
+		GitHubProductionPolicy:          NewGitHubProductionPolicyClient(cfg),
+		GitHubRecoveryScan:              NewGitHubRecoveryScanClient(cfg),
 		IdealCustomerProfile:            NewIdealCustomerProfileClient(cfg),
 		IntegrationConnection:           NewIntegrationConnectionClient(cfg),
 		Invitation:                      NewInvitationClient(cfg),
@@ -852,20 +906,22 @@ func (c *Client) Use(hooks ...Hook) {
 		c.BrandProfile, c.CalendarMutation, c.Campaign, c.CampaignAsset,
 		c.CampaignPlan, c.CampaignPost, c.CampaignRevision, c.ChannelConnection,
 		c.CommunicationAttempt, c.CommunicationRecipient, c.ContentAngle,
-		c.ContentDraft, c.ContentDraftFinisher, c.ContentDraftRevision,
-		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
-		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.ContentBatch, c.ContentBatchItem, c.ContentDraft, c.ContentDraftFinisher,
+		c.ContentDraftRevision, c.ContentDraftSettings, c.ContentDraftTag,
+		c.Conversation, c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
-		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
-		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
-		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.PlatformAutoDMCampaign,
-		c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut, c.PlatformAutoDMRecipient,
-		c.PlatformCreativeSet, c.PlatformCreativeSetVersion, c.PlatformDraftImport,
-		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
-		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
-		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
-		c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.FrontendActivation, c.FrontendObservation, c.FrontendSource,
+		c.GitHubDeliveryRecovery, c.GitHubInstallStart, c.GitHubInstallation,
+		c.GitHubObservation, c.GitHubProductionPolicy, c.GitHubRecoveryScan,
+		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
+		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
+		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
+		c.PlatformAutoDMCampaign, c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut,
+		c.PlatformAutoDMRecipient, c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformDraftImport, c.PlatformNotificationDelivery,
+		c.PlatformNotificationInbox, c.PlatformNotificationPolicy,
+		c.PlatformNotificationPreference, c.PlatformNotificationSeenAction,
+		c.PlatformSlackConnection, c.PlatformSlackInstallation, c.PlatformSlackPacing,
 		c.PlatformSlackPersonalConnection, c.PlatformSocialMention,
 		c.PlatformSocialObservation, c.PlatformWorkspaceCreation, c.PostAutomationRun,
 		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
@@ -896,20 +952,22 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.BrandProfile, c.CalendarMutation, c.Campaign, c.CampaignAsset,
 		c.CampaignPlan, c.CampaignPost, c.CampaignRevision, c.ChannelConnection,
 		c.CommunicationAttempt, c.CommunicationRecipient, c.ContentAngle,
-		c.ContentDraft, c.ContentDraftFinisher, c.ContentDraftRevision,
-		c.ContentDraftSettings, c.ContentDraftTag, c.Conversation,
-		c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
+		c.ContentBatch, c.ContentBatchItem, c.ContentDraft, c.ContentDraftFinisher,
+		c.ContentDraftRevision, c.ContentDraftSettings, c.ContentDraftTag,
+		c.Conversation, c.ConversationMessage, c.CreativeTemplate, c.CreativeVariant,
 		c.CustomerCommunication, c.DeploymentEvent, c.Design, c.EnrichmentRecord,
-		c.GitHubInstallStart, c.GitHubInstallation, c.IdealCustomerProfile,
-		c.IntegrationConnection, c.Invitation, c.LaunchRun, c.LaunchRunStep, c.Member,
-		c.OnboardingRun, c.Organization, c.OrganizationEnterpriseSettings,
-		c.OutboxEvent, c.PageKnowledge, c.PlatformAutoDMCampaign,
-		c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut, c.PlatformAutoDMRecipient,
-		c.PlatformCreativeSet, c.PlatformCreativeSetVersion, c.PlatformDraftImport,
-		c.PlatformNotificationDelivery, c.PlatformNotificationInbox,
-		c.PlatformNotificationPolicy, c.PlatformNotificationPreference,
-		c.PlatformNotificationSeenAction, c.PlatformSlackConnection,
-		c.PlatformSlackInstallation, c.PlatformSlackPacing,
+		c.FrontendActivation, c.FrontendObservation, c.FrontendSource,
+		c.GitHubDeliveryRecovery, c.GitHubInstallStart, c.GitHubInstallation,
+		c.GitHubObservation, c.GitHubProductionPolicy, c.GitHubRecoveryScan,
+		c.IdealCustomerProfile, c.IntegrationConnection, c.Invitation, c.LaunchRun,
+		c.LaunchRunStep, c.Member, c.OnboardingRun, c.Organization,
+		c.OrganizationEnterpriseSettings, c.OutboxEvent, c.PageKnowledge,
+		c.PlatformAutoDMCampaign, c.PlatformAutoDMDelivery, c.PlatformAutoDMOptOut,
+		c.PlatformAutoDMRecipient, c.PlatformCreativeSet, c.PlatformCreativeSetVersion,
+		c.PlatformDraftImport, c.PlatformNotificationDelivery,
+		c.PlatformNotificationInbox, c.PlatformNotificationPolicy,
+		c.PlatformNotificationPreference, c.PlatformNotificationSeenAction,
+		c.PlatformSlackConnection, c.PlatformSlackInstallation, c.PlatformSlackPacing,
 		c.PlatformSlackPersonalConnection, c.PlatformSocialMention,
 		c.PlatformSocialObservation, c.PlatformWorkspaceCreation, c.PostAutomationRun,
 		c.ProductProfile, c.ProductSurface, c.Project, c.ProjectVersion,
@@ -986,6 +1044,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.CommunicationRecipient.mutate(ctx, m)
 	case *ContentAngleMutation:
 		return c.ContentAngle.mutate(ctx, m)
+	case *ContentBatchMutation:
+		return c.ContentBatch.mutate(ctx, m)
+	case *ContentBatchItemMutation:
+		return c.ContentBatchItem.mutate(ctx, m)
 	case *ContentDraftMutation:
 		return c.ContentDraft.mutate(ctx, m)
 	case *ContentDraftFinisherMutation:
@@ -1012,10 +1074,24 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Design.mutate(ctx, m)
 	case *EnrichmentRecordMutation:
 		return c.EnrichmentRecord.mutate(ctx, m)
+	case *FrontendActivationMutation:
+		return c.FrontendActivation.mutate(ctx, m)
+	case *FrontendObservationMutation:
+		return c.FrontendObservation.mutate(ctx, m)
+	case *FrontendSourceMutation:
+		return c.FrontendSource.mutate(ctx, m)
+	case *GitHubDeliveryRecoveryMutation:
+		return c.GitHubDeliveryRecovery.mutate(ctx, m)
 	case *GitHubInstallStartMutation:
 		return c.GitHubInstallStart.mutate(ctx, m)
 	case *GitHubInstallationMutation:
 		return c.GitHubInstallation.mutate(ctx, m)
+	case *GitHubObservationMutation:
+		return c.GitHubObservation.mutate(ctx, m)
+	case *GitHubProductionPolicyMutation:
+		return c.GitHubProductionPolicy.mutate(ctx, m)
+	case *GitHubRecoveryScanMutation:
+		return c.GitHubRecoveryScan.mutate(ctx, m)
 	case *IdealCustomerProfileMutation:
 		return c.IdealCustomerProfile.mutate(ctx, m)
 	case *IntegrationConnectionMutation:
@@ -4800,6 +4876,272 @@ func (c *ContentAngleClient) mutate(ctx context.Context, m *ContentAngleMutation
 	}
 }
 
+// ContentBatchClient is a client for the ContentBatch schema.
+type ContentBatchClient struct {
+	config
+}
+
+// NewContentBatchClient returns a client for the ContentBatch from the given config.
+func NewContentBatchClient(c config) *ContentBatchClient {
+	return &ContentBatchClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentbatch.Hooks(f(g(h())))`.
+func (c *ContentBatchClient) Use(hooks ...Hook) {
+	c.hooks.ContentBatch = append(c.hooks.ContentBatch, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentbatch.Intercept(f(g(h())))`.
+func (c *ContentBatchClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentBatch = append(c.inters.ContentBatch, interceptors...)
+}
+
+// Create returns a builder for creating a ContentBatch entity.
+func (c *ContentBatchClient) Create() *ContentBatchCreate {
+	mutation := newContentBatchMutation(c.config, OpCreate)
+	return &ContentBatchCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentBatch entities.
+func (c *ContentBatchClient) CreateBulk(builders ...*ContentBatchCreate) *ContentBatchCreateBulk {
+	return &ContentBatchCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentBatchClient) MapCreateBulk(slice any, setFunc func(*ContentBatchCreate, int)) *ContentBatchCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentBatchCreateBulk{err: fmt.Errorf("calling to ContentBatchClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentBatchCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentBatchCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentBatch.
+func (c *ContentBatchClient) Update() *ContentBatchUpdate {
+	mutation := newContentBatchMutation(c.config, OpUpdate)
+	return &ContentBatchUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentBatchClient) UpdateOne(_m *ContentBatch) *ContentBatchUpdateOne {
+	mutation := newContentBatchMutation(c.config, OpUpdateOne, withContentBatch(_m))
+	return &ContentBatchUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentBatchClient) UpdateOneID(id string) *ContentBatchUpdateOne {
+	mutation := newContentBatchMutation(c.config, OpUpdateOne, withContentBatchID(id))
+	return &ContentBatchUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentBatch.
+func (c *ContentBatchClient) Delete() *ContentBatchDelete {
+	mutation := newContentBatchMutation(c.config, OpDelete)
+	return &ContentBatchDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentBatchClient) DeleteOne(_m *ContentBatch) *ContentBatchDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentBatchClient) DeleteOneID(id string) *ContentBatchDeleteOne {
+	builder := c.Delete().Where(contentbatch.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentBatchDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentBatch.
+func (c *ContentBatchClient) Query() *ContentBatchQuery {
+	return &ContentBatchQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentBatch},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentBatch entity by its id.
+func (c *ContentBatchClient) Get(ctx context.Context, id string) (*ContentBatch, error) {
+	return c.Query().Where(contentbatch.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentBatchClient) GetX(ctx context.Context, id string) *ContentBatch {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentBatchClient) Hooks() []Hook {
+	return c.hooks.ContentBatch
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentBatchClient) Interceptors() []Interceptor {
+	return c.inters.ContentBatch
+}
+
+func (c *ContentBatchClient) mutate(ctx context.Context, m *ContentBatchMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentBatchCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentBatchUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentBatchUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentBatchDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentBatch mutation op: %q", m.Op())
+	}
+}
+
+// ContentBatchItemClient is a client for the ContentBatchItem schema.
+type ContentBatchItemClient struct {
+	config
+}
+
+// NewContentBatchItemClient returns a client for the ContentBatchItem from the given config.
+func NewContentBatchItemClient(c config) *ContentBatchItemClient {
+	return &ContentBatchItemClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `contentbatchitem.Hooks(f(g(h())))`.
+func (c *ContentBatchItemClient) Use(hooks ...Hook) {
+	c.hooks.ContentBatchItem = append(c.hooks.ContentBatchItem, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `contentbatchitem.Intercept(f(g(h())))`.
+func (c *ContentBatchItemClient) Intercept(interceptors ...Interceptor) {
+	c.inters.ContentBatchItem = append(c.inters.ContentBatchItem, interceptors...)
+}
+
+// Create returns a builder for creating a ContentBatchItem entity.
+func (c *ContentBatchItemClient) Create() *ContentBatchItemCreate {
+	mutation := newContentBatchItemMutation(c.config, OpCreate)
+	return &ContentBatchItemCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of ContentBatchItem entities.
+func (c *ContentBatchItemClient) CreateBulk(builders ...*ContentBatchItemCreate) *ContentBatchItemCreateBulk {
+	return &ContentBatchItemCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ContentBatchItemClient) MapCreateBulk(slice any, setFunc func(*ContentBatchItemCreate, int)) *ContentBatchItemCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ContentBatchItemCreateBulk{err: fmt.Errorf("calling to ContentBatchItemClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ContentBatchItemCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ContentBatchItemCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for ContentBatchItem.
+func (c *ContentBatchItemClient) Update() *ContentBatchItemUpdate {
+	mutation := newContentBatchItemMutation(c.config, OpUpdate)
+	return &ContentBatchItemUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ContentBatchItemClient) UpdateOne(_m *ContentBatchItem) *ContentBatchItemUpdateOne {
+	mutation := newContentBatchItemMutation(c.config, OpUpdateOne, withContentBatchItem(_m))
+	return &ContentBatchItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ContentBatchItemClient) UpdateOneID(id string) *ContentBatchItemUpdateOne {
+	mutation := newContentBatchItemMutation(c.config, OpUpdateOne, withContentBatchItemID(id))
+	return &ContentBatchItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for ContentBatchItem.
+func (c *ContentBatchItemClient) Delete() *ContentBatchItemDelete {
+	mutation := newContentBatchItemMutation(c.config, OpDelete)
+	return &ContentBatchItemDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ContentBatchItemClient) DeleteOne(_m *ContentBatchItem) *ContentBatchItemDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ContentBatchItemClient) DeleteOneID(id string) *ContentBatchItemDeleteOne {
+	builder := c.Delete().Where(contentbatchitem.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ContentBatchItemDeleteOne{builder}
+}
+
+// Query returns a query builder for ContentBatchItem.
+func (c *ContentBatchItemClient) Query() *ContentBatchItemQuery {
+	return &ContentBatchItemQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeContentBatchItem},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a ContentBatchItem entity by its id.
+func (c *ContentBatchItemClient) Get(ctx context.Context, id string) (*ContentBatchItem, error) {
+	return c.Query().Where(contentbatchitem.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ContentBatchItemClient) GetX(ctx context.Context, id string) *ContentBatchItem {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *ContentBatchItemClient) Hooks() []Hook {
+	return c.hooks.ContentBatchItem
+}
+
+// Interceptors returns the client interceptors.
+func (c *ContentBatchItemClient) Interceptors() []Interceptor {
+	return c.inters.ContentBatchItem
+}
+
+func (c *ContentBatchItemClient) mutate(ctx context.Context, m *ContentBatchItemMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ContentBatchItemCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ContentBatchItemUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ContentBatchItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ContentBatchItemDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown ContentBatchItem mutation op: %q", m.Op())
+	}
+}
+
 // ContentDraftClient is a client for the ContentDraft schema.
 type ContentDraftClient struct {
 	config
@@ -6561,6 +6903,538 @@ func (c *EnrichmentRecordClient) mutate(ctx context.Context, m *EnrichmentRecord
 	}
 }
 
+// FrontendActivationClient is a client for the FrontendActivation schema.
+type FrontendActivationClient struct {
+	config
+}
+
+// NewFrontendActivationClient returns a client for the FrontendActivation from the given config.
+func NewFrontendActivationClient(c config) *FrontendActivationClient {
+	return &FrontendActivationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `frontendactivation.Hooks(f(g(h())))`.
+func (c *FrontendActivationClient) Use(hooks ...Hook) {
+	c.hooks.FrontendActivation = append(c.hooks.FrontendActivation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `frontendactivation.Intercept(f(g(h())))`.
+func (c *FrontendActivationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FrontendActivation = append(c.inters.FrontendActivation, interceptors...)
+}
+
+// Create returns a builder for creating a FrontendActivation entity.
+func (c *FrontendActivationClient) Create() *FrontendActivationCreate {
+	mutation := newFrontendActivationMutation(c.config, OpCreate)
+	return &FrontendActivationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FrontendActivation entities.
+func (c *FrontendActivationClient) CreateBulk(builders ...*FrontendActivationCreate) *FrontendActivationCreateBulk {
+	return &FrontendActivationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FrontendActivationClient) MapCreateBulk(slice any, setFunc func(*FrontendActivationCreate, int)) *FrontendActivationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FrontendActivationCreateBulk{err: fmt.Errorf("calling to FrontendActivationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FrontendActivationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FrontendActivationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FrontendActivation.
+func (c *FrontendActivationClient) Update() *FrontendActivationUpdate {
+	mutation := newFrontendActivationMutation(c.config, OpUpdate)
+	return &FrontendActivationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FrontendActivationClient) UpdateOne(_m *FrontendActivation) *FrontendActivationUpdateOne {
+	mutation := newFrontendActivationMutation(c.config, OpUpdateOne, withFrontendActivation(_m))
+	return &FrontendActivationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FrontendActivationClient) UpdateOneID(id string) *FrontendActivationUpdateOne {
+	mutation := newFrontendActivationMutation(c.config, OpUpdateOne, withFrontendActivationID(id))
+	return &FrontendActivationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FrontendActivation.
+func (c *FrontendActivationClient) Delete() *FrontendActivationDelete {
+	mutation := newFrontendActivationMutation(c.config, OpDelete)
+	return &FrontendActivationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FrontendActivationClient) DeleteOne(_m *FrontendActivation) *FrontendActivationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FrontendActivationClient) DeleteOneID(id string) *FrontendActivationDeleteOne {
+	builder := c.Delete().Where(frontendactivation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FrontendActivationDeleteOne{builder}
+}
+
+// Query returns a query builder for FrontendActivation.
+func (c *FrontendActivationClient) Query() *FrontendActivationQuery {
+	return &FrontendActivationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFrontendActivation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FrontendActivation entity by its id.
+func (c *FrontendActivationClient) Get(ctx context.Context, id string) (*FrontendActivation, error) {
+	return c.Query().Where(frontendactivation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FrontendActivationClient) GetX(ctx context.Context, id string) *FrontendActivation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FrontendActivationClient) Hooks() []Hook {
+	return c.hooks.FrontendActivation
+}
+
+// Interceptors returns the client interceptors.
+func (c *FrontendActivationClient) Interceptors() []Interceptor {
+	return c.inters.FrontendActivation
+}
+
+func (c *FrontendActivationClient) mutate(ctx context.Context, m *FrontendActivationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FrontendActivationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FrontendActivationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FrontendActivationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FrontendActivationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FrontendActivation mutation op: %q", m.Op())
+	}
+}
+
+// FrontendObservationClient is a client for the FrontendObservation schema.
+type FrontendObservationClient struct {
+	config
+}
+
+// NewFrontendObservationClient returns a client for the FrontendObservation from the given config.
+func NewFrontendObservationClient(c config) *FrontendObservationClient {
+	return &FrontendObservationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `frontendobservation.Hooks(f(g(h())))`.
+func (c *FrontendObservationClient) Use(hooks ...Hook) {
+	c.hooks.FrontendObservation = append(c.hooks.FrontendObservation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `frontendobservation.Intercept(f(g(h())))`.
+func (c *FrontendObservationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FrontendObservation = append(c.inters.FrontendObservation, interceptors...)
+}
+
+// Create returns a builder for creating a FrontendObservation entity.
+func (c *FrontendObservationClient) Create() *FrontendObservationCreate {
+	mutation := newFrontendObservationMutation(c.config, OpCreate)
+	return &FrontendObservationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FrontendObservation entities.
+func (c *FrontendObservationClient) CreateBulk(builders ...*FrontendObservationCreate) *FrontendObservationCreateBulk {
+	return &FrontendObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FrontendObservationClient) MapCreateBulk(slice any, setFunc func(*FrontendObservationCreate, int)) *FrontendObservationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FrontendObservationCreateBulk{err: fmt.Errorf("calling to FrontendObservationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FrontendObservationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FrontendObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FrontendObservation.
+func (c *FrontendObservationClient) Update() *FrontendObservationUpdate {
+	mutation := newFrontendObservationMutation(c.config, OpUpdate)
+	return &FrontendObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FrontendObservationClient) UpdateOne(_m *FrontendObservation) *FrontendObservationUpdateOne {
+	mutation := newFrontendObservationMutation(c.config, OpUpdateOne, withFrontendObservation(_m))
+	return &FrontendObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FrontendObservationClient) UpdateOneID(id string) *FrontendObservationUpdateOne {
+	mutation := newFrontendObservationMutation(c.config, OpUpdateOne, withFrontendObservationID(id))
+	return &FrontendObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FrontendObservation.
+func (c *FrontendObservationClient) Delete() *FrontendObservationDelete {
+	mutation := newFrontendObservationMutation(c.config, OpDelete)
+	return &FrontendObservationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FrontendObservationClient) DeleteOne(_m *FrontendObservation) *FrontendObservationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FrontendObservationClient) DeleteOneID(id string) *FrontendObservationDeleteOne {
+	builder := c.Delete().Where(frontendobservation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FrontendObservationDeleteOne{builder}
+}
+
+// Query returns a query builder for FrontendObservation.
+func (c *FrontendObservationClient) Query() *FrontendObservationQuery {
+	return &FrontendObservationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFrontendObservation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FrontendObservation entity by its id.
+func (c *FrontendObservationClient) Get(ctx context.Context, id string) (*FrontendObservation, error) {
+	return c.Query().Where(frontendobservation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FrontendObservationClient) GetX(ctx context.Context, id string) *FrontendObservation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FrontendObservationClient) Hooks() []Hook {
+	return c.hooks.FrontendObservation
+}
+
+// Interceptors returns the client interceptors.
+func (c *FrontendObservationClient) Interceptors() []Interceptor {
+	return c.inters.FrontendObservation
+}
+
+func (c *FrontendObservationClient) mutate(ctx context.Context, m *FrontendObservationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FrontendObservationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FrontendObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FrontendObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FrontendObservationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FrontendObservation mutation op: %q", m.Op())
+	}
+}
+
+// FrontendSourceClient is a client for the FrontendSource schema.
+type FrontendSourceClient struct {
+	config
+}
+
+// NewFrontendSourceClient returns a client for the FrontendSource from the given config.
+func NewFrontendSourceClient(c config) *FrontendSourceClient {
+	return &FrontendSourceClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `frontendsource.Hooks(f(g(h())))`.
+func (c *FrontendSourceClient) Use(hooks ...Hook) {
+	c.hooks.FrontendSource = append(c.hooks.FrontendSource, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `frontendsource.Intercept(f(g(h())))`.
+func (c *FrontendSourceClient) Intercept(interceptors ...Interceptor) {
+	c.inters.FrontendSource = append(c.inters.FrontendSource, interceptors...)
+}
+
+// Create returns a builder for creating a FrontendSource entity.
+func (c *FrontendSourceClient) Create() *FrontendSourceCreate {
+	mutation := newFrontendSourceMutation(c.config, OpCreate)
+	return &FrontendSourceCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of FrontendSource entities.
+func (c *FrontendSourceClient) CreateBulk(builders ...*FrontendSourceCreate) *FrontendSourceCreateBulk {
+	return &FrontendSourceCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *FrontendSourceClient) MapCreateBulk(slice any, setFunc func(*FrontendSourceCreate, int)) *FrontendSourceCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &FrontendSourceCreateBulk{err: fmt.Errorf("calling to FrontendSourceClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*FrontendSourceCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &FrontendSourceCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for FrontendSource.
+func (c *FrontendSourceClient) Update() *FrontendSourceUpdate {
+	mutation := newFrontendSourceMutation(c.config, OpUpdate)
+	return &FrontendSourceUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FrontendSourceClient) UpdateOne(_m *FrontendSource) *FrontendSourceUpdateOne {
+	mutation := newFrontendSourceMutation(c.config, OpUpdateOne, withFrontendSource(_m))
+	return &FrontendSourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FrontendSourceClient) UpdateOneID(id string) *FrontendSourceUpdateOne {
+	mutation := newFrontendSourceMutation(c.config, OpUpdateOne, withFrontendSourceID(id))
+	return &FrontendSourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for FrontendSource.
+func (c *FrontendSourceClient) Delete() *FrontendSourceDelete {
+	mutation := newFrontendSourceMutation(c.config, OpDelete)
+	return &FrontendSourceDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FrontendSourceClient) DeleteOne(_m *FrontendSource) *FrontendSourceDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *FrontendSourceClient) DeleteOneID(id string) *FrontendSourceDeleteOne {
+	builder := c.Delete().Where(frontendsource.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FrontendSourceDeleteOne{builder}
+}
+
+// Query returns a query builder for FrontendSource.
+func (c *FrontendSourceClient) Query() *FrontendSourceQuery {
+	return &FrontendSourceQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeFrontendSource},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a FrontendSource entity by its id.
+func (c *FrontendSourceClient) Get(ctx context.Context, id string) (*FrontendSource, error) {
+	return c.Query().Where(frontendsource.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FrontendSourceClient) GetX(ctx context.Context, id string) *FrontendSource {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *FrontendSourceClient) Hooks() []Hook {
+	return c.hooks.FrontendSource
+}
+
+// Interceptors returns the client interceptors.
+func (c *FrontendSourceClient) Interceptors() []Interceptor {
+	return c.inters.FrontendSource
+}
+
+func (c *FrontendSourceClient) mutate(ctx context.Context, m *FrontendSourceMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&FrontendSourceCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&FrontendSourceUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&FrontendSourceUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&FrontendSourceDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown FrontendSource mutation op: %q", m.Op())
+	}
+}
+
+// GitHubDeliveryRecoveryClient is a client for the GitHubDeliveryRecovery schema.
+type GitHubDeliveryRecoveryClient struct {
+	config
+}
+
+// NewGitHubDeliveryRecoveryClient returns a client for the GitHubDeliveryRecovery from the given config.
+func NewGitHubDeliveryRecoveryClient(c config) *GitHubDeliveryRecoveryClient {
+	return &GitHubDeliveryRecoveryClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `githubdeliveryrecovery.Hooks(f(g(h())))`.
+func (c *GitHubDeliveryRecoveryClient) Use(hooks ...Hook) {
+	c.hooks.GitHubDeliveryRecovery = append(c.hooks.GitHubDeliveryRecovery, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `githubdeliveryrecovery.Intercept(f(g(h())))`.
+func (c *GitHubDeliveryRecoveryClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GitHubDeliveryRecovery = append(c.inters.GitHubDeliveryRecovery, interceptors...)
+}
+
+// Create returns a builder for creating a GitHubDeliveryRecovery entity.
+func (c *GitHubDeliveryRecoveryClient) Create() *GitHubDeliveryRecoveryCreate {
+	mutation := newGitHubDeliveryRecoveryMutation(c.config, OpCreate)
+	return &GitHubDeliveryRecoveryCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GitHubDeliveryRecovery entities.
+func (c *GitHubDeliveryRecoveryClient) CreateBulk(builders ...*GitHubDeliveryRecoveryCreate) *GitHubDeliveryRecoveryCreateBulk {
+	return &GitHubDeliveryRecoveryCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GitHubDeliveryRecoveryClient) MapCreateBulk(slice any, setFunc func(*GitHubDeliveryRecoveryCreate, int)) *GitHubDeliveryRecoveryCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GitHubDeliveryRecoveryCreateBulk{err: fmt.Errorf("calling to GitHubDeliveryRecoveryClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GitHubDeliveryRecoveryCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GitHubDeliveryRecoveryCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GitHubDeliveryRecovery.
+func (c *GitHubDeliveryRecoveryClient) Update() *GitHubDeliveryRecoveryUpdate {
+	mutation := newGitHubDeliveryRecoveryMutation(c.config, OpUpdate)
+	return &GitHubDeliveryRecoveryUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GitHubDeliveryRecoveryClient) UpdateOne(_m *GitHubDeliveryRecovery) *GitHubDeliveryRecoveryUpdateOne {
+	mutation := newGitHubDeliveryRecoveryMutation(c.config, OpUpdateOne, withGitHubDeliveryRecovery(_m))
+	return &GitHubDeliveryRecoveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GitHubDeliveryRecoveryClient) UpdateOneID(id string) *GitHubDeliveryRecoveryUpdateOne {
+	mutation := newGitHubDeliveryRecoveryMutation(c.config, OpUpdateOne, withGitHubDeliveryRecoveryID(id))
+	return &GitHubDeliveryRecoveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GitHubDeliveryRecovery.
+func (c *GitHubDeliveryRecoveryClient) Delete() *GitHubDeliveryRecoveryDelete {
+	mutation := newGitHubDeliveryRecoveryMutation(c.config, OpDelete)
+	return &GitHubDeliveryRecoveryDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GitHubDeliveryRecoveryClient) DeleteOne(_m *GitHubDeliveryRecovery) *GitHubDeliveryRecoveryDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GitHubDeliveryRecoveryClient) DeleteOneID(id string) *GitHubDeliveryRecoveryDeleteOne {
+	builder := c.Delete().Where(githubdeliveryrecovery.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GitHubDeliveryRecoveryDeleteOne{builder}
+}
+
+// Query returns a query builder for GitHubDeliveryRecovery.
+func (c *GitHubDeliveryRecoveryClient) Query() *GitHubDeliveryRecoveryQuery {
+	return &GitHubDeliveryRecoveryQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGitHubDeliveryRecovery},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GitHubDeliveryRecovery entity by its id.
+func (c *GitHubDeliveryRecoveryClient) Get(ctx context.Context, id string) (*GitHubDeliveryRecovery, error) {
+	return c.Query().Where(githubdeliveryrecovery.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GitHubDeliveryRecoveryClient) GetX(ctx context.Context, id string) *GitHubDeliveryRecovery {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GitHubDeliveryRecoveryClient) Hooks() []Hook {
+	return c.hooks.GitHubDeliveryRecovery
+}
+
+// Interceptors returns the client interceptors.
+func (c *GitHubDeliveryRecoveryClient) Interceptors() []Interceptor {
+	return c.inters.GitHubDeliveryRecovery
+}
+
+func (c *GitHubDeliveryRecoveryClient) mutate(ctx context.Context, m *GitHubDeliveryRecoveryMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GitHubDeliveryRecoveryCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GitHubDeliveryRecoveryUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GitHubDeliveryRecoveryUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GitHubDeliveryRecoveryDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GitHubDeliveryRecovery mutation op: %q", m.Op())
+	}
+}
+
 // GitHubInstallStartClient is a client for the GitHubInstallStart schema.
 type GitHubInstallStartClient struct {
 	config
@@ -6824,6 +7698,405 @@ func (c *GitHubInstallationClient) mutate(ctx context.Context, m *GitHubInstalla
 		return (&GitHubInstallationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown GitHubInstallation mutation op: %q", m.Op())
+	}
+}
+
+// GitHubObservationClient is a client for the GitHubObservation schema.
+type GitHubObservationClient struct {
+	config
+}
+
+// NewGitHubObservationClient returns a client for the GitHubObservation from the given config.
+func NewGitHubObservationClient(c config) *GitHubObservationClient {
+	return &GitHubObservationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `githubobservation.Hooks(f(g(h())))`.
+func (c *GitHubObservationClient) Use(hooks ...Hook) {
+	c.hooks.GitHubObservation = append(c.hooks.GitHubObservation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `githubobservation.Intercept(f(g(h())))`.
+func (c *GitHubObservationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GitHubObservation = append(c.inters.GitHubObservation, interceptors...)
+}
+
+// Create returns a builder for creating a GitHubObservation entity.
+func (c *GitHubObservationClient) Create() *GitHubObservationCreate {
+	mutation := newGitHubObservationMutation(c.config, OpCreate)
+	return &GitHubObservationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GitHubObservation entities.
+func (c *GitHubObservationClient) CreateBulk(builders ...*GitHubObservationCreate) *GitHubObservationCreateBulk {
+	return &GitHubObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GitHubObservationClient) MapCreateBulk(slice any, setFunc func(*GitHubObservationCreate, int)) *GitHubObservationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GitHubObservationCreateBulk{err: fmt.Errorf("calling to GitHubObservationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GitHubObservationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GitHubObservationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GitHubObservation.
+func (c *GitHubObservationClient) Update() *GitHubObservationUpdate {
+	mutation := newGitHubObservationMutation(c.config, OpUpdate)
+	return &GitHubObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GitHubObservationClient) UpdateOne(_m *GitHubObservation) *GitHubObservationUpdateOne {
+	mutation := newGitHubObservationMutation(c.config, OpUpdateOne, withGitHubObservation(_m))
+	return &GitHubObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GitHubObservationClient) UpdateOneID(id string) *GitHubObservationUpdateOne {
+	mutation := newGitHubObservationMutation(c.config, OpUpdateOne, withGitHubObservationID(id))
+	return &GitHubObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GitHubObservation.
+func (c *GitHubObservationClient) Delete() *GitHubObservationDelete {
+	mutation := newGitHubObservationMutation(c.config, OpDelete)
+	return &GitHubObservationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GitHubObservationClient) DeleteOne(_m *GitHubObservation) *GitHubObservationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GitHubObservationClient) DeleteOneID(id string) *GitHubObservationDeleteOne {
+	builder := c.Delete().Where(githubobservation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GitHubObservationDeleteOne{builder}
+}
+
+// Query returns a query builder for GitHubObservation.
+func (c *GitHubObservationClient) Query() *GitHubObservationQuery {
+	return &GitHubObservationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGitHubObservation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GitHubObservation entity by its id.
+func (c *GitHubObservationClient) Get(ctx context.Context, id string) (*GitHubObservation, error) {
+	return c.Query().Where(githubobservation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GitHubObservationClient) GetX(ctx context.Context, id string) *GitHubObservation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GitHubObservationClient) Hooks() []Hook {
+	return c.hooks.GitHubObservation
+}
+
+// Interceptors returns the client interceptors.
+func (c *GitHubObservationClient) Interceptors() []Interceptor {
+	return c.inters.GitHubObservation
+}
+
+func (c *GitHubObservationClient) mutate(ctx context.Context, m *GitHubObservationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GitHubObservationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GitHubObservationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GitHubObservationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GitHubObservationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GitHubObservation mutation op: %q", m.Op())
+	}
+}
+
+// GitHubProductionPolicyClient is a client for the GitHubProductionPolicy schema.
+type GitHubProductionPolicyClient struct {
+	config
+}
+
+// NewGitHubProductionPolicyClient returns a client for the GitHubProductionPolicy from the given config.
+func NewGitHubProductionPolicyClient(c config) *GitHubProductionPolicyClient {
+	return &GitHubProductionPolicyClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `githubproductionpolicy.Hooks(f(g(h())))`.
+func (c *GitHubProductionPolicyClient) Use(hooks ...Hook) {
+	c.hooks.GitHubProductionPolicy = append(c.hooks.GitHubProductionPolicy, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `githubproductionpolicy.Intercept(f(g(h())))`.
+func (c *GitHubProductionPolicyClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GitHubProductionPolicy = append(c.inters.GitHubProductionPolicy, interceptors...)
+}
+
+// Create returns a builder for creating a GitHubProductionPolicy entity.
+func (c *GitHubProductionPolicyClient) Create() *GitHubProductionPolicyCreate {
+	mutation := newGitHubProductionPolicyMutation(c.config, OpCreate)
+	return &GitHubProductionPolicyCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GitHubProductionPolicy entities.
+func (c *GitHubProductionPolicyClient) CreateBulk(builders ...*GitHubProductionPolicyCreate) *GitHubProductionPolicyCreateBulk {
+	return &GitHubProductionPolicyCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GitHubProductionPolicyClient) MapCreateBulk(slice any, setFunc func(*GitHubProductionPolicyCreate, int)) *GitHubProductionPolicyCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GitHubProductionPolicyCreateBulk{err: fmt.Errorf("calling to GitHubProductionPolicyClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GitHubProductionPolicyCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GitHubProductionPolicyCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GitHubProductionPolicy.
+func (c *GitHubProductionPolicyClient) Update() *GitHubProductionPolicyUpdate {
+	mutation := newGitHubProductionPolicyMutation(c.config, OpUpdate)
+	return &GitHubProductionPolicyUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GitHubProductionPolicyClient) UpdateOne(_m *GitHubProductionPolicy) *GitHubProductionPolicyUpdateOne {
+	mutation := newGitHubProductionPolicyMutation(c.config, OpUpdateOne, withGitHubProductionPolicy(_m))
+	return &GitHubProductionPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GitHubProductionPolicyClient) UpdateOneID(id string) *GitHubProductionPolicyUpdateOne {
+	mutation := newGitHubProductionPolicyMutation(c.config, OpUpdateOne, withGitHubProductionPolicyID(id))
+	return &GitHubProductionPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GitHubProductionPolicy.
+func (c *GitHubProductionPolicyClient) Delete() *GitHubProductionPolicyDelete {
+	mutation := newGitHubProductionPolicyMutation(c.config, OpDelete)
+	return &GitHubProductionPolicyDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GitHubProductionPolicyClient) DeleteOne(_m *GitHubProductionPolicy) *GitHubProductionPolicyDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GitHubProductionPolicyClient) DeleteOneID(id string) *GitHubProductionPolicyDeleteOne {
+	builder := c.Delete().Where(githubproductionpolicy.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GitHubProductionPolicyDeleteOne{builder}
+}
+
+// Query returns a query builder for GitHubProductionPolicy.
+func (c *GitHubProductionPolicyClient) Query() *GitHubProductionPolicyQuery {
+	return &GitHubProductionPolicyQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGitHubProductionPolicy},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GitHubProductionPolicy entity by its id.
+func (c *GitHubProductionPolicyClient) Get(ctx context.Context, id string) (*GitHubProductionPolicy, error) {
+	return c.Query().Where(githubproductionpolicy.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GitHubProductionPolicyClient) GetX(ctx context.Context, id string) *GitHubProductionPolicy {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GitHubProductionPolicyClient) Hooks() []Hook {
+	return c.hooks.GitHubProductionPolicy
+}
+
+// Interceptors returns the client interceptors.
+func (c *GitHubProductionPolicyClient) Interceptors() []Interceptor {
+	return c.inters.GitHubProductionPolicy
+}
+
+func (c *GitHubProductionPolicyClient) mutate(ctx context.Context, m *GitHubProductionPolicyMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GitHubProductionPolicyCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GitHubProductionPolicyUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GitHubProductionPolicyUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GitHubProductionPolicyDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GitHubProductionPolicy mutation op: %q", m.Op())
+	}
+}
+
+// GitHubRecoveryScanClient is a client for the GitHubRecoveryScan schema.
+type GitHubRecoveryScanClient struct {
+	config
+}
+
+// NewGitHubRecoveryScanClient returns a client for the GitHubRecoveryScan from the given config.
+func NewGitHubRecoveryScanClient(c config) *GitHubRecoveryScanClient {
+	return &GitHubRecoveryScanClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `githubrecoveryscan.Hooks(f(g(h())))`.
+func (c *GitHubRecoveryScanClient) Use(hooks ...Hook) {
+	c.hooks.GitHubRecoveryScan = append(c.hooks.GitHubRecoveryScan, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `githubrecoveryscan.Intercept(f(g(h())))`.
+func (c *GitHubRecoveryScanClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GitHubRecoveryScan = append(c.inters.GitHubRecoveryScan, interceptors...)
+}
+
+// Create returns a builder for creating a GitHubRecoveryScan entity.
+func (c *GitHubRecoveryScanClient) Create() *GitHubRecoveryScanCreate {
+	mutation := newGitHubRecoveryScanMutation(c.config, OpCreate)
+	return &GitHubRecoveryScanCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of GitHubRecoveryScan entities.
+func (c *GitHubRecoveryScanClient) CreateBulk(builders ...*GitHubRecoveryScanCreate) *GitHubRecoveryScanCreateBulk {
+	return &GitHubRecoveryScanCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GitHubRecoveryScanClient) MapCreateBulk(slice any, setFunc func(*GitHubRecoveryScanCreate, int)) *GitHubRecoveryScanCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GitHubRecoveryScanCreateBulk{err: fmt.Errorf("calling to GitHubRecoveryScanClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GitHubRecoveryScanCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GitHubRecoveryScanCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for GitHubRecoveryScan.
+func (c *GitHubRecoveryScanClient) Update() *GitHubRecoveryScanUpdate {
+	mutation := newGitHubRecoveryScanMutation(c.config, OpUpdate)
+	return &GitHubRecoveryScanUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *GitHubRecoveryScanClient) UpdateOne(_m *GitHubRecoveryScan) *GitHubRecoveryScanUpdateOne {
+	mutation := newGitHubRecoveryScanMutation(c.config, OpUpdateOne, withGitHubRecoveryScan(_m))
+	return &GitHubRecoveryScanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *GitHubRecoveryScanClient) UpdateOneID(id string) *GitHubRecoveryScanUpdateOne {
+	mutation := newGitHubRecoveryScanMutation(c.config, OpUpdateOne, withGitHubRecoveryScanID(id))
+	return &GitHubRecoveryScanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for GitHubRecoveryScan.
+func (c *GitHubRecoveryScanClient) Delete() *GitHubRecoveryScanDelete {
+	mutation := newGitHubRecoveryScanMutation(c.config, OpDelete)
+	return &GitHubRecoveryScanDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *GitHubRecoveryScanClient) DeleteOne(_m *GitHubRecoveryScan) *GitHubRecoveryScanDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *GitHubRecoveryScanClient) DeleteOneID(id string) *GitHubRecoveryScanDeleteOne {
+	builder := c.Delete().Where(githubrecoveryscan.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &GitHubRecoveryScanDeleteOne{builder}
+}
+
+// Query returns a query builder for GitHubRecoveryScan.
+func (c *GitHubRecoveryScanClient) Query() *GitHubRecoveryScanQuery {
+	return &GitHubRecoveryScanQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeGitHubRecoveryScan},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a GitHubRecoveryScan entity by its id.
+func (c *GitHubRecoveryScanClient) Get(ctx context.Context, id string) (*GitHubRecoveryScan, error) {
+	return c.Query().Where(githubrecoveryscan.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *GitHubRecoveryScanClient) GetX(ctx context.Context, id string) *GitHubRecoveryScan {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *GitHubRecoveryScanClient) Hooks() []Hook {
+	return c.hooks.GitHubRecoveryScan
+}
+
+// Interceptors returns the client interceptors.
+func (c *GitHubRecoveryScanClient) Interceptors() []Interceptor {
+	return c.inters.GitHubRecoveryScan
+}
+
+func (c *GitHubRecoveryScanClient) mutate(ctx context.Context, m *GitHubRecoveryScanMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GitHubRecoveryScanCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GitHubRecoveryScanUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GitHubRecoveryScanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GitHubRecoveryScanDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GitHubRecoveryScan mutation op: %q", m.Op())
 	}
 }
 
@@ -16193,19 +17466,22 @@ type (
 		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
 		BillingEntitlementEvent, BrandKit, BrandProfile, CalendarMutation, Campaign,
 		CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
-		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
-		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
-		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
-		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
-		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
-		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
-		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
-		PlatformCreativeSetVersion, PlatformDraftImport, PlatformNotificationDelivery,
-		PlatformNotificationInbox, PlatformNotificationPolicy,
-		PlatformNotificationPreference, PlatformNotificationSeenAction,
-		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentBatch,
+		ContentBatchItem, ContentDraft, ContentDraftFinisher, ContentDraftRevision,
+		ContentDraftSettings, ContentDraftTag, Conversation, ConversationMessage,
+		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
+		Design, EnrichmentRecord, FrontendActivation, FrontendObservation,
+		FrontendSource, GitHubDeliveryRecovery, GitHubInstallStart, GitHubInstallation,
+		GitHubObservation, GitHubProductionPolicy, GitHubRecoveryScan,
+		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
+		LaunchRunStep, Member, OnboardingRun, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformAutoDMCampaign, PlatformAutoDMDelivery, PlatformAutoDMOptOut,
+		PlatformAutoDMRecipient, PlatformCreativeSet, PlatformCreativeSetVersion,
+		PlatformDraftImport, PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformSocialMention,
 		PlatformSocialObservation, PlatformWorkspaceCreation, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,
@@ -16225,19 +17501,22 @@ type (
 		AuditDrainDelivery, AuditLog, AuditOutbox, AuditRetentionPolicy,
 		BillingEntitlementEvent, BrandKit, BrandProfile, CalendarMutation, Campaign,
 		CampaignAsset, CampaignPlan, CampaignPost, CampaignRevision, ChannelConnection,
-		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentDraft,
-		ContentDraftFinisher, ContentDraftRevision, ContentDraftSettings,
-		ContentDraftTag, Conversation, ConversationMessage, CreativeTemplate,
-		CreativeVariant, CustomerCommunication, DeploymentEvent, Design,
-		EnrichmentRecord, GitHubInstallStart, GitHubInstallation, IdealCustomerProfile,
-		IntegrationConnection, Invitation, LaunchRun, LaunchRunStep, Member,
-		OnboardingRun, Organization, OrganizationEnterpriseSettings, OutboxEvent,
-		PageKnowledge, PlatformAutoDMCampaign, PlatformAutoDMDelivery,
-		PlatformAutoDMOptOut, PlatformAutoDMRecipient, PlatformCreativeSet,
-		PlatformCreativeSetVersion, PlatformDraftImport, PlatformNotificationDelivery,
-		PlatformNotificationInbox, PlatformNotificationPolicy,
-		PlatformNotificationPreference, PlatformNotificationSeenAction,
-		PlatformSlackConnection, PlatformSlackInstallation, PlatformSlackPacing,
+		CommunicationAttempt, CommunicationRecipient, ContentAngle, ContentBatch,
+		ContentBatchItem, ContentDraft, ContentDraftFinisher, ContentDraftRevision,
+		ContentDraftSettings, ContentDraftTag, Conversation, ConversationMessage,
+		CreativeTemplate, CreativeVariant, CustomerCommunication, DeploymentEvent,
+		Design, EnrichmentRecord, FrontendActivation, FrontendObservation,
+		FrontendSource, GitHubDeliveryRecovery, GitHubInstallStart, GitHubInstallation,
+		GitHubObservation, GitHubProductionPolicy, GitHubRecoveryScan,
+		IdealCustomerProfile, IntegrationConnection, Invitation, LaunchRun,
+		LaunchRunStep, Member, OnboardingRun, Organization,
+		OrganizationEnterpriseSettings, OutboxEvent, PageKnowledge,
+		PlatformAutoDMCampaign, PlatformAutoDMDelivery, PlatformAutoDMOptOut,
+		PlatformAutoDMRecipient, PlatformCreativeSet, PlatformCreativeSetVersion,
+		PlatformDraftImport, PlatformNotificationDelivery, PlatformNotificationInbox,
+		PlatformNotificationPolicy, PlatformNotificationPreference,
+		PlatformNotificationSeenAction, PlatformSlackConnection,
+		PlatformSlackInstallation, PlatformSlackPacing,
 		PlatformSlackPersonalConnection, PlatformSocialMention,
 		PlatformSocialObservation, PlatformWorkspaceCreation, PostAutomationRun,
 		ProductProfile, ProductSurface, Project, ProjectVersion, PublicationAttempt,

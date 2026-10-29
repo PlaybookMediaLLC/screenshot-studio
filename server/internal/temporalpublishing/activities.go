@@ -19,6 +19,7 @@ type ActivityStore interface {
 	Complete(context.Context, *ent.ScheduledPost, publishing.Attempt, string, string) error
 	Fail(context.Context, *ent.ScheduledPost, publishing.Attempt, string, *time.Time, string) error
 	FailUnknown(context.Context, string, string, int) error
+	FailUnsent(context.Context, *ent.ScheduledPost, string, string) error
 	LoadPublishJob(context.Context, string, string) (publishing.PublishJob, error)
 	StartAttempt(context.Context, *ent.ScheduledPost, string, int) (publishing.Attempt, error)
 }
@@ -38,8 +39,15 @@ func NewActivities(store ActivityStore, provider Provider) *Activities {
 	return &Activities{provider: provider, store: store, now: time.Now}
 }
 
+// LatePublicationWindow is how late a post may still start publishing. A
+// post that could not start within it (its worker or Temporal was down) is
+// not sent: it fails as MISSED_WINDOW so a person publishes or reschedules it
+// knowingly, rather than an old post appearing hours after its moment.
+const LatePublicationWindow = time.Hour
+
 func (a *Activities) Prepare(ctx context.Context, input PrepareInput) (PreparedPublication, error) {
-	claimed, err := a.store.Claim(ctx, input.PostID, input.RunID, a.now().UTC())
+	now := a.now().UTC()
+	claimed, err := a.store.Claim(ctx, input.PostID, input.RunID, now)
 	if err != nil || !claimed {
 		return PreparedPublication{}, err
 	}
@@ -50,12 +58,19 @@ func (a *Activities) Prepare(ctx context.Context, input PrepareInput) (PreparedP
 		}
 		return PreparedPublication{}, err
 	}
-	if !job.WorkspaceActive {
-		if err := a.store.CancelIneligible(ctx, job.Post, "workspace, connection, or approval is no longer eligible", input.RunID); err != nil {
-			return PreparedPublication{}, err
-		}
-		return PreparedPublication{}, nil
+	late := now.Sub(job.Post.ScheduledFor)
+	switch {
+	case job.Ineligible == publishing.FailureMediaUnavailable:
+		slog.WarnContext(ctx, "publication failed before sending", "post", job.Post.ID, "failureCode", job.Ineligible)
+		return PreparedPublication{}, a.store.FailUnsent(ctx, job.Post, job.Ineligible, input.RunID)
+	case !job.WorkspaceActive:
+		slog.WarnContext(ctx, "publication cancelled as ineligible", "post", job.Post.ID, "failureCode", job.Ineligible)
+		return PreparedPublication{}, a.store.CancelIneligible(ctx, job.Post, job.Ineligible, input.RunID)
+	case late > LatePublicationWindow:
+		slog.WarnContext(ctx, "publication missed its window", "post", job.Post.ID, "lateSeconds", int(late.Seconds()))
+		return PreparedPublication{}, a.store.FailUnsent(ctx, job.Post, publishing.FailureMissedWindow, input.RunID)
 	}
+	slog.InfoContext(ctx, "publication starting", "post", job.Post.ID, "platform", job.Connection.Platform, "lateSeconds", int(max(late, 0).Seconds()))
 	return PreparedPublication{
 		AssetMediaType: job.AssetMediaType, AssetObjectKey: job.AssetObjectKey, Assets: job.Assets, Replies: job.Replies, ReplyTo: job.ReplyTo,
 		AutoActions: optionalActions(job.AutoActions), Poll: optionalPoll(job.Poll), Options: optionalOptions(job.Options),
@@ -250,6 +265,8 @@ func (a *Activities) Submit(ctx context.Context, input SubmitInput) (PublishResu
 		ProviderSettings: input.Job.ProviderSettings, SecretReference: input.Job.SecretReference,
 	})
 	if err == nil {
+		// Evidence for reconciliation should recording the receipt fail later.
+		slog.InfoContext(ctx, "provider accepted publication", "post", input.Job.PostID, "platform", input.Job.Platform, "remotePostId", providerID)
 		if direct, ok := a.provider.(interface{ PublishesSynchronously() bool }); ok && direct.PublishesSynchronously() {
 			return PublishResult{Outcome: OutcomePublished, ProviderID: providerID}, nil
 		}

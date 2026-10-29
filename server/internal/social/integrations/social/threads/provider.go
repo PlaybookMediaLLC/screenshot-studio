@@ -263,7 +263,7 @@ func params(pairs ...string) string {
 func (p *Provider) createSingleMediaContent(ctx context.Context, userID, accessToken string, media integrations.MediaContent, message string, isCarouselItem bool, replyToID string) (string, error) {
 	var pairs []string
 	mediaType := "IMAGE"
-	if helpers.HasExtension(media.Path, "mp4") {
+	if media.Type == "video" || helpers.HasExtension(media.Path, "mp4") {
 		mediaType = "VIDEO"
 		pairs = append(pairs, "video_url", media.Path)
 	} else {

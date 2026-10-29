@@ -333,6 +333,30 @@ func (f ContentAngleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentAngleMutation", m)
 }
 
+// The ContentBatchFunc type is an adapter to allow the use of ordinary
+// function as ContentBatch mutator.
+type ContentBatchFunc func(context.Context, *ent.ContentBatchMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentBatchFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentBatchMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentBatchMutation", m)
+}
+
+// The ContentBatchItemFunc type is an adapter to allow the use of ordinary
+// function as ContentBatchItem mutator.
+type ContentBatchItemFunc func(context.Context, *ent.ContentBatchItemMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ContentBatchItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ContentBatchItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ContentBatchItemMutation", m)
+}
+
 // The ContentDraftFunc type is an adapter to allow the use of ordinary
 // function as ContentDraft mutator.
 type ContentDraftFunc func(context.Context, *ent.ContentDraftMutation) (ent.Value, error)
@@ -489,6 +513,54 @@ func (f EnrichmentRecordFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.V
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.EnrichmentRecordMutation", m)
 }
 
+// The FrontendActivationFunc type is an adapter to allow the use of ordinary
+// function as FrontendActivation mutator.
+type FrontendActivationFunc func(context.Context, *ent.FrontendActivationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FrontendActivationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FrontendActivationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FrontendActivationMutation", m)
+}
+
+// The FrontendObservationFunc type is an adapter to allow the use of ordinary
+// function as FrontendObservation mutator.
+type FrontendObservationFunc func(context.Context, *ent.FrontendObservationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FrontendObservationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FrontendObservationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FrontendObservationMutation", m)
+}
+
+// The FrontendSourceFunc type is an adapter to allow the use of ordinary
+// function as FrontendSource mutator.
+type FrontendSourceFunc func(context.Context, *ent.FrontendSourceMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FrontendSourceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.FrontendSourceMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FrontendSourceMutation", m)
+}
+
+// The GitHubDeliveryRecoveryFunc type is an adapter to allow the use of ordinary
+// function as GitHubDeliveryRecovery mutator.
+type GitHubDeliveryRecoveryFunc func(context.Context, *ent.GitHubDeliveryRecoveryMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubDeliveryRecoveryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubDeliveryRecoveryMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubDeliveryRecoveryMutation", m)
+}
+
 // The GitHubInstallStartFunc type is an adapter to allow the use of ordinary
 // function as GitHubInstallStart mutator.
 type GitHubInstallStartFunc func(context.Context, *ent.GitHubInstallStartMutation) (ent.Value, error)
@@ -511,6 +583,42 @@ func (f GitHubInstallationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubInstallationMutation", m)
+}
+
+// The GitHubObservationFunc type is an adapter to allow the use of ordinary
+// function as GitHubObservation mutator.
+type GitHubObservationFunc func(context.Context, *ent.GitHubObservationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubObservationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubObservationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubObservationMutation", m)
+}
+
+// The GitHubProductionPolicyFunc type is an adapter to allow the use of ordinary
+// function as GitHubProductionPolicy mutator.
+type GitHubProductionPolicyFunc func(context.Context, *ent.GitHubProductionPolicyMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubProductionPolicyFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubProductionPolicyMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubProductionPolicyMutation", m)
+}
+
+// The GitHubRecoveryScanFunc type is an adapter to allow the use of ordinary
+// function as GitHubRecoveryScan mutator.
+type GitHubRecoveryScanFunc func(context.Context, *ent.GitHubRecoveryScanMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f GitHubRecoveryScanFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.GitHubRecoveryScanMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GitHubRecoveryScanMutation", m)
 }
 
 // The IdealCustomerProfileFunc type is an adapter to allow the use of ordinary

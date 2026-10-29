@@ -39,6 +39,8 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationattempt"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/communicationrecipient"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentangle"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatch"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentbatchitem"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraft"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftfinisher"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/contentdraftrevision"
@@ -52,8 +54,15 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/deploymentevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/design"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/enrichmentrecord"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubdeliveryrecovery"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubinstallstart"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubobservation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubproductionpolicy"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/githubrecoveryscan"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
@@ -212,6 +221,8 @@ func checkColumn(t, c string) error {
 			communicationattempt.Table:            communicationattempt.ValidColumn,
 			communicationrecipient.Table:          communicationrecipient.ValidColumn,
 			contentangle.Table:                    contentangle.ValidColumn,
+			contentbatch.Table:                    contentbatch.ValidColumn,
+			contentbatchitem.Table:                contentbatchitem.ValidColumn,
 			contentdraft.Table:                    contentdraft.ValidColumn,
 			contentdraftfinisher.Table:            contentdraftfinisher.ValidColumn,
 			contentdraftrevision.Table:            contentdraftrevision.ValidColumn,
@@ -225,8 +236,15 @@ func checkColumn(t, c string) error {
 			deploymentevent.Table:                 deploymentevent.ValidColumn,
 			design.Table:                          design.ValidColumn,
 			enrichmentrecord.Table:                enrichmentrecord.ValidColumn,
+			frontendactivation.Table:              frontendactivation.ValidColumn,
+			frontendobservation.Table:             frontendobservation.ValidColumn,
+			frontendsource.Table:                  frontendsource.ValidColumn,
+			githubdeliveryrecovery.Table:          githubdeliveryrecovery.ValidColumn,
 			githubinstallstart.Table:              githubinstallstart.ValidColumn,
 			githubinstallation.Table:              githubinstallation.ValidColumn,
+			githubobservation.Table:               githubobservation.ValidColumn,
+			githubproductionpolicy.Table:          githubproductionpolicy.ValidColumn,
+			githubrecoveryscan.Table:              githubrecoveryscan.ValidColumn,
 			idealcustomerprofile.Table:            idealcustomerprofile.ValidColumn,
 			integrationconnection.Table:           integrationconnection.ValidColumn,
 			invitation.Table:                      invitation.ValidColumn,

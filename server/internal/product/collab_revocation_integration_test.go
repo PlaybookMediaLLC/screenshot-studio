@@ -127,3 +127,59 @@ func TestCollaborationStoreRechecksAfterConcurrentDemotion(t *testing.T) {
 		t.Fatalf("denied state changed: %v %v", state, err)
 	}
 }
+
+// Changes that can take collaboration access away move the counts the
+// collaboration server polls; creating a draft, or another workspace, does not.
+func TestCollaborationAccessChangesMoveTheCounts(t *testing.T) {
+	w := newTestWorkspace(t)
+	ctx, repo := w.ctx, w.repo
+	subscribe(t, ctx, repo, w.org, "pro")
+	w.addMember(t, "editor", "creator")
+	count := func() int64 {
+		t.Helper()
+		_, counts, err := repo.CollabEpochs(ctx, []string{w.org, "another-workspace"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if counts["another-workspace"] != 0 {
+			t.Fatalf("another workspace moved: %v", counts)
+		}
+		return counts[w.org]
+	}
+	start := count()
+	moved := func(step string, want int64) {
+		t.Helper()
+		if got := count() - start; got != want {
+			t.Fatalf("%s: moved %d, want %d", step, got, want)
+		}
+	}
+	member := "member_editor_" + w.id
+	if _, err := repo.UpdateMemberRole(ctx, w.owner, member, "viewer"); err != nil {
+		t.Fatal(err)
+	}
+	moved("demotion", 1)
+	draft, err := repo.CreateContentDraft(ctx, w.owner, ContentDraftInput{Title: "Replaced"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved("creation", 1)
+	body := []any{map[string]any{"type": "p", "children": []any{map[string]any{"text": "Replaced"}}}}
+	updated, err := repo.UpdateContentDraft(ctx, w.owner, draft.ID, ContentDraftUpdate{BaseVersion: draft.Version, Body: &body})
+	if err != nil {
+		t.Fatal(err)
+	}
+	moved("body replaced", 2)
+	title := "Renamed"
+	if _, err := repo.UpdateContentDraft(ctx, w.owner, draft.ID, ContentDraftUpdate{BaseVersion: updated.Version, Title: &title}); err != nil {
+		t.Fatal(err)
+	}
+	moved("title only", 2)
+	if err := repo.DeleteContentDraft(ctx, w.owner, draft.ID); err != nil {
+		t.Fatal(err)
+	}
+	moved("deletion", 3)
+	if _, err := repo.RemoveMember(ctx, w.owner, member); err != nil {
+		t.Fatal(err)
+	}
+	moved("removal", 4)
+}

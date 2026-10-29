@@ -32,6 +32,7 @@ export const ingestGitHubAppWebhookContract = defineContract({
   bodyFormat: 'text',
   method: 'POST',
   name: 'webhooks.github',
+  maxBodyBytes: 25 * 1024 * 1024,
   // How many records the delivery touched; zero means it shipped nothing.
   output: z.object({ handled: z.number().int().nonnegative() }),
   path: '/api/webhooks/github',
@@ -48,4 +49,18 @@ export const stripeWebhookContract = defineContract({
   output: z.object({ synced: z.boolean() }),
   path: '/api/webhooks/stripe',
   summary: 'Sync a workspace plan from a Stripe subscription event',
+})
+
+/** Provider signature verification happens in the backend before JSON normalization. */
+export const frontendWebhookContract = defineContract({
+  body: z.string(),
+  bodyFormat: 'text',
+  maxBodyBytes: 1024 * 1024,
+  method: 'POST',
+  name: 'webhooks.frontend',
+  path: '/api/webhooks/frontends/{id}',
+  status: 202,
+  params: z.object({ id: z.string().min(1).max(100) }),
+  output: z.object({ accepted: z.literal(true) }),
+  summary: 'Durably accept a provider-signed frontend deployment observation',
 })

@@ -66,6 +66,7 @@ type ConfigurationStore interface {
 	CreativeSetStore
 	ContentDraftStore
 	ContentDraftPlatformStore
+	ContentBatchStore
 	SettingsPlatformStore
 	WebhookStore
 	LibraryStore
@@ -202,7 +203,8 @@ type ConfigurationStore interface {
 	ListAssets(context.Context, product.Actor, product.AssetListOptions) (*product.AssetPage, error)
 	DeleteAsset(context.Context, product.Actor, string) (product.AssetDeletionResult, error)
 	SignAssetUpload(context.Context, product.Actor, product.AssetUploadInput) (*product.AssetUploadResult, error)
-	CompleteAssetUpload(context.Context, product.Actor, string, *string) (*product.AssetRecord, error)
+	CompleteAssetUpload(context.Context, product.Actor, string, *string, ...string) (*product.AssetRecord, error)
+	SignAssetUploadParts(context.Context, product.Actor, string, []int) (*product.AssetUploadParts, error)
 	SignAssetDownload(context.Context, product.Actor, string) (string, error)
 	ReadAsset(context.Context, product.Actor, string) ([]byte, string, error)
 	ReadAssetDownload(context.Context, string, string, string) ([]byte, string, error)
@@ -298,6 +300,7 @@ func NewWithOnboarding(store Store, scheduler WorkflowScheduler, verifier Destin
 		s.registerPlatformControls(mux)
 		s.registerGitHub(mux)
 		s.registerReleaseAutomation(mux)
+		s.registerFrontendDeployments(mux)
 		s.registerAnnouncements(mux)
 		s.registerAgentAccess(mux)
 		s.registerScreenshots(mux)

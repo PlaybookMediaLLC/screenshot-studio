@@ -168,6 +168,7 @@ if (mode === 'prepare') {
         'test',
         'test/e2e/release-automation.spec.ts',
         '--workers=1',
+        ...process.argv.slice(3),
       ]
       break
     default:

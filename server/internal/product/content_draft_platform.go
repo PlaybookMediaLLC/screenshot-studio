@@ -217,34 +217,47 @@ func setZone(set *ent.SocialSet) *time.Location {
 	return zone
 }
 
-// nextFreeSlot is the set's next slot after now that no queued, publishing or
-// unresolved post of the set takes. Inside ScheduleContentDraft it runs under
-// the set's advisory lock, so two requests cannot take the same slot.
-func nextFreeSlot(ctx context.Context, client *ent.Client, set *ent.SocialSet, now time.Time) (time.Time, error) {
+// freeQueueSlots are the set's slots after now, in order, that no queued,
+// publishing or unresolved post of the set takes. Inside ScheduleContentDraft
+// it runs under the set's advisory lock, so two requests cannot take one slot.
+func freeQueueSlots(ctx context.Context, client *ent.Client, set *ent.SocialSet, now time.Time) ([]time.Time, error) {
 	if len(set.PostingSlots) == 0 {
-		return time.Time{}, conflict("Add a posting time to this social set's schedule first.")
+		return nil, conflict("Add a posting time to this social set's schedule first.")
 	}
 	candidates := slotTimes(set.PostingSlots, setZone(set), now.Add(time.Minute), 200)
 	if len(candidates) == 0 {
-		return time.Time{}, conflict("The queue has no open slot in the next twelve weeks.")
+		return nil, conflict("The queue has no open slot in the next twelve weeks.")
 	}
 	taken, err := client.ScheduledPost.Query().Where(scheduledpost.OrganizationID(set.OrganizationID),
 		scheduledpost.SocialSetID(set.ID), scheduledpost.StatusIn(scheduledpost.StatusSCHEDULED,
 			scheduledpost.StatusPROCESSING, scheduledpost.StatusUNKNOWN_DELIVERY),
 		scheduledpost.SlotAtGTE(candidates[0]), scheduledpost.SlotAtLTE(candidates[len(candidates)-1])).All(ctx)
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
 	busy := map[int64]bool{}
 	for _, post := range taken {
 		busy[post.SlotAt.Truncate(time.Minute).Unix()] = true
 	}
+	free := make([]time.Time, 0, len(candidates))
 	for _, at := range candidates {
 		if !busy[at.Unix()] {
-			return at, nil
+			free = append(free, at)
 		}
 	}
-	return time.Time{}, conflict("Every queue slot in the next twelve weeks is taken.")
+	if len(free) == 0 {
+		return nil, conflict("Every queue slot in the next twelve weeks is taken.")
+	}
+	return free, nil
+}
+
+// nextFreeSlot is the set's next free queue slot after now.
+func nextFreeSlot(ctx context.Context, client *ent.Client, set *ent.SocialSet, now time.Time) (time.Time, error) {
+	free, err := freeQueueSlots(ctx, client, set, now)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return free[0], nil
 }
 
 // NextQueueSlot is the next free slot of a set the actor may see; an empty

@@ -40,7 +40,7 @@ func (c *Configuration) recordHistoricalEvent(ctx context.Context, source *ent.S
 	if err := automation.ValidateEvent(event); err != nil {
 		return ErrInvalidInput
 	}
-	_, err := c.acceptGitHubEvent(ctx, "backfill:"+source.ID, event, []*WebhookSource{webhookSource(source)})
+	_, err := c.acceptGitHubEvent(ctx, "backfill:"+source.ID, event, []*WebhookSource{webhookSource(source)}, nil)
 	return err
 }
 

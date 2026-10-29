@@ -57,12 +57,26 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 	if input.DeliveryID == "" || len(input.DeliveryID) > 255 {
 		return nil, ErrInvalidInput
 	}
-	installation, event, err := automation.NormalizeGitHub(input.EventName, input.Body)
+	evidence, err := automation.NormalizeGitHubEvidence(input.EventName, input.Body)
 	if err != nil {
 		return nil, ErrInvalidInput
 	}
+	installation, event, err := automation.NormalizeGitHub(input.EventName, input.Body)
+	if err != nil && evidence == nil {
+		return nil, ErrInvalidInput
+	}
+	if evidence != nil {
+		installation = evidence.InstallationID
+		if event == nil {
+			event = &automation.Event{RepositoryID: evidence.RepositoryID}
+		}
+	}
+	frontend, err := c.acceptGitHubFrontend(ctx, input)
+	if err != nil {
+		return nil, err
+	}
 	if event == nil {
-		return &GitHubEventAcceptance{}, nil
+		return &frontend, nil
 	}
 	sources, err := c.GitHubSources(ctx, installation, event.RepositoryID)
 	if err != nil {
@@ -70,26 +84,54 @@ func (c *Configuration) AcceptGitHubEvent(ctx context.Context, input AcceptGitHu
 	}
 	slices.SortFunc(sources, func(a, b *WebhookSource) int { return strings.Compare(a.ID, b.ID) })
 	for attempt := 0; attempt < 3; attempt++ {
-		result, err := c.acceptGitHubEvent(ctx, input.DeliveryID, *event, sources)
+		result, err := c.acceptGitHubEvent(ctx, input.DeliveryID, *event, sources, evidence)
 		if ent.IsConstraintError(err) {
 			continue
+		}
+		if result != nil {
+			result.Handled += frontend.Handled
+			result.Duplicates += frontend.Duplicates
 		}
 		return result, err
 	}
 	return nil, errors.New("event acceptance contention")
 }
 
-func (c *Configuration) acceptGitHubEvent(ctx context.Context, delivery string, event automation.Event, sources []*WebhookSource) (*GitHubEventAcceptance, error) {
+func (c *Configuration) acceptGitHubEvent(ctx context.Context, delivery string, event automation.Event, sources []*WebhookSource, evidence *automation.GitHubEvidence) (*GitHubEventAcceptance, error) {
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 	result := &GitHubEventAcceptance{}
+	origin, err := c.githubDeliveryOrigin(ctx, delivery)
+	if err != nil {
+		return nil, err
+	}
+	if origin != "live" {
+		event.Origin = "historical"
+	}
 	for _, candidate := range sources {
 		source, err := lockAutomationSource(ctx, tx, candidate.OrganizationID, candidate.ID)
 		if err != nil {
 			return nil, err
+		}
+		if evidence != nil {
+			if err := automationSourceAccess(ctx, tx.Client(), source); err != nil {
+				return nil, err
+			}
+			legacy, duplicate, err := recordGitHubObservation(ctx, tx, source, delivery, origin, *evidence)
+			if err != nil {
+				return nil, err
+			}
+			if !legacy || event.Family == "" || origin != "live" {
+				if duplicate {
+					result.Duplicates++
+				} else {
+					result.Handled++
+				}
+				continue
+			}
 		}
 		// Tag pushes and milestones only exist as workflow triggers; a legacy
 		// source has no behavior for them, so nothing is recorded.
@@ -207,6 +249,9 @@ func automationSourceFilter(source *ent.SourceApp, event automation.Event) strin
 }
 
 func productionDeployment(event automation.Event) bool {
+	if event.Production != nil {
+		return true
+	}
 	value := event.Fields["deployment.production"]
 	return value.Boolean != nil && *value.Boolean || strings.EqualFold(eventString(event, "deployment.environment"), "production")
 }

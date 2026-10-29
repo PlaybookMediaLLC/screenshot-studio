@@ -1,6 +1,5 @@
 'use client'
 
-import { BulkImportDialog } from './bulk-import'
 import { BulkScheduleDialog } from './bulk-schedule'
 
 import { useWriteRouter } from '@/components/write/write-context'
@@ -102,7 +101,6 @@ export function WriteRail() {
   const [selected, setSelected] = React.useState<string[]>([])
   const [lastClicked, setLastClicked] = React.useState<string | null>(null)
   const [managingTags, setManagingTags] = React.useState(false)
-  const [importing, setImporting] = React.useState(false)
   const tab = data.query.tab
   const select = (id: string, range: boolean) => {
     setSelected((current) => {
@@ -124,17 +122,16 @@ export function WriteRail() {
       <div className="flex items-center justify-between gap-2 px-3 pt-4">
         <h2 className="text-base font-medium">Publish</h2>
         {canEdit && (
-          <Button
-            className="h-7 px-2.5 text-xs"
-            variant="outline"
-            size="sm"
-            onClick={() => setImporting(true)}
-          >
-            Bulk import
+          <Button asChild className="h-7 px-2.5 text-xs" variant="outline" size="sm">
+            {/* A durable batch of separate posts, reopened after a reload (RFC 042). */}
+            <Link
+              href={`/write/batches${data.activeSet ? `?set=${encodeURIComponent(data.activeSet.id)}` : ''}`}
+            >
+              Bulk schedule
+            </Link>
           </Button>
         )}
       </div>
-      {importing && <BulkImportDialog onClose={() => setImporting(false)} />}
       <p className="platform-eyebrow px-3 pt-3">Publishing brand</p>
       <div className="flex items-center gap-1 px-3 pt-1 pb-2">
         <div className="min-w-0 flex-1">
@@ -1253,6 +1250,9 @@ function QueueList() {
                 value={item.at}
               />
               · {item.kind === 'planned' ? 'planned, not scheduled' : item.platform}
+              {item.state && item.state !== 'Scheduled' ? (
+                <span className="text-amber-700 dark:text-amber-300">· {item.state}</span>
+              ) : null}
             </p>
             <p className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-foreground">
               {item.caption}

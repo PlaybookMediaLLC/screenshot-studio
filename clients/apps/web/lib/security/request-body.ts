@@ -52,11 +52,31 @@ export async function readBoundedText(
   request: Request,
   maxBytes = MAX_REQUEST_BYTES
 ): Promise<string> {
-  return new TextDecoder().decode(await readBoundedBody(request, maxBytes))
+  const bytes = await readBoundedBody(request, maxBytes)
+  try {
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
+  } catch {
+    throw new SyntaxError('The request body must be valid UTF-8.')
+  }
 }
 
 /** Preserve vendor handler semantics while applying the shared byte limit. */
 export async function withBoundedBody(request: Request): Promise<Request> {
   if (!request.body) return request
-  return new Request(request, { body: new Uint8Array(await readBoundedBody(request)) })
+  // Next.js can supply a Request proxy. Reconstruct from its public attributes;
+  // passing the proxy to Undici's copy constructor accesses private class state.
+  return new Request(request.url, {
+    method: request.method,
+    headers: request.headers,
+    signal: request.signal,
+    redirect: request.redirect,
+    credentials: request.credentials,
+    cache: request.cache,
+    integrity: request.integrity,
+    keepalive: request.keepalive,
+    mode: request.mode,
+    referrer: request.referrer,
+    referrerPolicy: request.referrerPolicy,
+    body: new Uint8Array(await readBoundedBody(request)),
+  })
 }

@@ -3,8 +3,10 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/product"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
@@ -23,6 +25,7 @@ type ContentDraftStore interface {
 	IssueContentDraftCollabToken(context.Context, product.Actor, string) (*product.CollabToken, error)
 	WriteStore
 	AuthorizeCollab(context.Context, string, string) (*product.CollabGrant, error)
+	CollabEpochs(context.Context, []string) (int64, map[string]int64, error)
 	LoadCollabState(context.Context, string, string) ([]byte, error)
 	StoreCollabState(context.Context, string, string, []byte) error
 }
@@ -38,6 +41,7 @@ func (s *Server) registerContentDrafts(mux *http.ServeMux) {
 	mux.Handle("POST /v1/content-drafts/{id}/collab-token", s.authenticateProduct(http.HandlerFunc(s.issueCollabToken)))
 	s.registerCollab(mux)
 	s.registerContentDraftPlatform(mux)
+	s.registerContentBatches(mux)
 	s.registerWrite(mux)
 }
 
@@ -48,6 +52,13 @@ func writeContentDraftError(w http.ResponseWriter, err error) {
 	if errors.As(err, &stale) {
 		writeJSON(w, http.StatusConflict, map[string]any{
 			"code": "content_draft_version_conflict", "currentVersion": stale.Current, "error": err.Error(),
+		})
+		return
+	}
+	var taken *product.QueueSlotTakenError
+	if errors.As(err, &taken) {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"code": "queue_slot_taken", "nextQueueSlot": taken.Next.UTC().Format(time.RFC3339), "error": err.Error(),
 		})
 		return
 	}
@@ -158,8 +169,11 @@ func (s *Server) deleteContentDraft(w http.ResponseWriter, r *http.Request) {
 }
 
 // scheduleContentDraft queues the draft to its channels, then stops the
-// workflows of posts a reschedule replaced and starts the new ones. Starting
-// is idempotent, so a replay after a failed start finishes the job.
+// workflows of posts a reschedule replaced and starts the new ones. The posts
+// are committed either way: a cancelled post is never claimed, and the
+// once-a-minute dispatcher starts a due post whose wakeup failed here. A
+// Temporal failure is still answered as one, saying the schedule is saved; a
+// retry of the same request replays it.
 func (s *Server) scheduleContentDraft(w http.ResponseWriter, r *http.Request) {
 	id, ok := contentDraftID(w, r)
 	if !ok {
@@ -175,19 +189,20 @@ func (s *Server) scheduleContentDraft(w http.ResponseWriter, r *http.Request) {
 		writeContentDraftError(w, err)
 		return
 	}
+	var wakeup error
 	for _, postID := range result.Cancelled {
-		if err := s.scheduler.Cancel(r.Context(), postID); err != nil {
-			writeError(w, http.StatusServiceUnavailable, "could not stop a replaced publishing workflow")
-			return
-		}
+		wakeup = errors.Join(wakeup, s.scheduler.Cancel(r.Context(), postID))
 	}
 	for _, post := range result.Scheduled {
-		if err := s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
+		wakeup = errors.Join(wakeup, s.scheduler.Start(r.Context(), temporalpublishing.ScheduleInput{
 			OrganizationID: post.OrganizationID, PostID: post.ID, ScheduledFor: post.ScheduledFor,
-		}); err != nil {
-			writeError(w, http.StatusServiceUnavailable, "could not start publishing workflow")
-			return
-		}
+		}))
+	}
+	if wakeup != nil {
+		slog.WarnContext(r.Context(), "scheduled post workflows were not woken", "draft", id, "error", wakeup)
+		writeError(w, http.StatusServiceUnavailable,
+			"The schedule is saved, but the publisher could not be reached. It starts within a minute; refresh to see it.")
+		return
 	}
 	status := http.StatusOK
 	if result.Created {

@@ -150,6 +150,16 @@ func ScheduleTimeZone(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldScheduleTimeZone, v))
 }
 
+// ScheduleIntent applies equality check predicate on the "schedule_intent" field. It's identical to ScheduleIntentEQ.
+func ScheduleIntent(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldScheduleIntent, v))
+}
+
+// FailureCode applies equality check predicate on the "failure_code" field. It's identical to FailureCodeEQ.
+func FailureCode(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldFailureCode, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldEQ(FieldCreatedAt, v))
@@ -1378,6 +1388,156 @@ func ScheduleTimeZoneEqualFold(v string) predicate.ScheduledPost {
 // ScheduleTimeZoneContainsFold applies the ContainsFold predicate on the "schedule_time_zone" field.
 func ScheduleTimeZoneContainsFold(v string) predicate.ScheduledPost {
 	return predicate.ScheduledPost(sql.FieldContainsFold(FieldScheduleTimeZone, v))
+}
+
+// ScheduleIntentEQ applies the EQ predicate on the "schedule_intent" field.
+func ScheduleIntentEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentNEQ applies the NEQ predicate on the "schedule_intent" field.
+func ScheduleIntentNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentIn applies the In predicate on the "schedule_intent" field.
+func ScheduleIntentIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldScheduleIntent, vs...))
+}
+
+// ScheduleIntentNotIn applies the NotIn predicate on the "schedule_intent" field.
+func ScheduleIntentNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldScheduleIntent, vs...))
+}
+
+// ScheduleIntentGT applies the GT predicate on the "schedule_intent" field.
+func ScheduleIntentGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentGTE applies the GTE predicate on the "schedule_intent" field.
+func ScheduleIntentGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentLT applies the LT predicate on the "schedule_intent" field.
+func ScheduleIntentLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentLTE applies the LTE predicate on the "schedule_intent" field.
+func ScheduleIntentLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentContains applies the Contains predicate on the "schedule_intent" field.
+func ScheduleIntentContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentHasPrefix applies the HasPrefix predicate on the "schedule_intent" field.
+func ScheduleIntentHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentHasSuffix applies the HasSuffix predicate on the "schedule_intent" field.
+func ScheduleIntentHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentIsNil applies the IsNil predicate on the "schedule_intent" field.
+func ScheduleIntentIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldScheduleIntent))
+}
+
+// ScheduleIntentNotNil applies the NotNil predicate on the "schedule_intent" field.
+func ScheduleIntentNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldScheduleIntent))
+}
+
+// ScheduleIntentEqualFold applies the EqualFold predicate on the "schedule_intent" field.
+func ScheduleIntentEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldScheduleIntent, v))
+}
+
+// ScheduleIntentContainsFold applies the ContainsFold predicate on the "schedule_intent" field.
+func ScheduleIntentContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldScheduleIntent, v))
+}
+
+// FailureCodeEQ applies the EQ predicate on the "failure_code" field.
+func FailureCodeEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEQ(FieldFailureCode, v))
+}
+
+// FailureCodeNEQ applies the NEQ predicate on the "failure_code" field.
+func FailureCodeNEQ(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNEQ(FieldFailureCode, v))
+}
+
+// FailureCodeIn applies the In predicate on the "failure_code" field.
+func FailureCodeIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIn(FieldFailureCode, vs...))
+}
+
+// FailureCodeNotIn applies the NotIn predicate on the "failure_code" field.
+func FailureCodeNotIn(vs ...string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotIn(FieldFailureCode, vs...))
+}
+
+// FailureCodeGT applies the GT predicate on the "failure_code" field.
+func FailureCodeGT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGT(FieldFailureCode, v))
+}
+
+// FailureCodeGTE applies the GTE predicate on the "failure_code" field.
+func FailureCodeGTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldGTE(FieldFailureCode, v))
+}
+
+// FailureCodeLT applies the LT predicate on the "failure_code" field.
+func FailureCodeLT(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLT(FieldFailureCode, v))
+}
+
+// FailureCodeLTE applies the LTE predicate on the "failure_code" field.
+func FailureCodeLTE(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldLTE(FieldFailureCode, v))
+}
+
+// FailureCodeContains applies the Contains predicate on the "failure_code" field.
+func FailureCodeContains(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContains(FieldFailureCode, v))
+}
+
+// FailureCodeHasPrefix applies the HasPrefix predicate on the "failure_code" field.
+func FailureCodeHasPrefix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasPrefix(FieldFailureCode, v))
+}
+
+// FailureCodeHasSuffix applies the HasSuffix predicate on the "failure_code" field.
+func FailureCodeHasSuffix(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldHasSuffix(FieldFailureCode, v))
+}
+
+// FailureCodeIsNil applies the IsNil predicate on the "failure_code" field.
+func FailureCodeIsNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldIsNull(FieldFailureCode))
+}
+
+// FailureCodeNotNil applies the NotNil predicate on the "failure_code" field.
+func FailureCodeNotNil() predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldNotNull(FieldFailureCode))
+}
+
+// FailureCodeEqualFold applies the EqualFold predicate on the "failure_code" field.
+func FailureCodeEqualFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldEqualFold(FieldFailureCode, v))
+}
+
+// FailureCodeContainsFold applies the ContainsFold predicate on the "failure_code" field.
+func FailureCodeContainsFold(v string) predicate.ScheduledPost {
+	return predicate.ScheduledPost(sql.FieldContainsFold(FieldFailureCode, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

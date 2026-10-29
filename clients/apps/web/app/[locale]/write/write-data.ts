@@ -10,6 +10,7 @@ import { listContentDraftPostsBetween, listContentDrafts } from '@/lib/tenant/co
 import { listDraftTags, listPlannedContentDrafts, listSocialSets } from '@/lib/tenant/write'
 import { draftKindSchema } from '@/lib/write/document'
 import { contentDraftSortSchema } from '@/lib/write/wire'
+import { postState } from '@/lib/content-drafts/post-status'
 import { draftPlainText } from '@/lib/content-drafts/serialize'
 import { draftVocabulary } from '@/lib/content-drafts/vocabulary'
 import { SOCIAL_SET_COOKIE } from '@/lib/settings/appearance'
@@ -59,6 +60,8 @@ export async function loadWrite(
   const queried = Promise.resolve(rawQuery).then((raw) => writeQuerySchema.parse(raw))
   const now = new Date()
   const horizon = new Date(now.getTime() + 60 * 86_400_000)
+  // Overdue and unconfirmed posts stay in the queue after their time passes.
+  const since = new Date(now.getTime() - 2 * 86_400_000)
   const readLibrary = (query: WriteQuery, setId: string | undefined, tags: boolean) =>
     Promise.all([
       listContentDrafts(tenant, {
@@ -69,7 +72,7 @@ export async function loadWrite(
         tagId: tags ? query.tag : undefined,
         view: query.tab === 'queue' || !query.tab ? 'drafts' : query.tab,
       }),
-      listContentDraftPostsBetween(tenant, now, horizon, setId),
+      listContentDraftPostsBetween(tenant, since, horizon, setId),
       listPlannedContentDrafts(tenant, now, horizon, setId),
     ])
   // The set is nearly always the URL's or the remembered one, so its library is
@@ -107,8 +110,9 @@ export async function loadWrite(
     libraryDraft(contentDraftSchema.parse(draft))
   )
   const queue = [
+    // Posts that still hold their slot, including one that may already be live.
     ...posts
-      .filter((post) => post.status === 'SCHEDULED' || post.status === 'PROCESSING')
+      .filter((post) => ['SCHEDULED', 'PROCESSING', 'UNKNOWN_DELIVERY'].includes(post.status))
       .map((post) => ({
         at: post.scheduledFor.toISOString(),
         caption: post.caption,
@@ -116,6 +120,7 @@ export async function loadWrite(
         id: post.id,
         kind: 'scheduled' as const,
         platform: post.platform,
+        state: postState(post.status, post.scheduledFor, now.getTime()),
       })),
     ...planned.map((draft) => ({
       at: draft.plannedFor?.toISOString() ?? now.toISOString(),
@@ -124,11 +129,11 @@ export async function loadWrite(
       id: `planned-${draft.id}`,
       kind: 'planned' as const,
       platform: draft.primaryPlatform,
+      state: null,
     })),
   ].sort((a, b) => a.at.localeCompare(b.at))
   return {
     activeSet: activeSet ?? null,
-    importStorageScope: `${tenant.organizationId}:${tenant.principal.kind === 'session' ? tenant.principal.userId : 'key'}`,
     advancedScheduling: advanced.allowed,
     experiments,
     library,

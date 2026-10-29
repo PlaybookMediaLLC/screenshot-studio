@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 )
 
@@ -76,6 +77,88 @@ func (s *S3Store) SignUpload(ctx context.Context, key, mediaType string) (string
 		return "", fmt.Errorf("sign media upload: %w", err)
 	}
 	return request.URL, nil
+}
+
+// UploadedPart is one stored part of a multipart upload.
+type UploadedPart struct {
+	Number int
+	Bytes  int64
+	ETag   string
+}
+
+// CreateMultipartUpload starts a multipart upload of a large file, so a
+// dropped connection resends one part instead of the whole file.
+func (s *S3Store) CreateMultipartUpload(ctx context.Context, key, mediaType string) (string, error) {
+	output, err := s.client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key), ContentType: aws.String(mediaType),
+	})
+	if err != nil {
+		return "", fmt.Errorf("start multipart upload: %w", err)
+	}
+	return aws.ToString(output.UploadId), nil
+}
+
+// SignUploadPart signs a PUT of one part with its exact length. Storage
+// replaces a part sent again, which is how a failed part is retried; only
+// the server completes the upload.
+func (s *S3Store) SignUploadPart(ctx context.Context, key, uploadID string, number int, bytes int64) (string, error) {
+	request, err := s.signer.PresignUploadPart(ctx, &s3.UploadPartInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key), UploadId: aws.String(uploadID),
+		PartNumber: aws.Int32(int32(number)), ContentLength: aws.Int64(bytes),
+	}, s3.WithPresignExpires(15*time.Minute))
+	if err != nil {
+		return "", fmt.Errorf("sign upload part: %w", err)
+	}
+	return request.URL, nil
+}
+
+// ListUploadedParts lists the parts storage holds, so the server, not the
+// browser, knows each part's ETag and size.
+func (s *S3Store) ListUploadedParts(ctx context.Context, key, uploadID string) ([]UploadedPart, error) {
+	parts := []UploadedPart{}
+	paginator := s3.NewListPartsPaginator(s.client, &s3.ListPartsInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key), UploadId: aws.String(uploadID),
+	})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("list upload parts: %w", err)
+		}
+		for _, part := range page.Parts {
+			parts = append(parts, UploadedPart{Number: int(aws.ToInt32(part.PartNumber)),
+				Bytes: aws.ToInt64(part.Size), ETag: aws.ToString(part.ETag)})
+		}
+	}
+	return parts, nil
+}
+
+// CompleteMultipartUpload joins the parts into the object.
+func (s *S3Store) CompleteMultipartUpload(ctx context.Context, key, uploadID string, parts []UploadedPart) error {
+	completed := make([]types.CompletedPart, len(parts))
+	for i, part := range parts {
+		completed[i] = types.CompletedPart{PartNumber: aws.Int32(int32(part.Number)), ETag: aws.String(part.ETag)}
+	}
+	_, err := s.client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key), UploadId: aws.String(uploadID),
+		MultipartUpload: &types.CompletedMultipartUpload{Parts: completed},
+	})
+	if err != nil {
+		return fmt.Errorf("complete multipart upload: %w", err)
+	}
+	return nil
+}
+
+// AbortMultipartUpload discards an unfinished upload's parts; one already
+// completed or aborted is not an error.
+func (s *S3Store) AbortMultipartUpload(ctx context.Context, key, uploadID string) error {
+	_, err := s.client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+		Bucket: aws.String(s.bucket), Key: aws.String(key), UploadId: aws.String(uploadID),
+	})
+	var apiError smithy.APIError
+	if errors.As(err, &apiError) && apiError.ErrorCode() == "NoSuchUpload" {
+		return nil
+	}
+	return err
 }
 
 func (s *S3Store) SignDownload(ctx context.Context, key string) (string, error) {
@@ -199,6 +282,14 @@ func (o *TenantObjects) Delete(ctx context.Context, organizationID, key string) 
 		return errors.New("media object is outside the active organization")
 	}
 	return o.store.Delete(ctx, key)
+}
+
+// AbortUpload discards an unfinished multipart upload of a tenant's object.
+func (o *TenantObjects) AbortUpload(ctx context.Context, organizationID, key, uploadID string) error {
+	if !validTenantObjectKey(organizationID, key) {
+		return errors.New("media object is outside the active organization")
+	}
+	return o.store.AbortMultipartUpload(ctx, key, uploadID)
 }
 
 func (o *TenantObjects) SignDelivery(ctx context.Context, organizationID, key string) (string, error) {

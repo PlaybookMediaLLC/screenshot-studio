@@ -180,7 +180,7 @@ const CATEGORIES: { label: string; lead: string; trail: string; items: Integrati
         name: 'Claude via OpenRouter',
         icon: CpuIcon,
         status: 'Available',
-        body: 'Opus 5.5, Sonnet 5.5, and Haiku 4.5 by role, each configurable.',
+        body: 'Haiku 5.5 for every text role, each configurable.',
       },
       {
         name: 'Temporal',

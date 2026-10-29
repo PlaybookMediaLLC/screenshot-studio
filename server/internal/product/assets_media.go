@@ -367,8 +367,9 @@ func (c *Configuration) clearUploadID(ctx context.Context, row *ent.Asset) error
 }
 
 // storageLimits are each plan's stored bytes, counting reserved and failed
-// uploads until maintenance removes them.
-var storageLimits = map[string]int64{"free": 0, "pro": 25 << 30, "business": 250 << 30, "enterprise": 5 << 40}
+// uploads until maintenance removes them. They mirror storage:bytes in
+// lib/billing/plans.ts.
+var storageLimits = map[string]int64{"free": 0, "pro": 50 << 30, "business": 250 << 30, "enterprise": 5 << 40}
 
 func storageUsed(ctx context.Context, client *ent.Client, organizationID string) (int64, error) {
 	used, err := client.Asset.Query().Where(asset.OrganizationID(organizationID),

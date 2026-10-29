@@ -47,7 +47,7 @@ test('a stale session cookie is checked, not trusted', async () => {
   assert.equal(target?.pathname, '/sign-in')
 })
 
-test('free scheduling does not grant access to paid image tools', async () => {
+test('a workspace without a paid plan cannot open paid image tools', async () => {
   const unpaid = { ...paid, hasPaidPlan: false }
   const target = await productPageRedirect(request('/de/tweet', session), async () => unpaid)
   assert.equal(target?.href, 'https://shots.playbookmedia.io/de/upgrade?from=%2Ftweet')

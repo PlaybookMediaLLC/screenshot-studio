@@ -354,7 +354,7 @@ export function LaunchIntelligencePage() {
               {
                 icon: CpuIcon,
                 title: 'Models by role',
-                body: 'Claude Opus 5.5 for deep reasoning, Claude Sonnet 5.5 for drafting, and Claude Haiku 4.5 for fast work, routed through OpenRouter. Each role is configurable.',
+                body: 'Claude Haiku 5.5 for reasoning, drafting and fast work, and Gemini 2.5 Flash for transcription, routed through OpenRouter. Each role is configurable.',
               },
               {
                 icon: Database01Icon,

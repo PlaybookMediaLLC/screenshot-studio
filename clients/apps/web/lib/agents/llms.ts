@@ -1,5 +1,6 @@
 import { API_KEY_PLACEHOLDER, MCP_CLIENTS, MCP_TOOLS, MCP_URL } from "@/lib/agents/mcp-clients";
 import { BASE_URL } from "@/lib/agents/site-content";
+import { PLAN_PRICES, planPriceSummary, usd } from "@/lib/billing/plans";
 import { comparisons } from "@/lib/seo/comparisons";
 import { guides } from "@/lib/seo/guides";
 import { atLeast, PRODUCT_FACTS } from "@/lib/seo/product-facts";
@@ -152,7 +153,7 @@ ${guideLines}
 
 ## Pricing
 
-Plans: Pro ($199/mo, or $169/mo billed annually), Business ($699/mo, or $594/mo billed annually), and Enterprise (from $3,000/mo, billed annually). Free basic scheduling includes one seat, one connected account and 10 text/link posts per month, without AI. A signed-in workspace is required on every plan. The screenshot editor, media and advanced queues are included in paid plans, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
+Plans: Pro (${planPriceSummary('pro')}), Business (${planPriceSummary('business')}), and Enterprise (${planPriceSummary('enterprise')}). There is no free plan. A signed-in workspace is required on every plan. The screenshot editor, media and advanced queues are included in every plan, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
 
 ## Technology
 
@@ -455,12 +456,11 @@ No official CLI tool is published yet.
 
 | Plan | Price |
 |------|-------|
-| Free | $0; one seat, one account, 10 basic scheduled posts/month |
-| Pro | $199/mo, or $169/mo billed annually |
-| Business | $699/mo, or $594/mo billed annually |
-| Enterprise | From $3,000/mo, billed annually. Contact team@playbookmedia.io |
+| Pro | ${planPriceSummary('pro')} |
+| Business | ${planPriceSummary('business')} |
+| Enterprise | From ${usd(PLAN_PRICES.enterprise)}/mo, billed annually. Contact team@playbookmedia.io |
 
-Free basic scheduling includes one seat, one connected account and 10 text/link posts per month, without AI. A signed-in workspace is required on every plan. The screenshot editor, media and advanced queues are included in paid plans, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
+There is no free plan. A signed-in workspace is required on every plan. The screenshot editor, media and advanced queues are included in every plan, and exports have no watermark. Launch intelligence is in early access for design partners. Details: ${BASE_URL}/pricing
 
 ## Privacy
 

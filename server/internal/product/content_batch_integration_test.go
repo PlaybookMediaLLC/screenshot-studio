@@ -344,7 +344,9 @@ func TestContentBatches(t *testing.T) {
 		if err != nil || len(batches) < 4 {
 			t.Fatalf("list: %d %v", len(batches), err)
 		}
+		// There is no free plan, so the stranger subscribes to reach the tenant check.
 		stranger := newTestWorkspace(t)
+		subscribe(t, ctx, repo, stranger.org, "pro")
 		if _, err := repo.GetContentBatch(ctx, stranger.owner, batches[0].ID); !errors.Is(err, publishing.ErrNotFound) {
 			t.Fatalf("other workspace: %v", err)
 		}

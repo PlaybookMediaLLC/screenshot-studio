@@ -4,6 +4,7 @@ import { motion } from 'motion/react'
 import {
   CREDIT_PACKS,
   getWorkspaceQuota,
+  LAUNCH_CREDITS,
   workspacePlanSchema,
   workspaceQuotaSchema,
 } from '@/lib/billing/plans'
@@ -19,12 +20,6 @@ const ALLOWANCE = getWorkspaceQuota(
   workspaceQuotaSchema.enum['ai:credits:monthly']
 )
 const PACK = CREDIT_PACKS.launch
-
-/**
- * Credits a launch uses. Copy-only figure: PricingPage, pricing.tsx, and
- * docs/rfcs/035 all say "about 430"; no code constant holds it.
- */
-const LAUNCH_CREDITS = 430
 
 /** A launch draws the allowance first, then the pack (lib/billing/plans.ts). */
 const FROM_ALLOWANCE = Math.min(ALLOWANCE, LAUNCH_CREDITS)

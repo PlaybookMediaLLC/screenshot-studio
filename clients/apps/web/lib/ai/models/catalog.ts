@@ -34,10 +34,12 @@ export type ModelRole = (typeof MODEL_ROLES)[number]
 export const DEFAULT_MODEL_IDS: Record<ModelRole, string> = {
   // Audio input is required. The general writing models only accept text/images.
   transcription: 'google/gemini-2.5-flash',
-  deep: 'anthropic/claude-opus-5.5',
-  drafting: 'anthropic/claude-sonnet-5.5',
-  fast: 'anthropic/claude-haiku-4.5',
-  nano: 'anthropic/claude-haiku-4.5',
+  // Claude Haiku 5.5 for every text role: about 20 times cheaper per launch
+  // than Opus and Sonnet (docs/rfcs/023).
+  deep: 'anthropic/claude-haiku-5.5',
+  drafting: 'anthropic/claude-haiku-5.5',
+  fast: 'anthropic/claude-haiku-5.5',
+  nano: 'anthropic/claude-haiku-5.5',
 }
 
 /**

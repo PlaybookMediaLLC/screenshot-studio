@@ -1,6 +1,7 @@
 import { draftVersionsQuerySchema } from '@/lib/api/contracts/content-draft-concurrency'
 import { z } from 'zod'
 import { defineContract, timestampSchema } from '@/lib/api/contract'
+import { getMinimumPlan } from '@/lib/billing/plans'
 import { scheduledPostStatusSchema } from '@/lib/api/contracts/scheduled-posts'
 import { workspaceDocs } from '@/lib/api/contracts/workspace-docs'
 import { automationSchema, draftKindSchema } from '@/lib/write/document'
@@ -145,7 +146,10 @@ export const contentDraftListQuerySchema = z.object({
 export const contentDraftParamsSchema = z.object({ id: contentDraftIdSchema })
 
 const entitlement = {
-  'x-shots-entitlement': { feature: 'content:drafts', minimumPlan: 'free' },
+  'x-shots-entitlement': {
+    feature: 'content:drafts',
+    minimumPlan: getMinimumPlan('content:drafts'),
+  },
 }
 
 /** `GET /api/v1/content-drafts` */

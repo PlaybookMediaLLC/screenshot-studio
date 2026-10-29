@@ -169,7 +169,7 @@ func TestInvitationConcurrentLastSeatAndTerminalStates(t *testing.T) {
 	w := newTestWorkspace(t)
 	w.repo.WithInvitationMailer(&recordingInvitationMailer{})
 	subscribe(t, w.ctx, w.repo, w.org, "business")
-	for i := 0; i < 3; i++ {
+	for i := 0; i < proSeats-2; i++ {
 		w.addMember(t, fmt.Sprintf("existing%d", i), "viewer")
 	}
 	a, ia := inviteRecipient(t, w, "seat_a")
@@ -207,7 +207,7 @@ func TestInvitationConcurrentLastSeatAndTerminalStates(t *testing.T) {
 		t.Fatalf("seat outcomes %v", errs)
 	}
 	count, err := w.db.Client.Member.Query().Where(member.OrganizationID(w.org)).Count(w.ctx)
-	if err != nil || count != 5 {
+	if err != nil || count != proSeats {
 		t.Fatalf("seats=%d %v", count, err)
 	}
 	for i, input := range inputs {
@@ -260,7 +260,7 @@ func TestInvitationConcurrentCreationReservesLastSeat(t *testing.T) {
 	w := newTestWorkspace(t)
 	w.repo.WithInvitationMailer(&recordingInvitationMailer{})
 	subscribe(t, w.ctx, w.repo, w.org, "pro")
-	for i := 0; i < 3; i++ {
+	for i := 0; i < proSeats-2; i++ {
 		w.addMember(t, fmt.Sprintf("member%d", i), "viewer")
 	}
 	var wg sync.WaitGroup

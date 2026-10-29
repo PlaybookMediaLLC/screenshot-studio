@@ -149,10 +149,8 @@ func evaluateBootstrapEntitlement(entitlement *ent.WorkspaceEntitlement, now tim
 	for _, feature := range bootstrapFeatures {
 		allowed := false
 		switch feature {
-		// Free grants only the writing surface and basic explicit-time scheduling.
-		case "workspace:use", "content:drafts":
-			allowed = true
-		case "asset:create", "asset:read", "asset:update", "asset:delete",
+		// There is no free plan: a workspace without a subscription has no features.
+		case "workspace:use", "content:drafts", "asset:create", "asset:read", "asset:update", "asset:delete",
 			"release:create", "source-app:create", "workspace:paid", "campaign:workflow", "content:scheduling-advanced":
 			allowed = plan != "free"
 		case "enterprise:audit-drain", "enterprise:sso", "enterprise:scim":

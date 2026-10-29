@@ -1,4 +1,5 @@
 import { publicImageUrl } from '@/lib/assets/public-image'
+import { PLAN_PRICES, usd } from "@/lib/billing/plans";
 import { MAX_DEVICE_MOCKUPS } from "@/lib/constants/mockups";
 import { howToGuides } from "@/lib/seo/how-to-guides";
 import {
@@ -66,7 +67,7 @@ export interface HowToGuide extends GuideBase {
 
 export type Guide = RoundupGuide | HowToGuide;
 
-const STUDIO_LICENSE = `From $199/mo, editor in every plan; open source (${PRODUCT_FACTS.license})`;
+const STUDIO_LICENSE = `From ${usd(PLAN_PRICES.pro)}/mo, editor in every plan; open source (${PRODUCT_FACTS.license})`;
 
 const DEVICESHOTS: GuideTool = {
   name: "DeviceShots",
@@ -153,7 +154,7 @@ const roundupGuides: RoundupGuide[] = [
       "mockup generator no watermark",
     ],
     answer:
-      "The best free mockup generators for screenshots in 2026 are DeviceShots (76 device frames), SnapMock (perspective presets), and MockUPhone (open source, with Android and Samsung models). DeviceShots and SnapMock add no watermark and need no account. For 3D angles, multi-device layouts, and video export, Shots includes its mockup generator in every plan, from $199/mo, with no watermark. Shots.so and Pika Style offer more templates but keep some features on paid plans.",
+      `The best free mockup generators for screenshots in 2026 are DeviceShots (76 device frames), SnapMock (perspective presets), and MockUPhone (open source, with Android and Samsung models). DeviceShots and SnapMock add no watermark and need no account. For 3D angles, multi-device layouts, and video export, Shots includes its mockup generator in every plan, from ${usd(PLAN_PRICES.pro)}/mo, with no watermark. Shots.so and Pika Style offer more templates but keep some features on paid plans.`,
     criteria:
       "We compared device range, 3D or perspective, animation and video export, export resolution, and whether free exports carry a watermark or need an account.",
     tools: [
@@ -187,7 +188,7 @@ const roundupGuides: RoundupGuide[] = [
     faqs: [
       {
         q: "What is the best free mockup generator for screenshots?",
-        a: "DeviceShots and SnapMock are the strongest free picks, with no watermark and no account: DeviceShots for the largest device catalog, and SnapMock for quick perspective presets. For 3D angles, multi-device layouts, and video export, Shots includes them in every plan, from $199/mo, with no watermark.",
+        a: `DeviceShots and SnapMock are the strongest free picks, with no watermark and no account: DeviceShots for the largest device catalog, and SnapMock for quick perspective presets. For 3D angles, multi-device layouts, and video export, Shots includes them in every plan, from ${usd(PLAN_PRICES.pro)}/mo, with no watermark.`,
       },
       {
         q: "Which mockup generators add a watermark on the free plan?",
@@ -461,7 +462,7 @@ const roundupGuides: RoundupGuide[] = [
       "free mockup generator",
     ],
     answer:
-      "Shots.so is a separate product from Shots. The best free Shots.so alternatives are DeviceShots (76 device frames with no account or watermark) and SnapMock (free perspective presets). Pika Style is closest in template variety but puts tilt on Pro, and Screely is the simplest choice for window frames. For 3D, animation, and video export in an open-source editor, Shots includes them in every plan, from $199/mo. Shots.so still has more device models than most, including Android phones and iPads.",
+      `Shots.so is a separate product from Shots. The best free Shots.so alternatives are DeviceShots (76 device frames with no account or watermark) and SnapMock (free perspective presets). Pika Style is closest in template variety but puts tilt on Pro, and Screely is the simplest choice for window frames. For 3D, animation, and video export in an open-source editor, Shots includes them in every plan, from ${usd(PLAN_PRICES.pro)}/mo. Shots.so still has more device models than most, including Android phones and iPads.`,
     criteria:
       "Each pick covers Shots.so's core job, putting a screenshot in a device or window frame on a background, and we noted what each one includes on its free or entry plan.",
     tools: [

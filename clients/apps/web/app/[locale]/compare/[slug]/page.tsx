@@ -22,6 +22,7 @@ import {
   claimsNote,
   type ComparisonData,
 } from "@/lib/seo/comparisons";
+import { PLAN_PRICES, usd } from "@/lib/billing/plans";
 import { guides } from "@/lib/seo/guides";
 import { PRO_PLAN_OFFER } from "@/lib/seo/json-ld";
 import { OG_DEFAULTS, SITE_URL } from "@/lib/seo/metadata";
@@ -239,7 +240,7 @@ export default async function ComparisonPage({ params }: PageProps) {
             <SideCard
               featured
               name="Shots"
-              pricing={`From $199/mo, open source (${PRODUCT_FACTS.license}), runs in any browser`}
+              pricing={`From ${usd(PLAN_PRICES.pro)}/mo, open source (${PRODUCT_FACTS.license}), runs in any browser`}
               heading="Where it wins"
               points={data.studioAdvantages}
             />

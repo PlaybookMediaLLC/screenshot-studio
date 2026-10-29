@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import {
   evaluateWorkspaceFeature,
   getMinimumPlan,
   getWorkspaceQuota,
   hasWorkspaceFeature,
+  planPriceSummary,
+  workspaceFeatureSchema,
+  workspaceQuotaSchema,
 } from '@/lib/billing/plans'
 
 test('free workspaces cannot delete assets', () => {
@@ -66,7 +70,7 @@ test('expired and suspended plans fail closed before feature execution', () => {
   )
 })
 
-test('unknown plans fail closed, including basic scheduling', () => {
+test('unknown plans fail closed', () => {
   const decision = evaluateWorkspaceFeature(
     { featureOverrides: { unknown: true }, plan: 'untrusted-tier', status: 'active' },
     'asset:delete'
@@ -113,13 +117,31 @@ test('plan quotas increase for API writes and storage', () => {
   )
 })
 
-test('free grants basic scheduling with bounded usage but no AI, media or advanced queue', () => {
-  assert.equal(hasWorkspaceFeature('free', 'workspace:use'), true)
-  assert.equal(hasWorkspaceFeature('free', 'content:drafts'), true)
-  assert.equal(hasWorkspaceFeature('free', 'workspace:paid'), false)
-  assert.equal(hasWorkspaceFeature('free', 'content:scheduling-advanced'), false)
-  assert.equal(getWorkspaceQuota('free', 'posts:monthly'), 10)
-  assert.equal(getWorkspaceQuota('free', 'ai:credits:monthly'), 0)
-  assert.equal(getWorkspaceQuota('free', 'storage:bytes'), 0)
+test('there is no free plan: a workspace without a subscription gets no feature or allowance', () => {
+  for (const feature of workspaceFeatureSchema.options) {
+    assert.equal(hasWorkspaceFeature('free', feature), false, feature)
+  }
+  for (const quota of workspaceQuotaSchema.options) {
+    assert.equal(getWorkspaceQuota('free', quota), 0, quota)
+  }
+  assert.equal(getMinimumPlan('content:drafts'), 'pro')
+  assert.equal(hasWorkspaceFeature('pro', 'content:drafts'), true)
   assert.equal(hasWorkspaceFeature('pro', 'content:scheduling-advanced'), true)
+})
+
+test('plan prices derive annual billing at 15% off, matching the Stripe prices', () => {
+  assert.equal(planPriceSummary('pro'), '$29/mo, or $25/mo billed annually')
+  assert.equal(planPriceSummary('business'), '$79/mo, or $67/mo billed annually')
+  assert.equal(planPriceSummary('enterprise'), 'from $799/mo, billed annually')
+})
+
+test('the static llm.txt quotes the current plan prices', () => {
+  // shortcut: public/llm.txt is hand-written; regenerate it from lib/agents/llms.ts if it grows.
+  const text = readFileSync('public/llm.txt', 'utf8')
+  for (const plan of ['pro', 'business', 'enterprise'] as const) {
+    assert.ok(
+      text.includes(planPriceSummary(plan)),
+      `public/llm.txt lacks ${planPriceSummary(plan)}`
+    )
+  }
 })

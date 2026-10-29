@@ -21,10 +21,10 @@ func TestMonthlyQuotaPeriods(t *testing.T) {
 }
 
 func TestPlanQuotasCoverEveryPlan(t *testing.T) {
+	// There is no free plan: a workspace without a subscription has no allowance.
 	for name, limit := range planQuotas["free"] {
-		want := map[string]int{QuotaPosts: 10, QuotaAPIWriteMinute: 60}[name]
-		if limit != want {
-			t.Fatalf("free %s=%d want %d", name, limit, want)
+		if limit != 0 {
+			t.Fatalf("free %s=%d want 0", name, limit)
 		}
 	}
 	for _, plan := range []string{"pro", "business", "enterprise"} {
@@ -34,8 +34,8 @@ func TestPlanQuotasCoverEveryPlan(t *testing.T) {
 			}
 		}
 	}
-	// docs/rfcs/035: AI credits sized for a 75% gross margin at half use.
-	want := map[string]int{"free": 0, "pro": 3_600, "business": 13_200, "enterprise": 54_000}
+	// docs/rfcs/023: AI credits sized for a 50% gross margin at 30% use.
+	want := map[string]int{"free": 0, "pro": 600, "business": 3_000, "enterprise": 15_000}
 	for plan, credits := range want {
 		if planQuotas[plan][QuotaAICredits] != credits {
 			t.Fatalf("%s AI credits=%d want %d", plan, planQuotas[plan][QuotaAICredits], credits)

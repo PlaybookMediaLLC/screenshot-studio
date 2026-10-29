@@ -71,7 +71,7 @@ const NAV_GROUPS = [
   items: group.items.map((item) => ({ ...item, icon: ICONS[item.key] })),
 }))
 
-/** Areas that need a paid plan; free basic scheduling sees them marked Pro. */
+/** Areas that need a paid plan; a workspace without one sees them marked Pro. */
 const PAID_AREAS = new Set(['create', 'campaigns', 'library', 'automate', 'activity'])
 
 function NavLink({
@@ -227,13 +227,13 @@ function WorkspaceSwitcher({
   )
 }
 
-/** Polar's plan card: what a free workspace has, and the way up. */
+/** Polar's plan card: a workspace without a plan, and the way up. */
 function PlanCard() {
   return (
     <div className="rounded-xl border border-border bg-card p-3.5">
-      <p className="text-sm text-foreground">Free basic scheduling</p>
+      <p className="text-sm text-foreground">No plan yet</p>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-        Pro adds Create, Library, Campaigns and Automate.
+        Pro opens Publish, Create, Library, Campaigns and Automate.
       </p>
       <SidebarLink
         className="mt-2 inline-block text-xs font-medium text-foreground underline underline-offset-4"
@@ -345,7 +345,7 @@ export interface PlatformSidebarProps {
   /** Who is signed in where, from the server, for the notification count. */
   notificationIdentity?: { userId: string; workspaceId: string }
   organizationName?: string
-  /** False on free basic scheduling, which marks the paid areas before they are opened. */
+  /** False without a paid plan, which marks the paid areas before they are opened. */
   paidPlan?: boolean
   /** The member's workspace role; New offers what it may create. */
   role?: string

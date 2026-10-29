@@ -106,9 +106,13 @@ type frontendRecoveryReader struct {
 	fakeReader
 	deliveries []fd.GitHubRecoveredDelivery
 	complete   bool
+	checks     func(string) []fd.Check
 }
 
-func (f frontendRecoveryReader) DeploymentChecks(context.Context, int64, string, string) ([]fd.Check, error) {
+func (f frontendRecoveryReader) DeploymentChecks(_ context.Context, _ int64, _ string, revision string) ([]fd.Check, error) {
+	if f.checks != nil {
+		return f.checks(revision), nil
+	}
 	return []fd.Check{}, nil
 }
 func (f frontendRecoveryReader) DeploymentDeliveries(context.Context, int64, string, time.Time) ([]fd.GitHubRecoveredDelivery, bool, error) {
@@ -322,6 +326,85 @@ func TestFrontendOnlySelectedEnvironmentsSupersedeProduction(t *testing.T) {
 			}
 			if got := f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx); got != want {
 				t.Fatalf("late production check after %q activation: workflow dispatches=%d, want %d", environment, got, want)
+			}
+		})
+	}
+}
+
+func TestFrontendPendingChecksSurviveUnrelatedActivations(t *testing.T) {
+	for _, method := range []string{"poll", "webhook", "deployment_check"} {
+		t.Run(method, func(t *testing.T) {
+			f := newAutomationFixture(t)
+			frontendFixtureCleanup(t, f.testWorkspace)
+			f.graph.Family = ra.Deployed
+			f.graph.Qualification = ra.Condition{Field: "deployment.environment", Operator: "eq", Values: []string{"production"}}
+			f.graph.Nodes[1].Condition = &ra.Condition{Field: "deployment.state", Operator: "eq", Values: []string{"success"}}
+			active := f.activate(t)
+			policy := frontendPolicy()
+			policy.WorkflowVersionID = *active.ActiveVersionID
+			policy.Checks = []fd.CheckRule{{Source: "github_check", Name: "ci", AppID: "44", Scope: "commit", Passing: []string{"success"}, MaxAgeSeconds: 3600}}
+			input := FrontendSourceInput{ID: f.source.ID, Name: "Frontend", Provider: "github", AccountID: strconv.FormatInt(f.installation, 10), ProjectID: "1001", Enabled: true, Policy: policy}
+			if method == "deployment_check" {
+				input.Provider, input.AccountID, input.ProjectID, input.Token = "vercel", "team1", "prj_web", "fixture"
+				input.Secret = "test-only-signing-secret"
+				input.Policy.Checks[0].Source, input.Policy.Checks[0].Scope = "vercel_check", "deployment"
+				f.repo.WithWebhooks(make([]byte, 32), nil).WithFrontendHTTP(&http.Client{Transport: frontendTransport(func(*http.Request) (*http.Response, error) {
+					return frontendResponse(`{"id":"prj_web","accountId":"team1"}`), nil
+				})})
+			}
+			s, err := f.repo.SaveFrontendSource(f.ctx, f.owner, input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.exec(t, `UPDATE frontend_source SET "effectiveAt"=now()-interval '1 hour',"lastPollAt"=now()-interval '1 minute' WHERE id=$1`, s.ID)
+			at := time.Now().UTC().Add(-5 * time.Minute)
+			for i := 0; i < 122; i++ {
+				environment := []string{"staging", "preview"}[i%2]
+				if i == 0 {
+					environment = "production"
+				}
+				o := fd.Observation{Provider: s.Provider, Key: "activation-" + strconv.Itoa(i), DeploymentID: "deploy-" + strconv.Itoa(i), ActivationID: "status-" + strconv.Itoa(i), Environment: environment, RepositoryID: "1001", Revision: "revision-" + strconv.Itoa(i), Production: "active", Status: "success", Build: "success", OccurredAt: at.Add(time.Duration(i) * time.Second)}
+				if err := f.repo.acceptFrontendObservation(f.ctx, f.org, s.ID, o, false); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if frontendAlerts(t, f.testWorkspace) != 0 {
+				t.Fatal("alert before required checks")
+			}
+			check := fd.Check{Source: "github_check", Name: "ci", AppID: "44", ID: "c1", RepositoryID: "1001", Revision: "revision-0", Status: "completed", Conclusion: "success", OccurredAt: time.Now().UTC()}
+			reads := 0
+			f.repo.WithGitHubApp(frontendRecoveryReader{fakeReader: f.repo.github.(fakeReader), complete: true, checks: func(revision string) []fd.Check {
+				reads++
+				if revision != "revision-0" {
+					t.Errorf("polled unrelated activation %s", revision)
+					return nil
+				}
+				return []fd.Check{check}
+			}})
+			for i := 0; i < 2; i++ {
+				switch method {
+				case "poll":
+					_, err = f.repo.PollFrontends(f.ctx)
+				case "webhook":
+					body, _ := json.Marshal(map[string]any{"installation": map[string]any{"id": f.installation}, "repository": map[string]any{"id": 1001}, "check_run": map[string]any{"id": 10, "name": "ci", "head_sha": check.Revision, "status": "completed", "conclusion": "success", "completed_at": check.OccurredAt.Format(time.RFC3339Nano), "app": map[string]any{"id": 44}}})
+					_, err = f.repo.AcceptGitHubEvent(f.ctx, AcceptGitHubEventInput{DeliveryID: "late-check", EventName: "check_run", Body: body})
+				case "deployment_check":
+					check.Source, check.DeploymentID, check.Revision, check.RepositoryID = "vercel_check", "deploy-0", "", ""
+					err = f.repo.acceptFrontendObservation(f.ctx, f.org, s.ID, fd.Observation{Provider: s.Provider, Kind: "checks.observed", Key: "late-deployment-check", OccurredAt: check.OccurredAt, Checks: []fd.Check{check}}, false)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if method == "poll" && reads != 1 {
+				t.Fatalf("check API reads=%d, want 1", reads)
+			}
+			activation := f.db.Client.FrontendActivation.Query().Where(frontendactivation.SourceID(s.ID), frontendactivation.CommitSha("revision-0")).OnlyX(f.ctx)
+			if activation.Decision.State != "matched" || frontendAlerts(t, f.testWorkspace) != 1 {
+				t.Fatalf("pending production activation did not complete once: %+v", activation.Decision)
+			}
+			if n := f.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(f.org), outboxevent.Type(EventReleaseAutomationDispatch)).CountX(f.ctx); n != 1 {
+				t.Fatalf("workflow dispatches=%d, want 1", n)
 			}
 		})
 	}

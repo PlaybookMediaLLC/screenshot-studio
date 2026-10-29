@@ -174,6 +174,10 @@ source's persisted latest activation timestamp suppresses delayed success alerts
 for superseded activations in the selected production environments. Staging and
 preview activations cannot suppress a pending production success. Check results arriving before or after activation are
 evaluated against the pinned policy. Configuration changes do not replay history.
+Check recovery pages past unrelated or superseded activations before applying its
+20-activation provider-read budget. Late checks select matching repository/revision
+or deployment identities and page all matches, so unrelated staging history cannot
+hide a pending production activation.
 Already accepted pending activations retain their original rules. Evidence first
 received while paused stays historical after enabling.
 
@@ -306,6 +310,9 @@ production-alias supersession, stable pagination and the 20-source polling budge
 Archiving or disabling a linked workflow is covered both before activation and
 while required checks are pending; evidence and one alert survive retries without
 dispatching the inactive workflow.
+Check-recovery regressions place 121 newer staging/preview activations ahead of a
+pending production activation and verify API recovery, late commit checks and
+deployment-scoped checks each emit one alert and one workflow dispatch.
 
 Earlier local test failures were resolved: Node 24 was replaced by the pinned
 Node 22 runtime, and integration fixture cleanup was corrected so retained test

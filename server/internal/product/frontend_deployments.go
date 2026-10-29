@@ -9,10 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendactivation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendobservation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/frontendsource"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	releaseautomation "github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasesourceevent"
@@ -448,31 +451,51 @@ func (c *Configuration) frontendObservationTx(ctx context.Context, org, id strin
 	}
 	// Later checks reevaluate only this source's exact revision or deployment.
 	if len(o.Checks) > 0 {
-		activations, err := tx.FrontendActivation.Query().Where(frontendactivation.OrganizationID(org), frontendactivation.SourceID(id)).Order(ent.Desc(frontendactivation.FieldCreatedAt)).Limit(100).All(ctx)
-		if err != nil {
-			return err
+		targets := []predicate.FrontendActivation{}
+		for _, check := range o.Checks {
+			if check.Revision != "" && check.RepositoryID != "" {
+				targets = append(targets, frontendactivation.And(frontendactivation.CommitSha(check.Revision), func(s *sql.Selector) {
+					s.Where(sqljson.ValueEQ(frontendactivation.FieldSnapshot, check.RepositoryID, sqljson.Path("repositoryId")))
+				}))
+			}
+			if check.DeploymentID != "" {
+				targets = append(targets, func(s *sql.Selector) {
+					s.Where(sqljson.ValueEQ(frontendactivation.FieldSnapshot, check.DeploymentID, sqljson.Path("deploymentId")))
+				})
+			}
 		}
-		for _, a := range activations {
-			snapshot := a.Snapshot
-			checks := []fd.Check{}
-			for _, check := range o.Checks {
-				if check.Revision != "" && check.Revision == snapshot.Revision && check.RepositoryID == snapshot.RepositoryID || check.DeploymentID != "" && check.DeploymentID == snapshot.DeploymentID {
-					checks = append(checks, check)
-				}
-			}
-			if len(checks) == 0 {
-				continue
-			}
-			snapshot.Checks = mergeFrontendChecks(snapshot.Checks, frontendRelevantChecks(a.Policy, snapshot, checks))
-			d := evaluate(a.Policy, snapshot)
-			a, err = a.Update().SetSnapshot(snapshot).SetDecision(d).SetUpdatedAt(now).Save(ctx)
+		cursor := ""
+		for len(targets) > 0 {
+			activations, err := tx.FrontendActivation.Query().Where(frontendactivation.OrganizationID(org), frontendactivation.SourceID(id), frontendactivation.IDGT(cursor), frontendactivation.Or(targets...)).Order(ent.Asc(frontendactivation.FieldID)).Limit(100).All(ctx)
 			if err != nil {
 				return err
 			}
-			if err := c.emitFrontendDecision(ctx, tx, s, a); err != nil {
-				return err
+			for _, a := range activations {
+				snapshot := a.Snapshot
+				checks := []fd.Check{}
+				for _, check := range o.Checks {
+					if check.Revision != "" && check.Revision == snapshot.Revision && check.RepositoryID == snapshot.RepositoryID || check.DeploymentID != "" && check.DeploymentID == snapshot.DeploymentID {
+						checks = append(checks, check)
+					}
+				}
+				if len(checks) == 0 {
+					continue
+				}
+				snapshot.Checks = mergeFrontendChecks(snapshot.Checks, frontendRelevantChecks(a.Policy, snapshot, checks))
+				d := evaluate(a.Policy, snapshot)
+				a, err = a.Update().SetSnapshot(snapshot).SetDecision(d).SetUpdatedAt(now).Save(ctx)
+				if err != nil {
+					return err
+				}
+				if err := c.emitFrontendDecision(ctx, tx, s, a); err != nil {
+					return err
+				}
+				decision = d
 			}
-			decision = d
+			if len(activations) < 100 {
+				break
+			}
+			cursor = activations[len(activations)-1].ID
 		}
 	}
 	if _, err = tx.FrontendObservation.Create().SetID(cuid.New()).SetOrganizationID(org).SetSourceID(id).SetEventKey(o.Key).SetSnapshot(o).SetPolicy(policy).SetPolicyVersion(version).SetDecision(decision).SetHistorical(historical).SetOccurredAt(o.OccurredAt).SetReceivedAt(now).SetProcessedAt(now).Save(ctx); err != nil {
@@ -542,12 +565,8 @@ func (c *Configuration) emitFrontendDecision(ctx context.Context, tx *ent.Tx, s 
 	}
 	// Delayed checks or webhook delivery cannot announce an activation already
 	// superseded for this frontend. Separate projects have separate source locks.
-	if a.Snapshot.Production == "active" {
-		newest, _ := time.Parse(time.RFC3339Nano, s.Checkpoint["latestActivationAt"])
-		if newest.After(frontendActivationTime(a.Snapshot)) {
-			return nil
-		}
-
+	if frontendActivationSuperseded(s, a) {
+		return nil
 	}
 	d := a.Decision
 	kind := "frontend." + d.State
@@ -578,6 +597,11 @@ func frontendActivationTime(o fd.Observation) time.Time {
 		return *o.ActivationObservedAt
 	}
 	return o.OccurredAt
+}
+
+func frontendActivationSuperseded(s *ent.FrontendSource, a *ent.FrontendActivation) bool {
+	newest, _ := time.Parse(time.RFC3339Nano, s.Checkpoint["latestActivationAt"])
+	return a.Snapshot.Production == "active" && newest.After(frontendActivationTime(a.Snapshot))
 }
 
 func (c *Configuration) frontendWorkflow(ctx context.Context, tx *ent.Tx, s *ent.FrontendSource, a *ent.FrontendActivation) error {

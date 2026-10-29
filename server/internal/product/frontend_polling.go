@@ -199,57 +199,78 @@ func (c *Configuration) pollFrontend(ctx context.Context, s *ent.FrontendSource)
 }
 
 func (c *Configuration) pollFrontendChecks(ctx context.Context, s *ent.FrontendSource, client fd.Client, token string) error {
-	rows, err := c.client.FrontendActivation.Query().Where(frontendactivation.OrganizationID(s.OrganizationID), frontendactivation.SourceID(s.ID), frontendactivation.Historical(false)).Order(ent.Desc(frontendactivation.FieldCreatedAt)).Limit(20).All(ctx)
+	// Recovery may just have accepted a newer production activation. Use its
+	// current checkpoint, rather than the source loaded before provider reads.
+	current, err := c.client.FrontendSource.Query().Where(frontendsource.OrganizationID(s.OrganizationID), frontendsource.ID(s.ID)).Only(ctx)
 	if err != nil {
 		return err
 	}
-	for _, a := range rows {
-		if len(a.Policy.Checks) == 0 || a.Decision.State == "matched" || a.Snapshot.Production != "active" {
-			continue
+	cursor, count := "", 0
+	for count < 20 {
+		query := c.client.FrontendActivation.Query().Where(frontendactivation.OrganizationID(s.OrganizationID), frontendactivation.SourceID(s.ID), frontendactivation.Historical(false))
+		if cursor != "" {
+			query.Where(frontendactivation.IDLT(cursor))
 		}
-		checks := []fd.Check{}
-		wantVercel, wantGitHub := false, false
-		for _, rule := range a.Policy.Checks {
-			wantVercel = wantVercel || rule.Source == "vercel_check"
-			wantGitHub = wantGitHub || rule.Source == "github_check" || rule.Source == "github_status"
+		rows, err := query.Order(ent.Desc(frontendactivation.FieldID)).Limit(100).All(ctx)
+		if err != nil {
+			return err
 		}
-		if wantVercel && s.Provider == "vercel" {
-			got, e := client.VercelChecks(ctx, s.AccountID, a.Snapshot.DeploymentID, token)
-			if e != nil {
-				return e
+		for _, a := range rows {
+			if count >= 20 {
+				break
 			}
-			checks = append(checks, got...)
-		}
-		if wantGitHub && a.Snapshot.Revision != "" {
-			src, e := c.client.SourceApp.Query().Where(sourceapp.ID(frontendGitHubSourceID(s)), sourceapp.OrganizationID(s.OrganizationID)).Only(ctx)
-			if e != nil {
-				return e
+			if len(a.Policy.Checks) == 0 || a.Decision.State == "matched" || a.Decision.State == "not_matched" || a.Snapshot.Production != "active" || !slices.Contains(a.Policy.Environments, a.Snapshot.Environment) || frontendActivationSuperseded(current, a) {
+				continue
 			}
-			if src.GithubInstallationID != nil {
-				if e := automationSourceAccess(ctx, c.client, src); e != nil {
-					return e
-				}
-				install, e := c.client.GitHubInstallation.Get(ctx, *src.GithubInstallationID)
+			count++
+			checks := []fd.Check{}
+			wantVercel, wantGitHub := false, false
+			for _, rule := range a.Policy.Checks {
+				wantVercel = wantVercel || rule.Source == "vercel_check"
+				wantGitHub = wantGitHub || rule.Source == "github_check" || rule.Source == "github_status"
+			}
+			if wantVercel && s.Provider == "vercel" {
+				got, e := client.VercelChecks(ctx, s.AccountID, a.Snapshot.DeploymentID, token)
 				if e != nil {
 					return e
 				}
-				if reader, ok := c.github.(frontendGitHubReader); ok {
-					got, e := reader.DeploymentChecks(ctx, install.InstallationID, *src.ExternalID, a.Snapshot.Revision)
+				checks = append(checks, got...)
+			}
+			if wantGitHub && a.Snapshot.Revision != "" {
+				src, e := c.client.SourceApp.Query().Where(sourceapp.ID(frontendGitHubSourceID(s)), sourceapp.OrganizationID(s.OrganizationID)).Only(ctx)
+				if e != nil {
+					return e
+				}
+				if src.GithubInstallationID != nil {
+					if e := automationSourceAccess(ctx, c.client, src); e != nil {
+						return e
+					}
+					install, e := c.client.GitHubInstallation.Get(ctx, *src.GithubInstallationID)
 					if e != nil {
 						return e
 					}
-					checks = append(checks, got...)
+					if reader, ok := c.github.(frontendGitHubReader); ok {
+						got, e := reader.DeploymentChecks(ctx, install.InstallationID, *src.ExternalID, a.Snapshot.Revision)
+						if e != nil {
+							return e
+						}
+						checks = append(checks, got...)
+					}
 				}
 			}
+			if len(checks) == 0 {
+				continue
+			}
+			raw, _ := json.Marshal(checks)
+			o := fd.Observation{Provider: s.Provider, AccountID: s.AccountID, ProjectID: s.ProjectID, Kind: "checks.observed", Key: "checks:" + a.ID + ":" + fd.Fingerprint(raw), OccurredAt: time.Now().UTC(), Checks: checks, Evidence: []string{"Authenticated read-only check API; exact deployment/revision correlation required."}}
+			if err := c.acceptFrontendObservation(ctx, s.OrganizationID, s.ID, o, false); err != nil {
+				return err
+			}
 		}
-		if len(checks) == 0 {
-			continue
+		if len(rows) < 100 {
+			break
 		}
-		raw, _ := json.Marshal(checks)
-		o := fd.Observation{Provider: s.Provider, AccountID: s.AccountID, ProjectID: s.ProjectID, Kind: "checks.observed", Key: "checks:" + a.ID + ":" + fd.Fingerprint(raw), OccurredAt: time.Now().UTC(), Checks: checks, Evidence: []string{"Authenticated read-only check API; exact deployment/revision correlation required."}}
-		if err := c.acceptFrontendObservation(ctx, s.OrganizationID, s.ID, o, false); err != nil {
-			return err
-		}
+		cursor = rows[len(rows)-1].ID
 	}
 	return nil
 }

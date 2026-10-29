@@ -142,8 +142,26 @@ test(
     await expect(blocked).toBeHidden()
     await caretAtDocumentEnd(page)
 
-    // Fix it: delete what was added, as the writer would. Count from the
-    // counter, so a keystroke the browser dropped under load cannot skew it.
+    // Fix it: select what was added and delete it, as the writer would. One
+    // Backspace per character took ~100 ms each on a loaded runner, most of
+    // the 30 s below.
+    await draftEditor(page).evaluate((editor) => {
+      const strings = editor.querySelectorAll('[data-slate-string]')
+      const text = strings[strings.length - 1]?.firstChild
+      const value = text?.textContent ?? ''
+      const start = value.search(/ ?x+$/)
+      if (!text || start < 0) return
+      const range = document.createRange()
+      range.setStart(text, start)
+      range.setEnd(text, value.length)
+      window.getSelection()?.removeAllRanges()
+      window.getSelection()?.addRange(range)
+    })
+    await settleSelection(page)
+    await page.keyboard.press('Backspace')
+
+    // Count from the counter, so a keystroke the browser dropped under load
+    // cannot skew it.
     const counted = async () =>
       Number((await page.getByTestId('counter-x').textContent())?.split(' / ')[0])
     // The counter trails the keys; a reading taken while it still moves made

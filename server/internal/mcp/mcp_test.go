@@ -104,6 +104,23 @@ func TestToolsMirrorTheirOpenAPIOperations(t *testing.T) {
 	}
 }
 
+// The mounts are routed without a ServeMux, so the handler sets the pattern a
+// mux would: telemetry names the span and the request metric after it.
+func TestMCPRequestsCarryTheirRoute(t *testing.T) {
+	t.Setenv("PLATFORM_MCP_URL", "https://api.shots.test/mcp")
+	t.Setenv("FRONTEND_URL", "https://shots.test")
+	t.Setenv("OPENAI_OAUTH_CLIENT_ID", "")
+	s, err := New(Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/mcp-oauth-claude/", nil)
+	s.Handler(http.NotFoundHandler()).ServeHTTP(httptest.NewRecorder(), request)
+	if request.Pattern != "/mcp-oauth-claude" {
+		t.Fatalf("pattern %q", request.Pattern)
+	}
+}
+
 func TestProtectedResourceMetadataAndChallenges(t *testing.T) {
 	ts := newUnitServer(t)
 

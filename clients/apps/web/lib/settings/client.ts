@@ -2,6 +2,7 @@
 
 import { z } from 'zod'
 import { debugLog, redactPath } from '@/lib/debug-log'
+import { isPlanRefusal, PLAN_REFUSAL_MESSAGE } from '@/lib/api/platform-errors'
 import { workspaceScopeHeaders, type WorkspaceRequestScope } from '@/lib/auth/request-scope'
 
 /** A settings request the server refused, with its status and error code. */
@@ -69,7 +70,8 @@ export async function settingsRequest<Schema extends z.ZodType>(
   return schema.parse(payload)
 }
 
-/** A person-readable message for any failure. */
+/** A person-readable message for any failure; a plan refusal says so instead of naming the API's gate. */
 export function settingsErrorMessage(error: unknown): string {
+  if (isPlanRefusal(error)) return PLAN_REFUSAL_MESSAGE
   return error instanceof Error ? error.message : 'The request could not be completed.'
 }

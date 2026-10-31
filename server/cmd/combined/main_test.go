@@ -37,6 +37,27 @@ func TestPublishingEnvKeepsTenantCredentialsSeparate(t *testing.T) {
 	}
 }
 
+func TestPublishingEnvSharesTelemetrySettings(t *testing.T) {
+	environ := []string{
+		"TENANT_DATABASE_URL=tenant-database", "TENANT_TEMPORAL_ADDRESS=tenant-temporal:7233",
+		"TENANT_TEMPORAL_NAMESPACE=tenant-namespace", "TENANT_AUDIT_RETENTION_DATABASE_URL=retention-database",
+		"TENANT_RUN_CRON=true", "TENANT_RUN_MAINTENANCE=true", "TENANT_PUBLISHING_SERVICE_TOKEN=private-token",
+		"OTEL_ENABLED=true", "OTEL_SAMPLING_RATE=0.01", "TENANT_OTEL_SAMPLING_RATE=0.5", "SERVICE_VERSION=abc123",
+	}
+	result, err := publishingEnv(environ)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"OTEL_ENABLED=true", "OTEL_SAMPLING_RATE=0.5", "SERVICE_VERSION=abc123"} {
+		if !hasEntry(result, expected) {
+			t.Errorf("missing %s", expected)
+		}
+	}
+	if hasEntry(result, "OTEL_SAMPLING_RATE=0.01") {
+		t.Error("the TENANT_ twin must win")
+	}
+}
+
 func TestPublishingEnvRequiresMaintenance(t *testing.T) {
 	base := []string{
 		"TENANT_DATABASE_URL=tenant-database", "TENANT_TEMPORAL_ADDRESS=tenant-temporal:7233",

@@ -11,6 +11,7 @@ import { FinalCta } from './blocks'
 import { CtaLink } from './CtaLink'
 import { LandingFooter } from './LandingFooter'
 import { LandingNav } from './LandingNav'
+import { GetStartedCta } from './SessionLinks'
 import { PipelineCanvas } from './PipelineCanvas'
 import { Principles } from './Principles'
 import { CONTAINER, ctaToneSchema, MONO, MUTED, Stage, Window } from './primitives'
@@ -72,7 +73,7 @@ function Hero() {
             until you approve it.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <CtaLink href="/sign-up" label="Get started" location="landing_hero" />
+            <GetStartedCta location="landing_hero" />
             <CtaLink
               href="/contact"
               label="Request a demo"

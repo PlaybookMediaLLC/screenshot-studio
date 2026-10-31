@@ -7,10 +7,15 @@ import { Button } from '@/components/ui/button'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 
 /** The browser's deferred install prompt (Chromium only). */
-const installPromptSchema = z.object({
-  prompt: z.function(),
-  userChoice: z.promise(z.object({ outcome: z.enum(['accepted', 'dismissed']) })),
-})
+type InstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<unknown> }
+
+// Checked synchronously and kept as the event itself: zod's object parse cannot hold a
+// promise field (it throws reading `issues.length`), and a re-wrapped `prompt` loses its `this`.
+export const installPromptSchema = z.custom<InstallPromptEvent>(
+  (value) => value instanceof Event && typeof (value as { prompt?: unknown }).prompt === 'function'
+)
+
+const installChoiceSchema = z.object({ outcome: z.enum(['accepted', 'dismissed']) })
 
 /**
  * Install (RFC 024): the ways Shots really can be installed. Shots is a web
@@ -37,7 +42,7 @@ export function InstallSettings() {
   const install = async () => {
     if (!prompt) return
     await prompt.prompt()
-    setOutcome((await prompt.userChoice).outcome)
+    setOutcome(installChoiceSchema.parse(await prompt.userChoice).outcome)
     setPrompt(null)
   }
 

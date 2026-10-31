@@ -229,6 +229,87 @@ func envDuration(name string, fallback time.Duration) time.Duration {
 	return parsed
 }
 
+// Telemetry configures OpenTelemetry export (docs/observability.md). The SDK
+// reads the exporter endpoint, headers, timeout, batching and queue size
+// itself, from the standard OTEL_EXPORTER_OTLP_*, OTEL_BSP_* and
+// OTEL_METRIC_EXPORT_* variables; LoadTelemetry only checks the numbers.
+type Telemetry struct {
+	Enabled bool
+	// SamplingRate is the share of new traces that are kept whole.
+	SamplingRate float64
+	// Spans of the other traces are kept when they fail or run for at least
+	// SlowSpan, up to PromotedSpansPerSecond. Zero keeps none of them.
+	SlowSpan               time.Duration
+	PromotedSpansPerSecond float64
+	Traces                 bool
+	Metrics                bool
+}
+
+// LoadTelemetry reads the telemetry settings. Telemetry is off unless
+// OTEL_ENABLED=true.
+func LoadTelemetry() (Telemetry, error) {
+	enabled, err := envBool("OTEL_ENABLED", false)
+	if err != nil || !enabled {
+		return Telemetry{}, err
+	}
+	cfg := Telemetry{Enabled: true}
+	if cfg.SamplingRate, err = envRatio("OTEL_SAMPLING_RATE", 0.01, 1); err != nil {
+		return Telemetry{}, err
+	}
+	if cfg.PromotedSpansPerSecond, err = envRatio("OTEL_PROMOTED_SPANS_PER_SECOND", 10, 10000); err != nil {
+		return Telemetry{}, err
+	}
+	cfg.SlowSpan = 2 * time.Second
+	if value := os.Getenv("OTEL_SLOW_SPAN_THRESHOLD"); value != "" {
+		if cfg.SlowSpan, err = time.ParseDuration(value); err != nil || cfg.SlowSpan < 0 {
+			return Telemetry{}, fmt.Errorf("OTEL_SLOW_SPAN_THRESHOLD must be a duration such as 2s")
+		}
+	}
+	for _, name := range []string{"OTEL_BSP_SCHEDULE_DELAY", "OTEL_BSP_EXPORT_TIMEOUT", "OTEL_BSP_MAX_QUEUE_SIZE",
+		"OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "OTEL_METRIC_EXPORT_INTERVAL", "OTEL_EXPORTER_OTLP_TIMEOUT"} {
+		if value := os.Getenv(name); value != "" {
+			if parsed, err := strconv.Atoi(value); err != nil || parsed <= 0 {
+				return Telemetry{}, fmt.Errorf("%s must be a positive whole number", name)
+			}
+		}
+	}
+	if cfg.Traces, err = exporterEnabled("TRACES"); err != nil {
+		return Telemetry{}, err
+	}
+	if cfg.Metrics, err = exporterEnabled("METRICS"); err != nil {
+		return Telemetry{}, err
+	}
+	return cfg, nil
+}
+
+func envRatio(name string, fallback, maximum float64) (float64, error) {
+	value := os.Getenv(name)
+	if value == "" {
+		return fallback, nil
+	}
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil || !(parsed >= 0 && parsed <= maximum) {
+		return 0, fmt.Errorf("%s must be a number from 0 to %g", name, maximum)
+	}
+	return parsed, nil
+}
+
+// exporterEnabled reads OTEL_TRACES_EXPORTER or OTEL_METRICS_EXPORTER: otlp
+// (the default) needs an endpoint, none turns the signal off.
+func exporterEnabled(signal string) (bool, error) {
+	name := "OTEL_" + signal + "_EXPORTER"
+	switch os.Getenv(name) {
+	case "", "otlp":
+		if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") == "" && os.Getenv("OTEL_EXPORTER_OTLP_"+signal+"_ENDPOINT") == "" {
+			return false, fmt.Errorf("OTEL_EXPORTER_OTLP_ENDPOINT is required when OTEL_ENABLED=true")
+		}
+		return true, nil
+	case "none":
+		return false, nil
+	}
+	return false, fmt.Errorf("%s must be otlp or none", name)
+}
+
 // WebhookEncryptionKey reads PLATFORM_WEBHOOK_ENCRYPTION_KEY, 32 bytes as
 // base64. It is optional: unset, outbound webhooks are unavailable.
 func WebhookEncryptionKey() ([]byte, error) {

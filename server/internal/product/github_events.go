@@ -27,6 +27,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/githubapp"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 )
 
 // Product events the worker hands back to the product, because doing them
@@ -618,7 +619,8 @@ func (c *Configuration) ready(ctx context.Context, pageURL string) error {
 	if err != nil {
 		return err
 	}
-	client := &http.Client{Timeout: 15 * time.Second}
+	// The customer's page is not a dependency: it gets no trace headers.
+	client := &http.Client{Timeout: 15 * time.Second, Transport: telemetry.UntracedTransport}
 	if c.web != nil {
 		client.Transport = c.web.Transport
 	}

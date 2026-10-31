@@ -9,7 +9,9 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
 // Product timestamps are timezone-less columns holding UTC (Prisma's
@@ -23,10 +25,11 @@ type Database struct {
 }
 
 func Open(ctx context.Context, databaseURL string) (*Database, error) {
-	db, err := stdsql.Open("pgx", databaseURL)
+	config, err := pgx.ParseConfig(databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
+	db := telemetry.OpenDB("product", stdlib.GetConnector(*config))
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(30 * time.Minute)
 	db.SetMaxIdleConns(5)

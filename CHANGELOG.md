@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.42.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.41.1...v2.42.0) (2026-10-31)
+
+
+### Features
+
+* export traces and metrics to Axiom with 1% sampling ([#393](https://github.com/PlaybookMediaLLC/shots/issues/393)) ([cfc8b48](https://github.com/PlaybookMediaLLC/shots/commit/cfc8b48af7c5921b625bd863ed6ce6d1742cb246))
+
+
+### Bug Fixes
+
+* **web:** finish the no-plan audit on top of [#389](https://github.com/PlaybookMediaLLC/shots/issues/389) ([#391](https://github.com/PlaybookMediaLLC/shots/issues/391)) ([a986216](https://github.com/PlaybookMediaLLC/shots/commit/a9862161cc68c6bac6c73fee5faae9e682f024b2))
+
 ## [2.41.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.41.0...v2.41.1) (2026-10-29)
 
 

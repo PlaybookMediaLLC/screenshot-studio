@@ -27,6 +27,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/quota"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/tenantpublishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalmaintenance"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
@@ -44,6 +45,8 @@ import (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	// First, so clients built below use the traced default transport.
+	defer telemetry.Start(ctx, "publishing-orchestrator")()
 	cfg, err := config.LoadOrchestrator()
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -67,7 +68,9 @@ func NewRedisEpochs(rawURL string) (*RedisEpochs, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &RedisEpochs{client: redis.NewClient(options)}, nil
+	client := redis.NewClient(options)
+	telemetry.InstrumentRedis("collab", client)
+	return &RedisEpochs{client: client}, nil
 }
 
 func epochKey(organizationID string) string {

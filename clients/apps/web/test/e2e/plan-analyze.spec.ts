@@ -145,6 +145,10 @@ test('Plan acceptance: authenticated account selection, creation, lifecycle, mov
     await page.getByRole('button', { name: 'Next month', exact: true }).click()
     await page.getByRole('button', { name: 'Today', exact: true }).click()
     await expect(page.locator('time[aria-current="date"]')).toHaveCount(1)
+    // Near a month's end the planned day is in the next month, which later steps need.
+    const today = await page.locator('time[aria-current="date"]').getAttribute('datetime')
+    if (today?.slice(0, 7) !== day.slice(0, 7))
+      await page.getByRole('button', { name: 'Next month', exact: true }).click()
   })
   await test.step('P27 P28 P29 picker search and distinct source tabs cancel without a commit', async () => {
     await page.getByRole('button', { name: `Create draft ${day}`, exact: true }).click()

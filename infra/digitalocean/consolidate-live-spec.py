@@ -48,6 +48,13 @@ OPTIONAL_TENANT_SECRETS = (
     # Outbound webhooks (docs/rfcs/043); without it the API answers 503.
     "PLATFORM_WEBHOOK_ENCRYPTION_KEY",
 )
+# OpenTelemetry export to Axiom (docs/observability.md). The headers carry the
+# Axiom token. The backend and the web read the same keys.
+TELEMETRY_SETTINGS = ("OTEL_ENABLED", "OTEL_SAMPLING_RATE", "OTEL_EXPORTER_OTLP_ENDPOINT",
+                      "OTEL_EXPORTER_OTLP_TRACES_HEADERS", "OTEL_EXPORTER_OTLP_METRICS_HEADERS",
+                      "OTEL_RESOURCE_ATTRIBUTES", "OTEL_PROMOTED_SPANS_PER_SECOND",
+                      "OTEL_SLOW_SPAN_THRESHOLD", "OTEL_BSP_MAX_QUEUE_SIZE")
+OPTIONAL_TENANT_SECRETS += TELEMETRY_SETTINGS
 OPTIONAL_TENANT_KEYS = {"TENANT_" + key for key in OPTIONAL_TENANT_SECRETS}
 
 
@@ -142,6 +149,19 @@ def configure_product_api(backend, secrets):
     for key in OPTIONAL_TENANT_SECRETS:
         if secrets.get(key):
             set_secret_env(backend["envs"], "TENANT_" + key, secrets[key])
+
+
+def configure_telemetry(web, secrets):
+    """The web exports to Axiom with the backend's telemetry settings, gzipped."""
+    if secrets is None:
+        return
+    keys = set(TELEMETRY_SETTINGS) | {"OTEL_EXPORTER_OTLP_COMPRESSION"}
+    web["envs"][:] = [item for item in web["envs"] if item["key"] not in keys]
+    for key in TELEMETRY_SETTINGS:
+        if secrets.get(key):
+            set_secret_env(web["envs"], key, secrets[key])
+    if secrets.get("OTEL_ENABLED"):
+        set_env(web["envs"], "OTEL_EXPORTER_OTLP_COMPRESSION", "gzip")
 
 
 def refresh_secrets(envs, secrets):
@@ -327,6 +347,7 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
     configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
                              secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
     configure_product_api(backend, secrets)
+    configure_telemetry(services["web"], secrets)
     backend["image"] = image
     platform_migration(spec, image, secrets)
     return spec

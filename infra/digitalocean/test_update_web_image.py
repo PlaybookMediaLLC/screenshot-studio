@@ -105,6 +105,17 @@ class UpdateWebImageTest(unittest.TestCase):
         envs = {item["key"]: item["value"] for item in result["services"][0]["envs"]}
         self.assertEqual(envs["GITHUB_APP_WEBHOOK_SECRET"], "fresh")
 
+    def test_telemetry_settings_removed_from_infisical_leave_the_web(self):
+        envs = self.base["spec"]["services"][0]["envs"]
+        envs += [{"key": "OTEL_ENABLED", "value": "true", "type": "SECRET"},
+                 {"key": "OTEL_EXPORTER_OTLP_TRACES_HEADERS", "value": "authorization=Bearer old", "type": "SECRET"}]
+        secrets = {"REDIS_URL": "redis", "PLATFORM_RENDER_CDP_URL": "wss://render.example/devtools",
+                   "PLATFORM_RENDER_CDP_TOKEN": "cdp-token", "OTEL_ENABLED": "true"}
+        result = module.update_web_image(self.base, "web-" + "b" * 40, secrets)
+        web_envs = {item["key"]: item["value"] for item in result["services"][0]["envs"]}
+        self.assertEqual(web_envs["OTEL_ENABLED"], "true")
+        self.assertNotIn("OTEL_EXPORTER_OTLP_TRACES_HEADERS", web_envs)
+
     def test_rejects_unexpected_topology_and_missing_secret(self):
         tag = "web-" + "b" * 40
         with self.assertRaisesRegex(ValueError, "Missing Infisical"):

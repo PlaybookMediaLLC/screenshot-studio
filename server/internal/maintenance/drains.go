@@ -21,6 +21,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 )
 
 type DrainSender struct {
@@ -46,7 +48,7 @@ func NewDrainSender(key []byte) *DrainSender {
 		}
 		return nil
 	}}
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport := telemetry.UntracedTransport.Clone()
 	transport.Proxy = nil
 	transport.DialContext = dialer.DialContext
 	return &DrainSender{Key: key, HTTP: &http.Client{Transport: transport, Timeout: 20 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}

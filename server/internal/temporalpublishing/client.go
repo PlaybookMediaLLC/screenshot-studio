@@ -4,12 +4,15 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"log/slog"
 	"time"
 
 	enumspb "go.temporal.io/api/enums/v1"
 	"go.temporal.io/api/serviceerror"
 	workflowservice "go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/sdk/client"
+	temporalotel "go.temporal.io/sdk/contrib/opentelemetry"
+	"go.temporal.io/sdk/interceptor"
 )
 
 type ConnectionConfig struct {
@@ -41,6 +44,16 @@ func Dial(ctx context.Context, cfg ConnectionConfig) (client.Client, error) {
 	if cfg.APIKey != "" {
 		options.Credentials = client.NewAPIKeyStaticCredentials(cfg.APIKey)
 	}
+	// Workflows and activities continue the trace of the request that started
+	// them, and the SDK reports task latency, failures and worker slots. Both
+	// use the global providers, which are no-ops until telemetry.Start.
+	tracing, err := temporalotel.NewTracingInterceptor(temporalotel.TracerOptions{})
+	if err != nil {
+		return nil, err
+	}
+	options.Interceptors = []interceptor.ClientInterceptor{tracing}
+	options.MetricsHandler = temporalotel.NewMetricsHandler(temporalotel.MetricsHandlerOptions{UseMonotonicCounters: true,
+		OnError: func(err error) { slog.Warn("Temporal metric unavailable", "error", err) }})
 	return client.DialContext(ctx, options)
 }
 

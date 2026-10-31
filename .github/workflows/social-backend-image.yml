@@ -55,6 +55,7 @@ jobs:
           push: true
           provenance: false
           tags: ghcr.io/playbookmediallc/screenshot-studio:social-backend-${{ github.sha }}
+          build-args: SERVICE_VERSION=${{ github.sha }}
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha,scope=social-backend
           cache-to: type=gha,mode=max,ignore-error=true,scope=social-backend

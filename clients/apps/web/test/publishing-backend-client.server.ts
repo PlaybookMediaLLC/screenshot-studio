@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { context, propagation, ROOT_CONTEXT, trace, TraceFlags } from '@opentelemetry/api'
+import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks'
+import { W3CTraceContextPropagator } from '@opentelemetry/core'
 import type { OrganizationAccess } from '../lib/auth/access'
 import {
   beginBackendSocialOAuth,
@@ -138,4 +141,34 @@ test('an expired backend session is reported as unauthorized', async (t) => {
     assert.equal(error.status, 401)
     return true
   })
+})
+
+test('the web client carries the active trace to the backend', async (t) => {
+  const oldURL = process.env.PUBLISHING_API_URL
+  const oldToken = process.env.PUBLISHING_SERVICE_TOKEN
+  process.env.PUBLISHING_API_URL = 'http://backend.test:8082'
+  process.env.PUBLISHING_SERVICE_TOKEN = 'private-test-token'
+  context.setGlobalContextManager(new AsyncLocalStorageContextManager().enable())
+  propagation.setGlobalPropagator(new W3CTraceContextPropagator())
+  t.after(() => {
+    context.disable()
+    propagation.disable()
+    if (oldURL === undefined) delete process.env.PUBLISHING_API_URL
+    else process.env.PUBLISHING_API_URL = oldURL
+    if (oldToken === undefined) delete process.env.PUBLISHING_SERVICE_TOKEN
+    else process.env.PUBLISHING_SERVICE_TOKEN = oldToken
+  })
+  const traceId = '0af7651916cd43dd8448eb211c80319c'
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, init?: RequestInit) => {
+    const headers = new Headers(init?.headers)
+    assert.equal(headers.get('traceparent'), `00-${traceId}-b7ad6b7169203331-01`)
+    assert.equal(headers.get('authorization'), 'Bearer private-test-token')
+    return Response.json({ items: [] })
+  })
+  const active = trace.setSpanContext(ROOT_CONTEXT, {
+    traceId,
+    spanId: 'b7ad6b7169203331',
+    traceFlags: TraceFlags.SAMPLED,
+  })
+  assert.deepEqual(await context.with(active, () => listBackendScheduledPosts(access, 10)), [])
 })

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 	goredis "github.com/redis/go-redis/v9"
 )
 
@@ -42,7 +43,9 @@ func New() (Store, error) {
 		return nil, err
 	}
 	opts.DialTimeout = 10 * time.Second
-	return &client{c: goredis.NewClient(opts)}, nil
+	c := goredis.NewClient(opts)
+	telemetry.InstrumentRedis("social", c)
+	return &client{c: c}, nil
 }
 
 type client struct{ c *goredis.Client }

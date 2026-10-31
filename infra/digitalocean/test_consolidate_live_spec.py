@@ -274,6 +274,24 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         # Removing it from Infisical removes it from the app instead of failing the deploy.
         self.assertFalse(cutover.OPTIONAL_TENANT_KEYS & set(backend_envs(cutover.consolidate(keyed, self.digest, secrets))))
 
+    def test_telemetry_settings_follow_infisical(self):
+        secrets = {key: "infisical-" + key for key in
+                   "SOCIAL_TEMPORAL_API_KEY PLATFORM_SOCIAL_ENCRYPTION_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}
+        envs = lambda spec, name: {item["key"]: item for item in next(
+            item for item in spec["services"] if item["name"] == name)["envs"]}
+        headers = "authorization=Bearer xaat-token,x-axiom-dataset=shots-traces"
+        traced = cutover.consolidate(self.base, self.digest, dict(secrets, OTEL_ENABLED="true",
+                                                                   OTEL_EXPORTER_OTLP_TRACES_HEADERS=headers))
+        backend, web = envs(traced, "screenshot-studio-backend"), envs(traced, "web")
+        self.assertEqual(backend["TENANT_OTEL_ENABLED"]["value"], "true")
+        self.assertEqual(web["OTEL_EXPORTER_OTLP_TRACES_HEADERS"], {"key": "OTEL_EXPORTER_OTLP_TRACES_HEADERS", "value": headers,
+                                                                     "type": "SECRET", "scope": "RUN_TIME"})
+        self.assertEqual(web["OTEL_EXPORTER_OTLP_COMPRESSION"]["value"], "gzip")
+        # Removing the settings from Infisical turns telemetry off on the next deploy.
+        untraced = cutover.consolidate(traced, self.digest, secrets)
+        self.assertFalse(any("OTEL_" in key for key in envs(untraced, "screenshot-studio-backend")))
+        self.assertFalse(any(key.startswith("OTEL_") for key in envs(untraced, "web")))
+
     def test_mcp_host_follows_infisical(self):
         secrets = {key: "infisical-" + key for key in
                    "SOCIAL_TEMPORAL_API_KEY PLATFORM_SOCIAL_ENCRYPTION_KEY DATABASE_URL MIGRATION_DATABASE_URL TEMPORAL_API_KEY AUDIT_RETENTION_DATABASE_URL AUDIT_DRAIN_ENCRYPTION_KEY RESEND_API_KEY STORAGE_SERVICE_KEY BETTER_AUTH_SECRET PUBLISHING_SERVICE_TOKEN R2_ENDPOINT R2_BUCKET_NAME R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY REDIS_URL".split()}

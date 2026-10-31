@@ -47,6 +47,65 @@ func TestLoadOrchestratorReadsSocialWorkerControls(t *testing.T) {
 	}
 }
 
+func TestLoadTelemetryIsOffByDefault(t *testing.T) {
+	t.Setenv("OTEL_ENABLED", "")
+	t.Setenv("OTEL_SAMPLING_RATE", "not-a-number")
+	cfg, err := LoadTelemetry()
+	if err != nil || cfg.Enabled {
+		t.Fatalf("expected telemetry off without validating the rest, got %#v, %v", cfg, err)
+	}
+}
+
+func TestLoadTelemetryDefaultsToOnePercent(t *testing.T) {
+	t.Setenv("OTEL_ENABLED", "true")
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://api.axiom.co")
+	cfg, err := LoadTelemetry()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Traces || !cfg.Metrics || cfg.SamplingRate != 0.01 || cfg.SlowSpan.Seconds() != 2 || cfg.PromotedSpansPerSecond != 10 {
+		t.Fatalf("unexpected defaults: %#v", cfg)
+	}
+}
+
+func TestLoadTelemetryRejectsInvalidSettings(t *testing.T) {
+	for name, env := range map[string]map[string]string{
+		"missing endpoint":   {"OTEL_EXPORTER_OTLP_ENDPOINT": ""},
+		"rate above one":     {"OTEL_SAMPLING_RATE": "1.5"},
+		"negative rate":      {"OTEL_SAMPLING_RATE": "-0.1"},
+		"rate not a number":  {"OTEL_SAMPLING_RATE": "1%"},
+		"rate NaN":           {"OTEL_SAMPLING_RATE": "NaN"},
+		"zero batch delay":   {"OTEL_BSP_SCHEDULE_DELAY": "0"},
+		"bad queue size":     {"OTEL_BSP_MAX_QUEUE_SIZE": "big"},
+		"bad threshold":      {"OTEL_SLOW_SPAN_THRESHOLD": "2"},
+		"negative promotion": {"OTEL_PROMOTED_SPANS_PER_SECOND": "-1"},
+		"unknown exporter":   {"OTEL_TRACES_EXPORTER": "jaeger"},
+		"enabled not bool":   {"OTEL_ENABLED": "yes"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv("OTEL_ENABLED", "true")
+			t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "https://api.axiom.co")
+			for key, value := range env {
+				t.Setenv(key, value)
+			}
+			if _, err := LoadTelemetry(); err == nil {
+				t.Fatal("expected an error")
+			}
+		})
+	}
+}
+
+func TestLoadTelemetryTurnsSignalsOffIndependently(t *testing.T) {
+	t.Setenv("OTEL_ENABLED", "true")
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "https://api.axiom.co/v1/traces")
+	t.Setenv("OTEL_METRICS_EXPORTER", "none")
+	cfg, err := LoadTelemetry()
+	if err != nil || !cfg.Traces || cfg.Metrics {
+		t.Fatalf("expected traces only, got %#v, %v", cfg, err)
+	}
+}
+
 func TestLoadOrchestratorRejectsInvalidRunCron(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgresql://example")
 	t.Setenv("STORAGE_API_URL", "http://storage")

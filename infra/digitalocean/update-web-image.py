@@ -97,6 +97,10 @@ def update_web_image(base, tag, secrets=None):
         source["value"] = "digitalocean"
 
     if secrets is not None:
+        # Telemetry settings are optional: one removed from Infisical leaves the
+        # web, which turns telemetry off instead of failing the deploy.
+        web_envs[:] = [item for item in web_envs if not (
+            item["key"].startswith("OTEL_") and item.get("type") == "SECRET" and not secrets.get(item["key"]))]
         for item in web_envs:
             if item.get("type") != "SECRET":
                 continue

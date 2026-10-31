@@ -113,6 +113,14 @@ func publishingEnv(environ []string) ([]string, error) {
 			result = append(result, name+"="+value)
 		}
 	}
+	// Both processes share the telemetry settings and the image's version; a
+	// TENANT_ twin still wins.
+	for _, item := range environ {
+		key, _, _ := strings.Cut(item, "=")
+		if (strings.HasPrefix(key, "OTEL_") || key == "SERVICE_VERSION") && !hasEnv(result, key) {
+			result = append(result, item)
+		}
+	}
 	result = append(result, "PORT=8081")
 	for _, key := range []string{"DATABASE_URL", "TEMPORAL_ADDRESS", "TEMPORAL_NAMESPACE", "AUDIT_RETENTION_DATABASE_URL", "PUBLISHING_SERVICE_TOKEN"} {
 		if !hasEnv(result, key) {

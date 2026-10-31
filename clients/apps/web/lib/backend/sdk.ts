@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { randomUUID } from 'node:crypto'
+import { context, propagation } from '@opentelemetry/api'
 import type { StoreProvider } from '@/lib/api/contracts/store-publishing'
 import type { Principal } from '@/lib/auth/principal'
 import {
@@ -38,11 +39,25 @@ function principalScope(principal: Principal): PrincipalScope {
   }
 }
 
+/**
+ * fetch that sends the active trace to the Go backend as `traceparent`, so a
+ * backend span joins the web request's trace. Without telemetry the global
+ * propagator adds nothing.
+ */
+const tracedFetch: typeof fetch = (input, init) => {
+  const headers = new Headers(init?.headers)
+  propagation.inject(context.active(), headers, {
+    set: (carrier, key, value) => carrier.set(key, value),
+  })
+  return fetch(input, { ...init, headers })
+}
+
 function client(scope: BackendScope): ScreenshotStudioBackendSDK {
   return new ScreenshotStudioBackendSDK(
     process.env.PUBLISHING_API_URL ?? '',
     process.env.PUBLISHING_SERVICE_TOKEN ?? '',
-    scope
+    scope,
+    tracedFetch
   )
 }
 

@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -27,10 +28,10 @@ func Open(ctx context.Context, databaseURL string) (*Database, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
-	db := stdlib.OpenDB(*config, stdlib.OptionAfterConnect(func(_ context.Context, conn *pgx.Conn) error {
+	db := telemetry.OpenDB("social", stdlib.GetConnector(*config, stdlib.OptionAfterConnect(func(_ context.Context, conn *pgx.Conn) error {
 		registerUTCTimestamps(conn.TypeMap())
 		return nil
-	}))
+	})))
 	db.SetConnMaxIdleTime(5 * time.Minute)
 	db.SetConnMaxLifetime(30 * time.Minute)
 	db.SetMaxIdleConns(5)

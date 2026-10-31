@@ -8,7 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.temporal.io/sdk/activity"
+	temporalotel "go.temporal.io/sdk/contrib/opentelemetry"
 	"go.temporal.io/sdk/interceptor"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/worker"
@@ -17,16 +20,23 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 )
 
-// The observer passes results and errors through untouched and logs each
-// activity with its workflow, workspace, run, and request IDs.
+// The observer passes results and errors through untouched, logs each
+// activity with its workflow, workspace, run, and request IDs, and puts the
+// workspace and run on the span the Temporal tracing interceptor starts.
 func TestObserverLogsEveryActivityWithItsRun(t *testing.T) {
 	var logs bytes.Buffer
 	previous := slog.Default()
 	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
 	t.Cleanup(func() { slog.SetDefault(previous) })
+	spans := tracetest.NewSpanRecorder()
+	tracing, err := temporalotel.NewTracingInterceptor(temporalotel.TracerOptions{
+		Tracer: sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(spans)).Tracer("test")})
+	if err != nil {
+		t.Fatal(err)
+	}
 	var suite testsuite.WorkflowTestSuite
 	env := suite.NewTestActivityEnvironment()
-	env.SetWorkerOptions(worker.Options{Interceptors: []interceptor.WorkerInterceptor{&Observer{}}})
+	env.SetWorkerOptions(worker.Options{Interceptors: []interceptor.WorkerInterceptor{tracing, &Observer{}}})
 	env.RegisterActivityWithOptions(func(_ context.Context, run Input) (string, error) {
 		if run.RunID == "bad" {
 			return "", errors.New("the page answered 500")
@@ -48,6 +58,17 @@ func TestObserverLogsEveryActivityWithItsRun(t *testing.T) {
 		if !strings.Contains(logs.String(), want) {
 			t.Fatalf("logs lack %q:\n%s", want, logs.String())
 		}
+	}
+	ended := spans.Ended()
+	if len(ended) != 2 || ended[0].Name() != "RunActivity:observed" || ended[1].Status().Description != "the page answered 500" {
+		t.Fatalf("unexpected spans: %v", ended)
+	}
+	attributes := map[string]string{}
+	for _, kv := range ended[0].Attributes() {
+		attributes[string(kv.Key)] = kv.Value.Emit()
+	}
+	if attributes["organization.id"] != "org-1" || attributes["onboarding.run_id"] != "run-1" {
+		t.Fatalf("span lacks the run: %v", attributes)
 	}
 }
 

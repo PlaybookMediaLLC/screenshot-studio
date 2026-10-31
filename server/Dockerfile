@@ -24,7 +24,9 @@ COPY --from=build /out/platform-migrate /platform-migrate
 COPY --from=build /out/publishing-orchestrator /publishing-orchestrator
 COPY --from=build /out/publishing-backend /publishing-backend
 COPY --from=build /out/combined-backend /combined-backend
-ENV TZ=UTC
+# The commit the image is built from; telemetry reports it as service.version.
+ARG SERVICE_VERSION=dev
+ENV TZ=UTC SERVICE_VERSION=$SERVICE_VERSION
 EXPOSE 3000
 EXPOSE 3003
 ENTRYPOINT ["/combined-backend"]

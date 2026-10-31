@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/tenantpublishing"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialapi"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/socialconnect"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalonboarding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/temporalpublishing"
 	"github.com/getsentry/sentry-go"
@@ -38,6 +40,8 @@ import (
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	// First, so clients built below use the traced default transport.
+	defer telemetry.Start(ctx, "publishing-backend")()
 	cfg, err := config.LoadBackend()
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
@@ -162,9 +166,9 @@ func main() {
 	}
 	server := &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.Port),
-		Handler: httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, verifier, cfg.ServiceToken, configuration,
+		Handler: telemetry.Handler(httpapi.NewWithOnboarding(publishing.NewRepository(db.Client), scheduler, verifier, cfg.ServiceToken, configuration,
 			&onboarding.Service{Background: &temporalonboarding.Client{SeedSurfaces: os.Getenv("PLATFORM_ONBOARDING_SURFACES") == "enabled", Temporal: temporalClient},
-				FastPath: &onboarding.FastPath{Fetcher: onboarding.NewFetcher(), Model: model}, Store: configuration}),
+				FastPath: &onboarding.FastPath{Fetcher: onboarding.NewFetcher(), Model: model}, Store: configuration}), false),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       60 * time.Second,
 		WriteTimeout:      30 * time.Second,
@@ -178,8 +182,9 @@ func main() {
 			os.Exit(1)
 		}
 		public := &http.Server{
-			Addr:              ":" + port,
-			Handler:           handler,
+			Addr: ":" + port,
+			// The public port faces the internet: it never joins a caller's trace.
+			Handler:           telemetry.Handler(handler, true),
 			ReadHeaderTimeout: 5 * time.Second,
 			ReadTimeout:       60 * time.Second,
 			// Above the MCP tool call timeout (60s), so a slow call still answers.
@@ -195,19 +200,28 @@ func main() {
 			}
 		}()
 	}
+	drained := make(chan struct{})
 	go func() {
+		defer close(drained)
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		// Both ports stop accepting at once and drain within the same budget.
+		var wait sync.WaitGroup
 		for _, s := range servers {
-			_ = s.Shutdown(shutdownCtx)
+			wait.Go(func() { _ = s.Shutdown(shutdownCtx) })
 		}
+		wait.Wait()
 	}()
 	slog.Info("publishing backend listening", "port", cfg.Port)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		slog.Error("backend stopped", "error", err)
 		os.Exit(1)
 	}
+	// ListenAndServe returns as Shutdown starts: wait up to 10 seconds for
+	// open requests, so their spans are flushed and the database closes after
+	// them. A longer request (an MCP call can take 60 s) is cut off.
+	<-drained
 }
 
 // publicHandler is all the public port serves: the MCP server (RFC 026), its

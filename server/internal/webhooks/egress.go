@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publicnet"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 )
 
 // ErrUnsafeEndpoint refuses an endpoint the platform will not call.
@@ -103,7 +104,7 @@ func NewHTTPClient() *http.Client {
 		}
 		return nil
 	}}
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport := telemetry.UntracedTransport.Clone()
 	transport.Proxy = nil
 	transport.DialContext = dialer.DialContext
 	transport.MaxResponseHeaderBytes = 16 << 10

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/telemetry"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -22,7 +23,9 @@ func NewRedisCounter(rawURL string) (*RedisCounter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &RedisCounter{client: redis.NewClient(options)}, nil
+	client := redis.NewClient(options)
+	telemetry.InstrumentRedis("quota", client)
+	return &RedisCounter{client: client}, nil
 }
 
 func (r *RedisCounter) Increment(ctx context.Context, key string, amount int, window time.Duration) (int, error) {

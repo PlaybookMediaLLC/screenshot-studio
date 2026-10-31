@@ -212,6 +212,9 @@ func (s *Server) Handler(next http.Handler) http.Handler {
 
 		default:
 			if mount := strings.TrimSuffix(path, "/"); mounts[mount] != "" {
+				// The route a ServeMux would set: telemetry names the span and
+				// the request metric after it.
+				r.Pattern = mount
 				s.serveMCP(w, r, mount)
 				return
 			}
